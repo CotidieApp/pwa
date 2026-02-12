@@ -1,0 +1,1963 @@
+'use client';
+
+import React, {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useEffect,
+  useCallback,
+  useMemo,
+} from 'react';
+import { Capacitor } from '@capacitor/core';
+import { LocalNotifications } from '@capacitor/local-notifications';
+import { initialPrayers, categories } from '@/lib/data';
+import type {
+  Prayer,
+  Quote,
+  ImagePlaceholder,
+  Category,
+  SaintOfTheDay,
+} from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { catholicQuotes } from '@/lib/quotes';
+import { allowedDevCredentials } from '@/lib/dev-credentials';
+import saintsDataRaw from '@/lib/saints-data.json';
+import { getMovableFeast, getEasterDate } from '@/lib/movable-feasts';
+
+const saintsData = saintsDataRaw as { saints: SaintOfTheDay[] };
+
+type Theme = 'light' | 'dark';
+type FontSize = number;
+type OverlayPosition = { x: number; y: number };
+type OverlayPositions = { timer: OverlayPosition; planNav: OverlayPosition; wrappedBubble: OverlayPosition };
+
+export type DailyReminder = {
+  id: string;
+  notificationId: number;
+  enabled: boolean;
+  target: { type: 'prayer'; id: string } | { type: 'category'; id: string };
+  time: { hours: number; minutes: number };
+  message: string;
+  createdAt: number;
+};
+
+export type UserStats = {
+  totalPrayersOpened: number;
+  prayersOpenedHistory: Record<string, number>;
+  prayerDaysCount: Record<string, number>;
+  prayerLastOpened: Record<string, string>;
+  daysActive: number;
+  lastActiveDate: string | null;
+  lettersWritten: number;
+  devotionsCreated: number;
+  prayersCreated: number;
+  saintQuotesOpened: number;
+  nightPrayersCount: number;
+  morningPrayersCount: number;
+  rosaryCount: number;
+  examinationCount: number;
+  angelusCount: number;
+  massStreak: number;
+  lastMassDate: string | null;
+  prayerLastIncrementTimestamp: Record<string, number>;
+};
+
+type ThemeColor = { h: number; s: number };
+type CustomThemeColors = {
+  primary: ThemeColor;
+  background: ThemeColor;
+  accent: ThemeColor;
+};
+
+export type CustomPlan = {
+  id: string;
+  slot: 1 | 2 | 3 | 4;
+  name: string;
+  prayerIds: string[];
+  createdAt: number;
+};
+
+type Settings = {
+  theme: Theme;
+  setTheme: (t: Theme) => void;
+  fontSize: FontSize;
+  setFontSize: (f: FontSize) => void;
+  fontFamily: string;
+  setFontFamily: (f: string) => void;
+
+  homeBackgroundId: string | null;
+  setHomeBackgroundId: (id: string | null) => void;
+  autoRotateBackground: boolean;
+  setAutoRotateBackground: (enabled: boolean) => void;
+
+  allPrayers: Prayer[];
+  userDevotions: Prayer[];
+  addUserDevotion: (p: Omit<Prayer, 'id' | 'isUserDefined'> & { imageUrl?: string }) => void;
+  removeUserDevotion: (id: string) => void;
+
+  userPrayers: Prayer[];
+  addUserPrayer: (p: Omit<Prayer, 'id' | 'isUserDefined'> & { imageUrl?: string }) => void;
+  removeUserPrayer: (id: string) => void;
+
+  userLetters: Prayer[];
+  addUserLetter: (p: Omit<Prayer, 'id' | 'isUserDefined'> & { imageUrl?: string }) => void;
+  removeUserLetter: (id: string) => void;
+
+  updateUserPrayer: (id: string, data: { title: string; content: string; imageUrl?: string }) => void;
+  setPredefinedPrayerOverride: (id: string, data: { title: string; content: string; imageUrl?: string }) => void;
+
+  resetSettings: () => void;
+  hardResetApp: () => void;
+
+  alwaysShowPrayers: string[];
+  toggleAlwaysShowPrayer: (id: string) => void;
+
+  isDeveloperMode: boolean;
+  loginAsDeveloper: (user: string, pass: string) => boolean;
+  logoutDeveloper: () => void;
+
+  isEditModeEnabled: boolean;
+  setIsEditModeEnabled: (enabled: boolean) => void;
+
+  removePredefinedPrayer: (id: string) => void;
+  restorePredefinedPrayer: (id: string) => void;
+  restoreAllPredefinedPrayers: () => void;
+
+  hiddenPrayerIds: string[];
+  editedPrayerIds: string[];
+
+  importUserData: (data: any) => void;
+
+  timerEnabled: boolean;
+  setTimerEnabled: (enabled: boolean) => void;
+  timerDuration: number;
+  setTimerDuration: (duration: number) => void;
+  timerTime: number;
+  timerActive: boolean;
+  toggleTimer: () => void;
+  resetTimer: () => void;
+
+  overlayPositions: OverlayPositions;
+  setOverlayPosition: (key: keyof OverlayPositions, pos: OverlayPosition) => void;
+
+  notificationsEnabled: boolean;
+  setNotificationsEnabled: (enabled: boolean) => void;
+  dailyReminders: DailyReminder[];
+  addDailyReminder: () => void;
+  updateDailyReminder: (id: string, patch: Partial<Omit<DailyReminder, 'id' | 'createdAt'>>) => void;
+  removeDailyReminder: (id: string) => void;
+
+  simulatedDate: string | null;
+  setSimulatedDate: (date: string | null) => void;
+
+  planDeVidaTrackerEnabled: boolean;
+  setPlanDeVidaTrackerEnabled: (enabled: boolean) => void;
+  planDeVidaProgress: string[];
+  togglePlanDeVidaItem: (id: string, force?: boolean) => void;
+  resetPlanDeVidaProgress: () => void;
+
+  isDistractionFree: boolean;
+  toggleDistractionFree: () => void;
+
+  userQuotes: Quote[];
+  addUserQuote: (quote: Omit<Quote, 'id' | 'isUserDefined'>) => void;
+  removeUserQuote: (id: string) => void;
+
+  showTimerFinishedAlert: boolean;
+  setShowTimerFinishedAlert: (show: boolean) => void;
+
+  simulatedQuoteId: string | null;
+  setSimulatedQuoteId: (id: string | null) => void;
+
+  movableFeastsEnabled: boolean;
+  setMovableFeastsEnabled: (enabled: boolean) => void;
+
+  isCustomThemeActive: boolean;
+  setIsCustomThemeActive: (active: boolean) => void;
+  setCustomThemeColor: (colorType: keyof CustomThemeColors, newColor: ThemeColor) => void;
+  resetCustomTheme: () => void;
+
+  userHomeBackgrounds: ImagePlaceholder[];
+  allHomeBackgrounds: ImagePlaceholder[];
+
+  addUserHomeBackground: (image: Omit<ImagePlaceholder, 'id' | 'isUserDefined'>) => void;
+  removeUserHomeBackground: (id: string) => void;
+
+  categories: Category[];
+
+  activeThemeColors: CustomThemeColors;
+
+  scrollPositions: { [key: string]: number };
+  setScrollPosition: (prayerId: string, position: number) => void;
+
+  quoteOfTheDay: Quote | null;
+
+  shownEasterEggQuoteIds: string[];
+  registerEasterEggQuote: (quoteId: string | null, reset?: boolean) => void;
+
+  saintOfTheDay: SaintOfTheDay | null;
+  saintOfTheDayImage: ImagePlaceholder | null;
+  saintOfTheDayPrayerId: string | null;
+
+  customPlans: Array<CustomPlan | null>;
+  createCustomPlan: (slot: 1 | 2 | 3 | 4, name: string) => void;
+  deleteCustomPlan: (slot: 1 | 2 | 3 | 4) => void;
+  setCustomPlanName: (slot: 1 | 2 | 3 | 4, name: string) => void;
+  addCustomPlanPrayer: (slot: 1 | 2 | 3 | 4, prayerId: string) => void;
+  removeCustomPlanPrayerAt: (slot: 1 | 2 | 3 | 4, index: number) => void;
+  moveCustomPlanPrayer: (slot: 1 | 2 | 3 | 4, fromIndex: number, toIndex: number) => void;
+
+  forceWrappedSeason: boolean;
+  setForceWrappedSeason: (force: boolean) => void;
+
+  showZeroStats: boolean;
+  setShowZeroStats: (show: boolean) => void;
+
+  userStats: UserStats; // Effective stats (simulated or real)
+  realUserStats: UserStats; // Always real stats
+  simulatedStats: UserStats | null;
+  setSimulatedStats: (stats: UserStats | null) => void;
+
+  incrementStat: (key: keyof UserStats, subKey?: string) => void;
+  updateUserStats: (newStats: UserStats) => void;
+  globalUserStats: UserStats;
+  incrementGlobalStat: (key: keyof UserStats, subKey?: string) => void;
+};
+
+const SettingsContext = createContext<Settings | undefined>(undefined);
+const SAVED_STATE_KEY = 'cotidie_app_state';
+
+const defaultThemeColors: CustomThemeColors = {
+  primary: { h: 36, s: 88 },
+  background: { h: 216, s: 33 },
+  accent: { h: 45, s: 86 },
+};
+
+const defaultHomeBackgroundId: string | null = (() => {
+  const homeBackgrounds = PlaceHolderImages.filter((img) => img.id.startsWith('home-'));
+  return homeBackgrounds[0]?.id ?? null;
+})();
+
+const defaultAlwaysShowPrayers = ['cartas'];
+const defaultOverlayPositions: OverlayPositions = {
+  timer: { x: 12, y: 74 },
+  planNav: { x: 12, y: 130 },
+  wrappedBubble: { x: 16, y: 48 },
+};
+
+const defaultUserStats: UserStats = {
+  totalPrayersOpened: 0,
+  prayersOpenedHistory: {},
+  prayerDaysCount: {},
+  prayerLastOpened: {},
+  daysActive: 0,
+  lastActiveDate: null,
+  lettersWritten: 0,
+  devotionsCreated: 0,
+  prayersCreated: 0,
+  saintQuotesOpened: 0,
+  nightPrayersCount: 0,
+  morningPrayersCount: 0,
+  rosaryCount: 0,
+  examinationCount: 0,
+  angelusCount: 0,
+  massStreak: 0,
+  lastMassDate: null,
+  prayerLastIncrementTimestamp: {},
+};
+
+export const SettingsProvider = ({ children }: { children: ReactNode }) => {
+  const { toast } = useToast();
+
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  const [theme, setTheme] = useState<Theme>('light');
+  const [fontSize, setFontSize] = useState<FontSize>(15);
+  const [fontFamily, setFontFamily] = useState('literata');
+
+  const [homeBackgroundId, setHomeBackgroundId] = useState<string | null>(defaultHomeBackgroundId);
+  const [autoRotateBackground, setAutoRotateBackground] = useState(true);
+  const [lastBackgroundRotationDate, setLastBackgroundRotationDate] = useState<string | null>(null);
+
+  const [hiddenPrayerIds, setHiddenPrayerIds] = useState<string[]>([]);
+  const [editedPrayerIds, setEditedPrayerIds] = useState<string[]>([]);
+
+  const [userDevotions, setUserDevotions] = useState<Prayer[]>([]);
+  const [userPrayers, setUserPrayers] = useState<Prayer[]>([]);
+  const [userLetters, setUserLetters] = useState<Prayer[]>([]);
+
+  const [alwaysShowPrayers, setAlwaysShowPrayers] =
+    useState<string[]>(defaultAlwaysShowPrayers);
+
+  const [isDeveloperMode, setIsDeveloperMode] = useState(false);
+  const [isEditModeEnabled, setIsEditModeEnabled] = useState(false);
+
+  const [timerEnabled, setTimerEnabled] = useState(false);
+  const [timerDuration, setTimerDuration] = useState(15);
+  const [timerTime, setTimerTime] = useState(15 * 60);
+  const [timerActive, setTimerActive] = useState(false);
+  const [overlayPositions, setOverlayPositions] =
+    useState<OverlayPositions>(defaultOverlayPositions);
+
+  const [simulatedDate, setSimulatedDate] = useState<string | null>(null);
+
+  const [planDeVidaTrackerEnabled, setPlanDeVidaTrackerEnabled] = useState(true);
+  const [planDeVidaProgress, setPlanDeVidaProgress] = useState<string[]>([]);
+  const [lastResetTimestamp, setLastResetTimestamp] = useState(Date.now());
+
+  const [isDistractionFree, setIsDistractionFree] = useState(false);
+
+  const [userQuotes, setUserQuotes] = useState<Quote[]>([]);
+  const [showTimerFinishedAlert, setShowTimerFinishedAlert] = useState(false);
+
+  const [movableFeastsEnabled, setMovableFeastsEnabled] = useState(true);
+
+  const [customThemeColors, setCustomThemeColors] =
+    useState<CustomThemeColors>(defaultThemeColors);
+  const [isCustomThemeActive, setIsCustomThemeActive] = useState(false);
+
+  const [userHomeBackgrounds, setUserHomeBackgrounds] = useState<ImagePlaceholder[]>([]);
+  const [scrollPositions, setScrollPositions] = useState<{ [k: string]: number }>({});
+
+  const [quoteOfTheDay, setQuoteOfTheDay] = useState<Quote | null>(null);
+  const [recentQuoteIds, setRecentQuoteIds] = useState<string[]>([]);
+  const [lastQuoteDate, setLastQuoteDate] = useState<string | null>(null);
+
+  const [shownEasterEggQuoteIds, setShownEasterEggQuoteIds] = useState<string[]>([]);
+
+  const [saintOfTheDay, setSaintOfTheDay] = useState<SaintOfTheDay | null>(null);
+  const [saintOfTheDayImage, setSaintOfTheDayImage] =
+    useState<ImagePlaceholder | null>(null);
+  const [saintOfTheDayPrayerId, setSaintOfTheDayPrayerId] = useState<string | null>(null);
+  const [lastSaintUpdate, setLastSaintUpdate] = useState<string | null>(null);
+  
+  const [forceWrappedSeason, setForceWrappedSeason] = useState(false);
+  
+  const [simulatedQuoteId, setSimulatedQuoteId] = useState<string | null>(null);
+
+  const [customPlans, setCustomPlans] = useState<Array<CustomPlan | null>>([null, null, null, null]);
+
+  const [notificationsEnabled, setNotificationsEnabledState] = useState(true);
+  const [dailyReminders, setDailyReminders] = useState<DailyReminder[]>([]);
+  const [userStats, setUserStats] = useState<UserStats>(defaultUserStats);
+  const [globalUserStats, setGlobalUserStats] = useState<UserStats>(defaultUserStats);
+  const [statsYear, setStatsYear] = useState<number>(new Date().getFullYear());
+  const [simulatedStats, setSimulatedStats] = useState<UserStats | null>(null);
+
+  const [showZeroStats, setShowZeroStats] = useState(false);
+
+  /* =======================
+     LOCAL STORAGE (BLINDADO)
+     ======================= */
+
+  const saveState = useCallback((state: any) => {
+    if (typeof window === 'undefined') return;
+    try {
+        if (window.localStorage && typeof window.localStorage.setItem === 'function') {
+            window.localStorage.setItem(SAVED_STATE_KEY, JSON.stringify(state));
+        }
+    } catch (e) {
+        console.error("Failed to save state", e);
+    }
+  }, []);
+
+  const normalizeDailyReminders = useCallback((raw: any): DailyReminder[] => {
+    if (!Array.isArray(raw)) return [];
+
+    const generateStringId = () => Math.random().toString(36).substr(2, 9);
+    const generateNotificationId = () => {
+      const max = 2147483647;
+      return Math.floor(Math.random() * (max - 1)) + 1;
+    };
+
+    const normalizeTime = (t: any) => {
+      const hours = typeof t?.hours === 'number' ? t.hours : 9;
+      const minutes = typeof t?.minutes === 'number' ? t.minutes : 0;
+      const safeHours = Math.min(23, Math.max(0, Math.floor(hours)));
+      const safeMinutes = Math.min(59, Math.max(0, Math.floor(minutes)));
+      return { hours: safeHours, minutes: safeMinutes };
+    };
+
+    const normalizeTarget = (t: any): DailyReminder['target'] => {
+      const type = t?.type;
+      const id = t?.id;
+      if ((type === 'prayer' || type === 'category') && typeof id === 'string' && id.trim().length > 0) {
+        return { type, id };
+      }
+      return { type: 'category', id: 'devociones' };
+    };
+
+    return raw
+      .map((r: any) => {
+        if (!r || typeof r !== 'object') return null;
+        const id = typeof r.id === 'string' && r.id.trim().length > 0 ? r.id : generateStringId();
+        const notificationId =
+          typeof r.notificationId === 'number' && Number.isFinite(r.notificationId)
+            ? Math.max(1, Math.floor(r.notificationId))
+            : generateNotificationId();
+        const enabled = typeof r.enabled === 'boolean' ? r.enabled : true;
+        const target = normalizeTarget(r.target);
+        const time = normalizeTime(r.time);
+        const message = typeof r.message === 'string' ? r.message : '';
+        const createdAt = typeof r.createdAt === 'number' && Number.isFinite(r.createdAt) ? r.createdAt : Date.now();
+        return { id, notificationId, enabled, target, time, message, createdAt } satisfies DailyReminder;
+      })
+      .filter(Boolean) as DailyReminder[];
+  }, []);
+
+  const normalizeOverlayPosition = useCallback(
+    (raw: any, fallback: OverlayPosition): OverlayPosition => {
+      const x =
+        typeof raw?.x === 'number' && Number.isFinite(raw.x)
+          ? Math.max(0, Math.round(raw.x))
+          : fallback.x;
+      const y =
+        typeof raw?.y === 'number' && Number.isFinite(raw.y)
+          ? Math.max(0, Math.round(raw.y))
+          : fallback.y;
+      return { x, y };
+    },
+    []
+  );
+
+  const normalizeOverlayPositions = useCallback(
+    (raw: any): OverlayPositions => ({
+      timer: normalizeOverlayPosition(raw?.timer, defaultOverlayPositions.timer),
+      planNav: normalizeOverlayPosition(raw?.planNav, defaultOverlayPositions.planNav),
+      wrappedBubble: normalizeOverlayPosition(raw?.wrappedBubble, defaultOverlayPositions.wrappedBubble),
+    }),
+    [normalizeOverlayPosition]
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.localStorage || typeof window.localStorage.getItem !== 'function') {
+        setIsLoaded(true);
+        return;
+    }
+
+    try {
+      const raw = window.localStorage.getItem(SAVED_STATE_KEY);
+      if (!raw) {
+        setAlwaysShowPrayers(defaultAlwaysShowPrayers);
+        setCustomPlans([null, null, null, null]);
+        setIsLoaded(true);
+        return;
+      }
+
+      const s = JSON.parse(raw);
+
+      setTheme(s.theme ?? 'light');
+      if (typeof s.fontSize === 'number' && Number.isFinite(s.fontSize)) {
+        setFontSize(Math.round(s.fontSize));
+      } else if (s.fontSize === 'large') {
+        setFontSize(18);
+      } else {
+        setFontSize(15);
+      }
+      setFontFamily(s.fontFamily ?? 'literata');
+
+      const savedHomeBackgroundId =
+        typeof s.homeBackgroundId === 'string' ? s.homeBackgroundId : null;
+      const savedLastRotationDate =
+        typeof s.lastBackgroundRotationDate === 'string' ? s.lastBackgroundRotationDate : null;
+
+      const resolvedHomeBackgroundId = savedHomeBackgroundId ?? defaultHomeBackgroundId;
+      setHomeBackgroundId(resolvedHomeBackgroundId);
+      setAutoRotateBackground(s.autoRotateBackground ?? true);
+      setLastBackgroundRotationDate(savedLastRotationDate);
+
+      setHiddenPrayerIds(s.hiddenPrayerIds ?? []);
+      setEditedPrayerIds(s.editedPrayerIds ?? []);
+      setUserDevotions(s.userDevotions ?? []);
+      setUserPrayers(s.userPrayers ?? []);
+      setUserLetters(s.userLetters ?? []);
+
+      const asp = s.alwaysShowPrayers ?? [];
+      if (!asp.includes('cartas')) asp.push('cartas');
+      setAlwaysShowPrayers(asp);
+
+      setIsDeveloperMode(s.isDeveloperMode ?? false);
+      setIsEditModeEnabled(s.isEditModeEnabled ?? false);
+
+      setTimerEnabled(s.timerEnabled ?? false);
+      setTimerDuration(s.timerDuration ?? 15);
+      setTimerTime((s.timerDuration ?? 15) * 60);
+      setOverlayPositions(normalizeOverlayPositions(s.overlayPositions));
+
+      setPlanDeVidaTrackerEnabled(s.planDeVidaTrackerEnabled ?? true);
+      setPlanDeVidaProgress(s.planDeVidaProgress ?? []);
+      setLastResetTimestamp(s.lastResetTimestamp ?? Date.now());
+
+      setUserQuotes(s.userQuotes ?? []);
+      setMovableFeastsEnabled(s.movableFeastsEnabled ?? true);
+
+      setCustomThemeColors(s.customThemeColors ?? defaultThemeColors);
+      setIsCustomThemeActive(s.isCustomThemeActive ?? false);
+
+      const resolvedUserHomeBackgrounds = Array.isArray(s.userHomeBackgrounds) ? s.userHomeBackgrounds : [];
+      setUserHomeBackgrounds(resolvedUserHomeBackgrounds);
+      setScrollPositions(s.scrollPositions ?? {});
+
+      setQuoteOfTheDay(s.quoteOfTheDay ?? null);
+      setRecentQuoteIds(s.recentQuoteIds ?? []);
+      setLastQuoteDate(s.lastQuoteDate ?? null);
+
+      setShownEasterEggQuoteIds(s.shownEasterEggQuoteIds ?? []);
+
+      setSaintOfTheDay(s.saintOfTheDay ?? null);
+      setSaintOfTheDayImage(s.saintOfTheDayImage ?? null);
+      setLastSaintUpdate(s.lastSaintUpdate ?? null);
+
+      const rawCustomPlans = Array.isArray(s.customPlans) ? s.customPlans : [];
+      const normalizedPlans: Array<CustomPlan | null> = [null, null, null, null];
+      for (const entry of rawCustomPlans) {
+        if (!entry || typeof entry !== 'object') continue;
+        const slot = (entry as any).slot;
+        if (slot !== 1 && slot !== 2 && slot !== 3 && slot !== 4) continue;
+        const nameCandidate = typeof (entry as any).name === 'string' ? (entry as any).name : '';
+        const trimmedName = nameCandidate.trim();
+        const name = trimmedName.length > 0 && !/^Plan personalizado\b/i.test(trimmedName) ? trimmedName : '';
+        const prayerIds = Array.isArray((entry as any).prayerIds)
+          ? (entry as any).prayerIds.filter((x: any) => typeof x === 'string')
+          : [];
+        const id = typeof (entry as any).id === 'string' ? (entry as any).id : `custom-plan-${slot}-${Date.now()}`;
+        const createdAt = typeof (entry as any).createdAt === 'number' ? (entry as any).createdAt : Date.now();
+        normalizedPlans[slot - 1] = { id, slot, name, prayerIds, createdAt };
+      }
+      setCustomPlans(normalizedPlans);
+
+      setNotificationsEnabledState(s.notificationsEnabled ?? true);
+      setDailyReminders(normalizeDailyReminders(s.dailyReminders));
+      
+      const currentYear = new Date().getFullYear();
+      const savedStatsYear = typeof s.statsYear === 'number' ? s.statsYear : currentYear;
+
+      // Handle Year Reset (Jan 1st)
+      if (savedStatsYear !== currentYear) {
+         // Reset yearly stats
+         setUserStats(defaultUserStats);
+         setStatsYear(currentYear);
+         
+         // Initialize global stats from old userStats if global didn't exist
+         // (Migration for existing users: assume previous stats were global)
+         if (!s.globalUserStats) {
+             setGlobalUserStats({
+                 ...defaultUserStats,
+                 ...(s.userStats || {}),
+                 prayersOpenedHistory: s.userStats?.prayersOpenedHistory || {},
+             });
+         } else {
+             setGlobalUserStats({
+                 ...defaultUserStats,
+                 ...(s.globalUserStats || {}),
+                 prayersOpenedHistory: s.globalUserStats?.prayersOpenedHistory || {},
+             });
+         }
+      } else {
+          setUserStats({
+            ...defaultUserStats,
+            ...(s.userStats || {}),
+            prayersOpenedHistory: s.userStats?.prayersOpenedHistory || {},
+          });
+          setStatsYear(savedStatsYear);
+          
+          if (s.globalUserStats) {
+             setGlobalUserStats({
+                 ...defaultUserStats,
+                 ...(s.globalUserStats || {}),
+                 prayersOpenedHistory: s.globalUserStats?.prayersOpenedHistory || {},
+             });
+          } else {
+             // First run with new code but same year: treat current stats as global too
+             setGlobalUserStats({
+                 ...defaultUserStats,
+                 ...(s.userStats || {}),
+                 prayersOpenedHistory: s.userStats?.prayersOpenedHistory || {},
+             });
+          }
+      }
+
+      const placeholderHomeBackgrounds = PlaceHolderImages.filter((img) => img.id.startsWith('home-'));
+      const resolvedUrl =
+        (resolvedHomeBackgroundId
+          ? [...placeholderHomeBackgrounds, ...resolvedUserHomeBackgrounds].find((img) => img.id === resolvedHomeBackgroundId)?.imageUrl ?? null
+          : null) ?? placeholderHomeBackgrounds[0]?.imageUrl ?? null;
+
+      if (resolvedUrl && typeof document !== 'undefined') {
+        const escaped = resolvedUrl.replace(/"/g, '\\"');
+        document.documentElement.style.setProperty('--home-bg-image', `url("${escaped}")`);
+      }
+      if (resolvedUrl) {
+        try {
+          window.localStorage.setItem('cotidie_home_bg_url', resolvedUrl);
+        } catch {}
+      }
+    } catch (e) {
+      console.error("Error loading state", e);
+      if (typeof window !== 'undefined' && window.localStorage && typeof window.localStorage.removeItem === 'function') {
+        window.localStorage.removeItem(SAVED_STATE_KEY);
+      }
+    } finally {
+      setIsLoaded(true);
+    }
+  }, []);
+
+  /* =======================
+     GUARDADO AUTOMÁTICO
+     ======================= */
+
+  useEffect(() => {
+    if (!isLoaded) return;
+
+    saveState({
+      theme,
+      fontSize,
+      fontFamily,
+      homeBackgroundId,
+      autoRotateBackground,
+      lastBackgroundRotationDate,
+      hiddenPrayerIds,
+      editedPrayerIds,
+      userDevotions,
+      userPrayers,
+      userLetters,
+      alwaysShowPrayers,
+      isDeveloperMode,
+      isEditModeEnabled,
+      timerEnabled,
+      timerDuration,
+      overlayPositions,
+      notificationsEnabled,
+      dailyReminders,
+      planDeVidaTrackerEnabled,
+      planDeVidaProgress,
+      lastResetTimestamp,
+      userQuotes,
+      movableFeastsEnabled,
+      customThemeColors,
+      isCustomThemeActive,
+      userHomeBackgrounds,
+      scrollPositions,
+      quoteOfTheDay,
+      recentQuoteIds,
+      lastQuoteDate,
+      shownEasterEggQuoteIds,
+      saintOfTheDay,
+      saintOfTheDayImage,
+      lastSaintUpdate,
+      customPlans,
+      userStats,
+      globalUserStats,
+      statsYear,
+      forceWrappedSeason,
+      showZeroStats,
+    });
+  }, [
+    isLoaded,
+    theme,
+    fontSize,
+    fontFamily,
+    homeBackgroundId,
+    autoRotateBackground,
+    lastBackgroundRotationDate,
+    hiddenPrayerIds,
+    editedPrayerIds,
+    userDevotions,
+    userPrayers,
+    userLetters,
+    alwaysShowPrayers,
+    isDeveloperMode,
+    isEditModeEnabled,
+    timerEnabled,
+    timerDuration,
+    overlayPositions,
+    notificationsEnabled,
+    dailyReminders,
+    planDeVidaTrackerEnabled,
+    planDeVidaProgress,
+    lastResetTimestamp,
+    userQuotes,
+    movableFeastsEnabled,
+    customThemeColors,
+    isCustomThemeActive,
+    userHomeBackgrounds,
+    scrollPositions,
+    quoteOfTheDay,
+    recentQuoteIds,
+    lastQuoteDate,
+    shownEasterEggQuoteIds,
+    saintOfTheDay,
+    saintOfTheDayImage,
+    lastSaintUpdate,
+    customPlans,
+    userStats,
+    globalUserStats,
+    statsYear,
+    forceWrappedSeason,
+    showZeroStats,
+    saveState,
+  ]);
+
+  // Track Days Active
+  useEffect(() => {
+    if (!isLoaded) return;
+    const now = simulatedDate ? new Date(simulatedDate) : new Date();
+    const dateKey = now.toISOString().slice(0, 10);
+    
+    if (userStats.lastActiveDate !== dateKey) {
+       setUserStats(prev => ({
+         ...prev,
+         daysActive: prev.daysActive + 1,
+         lastActiveDate: dateKey
+       }));
+    }
+  }, [isLoaded, simulatedDate, userStats.lastActiveDate]);
+
+  // Funciones auxiliares
+  const generateId = () => Math.random().toString(36).substr(2, 9);
+  
+  // incrementStat moved down to access getPrayerById
+
+
+  const updateUserStats = (newStats: UserStats) => {
+    setUserStats(newStats);
+  };
+
+  const generateNotificationId = () => {
+    const max = 2147483647;
+    return Math.floor(Math.random() * (max - 1)) + 1;
+  };
+
+  const setNotificationsEnabled = (enabled: boolean) => {
+    setNotificationsEnabledState(enabled);
+    if (enabled && Capacitor.isNativePlatform()) {
+      void (async () => {
+        const currentPerms = await LocalNotifications.checkPermissions().catch(() => null);
+        const perms =
+          currentPerms && (currentPerms as any).display === 'granted'
+            ? (currentPerms as any)
+            : await LocalNotifications.requestPermissions().catch(() => null);
+        if (!perms || (perms as any).display !== 'granted') {
+          setNotificationsEnabledState(false);
+          toast({
+            variant: 'destructive',
+            title: 'Permiso denegado',
+            description: 'Activa las notificaciones en Ajustes para recibir recordatorios.',
+          });
+          return;
+        }
+
+        if (Capacitor.getPlatform() === 'android') {
+          const anyLN = LocalNotifications as any;
+          if (typeof anyLN.checkExactNotificationSetting === 'function' && typeof anyLN.changeExactNotificationSetting === 'function') {
+            anyLN
+              .checkExactNotificationSetting()
+              .then((status: any) => {
+                if (status?.exact_alarm === 'granted') return;
+                toast({
+                  title: 'Activa alarmas exactas',
+                  description: 'Para que los recordatorios lleguen a la hora exacta, habilita "Alarmas exactas" para Cotidie.',
+                });
+                return anyLN.changeExactNotificationSetting();
+              })
+              .catch(() => {});
+          }
+        }
+      })();
+    }
+    toast({ title: enabled ? 'Notificaciones activadas.' : 'Notificaciones desactivadas.' });
+  };
+
+  const addDailyReminder = () => {
+    const newReminder: DailyReminder = {
+      id: generateId(),
+      notificationId: generateNotificationId(),
+      enabled: true,
+      target: { type: 'category', id: 'devociones' },
+      time: { hours: 9, minutes: 0 },
+      message: 'Recuerda tus devociones.',
+      createdAt: Date.now(),
+    };
+    setDailyReminders((prev) => [...prev, newReminder]);
+    toast({ title: 'Recordatorio agregado.' });
+  };
+
+  const updateDailyReminder = (id: string, patch: Partial<Omit<DailyReminder, 'id' | 'createdAt'>>) => {
+    setDailyReminders((prev) =>
+      prev.map((r) => {
+        if (r.id !== id) return r;
+        const next: DailyReminder = {
+          ...r,
+          ...patch,
+          time: patch.time ?? r.time,
+          target: patch.target ?? r.target,
+        };
+        return next;
+      })
+    );
+  };
+
+  const removeDailyReminder = (id: string) => {
+    setDailyReminders((prev) => prev.filter((r) => r.id !== id));
+    if (Capacitor.isNativePlatform()) {
+      void (async () => {
+        const pending = await LocalNotifications.getPending().catch(() => null);
+        const pendingNotifications =
+          pending && Array.isArray((pending as any).notifications) ? ((pending as any).notifications as any[]) : [];
+        const ids = pendingNotifications
+          .filter((n) => n?.extra?.reminderId === id)
+          .map((n) => n.id)
+          .filter(Number.isFinite);
+        if (ids.length === 0) return;
+        await LocalNotifications.cancel({ notifications: ids.map((nid) => ({ id: nid })) }).catch(() => {});
+      })();
+    }
+    toast({ title: 'Recordatorio eliminado.' });
+  };
+
+  const createCustomPlan = (slot: 1 | 2 | 3 | 4, name: string) => {
+    const trimmed = name.trim();
+    if (trimmed.length === 0) {
+      toast({ variant: 'destructive', title: 'Nombre requerido.', description: 'Escribe un nombre para crear el plan.' });
+      return;
+    }
+    setCustomPlans((prev) => {
+      const next = [...prev];
+      if (next[slot - 1]) return prev;
+      next[slot - 1] = {
+        id: `custom-plan-${slot}-${generateId()}`,
+        slot,
+        name: trimmed,
+        prayerIds: [],
+        createdAt: Date.now(),
+      };
+      return next;
+    });
+    toast({ title: 'Plan creado.' });
+  };
+
+  const deleteCustomPlan = (slot: 1 | 2 | 3 | 4) => {
+    setCustomPlans((prev) => {
+      const next = [...prev];
+      next[slot - 1] = null;
+      return next;
+    });
+    toast({ title: 'Plan eliminado.' });
+  };
+
+  const setCustomPlanName = (slot: 1 | 2 | 3 | 4, name: string) => {
+    const trimmed = name.trim();
+    setCustomPlans((prev) => {
+      const current = prev[slot - 1];
+      if (!current) return prev;
+      const next = [...prev];
+      next[slot - 1] = { ...current, name: trimmed };
+      return next;
+    });
+  };
+
+  const addCustomPlanPrayer = (slot: 1 | 2 | 3 | 4, prayerId: string) => {
+    setCustomPlans((prev) => {
+      const current = prev[slot - 1];
+      if (!current) return prev;
+      if (current.prayerIds.includes(prayerId)) return prev;
+      const next = [...prev];
+      next[slot - 1] = { ...current, prayerIds: [...current.prayerIds, prayerId] };
+      return next;
+    });
+  };
+
+  const removeCustomPlanPrayerAt = (slot: 1 | 2 | 3 | 4, index: number) => {
+    setCustomPlans((prev) => {
+      const current = prev[slot - 1];
+      if (!current) return prev;
+      if (index < 0 || index >= current.prayerIds.length) return prev;
+      const nextIds = current.prayerIds.filter((_, i) => i !== index);
+      const next = [...prev];
+      next[slot - 1] = { ...current, prayerIds: nextIds };
+      return next;
+    });
+  };
+
+  const moveCustomPlanPrayer = (slot: 1 | 2 | 3 | 4, fromIndex: number, toIndex: number) => {
+    setCustomPlans((prev) => {
+      const current = prev[slot - 1];
+      if (!current) return prev;
+      if (fromIndex < 0 || fromIndex >= current.prayerIds.length) return prev;
+      if (toIndex < 0 || toIndex >= current.prayerIds.length) return prev;
+      if (fromIndex === toIndex) return prev;
+      const nextIds = [...current.prayerIds];
+      const [moved] = nextIds.splice(fromIndex, 1);
+      nextIds.splice(toIndex, 0, moved);
+      const next = [...prev];
+      next[slot - 1] = { ...current, prayerIds: nextIds };
+      return next;
+    });
+  };
+
+  const addUserDevotion = (p: Omit<Prayer, 'id' | 'isUserDefined'> & { imageUrl?: string }) => {
+    const newP: Prayer = { ...p, id: generateId(), isUserDefined: true, categoryId: 'devociones' };
+    setUserDevotions(prev => [...prev, newP]);
+    incrementStat('devotionsCreated');
+    toast({ title: 'Devoción añadida correctamente.' });
+  };
+
+  const removeUserDevotion = (id: string) => {
+    setUserDevotions(prev => prev.filter(p => p.id !== id));
+    toast({ title: 'Devoción eliminada.' });
+  };
+
+  const addUserPrayer = (p: Omit<Prayer, 'id' | 'isUserDefined'> & { imageUrl?: string }) => {
+    const newP: Prayer = { ...p, id: generateId(), isUserDefined: true, categoryId: 'oraciones' };
+    setUserPrayers(prev => [...prev, newP]);
+    incrementStat('prayersCreated');
+    toast({ title: 'Oración añadida correctamente.' });
+  };
+
+  const removeUserPrayer = (id: string) => {
+    setUserPrayers(prev => prev.filter(p => p.id !== id));
+    toast({ title: 'Oración eliminada.' });
+  };
+
+  const addUserLetter = (p: Omit<Prayer, 'id' | 'isUserDefined'> & { imageUrl?: string }) => {
+    const newP: Prayer = { ...p, id: generateId(), isUserDefined: true, categoryId: 'cartas' };
+    setUserLetters(prev => [...prev, newP]);
+    incrementStat('lettersWritten');
+    toast({ title: 'Carta añadida correctamente.' });
+  };
+
+  const removeUserLetter = (id: string) => {
+    setUserLetters(prev => prev.filter(p => p.id !== id));
+    toast({ title: 'Carta eliminada.' });
+  };
+
+  const updateUserPrayer = (id: string, data: { title: string; content: string; imageUrl?: string }) => {
+    // Check all lists
+    setUserDevotions(prev => prev.map(p => p.id === id ? { ...p, ...data } : p));
+    setUserPrayers(prev => prev.map(p => p.id === id ? { ...p, ...data } : p));
+    setUserLetters(prev => prev.map(p => p.id === id ? { ...p, ...data } : p));
+    toast({ title: 'Actualizado correctamente.' });
+  };
+
+  const setPredefinedPrayerOverride = (id: string, data: { title: string; content: string; imageUrl?: string }) => {
+    // TODO: Implement override logic for predefined prayers
+    console.warn('setPredefinedPrayerOverride not implemented', id, data);
+    toast({ title: 'Función no implementada aún.' });
+  };
+
+  const resetSettings = () => {
+    setTheme('light');
+    setFontSize(15);
+    setHomeBackgroundId(defaultHomeBackgroundId);
+    setOverlayPositions(defaultOverlayPositions);
+    // ... reset others as needed, but usually we keep user data
+    toast({ title: 'Configuración restablecida.' });
+  };
+
+  const hardResetApp = () => {
+    if (typeof window !== 'undefined' && window.localStorage && typeof window.localStorage.clear === 'function') {
+        window.localStorage.clear();
+        window.location.reload();
+    }
+  };
+
+  const toggleAlwaysShowPrayer = (id: string) => {
+    setAlwaysShowPrayers(prev => 
+      prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
+    );
+  };
+
+  const loginAsDeveloper = (user: string, pass: string) => {
+    const ok = allowedDevCredentials.some(c => c.user === user && c.pass === pass);
+    if (ok) {
+      setIsDeveloperMode(true);
+      return true;
+    }
+    return false;
+  };
+
+  const logoutDeveloper = () => {
+    setIsDeveloperMode(false);
+    setIsEditModeEnabled(false);
+  };
+
+  const removePredefinedPrayer = (id: string) => {
+    setHiddenPrayerIds(prev => [...prev, id]);
+  };
+
+  const restorePredefinedPrayer = (id: string) => {
+    setHiddenPrayerIds(prev => prev.filter(p => p !== id));
+  };
+
+  const restoreAllPredefinedPrayers = () => {
+    setHiddenPrayerIds([]);
+    setEditedPrayerIds([]);
+    toast({ title: 'Oraciones predeterminadas restauradas.' });
+  };
+
+  const importUserData = (data: any) => {
+    if (!data || typeof data !== 'object') {
+      toast({ variant: 'destructive', title: 'Error al importar', description: 'El archivo no es válido.' });
+      return;
+    }
+
+    const isFullAppState =
+      typeof data.theme === 'string' ||
+      typeof data.fontSize === 'string' ||
+      typeof data.fontSize === 'number' ||
+      typeof data.fontFamily === 'string' ||
+      typeof data.timerDuration === 'number' ||
+      Array.isArray(data.customPlans);
+
+    if (!isFullAppState) {
+      if (data.userDevotions) setUserDevotions(data.userDevotions);
+      if (data.userPrayers) setUserPrayers(data.userPrayers);
+      if (data.userLetters) setUserLetters(data.userLetters);
+      if (data.userQuotes) setUserQuotes(data.userQuotes);
+      if (Array.isArray(data.userHomeBackgrounds)) setUserHomeBackgrounds(data.userHomeBackgrounds);
+      if (typeof data.homeBackgroundId === 'string') {
+        setHomeBackgroundId(data.homeBackgroundId);
+      }
+      if (typeof data.autoRotateBackground === 'boolean') {
+        setAutoRotateBackground(data.autoRotateBackground);
+      }
+      toast({ title: 'Datos importados.' });
+      return;
+    }
+
+    setTheme(data.theme ?? 'light');
+    if (typeof data.fontSize === 'number' && Number.isFinite(data.fontSize)) {
+      setFontSize(Math.round(data.fontSize));
+    } else if (data.fontSize === 'large') {
+      setFontSize(18);
+    } else {
+      setFontSize(15);
+    }
+    setFontFamily(data.fontFamily ?? 'literata');
+
+    setHomeBackgroundId(data.homeBackgroundId ?? defaultHomeBackgroundId);
+    setAutoRotateBackground(data.autoRotateBackground ?? true);
+    setLastBackgroundRotationDate(data.lastBackgroundRotationDate ?? null);
+
+    setHiddenPrayerIds(Array.isArray(data.hiddenPrayerIds) ? data.hiddenPrayerIds : []);
+    setEditedPrayerIds(Array.isArray(data.editedPrayerIds) ? data.editedPrayerIds : []);
+
+    setUserDevotions(Array.isArray(data.userDevotions) ? data.userDevotions : []);
+    setUserPrayers(Array.isArray(data.userPrayers) ? data.userPrayers : []);
+    setUserLetters(Array.isArray(data.userLetters) ? data.userLetters : []);
+
+    const asp = Array.isArray(data.alwaysShowPrayers) ? data.alwaysShowPrayers : [];
+    if (!asp.includes('cartas')) asp.push('cartas');
+    setAlwaysShowPrayers(asp);
+
+    setIsDeveloperMode(data.isDeveloperMode ?? false);
+    setIsEditModeEnabled(data.isEditModeEnabled ?? false);
+
+    setTimerEnabled(data.timerEnabled ?? false);
+    setTimerDuration(typeof data.timerDuration === 'number' ? data.timerDuration : 15);
+    setTimerActive(false);
+    setTimerTime((typeof data.timerDuration === 'number' ? data.timerDuration : 15) * 60);
+    setOverlayPositions(normalizeOverlayPositions(data.overlayPositions));
+
+    setPlanDeVidaTrackerEnabled(data.planDeVidaTrackerEnabled ?? true);
+    setPlanDeVidaProgress(Array.isArray(data.planDeVidaProgress) ? data.planDeVidaProgress : []);
+    setLastResetTimestamp(typeof data.lastResetTimestamp === 'number' ? data.lastResetTimestamp : Date.now());
+
+    setUserQuotes(Array.isArray(data.userQuotes) ? data.userQuotes : []);
+    setMovableFeastsEnabled(data.movableFeastsEnabled ?? true);
+
+    setCustomThemeColors(data.customThemeColors ?? defaultThemeColors);
+    setIsCustomThemeActive(data.isCustomThemeActive ?? false);
+
+    setUserHomeBackgrounds(Array.isArray(data.userHomeBackgrounds) ? data.userHomeBackgrounds : []);
+    setScrollPositions(data.scrollPositions && typeof data.scrollPositions === 'object' ? data.scrollPositions : {});
+
+    setQuoteOfTheDay(data.quoteOfTheDay ?? null);
+    setRecentQuoteIds(Array.isArray(data.recentQuoteIds) ? data.recentQuoteIds : []);
+    setLastQuoteDate(typeof data.lastQuoteDate === 'string' ? data.lastQuoteDate : null);
+
+    setShownEasterEggQuoteIds(Array.isArray(data.shownEasterEggQuoteIds) ? data.shownEasterEggQuoteIds : []);
+
+    setSaintOfTheDay(data.saintOfTheDay ?? null);
+    setSaintOfTheDayImage(data.saintOfTheDayImage ?? null);
+    setLastSaintUpdate(typeof data.lastSaintUpdate === 'string' ? data.lastSaintUpdate : null);
+
+    const rawCustomPlans = Array.isArray(data.customPlans) ? data.customPlans : [];
+    const normalizedPlans: Array<CustomPlan | null> = [null, null, null, null];
+    for (const entry of rawCustomPlans) {
+      if (!entry || typeof entry !== 'object') continue;
+      const slot = (entry as any).slot;
+      if (slot !== 1 && slot !== 2 && slot !== 3 && slot !== 4) continue;
+      const nameCandidate = typeof (entry as any).name === 'string' ? (entry as any).name : '';
+      const trimmedName = nameCandidate.trim();
+      const name = trimmedName.length > 0 && !/^Plan personalizado\b/i.test(trimmedName) ? trimmedName : '';
+      const prayerIds = Array.isArray((entry as any).prayerIds)
+        ? (entry as any).prayerIds.filter((x: any) => typeof x === 'string')
+        : [];
+      const id = typeof (entry as any).id === 'string' ? (entry as any).id : `custom-plan-${slot}-${Date.now()}`;
+      const createdAt = typeof (entry as any).createdAt === 'number' ? (entry as any).createdAt : Date.now();
+      normalizedPlans[slot - 1] = { id, slot, name, prayerIds, createdAt };
+    }
+    setCustomPlans(normalizedPlans);
+
+    toast({ title: 'Datos importados.' });
+  };
+
+  const setOverlayPosition = (key: keyof OverlayPositions, pos: OverlayPosition) => {
+    setOverlayPositions((prev) => ({
+      ...prev,
+      [key]: {
+        x: Math.max(0, Math.round(pos.x)),
+        y: Math.max(0, Math.round(pos.y)),
+      },
+    }));
+  };
+
+  const toggleTimer = () => {
+    setTimerActive(prev => !prev);
+  };
+
+  const resetTimer = () => {
+    setTimerActive(false);
+    setTimerTime(timerDuration * 60);
+  };
+
+  // Timer effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (timerActive && timerTime > 0) {
+      interval = setInterval(() => {
+        setTimerTime(prev => {
+           if (prev <= 1) {
+             setTimerActive(false);
+             setShowTimerFinishedAlert(true);
+             return 0;
+           }
+           return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [timerActive, timerTime]);
+
+  useEffect(() => {
+    if (!timerActive) {
+        setTimerTime(timerDuration * 60);
+    }
+  }, [timerDuration]);
+
+  const togglePlanDeVidaItem = (id: string, force?: boolean) => {
+     setPlanDeVidaProgress(prev => {
+        if (force !== undefined) {
+            return force ? [...prev, id] : prev.filter(p => p !== id);
+        }
+        return prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id];
+     });
+  };
+
+  const resetPlanDeVidaProgress = () => {
+    setPlanDeVidaProgress([]);
+    setLastResetTimestamp(Date.now());
+  };
+
+  // Plan de Vida daily reset
+  useEffect(() => {
+    const now = new Date();
+    const last = new Date(lastResetTimestamp);
+    if (now.getDate() !== last.getDate()) {
+        resetPlanDeVidaProgress();
+    }
+  }, [lastResetTimestamp]);
+
+  useEffect(() => {
+    const now = simulatedDate ? new Date(simulatedDate) : new Date();
+    const dateKey = now.toISOString().slice(0, 10);
+    if (lastQuoteDate === dateKey && quoteOfTheDay) return;
+    const start = new Date(now.getFullYear(), 0, 0);
+    const diff = now.getTime() - start.getTime();
+    const day = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const pool = [
+      ...catholicQuotes.map((q, i) => ({ ...q, id: `cq_${i}` })),
+      ...userQuotes,
+    ];
+    if (pool.length === 0) {
+      setQuoteOfTheDay(null);
+      setLastQuoteDate(dateKey);
+      return;
+    }
+    const idx = day % pool.length;
+    const selected = pool[idx] || null;
+    setQuoteOfTheDay(selected);
+    setLastQuoteDate(dateKey);
+  }, [simulatedDate, lastQuoteDate, quoteOfTheDay, userQuotes]);
+
+  const toggleDistractionFree = useCallback(() => {
+    setIsDistractionFree((prev) => {
+      const next = !prev;
+      if (typeof document !== 'undefined') {
+        if (next) {
+          const request = document.documentElement.requestFullscreen;
+          if (typeof request === 'function') request.call(document.documentElement).catch(() => {});
+        } else {
+          const exit = document.exitFullscreen;
+          if (document.fullscreenElement && typeof exit === 'function') exit.call(document).catch(() => {});
+        }
+      }
+      return next;
+    });
+  }, []);
+
+  const addUserQuote = (quote: Omit<Quote, 'id' | 'isUserDefined'>) => {
+    const newQ: Quote = { ...quote, id: generateId(), isUserDefined: true };
+    setUserQuotes(prev => [...prev, newQ]);
+  };
+
+  const removeUserQuote = (id: string) => {
+    setUserQuotes(prev => prev.filter(q => q.id !== id));
+  };
+
+  const setCustomThemeColor = (colorType: keyof CustomThemeColors, newColor: ThemeColor) => {
+    setCustomThemeColors(prev => ({ ...prev, [colorType]: newColor }));
+  };
+
+  const resetCustomTheme = () => {
+    setCustomThemeColors(defaultThemeColors);
+  };
+
+  const addUserHomeBackground = (image: Omit<ImagePlaceholder, 'id' | 'isUserDefined'>) => {
+    const newImg: ImagePlaceholder = { ...image, id: generateId(), isUserDefined: true };
+    setUserHomeBackgrounds(prev => [...prev, newImg]);
+  };
+
+  const removeUserHomeBackground = (id: string) => {
+    setUserHomeBackgrounds(prev => prev.filter(img => img.id !== id));
+  };
+
+  const setScrollPosition = (prayerId: string, position: number) => {
+    setScrollPositions(prev => ({ ...prev, [prayerId]: position }));
+  };
+
+  const registerEasterEggQuote = (quoteId: string | null, reset?: boolean) => {
+     if (reset) {
+         setShownEasterEggQuoteIds([]);
+     } else if (quoteId) {
+         setShownEasterEggQuoteIds(prev => [...prev, quoteId]);
+     }
+  };
+
+  // Combined prayers list
+  const allPrayers = useMemo(() => {
+    return [
+      ...initialPrayers.filter(p => !hiddenPrayerIds.includes(p.id!)),
+      ...userDevotions,
+      ...userPrayers,
+      ...userLetters,
+    ];
+  }, [initialPrayers, hiddenPrayerIds, userDevotions, userPrayers, userLetters]);
+
+  const getPrayerById = useCallback((id: string, list: Prayer[]): Prayer | null => {
+    for (const prayer of list) {
+      if (prayer.id === id) return prayer;
+      if (prayer.prayers && prayer.prayers.length > 0) {
+        const found = getPrayerById(id, prayer.prayers);
+        if (found) return found;
+      }
+    }
+    return null;
+  }, []);
+
+  const getRootPlanDeVidaId = useCallback((prayerId: string): string | null => {
+    const findPath = (targetId: string, list: Prayer[], currentPath: Prayer[]): Prayer[] | null => {
+      for (const p of list) {
+          if (p.id === targetId) return [...currentPath, p];
+          if (p.prayers) {
+              const res = findPath(targetId, p.prayers, [...currentPath, p]);
+              if (res) return res;
+          }
+      }
+      return null;
+    };
+    
+    const path = findPath(prayerId, allPrayers, []);
+    if (!path || path.length === 0) return null;
+    
+    // Check if any item in the path is a Plan de Vida root
+    // Usually the first item in the path (top-level) is what we want.
+    const root = path[0];
+    if (root.categoryId === 'plan-de-vida') return root.id!;
+    
+    return null;
+  }, [allPrayers]);
+
+  const getLocalDateKey = (date: Date) => {
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const incrementGlobalStat = (key: keyof UserStats, subKey?: string) => {
+    setGlobalUserStats(prev => {
+        // Reuse logic? Or copy-paste for safety.
+        // It's safer to just replicate the increment logic for global stats
+        // but without side effects (like plan de vida toggling)
+        if (key === 'prayersOpenedHistory' && subKey) {
+            const history = { ...prev.prayersOpenedHistory };
+            history[subKey] = (history[subKey] || 0) + 1;
+            
+            const now = new Date();
+            const hour = now.getHours();
+            const isNight = hour >= 22 || hour < 6;
+            const isMorning = hour >= 5 && hour < 12;
+
+            const isRosary = subKey === 'rosario' || subKey === 'santo-rosario';
+            const isAngelus = subKey === 'angelus' || subKey === 'regina-caeli';
+            const isExamination = subKey === 'examen-conciencia' || subKey === 'examen-noche';
+            
+            const todayKey = getLocalDateKey(now);
+            const lastOpened = prev.prayerLastOpened?.[subKey];
+            
+            const newPrayerLastOpened = { ...(prev.prayerLastOpened || {}) };
+            const newPrayerDaysCount = { ...(prev.prayerDaysCount || {}) };
+            
+            if (lastOpened !== todayKey) {
+                 newPrayerLastOpened[subKey] = todayKey;
+                 newPrayerDaysCount[subKey] = (newPrayerDaysCount[subKey] || 0) + 1;
+            }
+
+            let newMassStreak = prev.massStreak || 0;
+            let newLastMassDate = prev.lastMassDate;
+
+            const prayer = getPrayerById(subKey, allPrayers);
+            const isMassPrayer = 
+                subKey === 'santa-misa' || 
+                subKey === 'antes-misa' || 
+                subKey === 'despues-misa' || 
+                subKey === 'misal' ||
+                (prayer?.categoryId === 'santa-misa') ||
+                (getRootPlanDeVidaId(subKey) === 'santa-misa');
+
+            if (isMassPrayer) {
+                 if (newLastMassDate !== todayKey) {
+                     const yesterday = new Date(now);
+                     yesterday.setDate(yesterday.getDate() - 1);
+                     const yesterdayKey = getLocalDateKey(yesterday);
+                     
+                     if (newLastMassDate === yesterdayKey) {
+                         newMassStreak += 1;
+                     } else {
+                         newMassStreak = 1;
+                     }
+                     newLastMassDate = todayKey;
+                 }
+            }
+            
+            return { 
+              ...prev, 
+              prayersOpenedHistory: history,
+              totalPrayersOpened: prev.totalPrayersOpened + 1,
+              nightPrayersCount: isNight ? (prev.nightPrayersCount || 0) + 1 : (prev.nightPrayersCount || 0),
+              morningPrayersCount: isMorning ? (prev.morningPrayersCount || 0) + 1 : (prev.morningPrayersCount || 0),
+              rosaryCount: isRosary ? (prev.rosaryCount || 0) + 1 : (prev.rosaryCount || 0),
+              angelusCount: isAngelus ? (prev.angelusCount || 0) + 1 : (prev.angelusCount || 0),
+              examinationCount: isExamination ? (prev.examinationCount || 0) + 1 : (prev.examinationCount || 0),
+              prayerLastOpened: newPrayerLastOpened,
+              prayerDaysCount: newPrayerDaysCount,
+              massStreak: newMassStreak,
+              lastMassDate: newLastMassDate
+            };
+        }
+        
+        if (typeof prev[key] === 'number') {
+            return { ...prev, [key]: (prev[key] as number) + 1 };
+        }
+        
+        return prev;
+    });
+  };
+
+  const incrementStat = (key: keyof UserStats, subKey?: string) => {
+    // Check freeze time (1 hour)
+    if (key === 'prayersOpenedHistory' && subKey) {
+        const now = Date.now();
+        const lastIncrement = userStats.prayerLastIncrementTimestamp?.[subKey] || 0;
+        if (now - lastIncrement < 3600000) { // 1 hour = 3600000 ms
+            // Skip incrementing history but maybe we still want to update lastOpened date?
+            // User request implies "count only once", so we skip the count.
+            // But we might want to update "lastOpened" for streaks?
+            // "solo se cuenta una vez para el contador, tanto anual como histórico."
+            // Streak logic usually depends on unique days, so re-opening same day is fine.
+            // But total count should not increase.
+            return;
+        }
+    }
+
+    // Always increment global stats too
+    incrementGlobalStat(key, subKey);
+
+    if (key === 'prayersOpenedHistory' && subKey) {
+        // Side effect: Mark Plan de Vida item as checked
+        const rootId = getRootPlanDeVidaId(subKey);
+        if (rootId) {
+            togglePlanDeVidaItem(rootId, true);
+        }
+    }
+
+    setUserStats(prev => {
+      if (key === 'prayersOpenedHistory' && subKey) {
+        const history = { ...prev.prayersOpenedHistory };
+        history[subKey] = (history[subKey] || 0) + 1;
+        
+        // Update timestamp
+        const timestamps = { ...(prev.prayerLastIncrementTimestamp || {}) };
+        timestamps[subKey] = Date.now();
+
+        // Check for time-based stats
+        const now = new Date();
+        const hour = now.getHours();
+        const isNight = hour >= 22 || hour < 6;
+        const isMorning = hour >= 5 && hour < 12;
+
+        // Specific prayer type checks
+        const isRosary = subKey === 'rosario' || subKey === 'santo-rosario';
+        const isAngelus = subKey === 'angelus' || subKey === 'regina-caeli';
+        const isExamination = subKey === 'examen-conciencia' || subKey === 'examen-noche';
+        
+        // Track unique days for this prayer/devotion
+        const todayKey = getLocalDateKey(now);
+        const lastOpened = prev.prayerLastOpened?.[subKey];
+        
+        const newPrayerLastOpened = { ...(prev.prayerLastOpened || {}) };
+        const newPrayerDaysCount = { ...(prev.prayerDaysCount || {}) };
+        
+        if (lastOpened !== todayKey) {
+             newPrayerLastOpened[subKey] = todayKey;
+             newPrayerDaysCount[subKey] = (newPrayerDaysCount[subKey] || 0) + 1;
+        }
+
+        // Mass Streak Logic
+        let newMassStreak = prev.massStreak || 0;
+        let newLastMassDate = prev.lastMassDate;
+
+        const prayer = getPrayerById(subKey, allPrayers);
+        // Check hierarchy for Mass
+        // If prayer is 'santa-misa' or any child of it.
+        const isMassPrayer = 
+            subKey === 'santa-misa' || 
+            subKey === 'antes-misa' || 
+            subKey === 'despues-misa' || 
+            subKey === 'misal' ||
+            (prayer?.categoryId === 'santa-misa') ||
+            (getRootPlanDeVidaId(subKey) === 'santa-misa');
+
+        if (isMassPrayer) {
+             if (newLastMassDate !== todayKey) {
+                 const yesterday = new Date(now);
+                 yesterday.setDate(yesterday.getDate() - 1);
+                 const yesterdayKey = getLocalDateKey(yesterday);
+                 
+                 if (newLastMassDate === yesterdayKey) {
+                     newMassStreak += 1;
+                 } else {
+                     newMassStreak = 1;
+                 }
+                 newLastMassDate = todayKey;
+             }
+        }
+        
+        return { 
+          ...prev, 
+          prayersOpenedHistory: history,
+          totalPrayersOpened: prev.totalPrayersOpened + 1,
+          nightPrayersCount: isNight ? (prev.nightPrayersCount || 0) + 1 : (prev.nightPrayersCount || 0),
+          morningPrayersCount: isMorning ? (prev.morningPrayersCount || 0) + 1 : (prev.morningPrayersCount || 0),
+          rosaryCount: isRosary ? (prev.rosaryCount || 0) + 1 : (prev.rosaryCount || 0),
+          angelusCount: isAngelus ? (prev.angelusCount || 0) + 1 : (prev.angelusCount || 0),
+          examinationCount: isExamination ? (prev.examinationCount || 0) + 1 : (prev.examinationCount || 0),
+          prayerLastOpened: newPrayerLastOpened,
+          prayerDaysCount: newPrayerDaysCount,
+          massStreak: newMassStreak,
+          lastMassDate: newLastMassDate,
+          prayerLastIncrementTimestamp: timestamps,
+        };
+      }
+      
+      if (typeof prev[key] === 'number') {
+        return { ...prev, [key]: (prev[key] as number) + 1 };
+      }
+      
+      return prev;
+    });
+  };
+
+  const getReminderTitle = useCallback((target: DailyReminder['target']) => {
+    if (target.type === 'category') {
+      return categories.find((c) => c.id === target.id)?.name ?? 'Recordatorio';
+    }
+    const prayer = getPrayerById(target.id, allPrayers);
+    return prayer?.title ?? 'Recordatorio';
+  }, [allPrayers, getPrayerById]);
+
+  const buildDefaultReminderMessage = useCallback((target: DailyReminder['target']) => {
+    if (target.type === 'category') {
+      const name = categories.find((c) => c.id === target.id)?.name ?? 'Devociones';
+      return `Recuerda tus ${name.toLowerCase()}.`;
+    }
+    const prayer = getPrayerById(target.id, allPrayers);
+    const title = prayer?.title ?? 'tu oración';
+    if (target.id === 'santa-misa') return `Recuerda tu hora de ${title}.`;
+    return `Recuerda rezar ${title}.`;
+  }, [allPrayers, getPrayerById]);
+
+  const ensureAndroidNotificationChannel = useCallback(async () => {
+    if (Capacitor.getPlatform() !== 'android') return;
+    const channelId = 'cotidie-reminders';
+    const channels = await LocalNotifications.listChannels().catch(() => ({ channels: [] }));
+    const exists = channels.channels.some((c) => c.id === channelId);
+    if (exists) return;
+    await LocalNotifications.createChannel({
+      id: channelId,
+      name: 'Recordatorios Cotidie',
+      description: 'Recordatorios diarios',
+      importance: 4,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (!Capacitor.isNativePlatform()) return;
+
+    const active = notificationsEnabled ? dailyReminders.filter((r) => r.enabled) : [];
+
+    const sync = async () => {
+      const pending = await LocalNotifications.getPending().catch(() => null);
+      const pendingIds =
+        pending && Array.isArray((pending as any).notifications)
+          ? ((pending as any).notifications as Array<{ id: number }>).map((n) => n.id).filter(Number.isFinite)
+          : [];
+      if (pendingIds.length > 0) {
+        await LocalNotifications.cancel({ notifications: pendingIds.map((id) => ({ id })) });
+      }
+
+      if (!notificationsEnabled || active.length === 0) return;
+
+      const currentPerms = await LocalNotifications.checkPermissions();
+      const perms = currentPerms.display === 'granted'
+        ? currentPerms
+        : await LocalNotifications.requestPermissions();
+
+      if (perms.display !== 'granted') {
+        toast({
+          variant: 'destructive',
+          title: 'Notificaciones desactivadas',
+          description: 'No hay permiso para mostrar notificaciones.',
+        });
+        return;
+      }
+
+      // Check for exact alarm permission on Android
+      if (Capacitor.getPlatform() === 'android') {
+        const anyLN = LocalNotifications as any;
+        if (typeof anyLN.checkExactNotificationSetting === 'function') {
+           const status = await anyLN.checkExactNotificationSetting().catch(() => null);
+           if (status && status.exact_alarm !== 'granted') {
+             // We don't want to spam the user, but we should probably warn them once or log it.
+             // Ideally, we prompt them to fix it.
+             console.warn('Exact alarm permission not granted. Notifications might be delayed.');
+           }
+        }
+      }
+
+      await ensureAndroidNotificationChannel();
+
+      const icon = theme === 'dark' ? 'small_icon_white' : 'small_icon_black';
+
+      const now = new Date();
+      const platform = Capacitor.getPlatform();
+      const maxTotal = platform === 'ios' ? 60 : 180;
+      const horizonDays = Math.min(30, Math.max(1, Math.floor(maxTotal / Math.max(1, active.length))));
+      const pad2 = (n: number) => String(n).padStart(2, '0');
+      const toDateKey = (d: Date) =>
+        `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+
+      const toNotificationId = (key: string) => {
+        let hash = 2166136261;
+        for (let i = 0; i < key.length; i++) {
+          hash ^= key.charCodeAt(i);
+          hash = Math.imul(hash, 16777619);
+        }
+        const normalized = hash >>> 0;
+        const id = normalized % 2147483647;
+        return id === 0 ? 1 : id;
+      };
+
+      const notifications: Array<any> = [];
+      for (const r of active) {
+        const message =
+          r.message.trim().length > 0 ? r.message : buildDefaultReminderMessage(r.target);
+        const base = new Date(now);
+        base.setHours(r.time.hours, r.time.minutes, 0, 0);
+        if (base.getTime() <= now.getTime()) {
+          base.setDate(base.getDate() + 1);
+        }
+        for (let offset = 0; offset < horizonDays; offset++) {
+          const fireAt = new Date(base);
+          fireAt.setDate(base.getDate() + offset);
+          const dateKey = toDateKey(fireAt);
+          const id = toNotificationId(`cotidie:${r.id}:${dateKey}`);
+          notifications.push({
+            id,
+            title: getReminderTitle(r.target),
+            body: message,
+            channelId: 'cotidie-reminders',
+            smallIcon: icon,
+            largeIcon: icon,
+            schedule: {
+              at: fireAt,
+              allowWhileIdle: true,
+            },
+            extra: { target: r.target, reminderId: r.id, date: dateKey },
+          });
+        }
+      }
+
+      try {
+        await LocalNotifications.schedule({ notifications });
+      } catch {
+        toast({
+          variant: 'destructive',
+          title: 'Error al programar recordatorios',
+          description: 'Intenta desactivar y activar notificaciones nuevamente.',
+        });
+      }
+    };
+
+    const timeoutId = setTimeout(() => {
+      sync().catch((e) => console.error('Failed to sync notifications', e));
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [
+    isLoaded,
+    notificationsEnabled,
+    dailyReminders,
+    getReminderTitle,
+    buildDefaultReminderMessage,
+    ensureAndroidNotificationChannel,
+    theme,
+  ]);
+
+  const allHomeBackgrounds = useMemo(() => {
+      return [
+        ...PlaceHolderImages.filter(img => img.id.startsWith('home-')),
+        ...userHomeBackgrounds
+      ];
+  }, [userHomeBackgrounds]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (!isLoaded) return;
+
+    const activeUrl = homeBackgroundId
+      ? allHomeBackgrounds.find((img) => img.id === homeBackgroundId)?.imageUrl ?? null
+      : null;
+    const defaultUrl = defaultHomeBackgroundId
+      ? PlaceHolderImages.find((img) => img.id === defaultHomeBackgroundId)?.imageUrl ?? null
+      : null;
+    const url = activeUrl ?? defaultUrl;
+
+    if (!url) {
+      document.documentElement.style.removeProperty('--home-bg-image');
+      return;
+    }
+
+    const escaped = url.replace(/"/g, '\\"');
+    document.documentElement.style.setProperty('--home-bg-image', `url("${escaped}")`);
+
+    if (typeof window === 'undefined') return;
+    try {
+      if (window.localStorage && typeof window.localStorage.setItem === 'function') {
+        window.localStorage.setItem('cotidie_home_bg_url', url);
+      }
+    } catch {}
+  }, [allHomeBackgrounds, homeBackgroundId, isLoaded]);
+
+  const activeThemeColors = useMemo(() => {
+      if (isCustomThemeActive) return customThemeColors;
+
+      if (homeBackgroundId) {
+        const activeBackground = allHomeBackgrounds.find(img => img.id === homeBackgroundId);
+        if (activeBackground?.themeColors) return activeBackground.themeColors;
+      }
+
+      return defaultThemeColors;
+  }, [isCustomThemeActive, customThemeColors, homeBackgroundId, allHomeBackgrounds]);
+
+  useEffect(() => {
+    if (!autoRotateBackground || !isLoaded) return;
+
+    const getLocalDateKey = (d: Date) => {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    };
+
+    const toUtcDayNumber = (d: Date) =>
+      Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000);
+
+    const toUtcDayNumberFromDateKey = (dateKey: string) => {
+      const parts = dateKey.split('-');
+      if (parts.length !== 3) return null;
+      const yyyy = Number(parts[0]);
+      const mm = Number(parts[1]);
+      const dd = Number(parts[2]);
+      if (!Number.isFinite(yyyy) || !Number.isFinite(mm) || !Number.isFinite(dd)) return null;
+      return Math.floor(Date.UTC(yyyy, mm - 1, dd) / 86400000);
+    };
+
+    const getNow = () => (simulatedDate ? new Date(simulatedDate) : new Date());
+
+    const getRotationIds = () => {
+      const ids = allHomeBackgrounds.map((img) => img.id).filter(Boolean);
+      if (!defaultHomeBackgroundId) return ids;
+      const idx = ids.indexOf(defaultHomeBackgroundId);
+      if (idx <= 0) return ids;
+      return [ids[idx], ...ids.slice(0, idx), ...ids.slice(idx + 1)];
+    };
+
+    const applyDailyRotation = () => {
+      const now = getNow();
+      const dateKey = getLocalDateKey(now);
+      if (lastBackgroundRotationDate === dateKey) return;
+
+      const rotationIds = getRotationIds();
+      if (rotationIds.length === 0) {
+        setLastBackgroundRotationDate(dateKey);
+        return;
+      }
+
+      if (!lastBackgroundRotationDate) {
+        if (!homeBackgroundId) setHomeBackgroundId(rotationIds[0]);
+        setLastBackgroundRotationDate(dateKey);
+        return;
+      }
+
+      const lastUtcDay = toUtcDayNumberFromDateKey(lastBackgroundRotationDate);
+      const todayUtcDay = toUtcDayNumber(now);
+      const rawDiffDays = lastUtcDay === null ? 1 : todayUtcDay - lastUtcDay;
+      const diffDays =
+        rawDiffDays === 0 ? 1 : Number.isFinite(rawDiffDays) ? rawDiffDays : 1;
+
+      const currentIndex = homeBackgroundId ? rotationIds.indexOf(homeBackgroundId) : -1;
+      const baseIndex = currentIndex >= 0 ? currentIndex : 0;
+      const shift = diffDays % rotationIds.length;
+      const nextIndex = (baseIndex + shift + rotationIds.length) % rotationIds.length;
+
+      setHomeBackgroundId(rotationIds[nextIndex]);
+      setLastBackgroundRotationDate(dateKey);
+    };
+
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const scheduleNextMidnight = () => {
+      const now = new Date();
+      const next = new Date(now);
+      next.setHours(24, 0, 0, 0);
+      const delay = Math.max(0, next.getTime() - now.getTime());
+
+      timeoutId = setTimeout(() => {
+        applyDailyRotation();
+        scheduleNextMidnight();
+      }, delay);
+    };
+
+    applyDailyRotation();
+    scheduleNextMidnight();
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [
+    autoRotateBackground,
+    // simulatedDate, // REMOVED DEPENDENCY
+    lastBackgroundRotationDate,
+    isLoaded,
+    homeBackgroundId,
+    allHomeBackgrounds,
+  ]);
+
+  // Saints logic
+  useEffect(() => {
+    const now = simulatedDate ? new Date(simulatedDate) : new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentDay = now.getDate();
+    const pad2 = (n: number) => String(n).padStart(2, '0');
+    const dateKey = `${now.getFullYear()}-${pad2(currentMonth)}-${pad2(currentDay)}`;
+
+    if (lastSaintUpdate !== dateKey) {
+       const saint = saintsData.saints.find(s => s.month === currentMonth && s.day === currentDay);
+       setSaintOfTheDay(saint || null);
+       setLastSaintUpdate(dateKey);
+       const dow = now.getDay(); // 0..6
+       const dayImageId = `saintoftheday-${dow}`;
+       const dayImage = PlaceHolderImages.find(img => img.id === dayImageId) || null;
+
+       if (currentMonth === 12 && (currentDay === 24 || currentDay === 25)) {
+         const christmasImage = PlaceHolderImages.find((img) => img.id === 'christmas-image') || null;
+         setSaintOfTheDayImage(christmasImage || dayImage || null);
+         return;
+       }
+
+       const saintImageBySubstring: Array<{match: string; id: string}> = [
+         { match: 'Alberto Hurtado', id: 'sanalbertohurtado-image' },
+         { match: 'Francisco de Sales', id: 'sanfranciscodesales-image' },
+         { match: 'Agustín, obispo y doctor', id: 'sanagustindehipona-image' },
+         { match: 'Santo Tomás de Aquino', id: 'santotomasdeaquino-image' },
+         { match: 'Natividad del Señor', id: 'nativity-image' },
+       ];
+
+       let image = dayImage;
+       const marianNamePattern =
+         /(Nuestra Señora|Virgen María|Inmaculada Concepción|Asunción de la Virgen|Presentación de la Virgen|Natividad de la Virgen|Visitación de la Virgen)/i;
+       const marianImage = PlaceHolderImages.find((img) => img.id === 'saintoftheday-6') || dayImage;
+       const isMarian = Boolean(
+         (saint as any)?.type === 'marian' || (saint?.name && marianNamePattern.test(saint.name))
+       );
+
+       if (isMarian) {
+         image = marianImage;
+       } else if (saint && saint.name) {
+         const found = saintImageBySubstring.find(entry => saint.name.includes(entry.match));
+         const mapped = found ? PlaceHolderImages.find(img => img.id === found.id) : null;
+         image = mapped || dayImage;
+       }
+       setSaintOfTheDayImage(image || null);
+    }
+  }, [simulatedDate, lastSaintUpdate]);
+
+  return (
+    <SettingsContext.Provider
+      value={{
+        theme,
+        setTheme,
+        fontSize,
+        setFontSize,
+        fontFamily,
+        setFontFamily,
+        homeBackgroundId,
+        setHomeBackgroundId,
+        autoRotateBackground,
+        setAutoRotateBackground,
+        allPrayers,
+        userDevotions,
+        addUserDevotion,
+        removeUserDevotion,
+        userPrayers,
+        addUserPrayer,
+        removeUserPrayer,
+        userLetters,
+        addUserLetter,
+        removeUserLetter,
+        updateUserPrayer,
+        setPredefinedPrayerOverride,
+        resetSettings,
+        hardResetApp,
+        alwaysShowPrayers,
+        toggleAlwaysShowPrayer,
+        isDeveloperMode,
+        loginAsDeveloper,
+        logoutDeveloper,
+        isEditModeEnabled,
+        setIsEditModeEnabled,
+        removePredefinedPrayer,
+        restorePredefinedPrayer,
+        restoreAllPredefinedPrayers,
+        hiddenPrayerIds,
+        editedPrayerIds,
+        importUserData,
+        timerEnabled,
+        setTimerEnabled,
+        timerDuration,
+        setTimerDuration,
+        timerTime,
+        timerActive,
+        toggleTimer,
+        resetTimer,
+        overlayPositions,
+        setOverlayPosition,
+        notificationsEnabled,
+        setNotificationsEnabled,
+        dailyReminders,
+        addDailyReminder,
+        updateDailyReminder,
+        removeDailyReminder,
+        simulatedDate,
+        setSimulatedDate,
+        planDeVidaTrackerEnabled,
+        setPlanDeVidaTrackerEnabled,
+        planDeVidaProgress,
+        togglePlanDeVidaItem,
+        resetPlanDeVidaProgress,
+        isDistractionFree,
+        toggleDistractionFree,
+        userQuotes,
+        addUserQuote,
+        removeUserQuote,
+        showTimerFinishedAlert,
+        setShowTimerFinishedAlert,
+        simulatedQuoteId,
+        setSimulatedQuoteId,
+        movableFeastsEnabled,
+        setMovableFeastsEnabled,
+        isCustomThemeActive,
+        setIsCustomThemeActive,
+        setCustomThemeColor,
+        resetCustomTheme,
+        userHomeBackgrounds,
+        allHomeBackgrounds,
+        addUserHomeBackground,
+        removeUserHomeBackground,
+        categories,
+        activeThemeColors,
+        scrollPositions,
+        setScrollPosition,
+        quoteOfTheDay,
+        shownEasterEggQuoteIds,
+        registerEasterEggQuote,
+        saintOfTheDay,
+        saintOfTheDayImage,
+        saintOfTheDayPrayerId,
+        customPlans,
+        createCustomPlan,
+        deleteCustomPlan,
+        setCustomPlanName,
+        addCustomPlanPrayer,
+        removeCustomPlanPrayerAt,
+        moveCustomPlanPrayer,
+        userStats: simulatedStats ?? userStats,
+        realUserStats: userStats,
+        simulatedStats,
+        setSimulatedStats,
+        incrementStat,
+        updateUserStats,
+        globalUserStats,
+        incrementGlobalStat,
+        forceWrappedSeason,
+        setForceWrappedSeason,
+        showZeroStats,
+        setShowZeroStats,
+      }}
+    >
+      {children}
+    </SettingsContext.Provider>
+  );
+};
+
+export const useSettings = () => {
+  const ctx = useContext(SettingsContext);
+  if (!ctx) throw new Error('useSettings must be used within SettingsProvider');
+  return ctx;
+};

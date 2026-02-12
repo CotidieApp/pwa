@@ -1,0 +1,186 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: var(--background-hue, 216) var(--background-saturation, 33%) 97%;
+    --foreground: 222.2 84% 4.9%;
+    --home-bg-image: none;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: var(--primary-hue, 36) var(--primary-saturation, 88%) 44%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: var(--accent-hue, 45) var(--accent-saturation, 86%) 62%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: var(--primary-hue, 36) var(--primary-saturation, 88%) 44%;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.5rem;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+  .font-literata {
+    --font-body: 'Literata';
+  }
+  .font-lora {
+    --font-body: 'Lora';
+  }
+  .font-merriweather {
+    --font-body: 'Merriweather';
+  }
+  .font-ebgaramond {
+    --font-body: 'EB Garamond';
+  }
+  .font-timesnewroman {
+    --font-body: 'Times New Roman';
+  }
+  .dark {
+    --background: var(--background-hue, 216) var(--background-saturation, 33%) 9%;
+    --foreground: 0 0% 98%;
+    --card: var(--background-hue, 216) var(--background-saturation, 33%) 9%;
+    --card-foreground: 0 0% 98%;
+    --popover: var(--background-hue, 216) var(--background-saturation, 33%) 9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: var(--primary-hue, 36) var(--primary-saturation, 88%) 31%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: var(--accent-hue, 45) var(--accent-saturation, 86%) 52%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: var(--primary-hue, 36) var(--primary-saturation, 88%) 54%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html, body {
+    overscroll-behavior-y: contain;
+  }
+  .text-large h1, .text-large .text-6xl {
+    font-size: 3.5rem; /* Ajustado para un mejor balance */
+    line-height: 1.1;
+  }
+  .text-large h2, .text-large .text-2xl {
+    font-size: 1.75rem;
+    line-height: 1.3;
+  }
+  .text-large h3, .text-large .text-xl, .text-large .text-lg, .text-large .font-bold {
+    font-size: 1.3rem;
+    line-height: 1.4;
+  }
+  .text-large p, .text-large div, .text-large span, .text-large .text-base, .text-large button, .text-large label, .text-large input, .text-large textarea, .text-large [role="button"] {
+    font-size: 1.1rem;
+    line-height: 1.6;
+  }
+  .text-large .text-sm {
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+  .text-large .text-xs {
+    font-size: 0.875rem;
+    line-height: 1.4;
+  }
+  .text-large [data-radix-collection-item] { /* For items in dropdowns, selects, etc. */
+    font-size: 1.1rem;
+  }
+}
+
+@layer utilities {
+  .enjoy-animation-container {
+    @apply fixed inset-0 p-8 pointer-events-none z-50;
+  }
+
+  .enjoy-balloon {
+    @apply absolute bottom-0 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-base font-bold px-6 py-3 rounded-full shadow-lg;
+    animation: riseAndFade 15s ease-out forwards;
+  }
+
+  @keyframes riseAndFade {
+    0% {
+      transform: translate(-50%, 100%);
+      opacity: 1;
+    }
+    80% {
+      opacity: 1;
+    }
+    100% {
+      transform: translate(-50%, -100vh);
+      opacity: 0;
+    }
+  }
+}
+
+/* ==== Scrolls internos ==== */
+.scrollable {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+[data-radix-scroll-area-viewport] {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+
+/* ==== Estilo para citas (en pantalla principal y otros textos) ==== */
+blockquote {
+  font-style: italic;
+  opacity: 0.95;
+  text-align: center;
+}
+
+.animate-fade-slide {
+  animation: fadeSlideIn 1.2s ease-out forwards;
+}
+
+/* ==== Estilo global para citas ==== */
+blockquote {
+  font-style: italic;
+  opacity: 0.95;
+  text-align: center;
+}
+
+/* Barra de desplazamiento nativa del sistema (sin ocultarla) */

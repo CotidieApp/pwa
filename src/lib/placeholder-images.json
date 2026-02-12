@@ -1,0 +1,162 @@
+{
+  "placeholderImages": [
+    {
+      "id": "home-sacred-heart",
+      "description": "Santísimo Sacramento del Altar",
+      "imageUrl": "/images/sacred-heart.jpeg",
+      "imageHint": "sacred heart",
+      "themeColors": {
+        "primary": {
+          "h": 15,
+          "s": 85
+        },
+        "background": {
+          "h": 25,
+          "s": 25
+        },
+        "accent": {
+          "h": 35,
+          "s": 70
+        }
+      }
+    },
+    {
+      "id": "home-immaculate-heart",
+      "description": "Jesús crucificado, Velázquez",
+      "imageUrl": "/images/immaculate-heart.jpeg",
+      "imageHint": "immaculate heart",
+      "themeColors": {
+        "primary": {
+          "h": 210,
+          "s": 60
+        },
+        "background": {
+          "h": 215,
+          "s": 30
+        },
+        "accent": {
+          "h": 45,
+          "s": 80
+        }
+      }
+    },
+    {
+      "id": "home-immaculate-conception",
+      "description": "Inmaculada Concepción, Murillo",
+      "imageUrl": "/images/immaculate-conception.jpeg",
+      "imageHint": "immaculate conception",
+      "themeColors": {
+        "primary": {
+          "h": 42,
+          "s": 85
+        },
+        "background": {
+          "h": 215,
+          "s": 50
+        },
+        "accent": {
+          "h": 205,
+          "s": 90
+        }
+      }
+    },
+    {
+      "id": "home-christ",
+      "description": "Monte de Cristo",
+      "imageUrl": "/images/monte-cristo.jpg",
+      "imageHint": "Monte de Cristo",
+      "themeColors": {
+        "primary": {
+          "h": 36,
+          "s": 88
+        },
+        "background": {
+          "h": 216,
+          "s": 33
+        },
+        "accent": {
+          "h": 45,
+          "s": 86
+        }
+      }
+    },
+    {
+      "id": "saintoftheday-0",
+      "description": "Resurrección para el Domingo (Día del Señor)",
+      "imageUrl": "/images/resurrection.jpeg",
+      "imageHint": "resurrection Jesus"
+    },
+    {
+      "id": "saintoftheday-1",
+      "description": "Santísima Trinidad (moderno) para el Lunes",
+      "imageUrl": "/images/holy-trinity.jpeg",
+      "imageHint": "holy trinity abstract"
+    },
+    {
+      "id": "saintoftheday-2",
+      "description": "La Creación (abstracto) para el Martes",
+      "imageUrl": "/images/creation.jpeg",
+      "imageHint": "creation abstract"
+    },
+    {
+      "id": "saintoftheday-3",
+      "description": "Sagrada Familia (moderno) para el Miércoles",
+      "imageUrl": "/images/holy-family.jpeg",
+      "imageHint": "holy family"
+    },
+    {
+      "id": "saintoftheday-4",
+      "description": "Eucaristía para el Jueves",
+      "imageUrl": "/images/eucharist.jpeg",
+      "imageHint": "eucharist chalice"
+    },
+    {
+      "id": "saintoftheday-5",
+      "description": "Crucifixión para el Viernes",
+      "imageUrl": "/images/crucifixion.jpeg",
+      "imageHint": "crucifixion"
+    },
+    {
+      "id": "saintoftheday-6",
+      "description": "Inmaculada Concepción para el Sábado",
+      "imageUrl": "/images/immaculate-conception.jpeg",
+      "imageHint": "virgin mary"
+    },
+    {
+      "id": "sanalbertohurtado-image",
+      "description": "Imagen de San Alberto Hurtado",
+      "imageUrl": "/images/san-alberto.jpeg",
+      "imageHint": "San Alberto Hurtado"
+    },
+    {
+      "id": "sanfranciscodesales-image",
+      "description": "Imagen de San Francisco de Sales",
+      "imageUrl": "/images/san-francisco.jpeg",
+      "imageHint": "San Francisco Sales"
+    },
+    {
+      "id": "sanagustindehipona-image",
+      "description": "Imagen de San Agustín de Hipona",
+      "imageUrl": "/images/san-agustin.jpeg",
+      "imageHint": "San Agustín Hipona"
+    },
+    {
+      "id": "santotomasdeaquino-image",
+      "description": "Imagen de Santo Tomás de Aquino",
+      "imageUrl": "/images/santo-tomas.jpeg",
+      "imageHint": "Santo Tomás Aquino"
+    },
+    {
+      "id": "nativity-image",
+      "description": "Nacimiento de Jesús",
+      "imageUrl": "/images/nativity.jpeg",
+      "imageHint": "nativity Jesus"
+    },
+    {
+      "id": "christmas-image",
+      "description": "Navidad",
+      "imageUrl": "/images/christmas-image.png",
+      "imageHint": "christmas nativity"
+    }
+  ]
+}
