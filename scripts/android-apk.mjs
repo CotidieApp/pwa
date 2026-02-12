@@ -140,3 +140,45 @@ const dstApk = path.join(rootDir, `cotidie-installer-v${nextVersion}.apk`);
 fs.copyFileSync(srcApk, dstApk);
 console.log(`APK generado exitosamente en: ${dstApk}`);
 
+// --- Auto-Deploy to Vercel (Git Push) ---
+const skipPush = args.includes("--no-push");
+
+if (!skipPush) {
+  console.log("\n--- Iniciando sincronización automática con Vercel (Git) ---");
+  try {
+    // Intentar encontrar git en rutas comunes si no está en el PATH
+    const gitPath = fs.existsSync("C:\\Program Files\\Git\\cmd\\git.exe") 
+        ? "\"C:\\Program Files\\Git\\cmd\\git.exe\"" 
+        : "git";
+
+    // 1. Añadir cambios (incluyendo package.json y version bumps)
+    run(`${gitPath} add .`, rootDir);
+
+    // 2. Commit (controlando si no hay cambios)
+    try {
+        // Usamos spawnSync directo para no lanzar error si el exit code es 1 (nada que commitear)
+        const commitRes = spawnSync(`${gitPath} commit -m "Auto-deploy: Build v${nextVersion}"`, {
+            cwd: rootDir,
+            stdio: "inherit",
+            shell: true
+        });
+        if (commitRes.status !== 0) {
+            console.log("ℹ️  Git commit no realizó cambios (probablemente 'nothing to commit').");
+        }
+    } catch (err) {
+        console.warn("⚠️ Advertencia en git commit:", err.message);
+    }
+
+    // 3. Push
+    console.log("⬆️  Subiendo cambios a GitHub...");
+    run(`${gitPath} push`, rootDir);
+    console.log("✅ ¡Éxito! El código se ha subido y Vercel debería estar actualizando la PWA.");
+    
+  } catch (e) {
+    console.error("❌ No se pudo completar la sincronización automática con Git.");
+    console.error(`   Error: ${e.message}`);
+    console.error("   Por favor, ejecuta 'git push' manualmente si deseas actualizar la web.");
+  }
+}
+
+
