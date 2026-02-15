@@ -223,8 +223,8 @@ function useMemoSlides(userStats: UserStats, allPrayers: any[], showZeroStats: b
             { id: 'total-prayers', component: TotalPrayersSlide },
             
             // Conditional Slides
-            ...(showZeroStats || userStats.morningPrayersCount > 0 ? [{ id: 'morning', component: MorningPrayersSlide }] : []),
-            ...(showZeroStats || userStats.nightPrayersCount > 0 ? [{ id: 'night', component: NightPrayersSlide }] : []),
+            ...(showZeroStats || userStats.morningDaysCount > 0 ? [{ id: 'morning', component: MorningPrayersSlide }] : []),
+            ...(showZeroStats || userStats.nightDaysCount > 0 ? [{ id: 'night', component: NightPrayersSlide }] : []),
             ...(showZeroStats || userStats.angelusCount > 0 ? [{ id: 'angelus', component: AngelusSlide }] : []),
             ...(showZeroStats || userStats.rosaryCount > 0 ? [{ id: 'rosary', component: RosarySlide }] : []),
             ...(showZeroStats || userStats.examinationCount > 0 ? [{ id: 'examination', component: ExaminationSlide }] : []),
@@ -538,8 +538,8 @@ function MorningPrayersSlide({ userStats }: { userStats: UserStats }) {
         <div className="text-center space-y-6">
             <motion.div className="text-6xl">🌅</motion.div>
             <h2 className="text-3xl font-bold">Madrugador de Dios</h2>
-            <div className="text-8xl font-black text-orange-300">{userStats.morningPrayersCount}</div>
-            <p className="text-xl">Oraciones matutinas</p>
+            <div className="text-8xl font-black text-orange-300">{userStats.morningDaysCount}</div>
+            <p className="text-xl">Días orando en la mañana</p>
             <p className="italic opacity-80">"A quien madruga, Dios le ayuda." (Literalmente).</p>
         </div>
     )
@@ -550,8 +550,8 @@ function NightPrayersSlide({ userStats }: { userStats: UserStats }) {
         <div className="text-center space-y-6">
              <motion.div className="text-6xl">🌙</motion.div>
             <h2 className="text-3xl font-bold">Vigilante nocturno</h2>
-            <div className="text-8xl font-black text-blue-300">{userStats.nightPrayersCount}</div>
-            <p className="text-xl">Oraciones nocturnas</p>
+            <div className="text-8xl font-black text-blue-300">{userStats.nightDaysCount}</div>
+            <p className="text-xl">Días orando en la noche</p>
             <p className="italic opacity-80">¿Insomnio o devoción? Esperemos que lo segundo.</p>
         </div>
     )
@@ -683,7 +683,8 @@ function SaintQuotesSlide({ userStats }: { userStats: UserStats }) {
 function CreationSlide({ userStats }: { userStats: UserStats }) {
   const totalCreated = userStats.lettersWritten + userStats.devotionsCreated + userStats.prayersCreated;
 
-  if (totalCreated === 0) return null;
+  // If we are here, it's either because we have creations OR showZeroStats is true.
+  // We render regardless to avoid blank slide.
 
   return (
     <div className="grid gap-6 w-full max-w-sm">
@@ -692,13 +693,13 @@ function CreationSlide({ userStats }: { userStats: UserStats }) {
         animate={{ x: 0, opacity: 1 }}
         className="text-3xl font-bold text-center mb-4"
       >
-        Tu alma creativa ha dejado huella
+        {totalCreated > 0 ? "Tu alma creativa ha dejado huella" : "Tu alma creativa está despertando"}
       </motion.h2>
 
       <div className="space-y-4">
-        {userStats.lettersWritten > 0 && <StatRow label="Cartas escritas" count={userStats.lettersWritten} delay={0.2} icon="✉️" />}
-        {userStats.devotionsCreated > 0 && <StatRow label="Devociones creadas" count={userStats.devotionsCreated} delay={0.4} icon="🙏" />}
-        {userStats.prayersCreated > 0 && <StatRow label="Oraciones propias" count={userStats.prayersCreated} delay={0.6} icon="✍️" />}
+        {(userStats.lettersWritten > 0 || totalCreated === 0) && <StatRow label="Cartas escritas" count={userStats.lettersWritten} delay={0.2} icon="✉️" />}
+        {(userStats.devotionsCreated > 0 || totalCreated === 0) && <StatRow label="Devociones creadas" count={userStats.devotionsCreated} delay={0.4} icon="🙏" />}
+        {(userStats.prayersCreated > 0 || totalCreated === 0) && <StatRow label="Oraciones propias" count={userStats.prayersCreated} delay={0.6} icon="✍️" />}
       </div>
 
       <motion.div 

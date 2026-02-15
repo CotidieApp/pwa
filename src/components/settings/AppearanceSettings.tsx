@@ -115,6 +115,8 @@ export default function AppearanceSettings() {
     setIsCustomThemeActive,
     setCustomThemeColor,
     resetCustomTheme,
+    pinchToZoomEnabled,
+    setPinchToZoomEnabled,
     userHomeBackgrounds,
     addUserHomeBackground,
     removeUserHomeBackground,
@@ -248,6 +250,18 @@ export default function AppearanceSettings() {
               id="plan-tracker-switch"
               checked={planDeVidaTrackerEnabled}
               onCheckedChange={setPlanDeVidaTrackerEnabled}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <Label htmlFor="pinch-zoom-switch" className="flex flex-col gap-1 text-sm">
+               <span>Pellizcar para Zoom</span>
+               <span className="text-xs text-muted-foreground">Cambia el tamaño de letra con gestos.</span>
+            </Label>
+            <Switch
+              id="pinch-zoom-switch"
+              checked={pinchToZoomEnabled}
+              onCheckedChange={setPinchToZoomEnabled}
             />
           </div>
         </CardContent>

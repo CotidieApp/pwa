@@ -119,6 +119,76 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `src/components/settings/ContentSettings.tsx`
 - `android/app/src/main/AndroidManifest.xml`
 
+### [2026-02-11 11:15] 39. Refinamiento de Estadísticas
+**Planificación:**
+- **Stats**: Cambiar la lógica de "Racha" (consecutiva) a "Total de Días" (acumulativa única) para Mañana, Noche y Misa.
+- **App Usage**: Añadir contador de "Días no usados" (calculado como diferencia entre días del año transcurridos y días activo).
+- **Persistencia**: Confirmar compatibilidad de IndexedDB con APK (WebView).
+
+**Ejecución:**
+- **SettingsContext**: 
+    - Se añadieron nuevas propiedades a `UserStats`: `morningDaysCount`, `nightDaysCount`, `massDaysCount`.
+    - Se actualizó `incrementStat` para incrementar estos contadores solo si la fecha difiere de la última registrada (`lastMorningPrayerDate`, etc.).
+- **DeveloperDashboard**:
+    - Se actualizaron las etiquetas para reflejar "Días Totales" en lugar de "Rachas".
+    - Se añadió visualización de "Días Faltantes" bajo el contador de "Días Activo".
+
+**Archivos Modificados:**
+- `src/context/SettingsContext.tsx`
+- `src/components/developer/DeveloperDashboard.tsx`
+
+---
+
+### [2026-02-11 10:30] 38. Actualización Masiva: Persistencia, UX y Contenido
+**Planificación:**
+- **Movable Feasts**: Corregir algoritmo de Miércoles de Ceniza (no se mostraba correctamente).
+- **Nueva Oración**: Agregar "Oración antes de la comunión" (Comunión espiritual).
+- **UX**: Implementar gesto "Pinch to Zoom" en el detalle de oraciones para cambiar tamaño de letra dinámicamente.
+- **Stats**: Reemplazar contadores absolutos de oraciones mañana/noche por "Racha de días" (Streak) en el panel de desarrollador.
+- **PWA Persistence**: Implementar `IndexedDB` para evitar pérdida de datos en actualizaciones de PWA (reemplazando `localStorage` como fuente primaria).
+- **UI**: Corregir botón "Salir de Pantalla Completa" para respetar `safe-area-inset-bottom`.
+
+**Ejecución:**
+- **Movable Feasts**: Se corrigió la definición de `ashWednesday` y `palmSunday` en `src/lib/movable-feasts.ts`.
+- **Oraciones**: Se creó `src/lib/prayers/oraciones/comunion-espiritual-antes.ts` y se registró.
+- **Pinch Zoom**: 
+    - Se añadió `pinchToZoomEnabled` en `SettingsContext`.
+    - Se implementó la lógica de gestos `touchstart/move/end` en `PrayerDetail.tsx` para modificar `fontSize`.
+    - Se añadió toggle en `AppearanceSettings.tsx`.
+- **Stats**: Se modificó `SettingsContext` para rastrear `morningStreak` y `nightStreak` basado en fechas consecutivas, y se actualizó `DeveloperDashboard` para mostrarlas.
+- **Persistencia**:
+    - Se creó `src/lib/persistence.ts` (wrapper de IndexedDB).
+    - Se refactorizó `SettingsContext` para guardar en IDB + LocalStorage (backup) y cargar prioritariamente de IDB con migración automática.
+- **UI Fix**: Se añadió `mb-[env(safe-area-inset-bottom)]` al botón flotante de salir de pantalla completa.
+
+**Archivos Modificados:**
+- `src/lib/movable-feasts.ts`
+- `src/lib/prayers/oraciones/comunion-espiritual-antes.ts` (NUEVO)
+- `src/lib/persistence.ts` (NUEVO)
+- `src/context/SettingsContext.tsx`
+- `src/components/PrayerDetail.tsx`
+- `src/components/settings/AppearanceSettings.tsx`
+- `src/components/developer/DeveloperDashboard.tsx`
+- `src/components/main/MainApp.tsx`
+- `src/lib/data.tsx`
+
+---
+
+### [2026-02-11 09:30] 37. Nueva Oración: Letanías de la Humildad
+**Planificación:**
+- El usuario solicitó agregar las "Letanías de la Humildad" en la sección de Oraciones.
+- Se creará un nuevo archivo de oración y se registrará en `src/lib/data.tsx`.
+
+**Ejecución:**
+- **Nueva Oración**: Se creó `src/lib/prayers/oraciones/letanias-humildad.ts` con el texto completo proporcionado.
+- **Registro**: Se importó y añadió `letaniasHumildad` a la lista `initialPrayers` en `src/lib/data.tsx`.
+
+**Archivos Modificados:**
+- `src/lib/prayers/oraciones/letanias-humildad.ts` (NUEVO)
+- `src/lib/data.tsx`
+
+---
+
 ### [2026-02-10 16:00] 35. Adoración Extendida y Guía PWA
 **Planificación:**
 - **Rosario Immersive**:

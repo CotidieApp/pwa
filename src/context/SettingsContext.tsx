@@ -25,6 +25,7 @@ import { catholicQuotes } from '@/lib/quotes';
 import { allowedDevCredentials } from '@/lib/dev-credentials';
 import saintsDataRaw from '@/lib/saints-data.json';
 import { getMovableFeast, getEasterDate } from '@/lib/movable-feasts';
+import { persistence } from '@/lib/persistence';
 
 const saintsData = saintsDataRaw as { saints: SaintOfTheDay[] };
 
@@ -44,24 +45,30 @@ export type DailyReminder = {
 };
 
 export type UserStats = {
+  daysActive: number;
+  lastActiveDate: string | null;
+  // Specific requested stats
+  massStreak: number;
+  massDaysCount: number;
+  morningDaysCount: number;
+  nightDaysCount: number;
+  // Helper dates for streaks
+  lastMassDate: string | null;
+  lastNightPrayerDate: string | null;
+  lastMorningPrayerDate: string | null;
+  // Other stats (kept for compatibility or potential future use, but not displayed)
   totalPrayersOpened: number;
   prayersOpenedHistory: Record<string, number>;
   prayerDaysCount: Record<string, number>;
   prayerLastOpened: Record<string, string>;
-  daysActive: number;
-  lastActiveDate: string | null;
+  prayerLastIncrementTimestamp: Record<string, number>;
   lettersWritten: number;
   devotionsCreated: number;
   prayersCreated: number;
   saintQuotesOpened: number;
-  nightPrayersCount: number;
-  morningPrayersCount: number;
   rosaryCount: number;
   examinationCount: number;
   angelusCount: number;
-  massStreak: number;
-  lastMassDate: string | null;
-  prayerLastIncrementTimestamp: Record<string, number>;
 };
 
 type ThemeColor = { h: number; s: number };
@@ -179,6 +186,9 @@ type Settings = {
   setCustomThemeColor: (colorType: keyof CustomThemeColors, newColor: ThemeColor) => void;
   resetCustomTheme: () => void;
 
+  pinchToZoomEnabled: boolean;
+  setPinchToZoomEnabled: (enabled: boolean) => void;
+
   userHomeBackgrounds: ImagePlaceholder[];
   allHomeBackgrounds: ImagePlaceholder[];
 
@@ -248,24 +258,27 @@ const defaultOverlayPositions: OverlayPositions = {
 };
 
 const defaultUserStats: UserStats = {
+  daysActive: 0,
+  lastActiveDate: null,
+  massStreak: 0,
+  massDaysCount: 0,
+  morningDaysCount: 0,
+  nightDaysCount: 0,
+  lastMassDate: null,
+  lastNightPrayerDate: null,
+  lastMorningPrayerDate: null,
   totalPrayersOpened: 0,
   prayersOpenedHistory: {},
   prayerDaysCount: {},
   prayerLastOpened: {},
-  daysActive: 0,
-  lastActiveDate: null,
+  prayerLastIncrementTimestamp: {},
   lettersWritten: 0,
   devotionsCreated: 0,
   prayersCreated: 0,
   saintQuotesOpened: 0,
-  nightPrayersCount: 0,
-  morningPrayersCount: 0,
   rosaryCount: 0,
   examinationCount: 0,
   angelusCount: 0,
-  massStreak: 0,
-  lastMassDate: null,
-  prayerLastIncrementTimestamp: {},
 };
 
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {
@@ -318,6 +331,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     useState<CustomThemeColors>(defaultThemeColors);
   const [isCustomThemeActive, setIsCustomThemeActive] = useState(false);
 
+  const [pinchToZoomEnabled, setPinchToZoomEnabled] = useState(true);
+
   const [userHomeBackgrounds, setUserHomeBackgrounds] = useState<ImagePlaceholder[]>([]);
   const [scrollPositions, setScrollPositions] = useState<{ [k: string]: number }>({});
 
@@ -349,17 +364,25 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [showZeroStats, setShowZeroStats] = useState(false);
 
   /* =======================
-     LOCAL STORAGE (BLINDADO)
+     LOCAL STORAGE (BLINDADO) & INDEXEDDB
      ======================= */
 
   const saveState = useCallback((state: any) => {
     if (typeof window === 'undefined') return;
+    
+    // 1. Guardado principal en IndexedDB (Asíncrono y seguro)
+    persistence.setItem(SAVED_STATE_KEY, state).catch(e => 
+      console.error("Failed to save to IndexedDB", e)
+    );
+
+    // 2. Backup en LocalStorage (por compatibilidad y redundancia)
     try {
         if (window.localStorage && typeof window.localStorage.setItem === 'function') {
             window.localStorage.setItem(SAVED_STATE_KEY, JSON.stringify(state));
         }
     } catch (e) {
-        console.error("Failed to save state", e);
+        // Ignoramos errores de cuota en localStorage ya que confiamos en IDB
+        console.warn("LocalStorage write failed (quota exceeded?), relying on IDB");
     }
   }, []);
 
@@ -432,176 +455,199 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   );
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !window.localStorage || typeof window.localStorage.getItem !== 'function') {
-        setIsLoaded(true);
-        return;
-    }
+    const loadSettings = async () => {
+        if (typeof window === 'undefined') {
+            setIsLoaded(true);
+            return;
+        }
 
-    try {
-      const raw = window.localStorage.getItem(SAVED_STATE_KEY);
-      if (!raw) {
-        setAlwaysShowPrayers(defaultAlwaysShowPrayers);
-        setCustomPlans([null, null, null, null]);
-        setIsLoaded(true);
-        return;
-      }
-
-      const s = JSON.parse(raw);
-
-      setTheme(s.theme ?? 'light');
-      if (typeof s.fontSize === 'number' && Number.isFinite(s.fontSize)) {
-        setFontSize(Math.round(s.fontSize));
-      } else if (s.fontSize === 'large') {
-        setFontSize(18);
-      } else {
-        setFontSize(15);
-      }
-      setFontFamily(s.fontFamily ?? 'literata');
-
-      const savedHomeBackgroundId =
-        typeof s.homeBackgroundId === 'string' ? s.homeBackgroundId : null;
-      const savedLastRotationDate =
-        typeof s.lastBackgroundRotationDate === 'string' ? s.lastBackgroundRotationDate : null;
-
-      const resolvedHomeBackgroundId = savedHomeBackgroundId ?? defaultHomeBackgroundId;
-      setHomeBackgroundId(resolvedHomeBackgroundId);
-      setAutoRotateBackground(s.autoRotateBackground ?? true);
-      setLastBackgroundRotationDate(savedLastRotationDate);
-
-      setHiddenPrayerIds(s.hiddenPrayerIds ?? []);
-      setEditedPrayerIds(s.editedPrayerIds ?? []);
-      setUserDevotions(s.userDevotions ?? []);
-      setUserPrayers(s.userPrayers ?? []);
-      setUserLetters(s.userLetters ?? []);
-
-      const asp = s.alwaysShowPrayers ?? [];
-      if (!asp.includes('cartas')) asp.push('cartas');
-      setAlwaysShowPrayers(asp);
-
-      setIsDeveloperMode(s.isDeveloperMode ?? false);
-      setIsEditModeEnabled(s.isEditModeEnabled ?? false);
-
-      setTimerEnabled(s.timerEnabled ?? false);
-      setTimerDuration(s.timerDuration ?? 15);
-      setTimerTime((s.timerDuration ?? 15) * 60);
-      setOverlayPositions(normalizeOverlayPositions(s.overlayPositions));
-
-      setPlanDeVidaTrackerEnabled(s.planDeVidaTrackerEnabled ?? true);
-      setPlanDeVidaProgress(s.planDeVidaProgress ?? []);
-      setLastResetTimestamp(s.lastResetTimestamp ?? Date.now());
-
-      setUserQuotes(s.userQuotes ?? []);
-      setMovableFeastsEnabled(s.movableFeastsEnabled ?? true);
-
-      setCustomThemeColors(s.customThemeColors ?? defaultThemeColors);
-      setIsCustomThemeActive(s.isCustomThemeActive ?? false);
-
-      const resolvedUserHomeBackgrounds = Array.isArray(s.userHomeBackgrounds) ? s.userHomeBackgrounds : [];
-      setUserHomeBackgrounds(resolvedUserHomeBackgrounds);
-      setScrollPositions(s.scrollPositions ?? {});
-
-      setQuoteOfTheDay(s.quoteOfTheDay ?? null);
-      setRecentQuoteIds(s.recentQuoteIds ?? []);
-      setLastQuoteDate(s.lastQuoteDate ?? null);
-
-      setShownEasterEggQuoteIds(s.shownEasterEggQuoteIds ?? []);
-
-      setSaintOfTheDay(s.saintOfTheDay ?? null);
-      setSaintOfTheDayImage(s.saintOfTheDayImage ?? null);
-      setLastSaintUpdate(s.lastSaintUpdate ?? null);
-
-      const rawCustomPlans = Array.isArray(s.customPlans) ? s.customPlans : [];
-      const normalizedPlans: Array<CustomPlan | null> = [null, null, null, null];
-      for (const entry of rawCustomPlans) {
-        if (!entry || typeof entry !== 'object') continue;
-        const slot = (entry as any).slot;
-        if (slot !== 1 && slot !== 2 && slot !== 3 && slot !== 4) continue;
-        const nameCandidate = typeof (entry as any).name === 'string' ? (entry as any).name : '';
-        const trimmedName = nameCandidate.trim();
-        const name = trimmedName.length > 0 && !/^Plan personalizado\b/i.test(trimmedName) ? trimmedName : '';
-        const prayerIds = Array.isArray((entry as any).prayerIds)
-          ? (entry as any).prayerIds.filter((x: any) => typeof x === 'string')
-          : [];
-        const id = typeof (entry as any).id === 'string' ? (entry as any).id : `custom-plan-${slot}-${Date.now()}`;
-        const createdAt = typeof (entry as any).createdAt === 'number' ? (entry as any).createdAt : Date.now();
-        normalizedPlans[slot - 1] = { id, slot, name, prayerIds, createdAt };
-      }
-      setCustomPlans(normalizedPlans);
-
-      setNotificationsEnabledState(s.notificationsEnabled ?? true);
-      setDailyReminders(normalizeDailyReminders(s.dailyReminders));
-      
-      const currentYear = new Date().getFullYear();
-      const savedStatsYear = typeof s.statsYear === 'number' ? s.statsYear : currentYear;
-
-      // Handle Year Reset (Jan 1st)
-      if (savedStatsYear !== currentYear) {
-         // Reset yearly stats
-         setUserStats(defaultUserStats);
-         setStatsYear(currentYear);
-         
-         // Initialize global stats from old userStats if global didn't exist
-         // (Migration for existing users: assume previous stats were global)
-         if (!s.globalUserStats) {
-             setGlobalUserStats({
-                 ...defaultUserStats,
-                 ...(s.userStats || {}),
-                 prayersOpenedHistory: s.userStats?.prayersOpenedHistory || {},
-             });
-         } else {
-             setGlobalUserStats({
-                 ...defaultUserStats,
-                 ...(s.globalUserStats || {}),
-                 prayersOpenedHistory: s.globalUserStats?.prayersOpenedHistory || {},
-             });
-         }
-      } else {
-          setUserStats({
-            ...defaultUserStats,
-            ...(s.userStats || {}),
-            prayersOpenedHistory: s.userStats?.prayersOpenedHistory || {},
-          });
-          setStatsYear(savedStatsYear);
-          
-          if (s.globalUserStats) {
-             setGlobalUserStats({
-                 ...defaultUserStats,
-                 ...(s.globalUserStats || {}),
-                 prayersOpenedHistory: s.globalUserStats?.prayersOpenedHistory || {},
-             });
-          } else {
-             // First run with new code but same year: treat current stats as global too
-             setGlobalUserStats({
-                 ...defaultUserStats,
-                 ...(s.userStats || {}),
-                 prayersOpenedHistory: s.userStats?.prayersOpenedHistory || {},
-             });
-          }
-      }
-
-      const placeholderHomeBackgrounds = PlaceHolderImages.filter((img) => img.id.startsWith('home-'));
-      const resolvedUrl =
-        (resolvedHomeBackgroundId
-          ? [...placeholderHomeBackgrounds, ...resolvedUserHomeBackgrounds].find((img) => img.id === resolvedHomeBackgroundId)?.imageUrl ?? null
-          : null) ?? placeholderHomeBackgrounds[0]?.imageUrl ?? null;
-
-      if (resolvedUrl && typeof document !== 'undefined') {
-        const escaped = resolvedUrl.replace(/"/g, '\\"');
-        document.documentElement.style.setProperty('--home-bg-image', `url("${escaped}")`);
-      }
-      if (resolvedUrl) {
         try {
-          window.localStorage.setItem('cotidie_home_bg_url', resolvedUrl);
-        } catch {}
-      }
-    } catch (e) {
-      console.error("Error loading state", e);
-      if (typeof window !== 'undefined' && window.localStorage && typeof window.localStorage.removeItem === 'function') {
-        window.localStorage.removeItem(SAVED_STATE_KEY);
-      }
-    } finally {
-      setIsLoaded(true);
-    }
+          // A) Intentar cargar desde IndexedDB
+          let s: any = await persistence.getItem(SAVED_STATE_KEY);
+
+          // B) Migración: Si no hay nada en IDB, buscar en localStorage
+          if (!s && window.localStorage) {
+             const rawLS = window.localStorage.getItem(SAVED_STATE_KEY);
+             if (rawLS) {
+                 try {
+                     s = JSON.parse(rawLS);
+                     // Guardar inmediatamente en IDB para completar la migración
+                     await persistence.setItem(SAVED_STATE_KEY, s);
+                     console.log("Migración de datos: LocalStorage -> IndexedDB completada.");
+                 } catch (e) {
+                     console.error("Error migrando localStorage", e);
+                 }
+             }
+          }
+
+          if (!s) {
+            setAlwaysShowPrayers(defaultAlwaysShowPrayers);
+            setCustomPlans([null, null, null, null]);
+            setIsLoaded(true);
+            return;
+          }
+
+          // ... BLOQUE DE HIDRATACIÓN ...
+          setTheme(s.theme ?? 'light');
+          if (typeof s.fontSize === 'number' && Number.isFinite(s.fontSize)) {
+            setFontSize(Math.round(s.fontSize));
+          } else if (s.fontSize === 'large') {
+            setFontSize(18);
+          } else {
+            setFontSize(15);
+          }
+          setFontFamily(s.fontFamily ?? 'literata');
+
+          const savedHomeBackgroundId =
+            typeof s.homeBackgroundId === 'string' ? s.homeBackgroundId : null;
+          const savedLastRotationDate =
+            typeof s.lastBackgroundRotationDate === 'string' ? s.lastBackgroundRotationDate : null;
+
+          const resolvedHomeBackgroundId = savedHomeBackgroundId ?? defaultHomeBackgroundId;
+          setHomeBackgroundId(resolvedHomeBackgroundId);
+          setAutoRotateBackground(s.autoRotateBackground ?? true);
+          setLastBackgroundRotationDate(savedLastRotationDate);
+
+          setHiddenPrayerIds(s.hiddenPrayerIds ?? []);
+          setEditedPrayerIds(s.editedPrayerIds ?? []);
+          setUserDevotions(s.userDevotions ?? []);
+          setUserPrayers(s.userPrayers ?? []);
+          setUserLetters(s.userLetters ?? []);
+
+          const asp = s.alwaysShowPrayers ?? [];
+          if (!asp.includes('cartas')) asp.push('cartas');
+          setAlwaysShowPrayers(asp);
+
+          setIsDeveloperMode(s.isDeveloperMode ?? false);
+          setIsEditModeEnabled(s.isEditModeEnabled ?? false);
+
+          setTimerEnabled(s.timerEnabled ?? false);
+          setTimerDuration(s.timerDuration ?? 15);
+          setTimerTime((s.timerDuration ?? 15) * 60);
+          setOverlayPositions(normalizeOverlayPositions(s.overlayPositions));
+
+          setPlanDeVidaTrackerEnabled(s.planDeVidaTrackerEnabled ?? true);
+          setPlanDeVidaProgress(s.planDeVidaProgress ?? []);
+          setLastResetTimestamp(s.lastResetTimestamp ?? Date.now());
+
+          setUserQuotes(s.userQuotes ?? []);
+          setMovableFeastsEnabled(s.movableFeastsEnabled ?? true);
+
+          setCustomThemeColors(s.customThemeColors ?? defaultThemeColors);
+          setIsCustomThemeActive(s.isCustomThemeActive ?? false);
+
+          setPinchToZoomEnabled(s.pinchToZoomEnabled ?? true);
+
+          const resolvedUserHomeBackgrounds = Array.isArray(s.userHomeBackgrounds) ? s.userHomeBackgrounds : [];
+          setUserHomeBackgrounds(resolvedUserHomeBackgrounds);
+          setScrollPositions(s.scrollPositions ?? {});
+
+          setQuoteOfTheDay(s.quoteOfTheDay ?? null);
+          setRecentQuoteIds(s.recentQuoteIds ?? []);
+          setLastQuoteDate(s.lastQuoteDate ?? null);
+
+          setShownEasterEggQuoteIds(s.shownEasterEggQuoteIds ?? []);
+
+          setSaintOfTheDay(s.saintOfTheDay ?? null);
+          setSaintOfTheDayImage(s.saintOfTheDayImage ?? null);
+          setLastSaintUpdate(s.lastSaintUpdate ?? null);
+
+          const rawCustomPlans = Array.isArray(s.customPlans) ? s.customPlans : [];
+          const normalizedPlans: Array<CustomPlan | null> = [null, null, null, null];
+          for (const entry of rawCustomPlans) {
+            if (!entry || typeof entry !== 'object') continue;
+            const slot = (entry as any).slot;
+            if (slot !== 1 && slot !== 2 && slot !== 3 && slot !== 4) continue;
+            const nameCandidate = typeof (entry as any).name === 'string' ? (entry as any).name : '';
+            const trimmedName = nameCandidate.trim();
+            const name = trimmedName.length > 0 && !/^Plan personalizado\b/i.test(trimmedName) ? trimmedName : '';
+            const prayerIds = Array.isArray((entry as any).prayerIds)
+              ? (entry as any).prayerIds.filter((x: any) => typeof x === 'string')
+              : [];
+            const id = typeof (entry as any).id === 'string' ? (entry as any).id : `custom-plan-${slot}-${Date.now()}`;
+            const createdAt = typeof (entry as any).createdAt === 'number' ? (entry as any).createdAt : Date.now();
+            normalizedPlans[slot - 1] = { id, slot, name, prayerIds, createdAt };
+          }
+          setCustomPlans(normalizedPlans);
+
+          setNotificationsEnabledState(s.notificationsEnabled ?? true);
+          setDailyReminders(normalizeDailyReminders(s.dailyReminders));
+          
+          const currentYear = new Date().getFullYear();
+          const savedStatsYear = typeof s.statsYear === 'number' ? s.statsYear : currentYear;
+
+          // Handle Year Reset (Jan 1st)
+          if (savedStatsYear !== currentYear) {
+             // Reset yearly stats
+             setUserStats(defaultUserStats);
+             setStatsYear(currentYear);
+             
+             // Initialize global stats from old userStats if global didn't exist
+             // (Migration for existing users: assume previous stats were global)
+             if (!s.globalUserStats) {
+                 setGlobalUserStats({
+                     ...defaultUserStats,
+                     ...(s.userStats || {}),
+                     prayersOpenedHistory: s.userStats?.prayersOpenedHistory || {},
+                 });
+             } else {
+                 setGlobalUserStats({
+                     ...defaultUserStats,
+                     ...(s.globalUserStats || {}),
+                     prayersOpenedHistory: s.globalUserStats?.prayersOpenedHistory || {},
+                 });
+             }
+          } else {
+              setUserStats({
+                ...defaultUserStats,
+                ...(s.userStats || {}),
+                prayersOpenedHistory: s.userStats?.prayersOpenedHistory || {},
+              });
+              setStatsYear(savedStatsYear);
+              
+              if (s.globalUserStats) {
+                 setGlobalUserStats({
+                     ...defaultUserStats,
+                     ...(s.globalUserStats || {}),
+                     prayersOpenedHistory: s.globalUserStats?.prayersOpenedHistory || {},
+                 });
+              } else {
+                 // First run with new code but same year: treat current stats as global too
+                 setGlobalUserStats({
+                     ...defaultUserStats,
+                     ...(s.userStats || {}),
+                     prayersOpenedHistory: s.userStats?.prayersOpenedHistory || {},
+                 });
+              }
+          }
+
+          const placeholderHomeBackgrounds = PlaceHolderImages.filter((img) => img.id.startsWith('home-'));
+          const resolvedUrl =
+            (resolvedHomeBackgroundId
+              ? [...placeholderHomeBackgrounds, ...resolvedUserHomeBackgrounds].find((img) => img.id === resolvedHomeBackgroundId)?.imageUrl ?? null
+              : null) ?? placeholderHomeBackgrounds[0]?.imageUrl ?? null;
+
+          if (resolvedUrl && typeof document !== 'undefined') {
+            const escaped = resolvedUrl.replace(/"/g, '\\"');
+            document.documentElement.style.setProperty('--home-bg-image', `url("${escaped}")`);
+          }
+          if (resolvedUrl) {
+            try {
+              window.localStorage.setItem('cotidie_home_bg_url', resolvedUrl);
+            } catch {}
+          }
+        } catch (e) {
+          console.error("Error cargando configuración", e);
+          // Fallback to clear LS if corrupted, but careful with IDB
+          if (typeof window !== 'undefined' && window.localStorage && typeof window.localStorage.removeItem === 'function') {
+            // window.localStorage.removeItem(SAVED_STATE_KEY); // Maybe too aggressive?
+          }
+        } finally {
+          setIsLoaded(true);
+        }
+    };
+
+    loadSettings();
   }, []);
 
   /* =======================
@@ -638,6 +684,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       movableFeastsEnabled,
       customThemeColors,
       isCustomThemeActive,
+      pinchToZoomEnabled,
       userHomeBackgrounds,
       scrollPositions,
       quoteOfTheDay,
@@ -682,6 +729,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     movableFeastsEnabled,
     customThemeColors,
     isCustomThemeActive,
+    pinchToZoomEnabled,
     userHomeBackgrounds,
     scrollPositions,
     quoteOfTheDay,
@@ -700,20 +748,70 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     saveState,
   ]);
 
-  // Track Days Active
+  // Track Days Active & Morning/Night Usage (App Open)
   useEffect(() => {
     if (!isLoaded) return;
     const now = simulatedDate ? new Date(simulatedDate) : new Date();
     const dateKey = now.toISOString().slice(0, 10);
+    const hour = now.getHours();
+
+    // Expanded ranges for "App Usage"
+    const isNight = hour >= 20 || hour < 4; // 8PM - 4AM
+    const isMorning = hour >= 4 && hour < 12; // 4AM - 12PM
     
-    if (userStats.lastActiveDate !== dateKey) {
-       setUserStats(prev => ({
-         ...prev,
-         daysActive: prev.daysActive + 1,
-         lastActiveDate: dateKey
-       }));
-    }
-  }, [isLoaded, simulatedDate, userStats.lastActiveDate]);
+    // Update Local Stats
+    setUserStats(prev => {
+       let changed = false;
+       const next = { ...prev };
+
+       if (next.lastActiveDate !== dateKey) {
+         next.daysActive = (next.daysActive || 0) + 1;
+         next.lastActiveDate = dateKey;
+         changed = true;
+       }
+
+       if (isMorning && next.lastMorningPrayerDate !== dateKey) {
+           next.morningDaysCount = (next.morningDaysCount || 0) + 1;
+           next.lastMorningPrayerDate = dateKey;
+           changed = true;
+       }
+
+       if (isNight && next.lastNightPrayerDate !== dateKey) {
+           next.nightDaysCount = (next.nightDaysCount || 0) + 1;
+           next.lastNightPrayerDate = dateKey;
+           changed = true;
+       }
+
+       return changed ? next : prev;
+    });
+
+    // Update Global Stats
+    setGlobalUserStats(prev => {
+        let changed = false;
+        const next = { ...prev };
+ 
+        if (next.lastActiveDate !== dateKey) {
+          next.daysActive = (next.daysActive || 0) + 1;
+          next.lastActiveDate = dateKey;
+          changed = true;
+        }
+ 
+        if (isMorning && next.lastMorningPrayerDate !== dateKey) {
+            next.morningDaysCount = (next.morningDaysCount || 0) + 1;
+            next.lastMorningPrayerDate = dateKey;
+            changed = true;
+        }
+ 
+        if (isNight && next.lastNightPrayerDate !== dateKey) {
+            next.nightDaysCount = (next.nightDaysCount || 0) + 1;
+            next.lastNightPrayerDate = dateKey;
+            changed = true;
+        }
+ 
+        return changed ? next : prev;
+     });
+
+  }, [isLoaded, simulatedDate]);
 
   // Funciones auxiliares
   const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -1070,6 +1168,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
     setCustomThemeColors(data.customThemeColors ?? defaultThemeColors);
     setIsCustomThemeActive(data.isCustomThemeActive ?? false);
+    setPinchToZoomEnabled(data.pinchToZoomEnabled ?? true);
 
     setUserHomeBackgrounds(Array.isArray(data.userHomeBackgrounds) ? data.userHomeBackgrounds : []);
     setScrollPositions(data.scrollPositions && typeof data.scrollPositions === 'object' ? data.scrollPositions : {});
@@ -1309,8 +1408,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
             
             const now = new Date();
             const hour = now.getHours();
-            const isNight = hour >= 22 || hour < 6;
-            const isMorning = hour >= 5 && hour < 12;
+            const isNight = hour >= 20 || hour < 4; // Expanded range for Night (8PM - 4AM)
+            const isMorning = hour >= 4 && hour < 12; // Expanded range for Morning (4AM - 12PM)
 
             const isRosary = subKey === 'rosario' || subKey === 'santo-rosario';
             const isAngelus = subKey === 'angelus' || subKey === 'regina-caeli';
@@ -1328,9 +1427,20 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
             }
 
             let newMassStreak = prev.massStreak || 0;
+            let newMassDaysCount = prev.massDaysCount || 0;
             let newLastMassDate = prev.lastMassDate;
 
+            // Morning Stats (No streak, just total days)
+            let newMorningDaysCount = prev.morningDaysCount || 0;
+            let newLastMorningDate = prev.lastMorningPrayerDate;
+
+            // Night Stats (No streak, just total days)
+            let newNightDaysCount = prev.nightDaysCount || 0;
+            let newLastNightDate = prev.lastNightPrayerDate;
+
             const prayer = getPrayerById(subKey, allPrayers);
+            
+            // Mass Logic
             const isMassPrayer = 
                 subKey === 'santa-misa' || 
                 subKey === 'antes-misa' || 
@@ -1351,22 +1461,45 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
                          newMassStreak = 1;
                      }
                      newLastMassDate = todayKey;
+                     newMassDaysCount += 1;
                  }
+            }
+
+            // Morning Logic
+            if (isMorning) {
+                if (newLastMorningDate !== todayKey) {
+                    newLastMorningDate = todayKey;
+                    newMorningDaysCount += 1;
+                }
+            }
+
+            // Night Logic
+            if (isNight) {
+                if (newLastNightDate !== todayKey) {
+                    newLastNightDate = todayKey;
+                    newNightDaysCount += 1;
+                }
             }
             
             return { 
               ...prev, 
               prayersOpenedHistory: history,
               totalPrayersOpened: prev.totalPrayersOpened + 1,
-              nightPrayersCount: isNight ? (prev.nightPrayersCount || 0) + 1 : (prev.nightPrayersCount || 0),
-              morningPrayersCount: isMorning ? (prev.morningPrayersCount || 0) + 1 : (prev.morningPrayersCount || 0),
+              // Update specific requested stats
+              massStreak: newMassStreak,
+              massDaysCount: newMassDaysCount,
+              morningDaysCount: newMorningDaysCount,
+              nightDaysCount: newNightDaysCount,
+              // Update dates
+              lastMassDate: newLastMassDate,
+              lastMorningPrayerDate: newLastMorningDate,
+              lastNightPrayerDate: newLastNightDate,
+              // Keep others updating in background just in case
               rosaryCount: isRosary ? (prev.rosaryCount || 0) + 1 : (prev.rosaryCount || 0),
               angelusCount: isAngelus ? (prev.angelusCount || 0) + 1 : (prev.angelusCount || 0),
               examinationCount: isExamination ? (prev.examinationCount || 0) + 1 : (prev.examinationCount || 0),
               prayerLastOpened: newPrayerLastOpened,
               prayerDaysCount: newPrayerDaysCount,
-              massStreak: newMassStreak,
-              lastMassDate: newLastMassDate
             };
         }
         
@@ -1384,12 +1517,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         const now = Date.now();
         const lastIncrement = userStats.prayerLastIncrementTimestamp?.[subKey] || 0;
         if (now - lastIncrement < 3600000) { // 1 hour = 3600000 ms
-            // Skip incrementing history but maybe we still want to update lastOpened date?
-            // User request implies "count only once", so we skip the count.
-            // But we might want to update "lastOpened" for streaks?
-            // "solo se cuenta una vez para el contador, tanto anual como histórico."
-            // Streak logic usually depends on unique days, so re-opening same day is fine.
-            // But total count should not increase.
             return;
         }
     }
@@ -1417,8 +1544,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         // Check for time-based stats
         const now = new Date();
         const hour = now.getHours();
-        const isNight = hour >= 22 || hour < 6;
-        const isMorning = hour >= 5 && hour < 12;
+        const isNight = hour >= 20 || hour < 4; // Expanded range for Night (8PM - 4AM)
+        const isMorning = hour >= 4 && hour < 12; // Expanded range for Morning (4AM - 12PM)
 
         // Specific prayer type checks
         const isRosary = subKey === 'rosario' || subKey === 'santo-rosario';
@@ -1437,13 +1564,12 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
              newPrayerDaysCount[subKey] = (newPrayerDaysCount[subKey] || 0) + 1;
         }
 
-        // Mass Streak Logic
+        // Mass Stats
         let newMassStreak = prev.massStreak || 0;
+        let newMassDaysCount = prev.massDaysCount || 0;
         let newLastMassDate = prev.lastMassDate;
 
         const prayer = getPrayerById(subKey, allPrayers);
-        // Check hierarchy for Mass
-        // If prayer is 'santa-misa' or any child of it.
         const isMassPrayer = 
             subKey === 'santa-misa' || 
             subKey === 'antes-misa' || 
@@ -1464,22 +1590,55 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
                      newMassStreak = 1;
                  }
                  newLastMassDate = todayKey;
+                 newMassDaysCount += 1;
              }
+        }
+
+        // Morning Stats (Total Days)
+        let newMorningDaysCount = prev.morningDaysCount || 0;
+        let newLastMorningDate = prev.lastMorningPrayerDate;
+
+        if (isMorning) {
+            if (newLastMorningDate !== todayKey) {
+                newLastMorningDate = todayKey;
+                newMorningDaysCount += 1;
+            }
+        }
+
+        // Night Stats (Total Days)
+        let newNightDaysCount = prev.nightDaysCount || 0;
+        let newLastNightDate = prev.lastNightPrayerDate;
+
+        if (isNight) {
+            if (newLastNightDate !== todayKey) {
+                newLastNightDate = todayKey;
+                newNightDaysCount += 1;
+            }
         }
         
         return { 
           ...prev, 
           prayersOpenedHistory: history,
           totalPrayersOpened: prev.totalPrayersOpened + 1,
-          nightPrayersCount: isNight ? (prev.nightPrayersCount || 0) + 1 : (prev.nightPrayersCount || 0),
-          morningPrayersCount: isMorning ? (prev.morningPrayersCount || 0) + 1 : (prev.morningPrayersCount || 0),
+          
+          // Updated Stats
+          massStreak: newMassStreak,
+          massDaysCount: newMassDaysCount,
+          morningDaysCount: newMorningDaysCount,
+          nightDaysCount: newNightDaysCount,
+          
+          // Updated Dates
+          lastMassDate: newLastMassDate,
+          lastMorningPrayerDate: newLastMorningDate,
+          lastNightPrayerDate: newLastNightDate,
+
+          // Other Counts
           rosaryCount: isRosary ? (prev.rosaryCount || 0) + 1 : (prev.rosaryCount || 0),
           angelusCount: isAngelus ? (prev.angelusCount || 0) + 1 : (prev.angelusCount || 0),
           examinationCount: isExamination ? (prev.examinationCount || 0) + 1 : (prev.examinationCount || 0),
+          
           prayerLastOpened: newPrayerLastOpened,
           prayerDaysCount: newPrayerDaysCount,
-          massStreak: newMassStreak,
-          lastMassDate: newLastMassDate,
           prayerLastIncrementTimestamp: timestamps,
         };
       }
@@ -1916,6 +2075,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         setIsCustomThemeActive,
         setCustomThemeColor,
         resetCustomTheme,
+        pinchToZoomEnabled,
+        setPinchToZoomEnabled,
         userHomeBackgrounds,
         allHomeBackgrounds,
         addUserHomeBackground,

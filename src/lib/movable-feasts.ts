@@ -47,7 +47,7 @@ const movableFeastsDefinitions: Record<string, MovableFeastDefinition> = {
     offset: -46,
     name: "Miércoles de Ceniza",
     bio: "Inicio de la Cuaresma, un tiempo de penitencia y conversión de cuarenta días en preparación para la Pascua. Se caracteriza por la imposición de la ceniza en la frente.",
-    title: "Celebración del Día",
+    title: "Conmemoración",
     type: "celebration",
   },
   palmSunday: {

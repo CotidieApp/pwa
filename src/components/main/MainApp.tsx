@@ -34,6 +34,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Card, CardContent } from '../ui/card';
+import { Button } from '@/components/ui/button';
 
 type AddFormMode = 'devotion' | 'entry' | 'letter' | 'predefined';
 type AppView = 'home' | 'category' | 'prayer' | 'settings' | 'addForm' | 'editForm' | 'customPlan' | 'developer' | 'viaCrucis' | 'rosary';
@@ -868,6 +869,16 @@ export default function MainApp() {
           </AlertDialogAction>
         </AlertDialogContent>
       </AlertDialog>
+
+      {isDistractionFree && (
+        <Button
+          className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 rounded-full opacity-50 hover:opacity-100 transition-opacity bg-black/50 hover:bg-black/80 text-white mb-[env(safe-area-inset-bottom)]"
+          onClick={toggleDistractionFree}
+          size="sm"
+        >
+          Salir de Pantalla Completa
+        </Button>
+      )}
 
       <AnimatePresence>
         {showWrapped && (

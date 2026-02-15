@@ -303,8 +303,68 @@ const PrayerContent = ({
   prayer: Prayer;
   searchState?: { term: string; activeIndex: number; resultsCount: number };
 }) => {
-  const { setScrollPosition, scrollPositions, theme } = useSettings();
+  const { setScrollPosition, scrollPositions, theme, pinchToZoomEnabled, fontSize, setFontSize } = useSettings();
   const throttleTimeout = useRef<NodeJS.Timeout | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Pinch-to-zoom logic
+  const [initialDistance, setInitialDistance] = useState<number | null>(null);
+  const [initialFontSize, setInitialFontSize] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!pinchToZoomEnabled || !containerRef.current) return;
+
+    const el = containerRef.current;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        e.preventDefault(); // Prevent default browser zoom/scroll behavior
+        const d = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        setInitialDistance(d);
+        setInitialFontSize(fontSize);
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2 && initialDistance !== null && initialFontSize !== null) {
+        e.preventDefault(); // Prevent default browser zoom/scroll behavior
+        const d = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        
+        // Calculate scale factor
+        const scale = d / initialDistance;
+        
+        // New font size
+        let newSize = initialFontSize * scale;
+        
+        // Clamp
+        newSize = Math.max(10, Math.min(newSize, 40));
+        
+        setFontSize(Math.round(newSize));
+      }
+    };
+
+    const handleTouchEnd = () => {
+      setInitialDistance(null);
+      setInitialFontSize(null);
+    };
+
+    // Use { passive: false } to allow preventDefault()
+    el.addEventListener('touchstart', handleTouchStart, { passive: false });
+    el.addEventListener('touchmove', handleTouchMove, { passive: false });
+    el.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      el.removeEventListener('touchstart', handleTouchStart);
+      el.removeEventListener('touchmove', handleTouchMove);
+      el.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [pinchToZoomEnabled, initialDistance, initialFontSize, fontSize, setFontSize]);
 
   const themeMode: 'light' | 'dark' = theme === 'dark' ? 'dark' : 'light';
   const prayerId: string = prayer.id ?? '';
@@ -392,7 +452,10 @@ const PrayerContent = ({
   if (typeof prayer.content === 'string') {
     const { term = '', activeIndex = -1 } = searchState || {};
     return (
-      <div className="text-foreground/90 leading-relaxed">
+      <div 
+        ref={containerRef}
+        className="text-foreground/90 leading-relaxed touch-pan-y"
+      >
         {isCamino
           ? renderCaminoLines(prayer.content, term, activeIndex, themeMode)
           : term
@@ -416,7 +479,7 @@ const PrayerContent = ({
     };
 
     return (
-      <div>
+      <div ref={containerRef} className="touch-pan-y">
         <div className="flex justify-between items-center mb-4 border-b pb-3">
           <h3 className="text-lg font-headline font-semibold">{selectedLabel}</h3>
           {otherLang && (

@@ -43,12 +43,14 @@ import { cartas } from './prayers/plan-de-vida/cartas';
 
 // Oraciones
 import { comunionEspiritual } from './prayers/oraciones/comunion-espiritual';
+import { comunionEspiritualAntes } from './prayers/oraciones/comunion-espiritual-antes';
 import { oracionPorLasVocaciones } from './prayers/oraciones/oracion-vocaciones';
 import { oracionAlEspirituSanto } from './prayers/oraciones/oracion-espiritu-santo';
 import { oracionJuventudInquieta } from './prayers/oraciones/oracion-juventud-inquieta';
 import { queBienSeEstaContigo } from './prayers/oraciones/que-bien-se-esta-contigo';
 import { oracionPorLosDifuntos } from './prayers/oraciones/oracion-difuntos';
 import { oracionDeLaFamilia } from './prayers/oraciones/oracion-familia';
+import { letaniasHumildad } from './prayers/oraciones/letanias-humildad';
 
 export const categories: Category[] = [
   { 
@@ -163,6 +165,7 @@ export const initialPrayers: Prayer[] = [
   viaCrucis,
   
   // Oraciones Varias
+  comunionEspiritualAntes,
   comunionEspiritual,
   oracionPorLasVocaciones,
   oracionAlEspirituSanto,
@@ -170,5 +173,6 @@ export const initialPrayers: Prayer[] = [
   queBienSeEstaContigo,
   oracionPorLosDifuntos,
   oracionDeLaFamilia,
-  oracionAlSagradoCorazonDeJesus
+  oracionAlSagradoCorazonDeJesus,
+  letaniasHumildad
 ];

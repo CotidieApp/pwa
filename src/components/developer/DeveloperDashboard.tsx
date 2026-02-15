@@ -456,16 +456,17 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
                   </CardHeader>
                   <CardContent>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {(['daysActive', 'totalPrayersOpened', 'morningPrayersCount', 'nightPrayersCount', 'rosaryCount', 'angelusCount', 'examinationCount', 'massStreak', 'saintQuotesOpened', 'lettersWritten', 'devotionsCreated', 'prayersCreated'] as const).map(key => {
+                        {(['daysActive', 'massStreak', 'massDaysCount', 'morningDaysCount', 'nightDaysCount', 'totalPrayersOpened', 'rosaryCount', 'angelusCount', 'examinationCount', 'saintQuotesOpened', 'lettersWritten', 'devotionsCreated', 'prayersCreated'] as const).map(key => {
                             const labels: Record<string, string> = {
-                                daysActive: 'Días Activo',
+                                daysActive: 'Días Activo (App)',
+                                massStreak: 'Racha de Misa',
+                                massDaysCount: 'Días Totales Misa',
+                                morningDaysCount: 'Días Oración Mañana',
+                                nightDaysCount: 'Días Oración Noche',
                                 totalPrayersOpened: 'Oraciones Abiertas',
-                                morningPrayersCount: 'Oraciones Mañana',
-                                nightPrayersCount: 'Oraciones Noche',
                                 rosaryCount: 'Rosarios',
                                 angelusCount: 'Angelus',
                                 examinationCount: 'Examen Conciencia',
-                                massStreak: 'Racha Misa',
                                 saintQuotesOpened: 'Citas Santos',
                                 lettersWritten: 'Cartas Escritas',
                                 devotionsCreated: 'Devociones Creadas',
@@ -482,9 +483,16 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
                                         onChange={(e) => handleStatChange(key, e.target.value)}
                                     />
                                 ) : (
-                                    <span className={cn("font-mono font-bold", simulatedStats ? "text-yellow-500" : "text-slate-200")}>
-                                        {(simulatedStats ?? realUserStats)[key]}
-                                    </span>
+                                    <div className="text-right">
+                                        <span className={cn("font-mono font-bold block", simulatedStats ? "text-yellow-500" : "text-slate-200")}>
+                                            {(simulatedStats ?? realUserStats)[key]}
+                                        </span>
+                                        {key === 'daysActive' && (
+                                            <span className="text-[10px] text-slate-500 block">
+                                                No usada: {Math.max(0, Math.floor((new Date().getTime() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24)) - ((simulatedStats ?? realUserStats).daysActive || 0))} días
+                                            </span>
+                                        )}
+                                    </div>
                                 )}
                             </div>
                             );

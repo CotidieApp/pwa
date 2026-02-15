@@ -172,7 +172,7 @@ export default function Header({
   // Si está en modo sin distracciones, solo mostrar botón para salir
   if (isGlobalDistractionFree) {
     return (
-      <div className="fixed top-2 right-2 z-30">
+      <div className="fixed top-2 right-2 z-30 mt-[env(safe-area-inset-top)]">
         <Button
           variant="ghost"
           size="icon"
