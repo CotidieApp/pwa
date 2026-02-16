@@ -38,43 +38,5 @@ Creo en Jesucristo su Único Hijo Nuestro Señor, que fue concebido por obra y g
 Creo en el Espíritu Santo, en la Santa Iglesia Católica, en la Comunión de los santos, en el perdón de los pecados, la resurrección de la carne, y la vida eterna. 
 Amén.`
     },
-    {
-      id: 'san-jose-jaculatoria-final',
-      title: 'Jaculatoria Final',
-      categoryId: 'devociones',
-      content: `Bondadoso San José, Esposo de María, protegednos; defended a la Iglesia y al Sumo Pontifice y amparad a mis parientes. amigos y bienhechores.`
-    },
-    {
-        id: 'san-jose-dolores-gozos',
-        title: 'Dolores y Gozos',
-        categoryId: 'devociones',
-        content: `1. Primer Dolor y Gozo:
-La duda de San José (Mt 1, 19).
-El mensaje del Ángel (Mt 1, 20).
-
-2. Segundo Dolor y Gozo:
-La pobreza del nacimiento de Jesús (Lc 2, 7).
-El nacimiento del Salvador (Lc 2, 7).
-
-3. Tercer Dolor y Gozo:
-La Circuncisión (Lc 2, 21).
-El Santo Nombre de Jesús (Mt 1, 25).
-
-4. Cuarto Dolor y Gozo:
-La profecía de Simeón (Lc 2, 34).
-La salvación de las almas (Lc 2, 30-31).
-
-5. Quinto Dolor y Gozo:
-La huida a Egipto (Mt 2, 14).
-La presencia de Dios (Mt 2, 15).
-
-6. Sexto Dolor y Gozo:
-El regreso de Egipto (Mt 2, 22).
-La vida en Nazaret (Lc 2, 39).
-
-7. Séptimo Dolor y Gozo:
-La pérdida del Niño Jesús (Lc 2, 45).
-El hallazgo en el Templo (Lc 2, 46).`
-    }
   ]
 };
