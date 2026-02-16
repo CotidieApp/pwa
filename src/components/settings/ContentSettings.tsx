@@ -180,9 +180,10 @@ export default function ContentSettings() {
     importFileRef.current?.click();
   };
 
-  const handleExportCalendar = async () => {
+  const handleExportCalendar = async (semester?: 1 | 2) => {
     try {
-        const icsContent = generateSaintsICS();
+        const icsContent = generateSaintsICS(semester);
+        const fileName = semester ? `santoral_cotidie_s${semester}.ics` : 'santoral_cotidie.ics';
         
         // 1. Web fallback (Desktop/Browser)
         if (!Capacitor.isNativePlatform()) {
@@ -190,7 +191,7 @@ export default function ContentSettings() {
              const url = window.URL.createObjectURL(blob);
              const link = document.createElement('a');
              link.href = url;
-             link.setAttribute('download', 'santoral_cotidie.ics');
+             link.setAttribute('download', fileName);
              document.body.appendChild(link);
              link.click();
              document.body.removeChild(link);
@@ -218,19 +219,19 @@ export default function ContentSettings() {
 
         // Write file
         await Filesystem.writeFile({
-            path: 'Cotidie/santoral_cotidie.ics',
+            path: `Cotidie/${fileName}`,
             data: icsContent,
             directory: Directory.Documents,
             encoding: Encoding.UTF8
         });
 
         const fileResult = await Filesystem.getUri({
-            path: 'Cotidie/santoral_cotidie.ics',
+            path: `Cotidie/${fileName}`,
             directory: Directory.Documents
         });
 
         await Share.share({
-            title: 'Santoral Cotidie',
+            title: semester ? `Santoral Cotidie (Semestre ${semester})` : 'Santoral Cotidie',
             url: fileResult.uri,
             dialogTitle: 'Guardar calendario'
         });
@@ -420,12 +421,20 @@ export default function ContentSettings() {
              </div>
 
              <div className="space-y-2 pt-2 border-t">
-                <Button onClick={handleExportCalendar} variant="outline" className="w-full justify-start">
+                <Button onClick={() => handleExportCalendar()} variant="outline" className="w-full justify-start">
                     <Icon.Calendar className="mr-2 h-4 w-4" />
-                    Descargar Santoral (.ics)
+                    Descargar Santoral Completo (.ics)
                 </Button>
+                <div className="flex gap-2">
+                    <Button onClick={() => handleExportCalendar(1)} variant="ghost" size="sm" className="flex-1 text-xs h-8">
+                        1º Semestre (Ene-Jun)
+                    </Button>
+                    <Button onClick={() => handleExportCalendar(2)} variant="ghost" size="sm" className="flex-1 text-xs h-8">
+                        2º Semestre (Jul-Dic)
+                    </Button>
+                </div>
                 <p className="text-xs text-muted-foreground ml-2">
-                    Añade los santos del año a tu calendario (Google, Outlook, etc).
+                    Añade los santos del año a tu calendario. Si falla la importación completa, intenta por semestres.
                 </p>
              </div>
         </CardContent>
