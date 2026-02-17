@@ -20,7 +20,7 @@ export const catholicQuotes: Quote[] = [
   { text: "No te dejes vencer por el mal; al contrario, vence el mal con el bien.", author: "San Pablo" },
   { text: "Nuestra vida es un instante en la eternidad.", author: "San Francisco de Sales" },
   { text: "Dios no manda cosas imposibles, sino que, al mandar lo que manda, te invita a hacer lo que puedas.", author: "San Agustín" },
-  { text: "Si quieres ser perfecto, ve, vende tus bienes y dáselos a los pobres.", author: "Jesús (Mt 19, 21)" },
+  { text: "Si quieres ser perfecto, ve, vende tus bienes y dáselos a los pobres.", author: "Mt 19, 21" },
   { text: "Para mí, la oración es un impulso del corazón, una sencilla mirada al cielo.", author: "Santa Teresita de Lisieux" },
   { text: "La paciencia es la compañera de la sabiduría.", author: "San Agustín" },
   { text: "El que a Dios tiene, nada le falta; sólo Dios basta.", author: "Santa Teresa de Ávila" },
@@ -110,6 +110,7 @@ export const catholicQuotes: Quote[] = [
   { text: "Hay que vivir para los demás como Cristo vivió para nosotros.", author: "San Alberto Hurtado" },
   { text: "Mi Misa es mi vida, y mi vida es una Misa prolongada.", author: "San Alberto Hurtado" },
   { text: "Feliz de ser ladrón de vocaciones para Cristo.", author: "San Alberto Hurtado" },
+  { text: "Contento, Señor, contento.", author: "San Josemaría Escrivá"},
   { text: "No basta no hacer el mal, es preciso hacer el bien.", author: "San Alberto Hurtado" },
   { text: "Cristo no tiene más manos que las nuestras para construir un mundo donde habite la justicia.", author: "San Alberto Hurtado" },
   { text: "En todo amar y servir.", author: "San Ignacio de Loyola" },
@@ -396,12 +397,10 @@ export const catholicQuotes: Quote[] = [
   { text: "No podemos quedarnos indiferentes ante el sufrimiento de los demás.", author: "Papa Francisco"},
   { text: "Ser cristiano no es solo seguir reglas, es dejarse transformar por el amor de Dios.", author: "Papa Francisco"},
   { text: "La santa pureza la da Dios cuando se pide con humildad.", author: "San Josemaría"},
-  { text: "Vita fere, vita nunquam.", author: "Anónimo"},
+  { text: "Si alguno quiere venir en pos de mí, tome su cruz de cada día y sígame.", author: "Mt 16, 24"},
   { text: "Una fe sin cuestionar, es una fe sin fundamento.", author: "Anónimo"},
   { text: "¡No tengáis miedo de mirarlo a Él! ¡Mirad al Señor!", author: "San Juan Pablo II"},
   { text: "El que canta, reza dos veces.", author: "San Agustín"},
   { text: "Una fe sin ser precedida por la duda, es como unos cimientos en la arena: se desmonorará ante la dificultad y perecerá", author: "Anónimo"},
   { text: "Dame tu amor y tu gracia, que eso me basta", author: "San Ignacio de Loyola"}
 ];
-
-    
