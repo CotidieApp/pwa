@@ -488,7 +488,7 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
                                             {(simulatedStats ?? realUserStats)[key]}
                                         </span>
                                         {key === 'daysActive' && (
-                                            <span className="text-[10px] text-slate-500 block">
+                                            <span className="text-[10px] text-slate-400 block">
                                                 No usada: {Math.max(0, Math.floor((new Date().getTime() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24)) - ((simulatedStats ?? realUserStats).daysActive || 0))} días
                                             </span>
                                         )}
@@ -916,7 +916,7 @@ function StatCard({ title, value, icon: Icon, color, className }: { title: strin
                     <Icon className="size-6" />
                 </div>
                 <div>
-                    <div className="text-sm text-slate-500 font-medium">{title}</div>
+                    <div className="text-sm text-slate-400 font-medium">{title}</div>
                     <div className={cn("text-2xl font-bold tracking-tight text-slate-200")}>{value}</div>
                 </div>
             </CardContent>

@@ -1941,7 +1941,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [
     autoRotateBackground,
-    // simulatedDate, // REMOVED DEPENDENCY
+    simulatedDate,
     lastBackgroundRotationDate,
     isLoaded,
     homeBackgroundId,
@@ -1957,8 +1957,17 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     const dateKey = `${now.getFullYear()}-${pad2(currentMonth)}-${pad2(currentDay)}`;
 
     if (lastSaintUpdate !== dateKey) {
-       const saint = saintsData.saints.find(s => s.month === currentMonth && s.day === currentDay);
-       setSaintOfTheDay(saint || null);
+       // 1. Check Movable Feasts first (Ash Wednesday, Easter, etc.)
+       const easter = getEasterDate(now.getFullYear());
+       const movable = getMovableFeast(now, easter);
+
+       // 2. Check Fixed Saints
+       const fixed = saintsData.saints.find(s => s.month === currentMonth && s.day === currentDay);
+
+       // Priority: Movable > Fixed (unless fixed is Christmas/Special, but usually Movable wins like Ash Wed)
+       const effectiveSaint = movable || fixed || null;
+
+       setSaintOfTheDay(effectiveSaint);
        setLastSaintUpdate(dateKey);
        const dow = now.getDay(); // 0..6
        const dayImageId = `saintoftheday-${dow}`;
@@ -1975,6 +1984,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
          { match: 'Francisco de Sales', id: 'sanfranciscodesales-image' },
          { match: 'Agustín, obispo y doctor', id: 'sanagustindehipona-image' },
          { match: 'Santo Tomás de Aquino', id: 'santotomasdeaquino-image' },
+         { match: 'Benjamín', id: 'sanbenjamin-image' },
          { match: 'Natividad del Señor', id: 'nativity-image' },
        ];
 
@@ -1983,13 +1993,13 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
          /(Nuestra Señora|Virgen María|Inmaculada Concepción|Asunción de la Virgen|Presentación de la Virgen|Natividad de la Virgen|Visitación de la Virgen)/i;
        const marianImage = PlaceHolderImages.find((img) => img.id === 'saintoftheday-6') || dayImage;
        const isMarian = Boolean(
-         (saint as any)?.type === 'marian' || (saint?.name && marianNamePattern.test(saint.name))
+         (effectiveSaint as any)?.type === 'marian' || (effectiveSaint?.name && marianNamePattern.test(effectiveSaint.name))
        );
 
        if (isMarian) {
          image = marianImage;
-       } else if (saint && saint.name) {
-         const found = saintImageBySubstring.find(entry => saint.name.includes(entry.match));
+       } else if (effectiveSaint && effectiveSaint.name) {
+         const found = saintImageBySubstring.find(entry => effectiveSaint.name.includes(entry.match));
          const mapped = found ? PlaceHolderImages.find(img => img.id === found.id) : null;
          image = mapped || dayImage;
        }

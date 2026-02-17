@@ -24,12 +24,15 @@ const escapeHtml = (str: string) =>
     .replace(/>/g, '&gt;');
 
 const formatInlineHtml = (escaped: string) => {
+  // Doble asterisco (**texto**) o doble guion bajo (__texto__) -> Negrita fuerte y sólida
   const withStrong = escaped
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/__(.+?)__/g, '<strong>$1</strong>');
+    .replace(/\*\*(.+?)\*\*/g, '<strong class="font-extrabold text-primary">$1</strong>')
+    .replace(/__(.+?)__/g, '<strong class="font-extrabold text-primary">$1</strong>');
 
   return withStrong
-    .replace(/(^|[^\w*])\*(?!\*)(.+?)\*(?!\w)/g, '$1<em>$2</em>')
+    // Asterisco simple (*texto*) -> Negrita suave y grisácea (estilo subtítulo o énfasis sutil)
+    .replace(/(^|[^\w*])\*(?!\*)(.+?)\*(?!\w)/g, '$1<span class="font-semibold text-muted-foreground">$2</span>')
+    // Guion bajo simple (_texto_) -> Cursiva estándar
     .replace(/(^|[^\w_])_(?!_)(.+?)_(?!\w)/g, '$1<em>$2</em>');
 };
 

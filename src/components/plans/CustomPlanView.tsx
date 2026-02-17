@@ -69,6 +69,10 @@ function findPrayerById(prayers: Prayer[], id: string): Prayer | null {
   return null;
 }
 
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
+
 export default function CustomPlanView({ slot, onOpenPrayerId, onOpenPlanPrayerAt, onDone, startInEditMode }: CustomPlanViewProps) {
   const {
     allPrayers,
@@ -86,19 +90,53 @@ export default function CustomPlanView({ slot, onOpenPrayerId, onOpenPlanPrayerA
 
   const plan = customPlans[slot - 1];
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (!plan) return;
     const data = JSON.stringify(plan, null, 2);
-    const blob = new Blob([data], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${plan.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.ctd`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    toast({ title: 'Plan exportado correctamente.' });
+    const fileName = `${plan.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.ctd`;
+
+    try {
+        if (!Capacitor.isNativePlatform()) {
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            toast({ title: 'Plan exportado correctamente.' });
+            return;
+        }
+
+        // Android Native Export
+            // Use Cache directory to avoid permission issues with Documents on newer Android versions
+            // and ensure we can share the file URI immediately.
+            await Filesystem.writeFile({
+                path: fileName,
+                data: data,
+                directory: Directory.Cache,
+                encoding: Encoding.UTF8
+            });
+            
+            const fileResult = await Filesystem.getUri({
+                path: fileName,
+                directory: Directory.Cache
+            });
+
+            await Share.share({
+                title: `Plan: ${plan.name}`,
+                url: fileResult.uri,
+                dialogTitle: 'Guardar plan'
+            });
+            
+            toast({ title: 'Plan listo', description: 'Se ha abierto el menú compartir.' });
+
+        } catch (error) {
+            console.error(error);
+            toast({ variant: 'destructive', title: 'Error al exportar', description: 'No se pudo exportar el plan.' });
+        }
   };
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {

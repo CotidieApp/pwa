@@ -85,6 +85,7 @@ export const placeholderImagePreference: Record<string, ImageDisplay> = {
   "sanfranciscodesales-image": "center",
   "sanagustindehipona-image": "center",
   "santotomasdeaquino-image": "center",
+  "sanbenjamin-image": "center",
   "nativity-image": "top",
   "christmas-image": "top",
 };

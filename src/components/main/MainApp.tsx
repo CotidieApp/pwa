@@ -870,16 +870,6 @@ export default function MainApp() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {isDistractionFree && (
-        <Button
-          className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 rounded-full opacity-50 hover:opacity-100 transition-opacity bg-black/50 hover:bg-black/80 text-white mb-[env(safe-area-inset-bottom)]"
-          onClick={toggleDistractionFree}
-          size="sm"
-        >
-          Salir de Pantalla Completa
-        </Button>
-      )}
-
       <AnimatePresence>
         {showWrapped && (
           <WrappedStory 
