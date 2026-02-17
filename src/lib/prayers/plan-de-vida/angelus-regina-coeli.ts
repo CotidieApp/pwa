@@ -29,7 +29,7 @@ Amen.
 V. Ruega por nosotros, santa Madre de Dios.
 R. Para que seamos dignos de alcanzar las promesas de Nuestro Señor Jesucristo.
 
-*Oremos:*
+_Oremos:_
 Te suplicamos, Señor, que derrames tu gracia en nuestras almas, para que, los que por el anuncio del Ángel hemos conocido el misterio de la Encarnación de tu Hijo Jesucristo, por su Pasión y su Cruz, seamos llevados a la Gloria de su Resurrección. Por el mismo Jesucristo, Nuestro Señor.
 Amén.`,
     reginaCoeli: `V. Alégrate, Reina del cielo. Aleluya.
