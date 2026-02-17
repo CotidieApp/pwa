@@ -2,6 +2,25 @@
 
 Este archivo documenta todas las intervenciones realizadas por el asistente (Trae AI), detallando planes, ejecuciones y archivos modificados para mantener un historial claro de cambios y facilitar la depuración.
 
+### [2026-02-17 12:30] 40. Integración de Cotidie Annuum y Mejoras de Exportación
+**Planificación:**
+- Integrar acceso al resumen anual ("Cotidie Wrapped") desde los ajustes.
+- Mejorar la exportación de planes personalizados usando APIs nativas de Android (Filesystem/Share).
+- Actualizar el Panel de Desarrollador con controles para probar el Wrapped y mejoras de UI.
+
+**Ejecución:**
+- **Settings**: Se añadió `onShowWrapped` para pasar la navegación al componente `ContentSettings`.
+- **ContentSettings**: Se añadió el botón "Ver Cotidie Annuum" condicionado a la temporada y estado de visualización.
+- **CustomPlanView**: Se migró la exportación a `Filesystem` + `Share` de Capacitor para soporte nativo Android.
+- **DeveloperDashboard**: Se añadieron controles para forzar la temporada Wrapped y previsualizarla. Se mejoró la navegación lateral (tamaño de botones).
+
+**Archivos Modificados:**
+- `src/components/Settings.tsx`
+- `src/components/settings/ContentSettings.tsx`
+- `src/components/plans/CustomPlanView.tsx`
+- `src/components/developer/DeveloperDashboard.tsx`
+- `src/components/main/MainApp.tsx`
+
 ### [2026-02-09 21:50] 12. Limpieza de Interfaz Desarrollador
 **Planificación:**
 - Eliminar la tabla JSON sin formato en la pestaña de Estadísticas.
