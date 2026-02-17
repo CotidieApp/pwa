@@ -29,7 +29,7 @@ Amen.
 V. Ruega por nosotros, santa Madre de Dios.
 R. Para que seamos dignos de alcanzar las promesas de Nuestro Señor Jesucristo.
 
-_Oremos:_
+*Oremos:*
 Te suplicamos, Señor, que derrames tu gracia en nuestras almas, para que, los que por el anuncio del Ángel hemos conocido el misterio de la Encarnación de tu Hijo Jesucristo, por su Pasión y su Cruz, seamos llevados a la Gloria de su Resurrección. Por el mismo Jesucristo, Nuestro Señor.
 Amén.`,
     reginaCoeli: `V. Alégrate, Reina del cielo. Aleluya.
@@ -41,7 +41,7 @@ R. Ruega por nosotros a Dios. Aleluya.
 V. Goza y alégrate, Virgen María. Aleluya.
 R. Porque ha resucitado verdaderamente. Aleluya.
 
-_Oremos:_
+*Oremos:*
 Oh Dios, que por la resurrección de tu Hijo te has dignado dar alegría al mundo, concédenos que por su madre la Virgen María alcancemos los gozos de la vida eterna. Por el mismo Jesucristo nuestro Señor. 
 Amén.`
   }
