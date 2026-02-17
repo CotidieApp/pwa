@@ -57,6 +57,27 @@ const movableFeastsDefinitions: Record<string, MovableFeastDefinition> = {
     title: "Celebración del Día",
     type: "celebration",
   },
+  holyMonday: {
+    offset: -6,
+    name: "Lunes Santo",
+    bio: "Día para preparar el alma para la crucifixión, muerte y resurrección del Señor. Ocasión de reflexión y meditación. Lunes, conmemoración de los Santos Arcángeles.",
+    title: "Celebración del Día",
+    type: "celebration",
+  },
+  holyTuesday: {
+    offset: -5,
+    name: "Martes Santo",
+    bio: "Día para preparar el alma para la crucifixión, muerte y resurrección del Señor. Ocasión de reflexión y meditación. Martes, conmemoración de la filiación divina.",
+    title: "Celebración del Día",
+    type: "celebration",
+  },
+  holyWednesday: {
+    offset: -4,
+    name: "Miércoles Santo",
+    bio: "Día para preparar el alma para la crucifixión, muerte y resurrección del Señor. Ocasión de reflexión y meditación. Miércoles, conmemoración a San José.",
+    title: "Celebración del Día",
+    type: "celebration",
+  },
   holyThursday: {
     offset: -3,
     name: "Jueves Santo",
@@ -67,7 +88,7 @@ const movableFeastsDefinitions: Record<string, MovableFeastDefinition> = {
   goodFriday: {
     offset: -2,
     name: "Viernes Santo",
-    bio: "Día de luto y penitencia en el que se recuerda la Pasión y Muerte de Jesucristo en la Cruz para la salvación del mundo.",
+    bio: "La crucifixión del Señor. Día de luto y penitencia en el que se recuerda la Pasión y Muerte de Jesucristo en la Cruz para la salvación del mundo.",
     title: "Conmemoración",
     type: "celebration",
   },
