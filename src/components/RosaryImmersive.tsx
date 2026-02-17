@@ -565,11 +565,11 @@ export default function RosaryImmersive({
   
   const MYSTERY_VISIBILITY_CONFIG: Record<string, number> = {
     // Misterios Gozosos
-    'gozoso-1': 80,
-    'gozoso-2': 80,
-    'gozoso-3': 80,
-    'gozoso-4': 80,
-    'gozoso-5': 80,
+    'gozoso-1': 40,
+    'gozoso-2': 50,
+    'gozoso-3': 40,
+    'gozoso-4': 40,
+    'gozoso-5': 50,
     // Misterios Luminosos
     'luminoso-1': 80,
     'luminoso-2': 80,
