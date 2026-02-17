@@ -2,6 +2,74 @@
 
 Este archivo documenta todas las intervenciones realizadas por el asistente (Trae AI), detallando planes, ejecuciones y archivos modificados para mantener un historial claro de cambios y facilitar la depuración.
 
+### [2026-02-17 13:30] 44. Corrección de Flujo Salve (Ramificación)
+**Planificación:**
+- Modificar `handleNext` en `RosaryImmersive.tsx` para que al terminar la Salve no salte automáticamente al final (Jaculatorias), sino que simplemente cierre el "desvío" y devuelva al usuario al contexto donde estaba (o al inicio de las oraciones finales si vino desde el misterio).
+
+**Ejecución:**
+- **RosaryImmersive.tsx**:
+    - Se eliminó la lógica que forzaba `setPostStepIndex(jacIndex)` al cerrar la Salve.
+    - Ahora `setIsSalveActive(false)` es la única acción, permitiendo que el estado subyacente (`postStepIndex`) determine qué mostrar a continuación (normalmente Letanías si se accedió desde el final del misterio).
+
+**Archivos Modificados:**
+- `src/components/RosaryImmersive.tsx`
+
+### [2026-02-17 13:15] 43. Mejoras Integrales en Rosario Inmersivo
+**Planificación:**
+- Implementar los 11 puntos solicitados para mejorar la experiencia del Rosario.
+- **Lógica**: Saltar intenciones si están vacías.
+- **UI**: Aumentar opacidad del fondo (0.65), ocultar botón de edición de jaculatorias cuando no corresponde.
+- **Navegación**: Corregir botón "Salve" y "Ir a Letanías".
+- **Contenido**: Actualizar texto de Letanías según versión Opus Dei (incluyendo oraciones finales y nuevas invocaciones).
+
+**Ejecución:**
+- **RosaryImmersive.tsx**:
+    - Se aumentó la opacidad de la imagen de fondo.
+    - Se corrigió la lógica de visibilidad del botón "Salve" y "Editar Jaculatorias" (mutuamente exclusivos).
+    - Se aseguró que `isPostRosaryActive` se active correctamente al pulsar "Salve".
+    - Se verificó la lógica de salto de intenciones (ya existía, se confirmó su funcionamiento).
+- **Letanías (index.ts)**:
+    - Se actualizó el texto con las nuevas invocaciones (*Mater misericordiae, Mater spei, Solacium migrantium*).
+    - Se corrigió la oración final (se reemplazó el Angelus por la Colecta del Rosario "Oh Dios, cuyo Unigénito Hijo...").
+    - Se ajustaron las intenciones finales (Por el Papa, por las Ánimas).
+    - Se aplicó formato de sangría para que las respuestas se rendericen en negrita automáticamente.
+
+**Archivos Modificados:**
+- `src/components/RosaryImmersive.tsx`
+- `src/lib/prayers/plan-de-vida/santo-rosario/index.ts`
+
+### [2026-02-17 13:00] 42. Eliminación de Nombre en Fondos y Aclaración Canvas
+**Planificación:**
+- Eliminar el campo de "Descripción" al subir un fondo de pantalla personalizado para simplificar el flujo.
+- Aclarar al usuario que la API Canvas funciona correctamente en el APK ya que se ejecuta dentro de un WebView.
+
+**Ejecución:**
+- **AppearanceSettings**:
+    - Se eliminó el campo de entrada de texto y la validación Zod para la descripción.
+    - Se genera automáticamente una descripción ("Fondo personalizado [Fecha]") al guardar.
+    - Se limpiaron importaciones no utilizadas (`FormField`, etc.).
+
+**Archivos Modificados:**
+- `src/components/settings/AppearanceSettings.tsx`
+
+### [2026-02-17 12:45] 41. Recorte de Imágenes para Fondos de Pantalla
+**Planificación:**
+- Implementar una herramienta de recorte de imágenes (cropping) para que el usuario pueda ajustar las imágenes subidas como fondo de pantalla.
+- Utilizar la librería `react-easy-crop` para la interfaz de recorte.
+- Crear utilidades para procesar la imagen (canvas) y generar el resultado final.
+
+**Ejecución:**
+- **Dependencias**: Se instaló `react-easy-crop`.
+- **Utilidades**: Se creó `src/lib/image-utils.ts` con funciones para crear objetos `Image`, rotar y recortar usando Canvas API.
+- **Componente**: Se creó `src/components/ui/ImageCropper.tsx` que encapsula el diálogo y la lógica de recorte.
+- **AppearanceSettings**: Se integró el `ImageCropper` en el flujo de "Subir Nuevo Fondo". Ahora, al seleccionar un archivo, se abre el modal de recorte antes de guardar la imagen.
+
+**Archivos Modificados:**
+- `src/lib/image-utils.ts` (NUEVO)
+- `src/components/ui/ImageCropper.tsx` (NUEVO)
+- `src/components/settings/AppearanceSettings.tsx`
+- `package.json` (dependencia añadida)
+
 ### [2026-02-17 12:30] 40. Integración de Cotidie Annuum y Mejoras de Exportación
 **Planificación:**
 - Integrar acceso al resumen anual ("Cotidie Wrapped") desde los ajustes.

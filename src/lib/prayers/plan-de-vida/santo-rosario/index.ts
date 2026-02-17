@@ -153,11 +153,178 @@ export const santoRosario: Prayer = {
         }
       ]
     },
-    {
+        {
       "id": "letanias",
       "title": "Letanías",
       "categoryId": "plan-de-vida",
-      "content": "Dios te salve, María, Hija de Dios Padre, llena eres…\nDios te salve, María, Madre de Dios Hijo, llena eres…\nDios te salve, María, Esposa de Dios Espíritu Santo, llena eres…\n\nSeñor, ten piedad de nosotros,\n    Señor, ten piedad de nosotros.\nCristo, ten piedad de nosotros,\n    Cristo, ten piedad de nosotros.\nSeñor, ten piedad de nosotros,\n    Señor, ten piedad de nosotros.\nCristo, óyenos,\n    Cristo, óyenos.\nCristo, escúchanos,\n    Cristo, escúchanos.\n\nDios, Padre celestial,\n    ten piedad de nosotros.\nDios Hijo, Redentor del mundo,\n    ten piedad de nosotros.\nDios Espíritu Santo,\n    ten piedad de nosotros.\nTrinidad Santa un solo Dios,\n    ten piedad de nosotros.\n\nSanta María,\n    ruega por nosotros.\nSanta Madre de Dios,\n    ruega por nosotros.\nSanta Virgen de las vírgenes,\n    ruega por nosotros.\nMadre de Cristo,\n    ruega por nosotros.\nMadre de la Iglesia,\n    ruega por nosotros.\nMadre de la Misericordia,\n    ruega por nosotros.\nMadre de la divina gracia,\n    ruega por nosotros.\nMadre de la Esperanza,\n    ruega por nosotros.\nMadre purísima,\n    ruega por nosotros.\nMadre castísima,\n    ruega por nosotros.\nMadre sin mancha,\n    ruega por nosotros.\nMadre incorrupta,\n    ruega por nosotros.\nMadre inmaculada,\n    ruega por nosotros.\nMadre amable,\n    ruega por nosotros.\nMadre admirable,\n    ruega por nosotros.\nMadre del Buen Consejo,\n    ruega por nosotros.\nMadre del Creador,\n    ruega por nosotros.\nMadre del Salvador,\n    ruega por nosotros.\nVirgen prudentísima,\n    ruega por nosotros.\nVirgen venerada,\n    ruega por nosotros.\nVirgen alabada,\n    ruega por nosotros.\nVirgen poderosa,\n    ruega por nosotros.\nVirgen clemente,\n    ruega por nosotros.\nVirgen fiel,\n    ruega por nosotros.\nEspejo de justicia,\n    ruega por nosotros.\nTrono de sabiduría,\n    ruega por nosotros.\nCausa de nuestra alegría,\n    ruega por nosotros.\nVaso espiritual,\n    ruega por nosotros.\nVaso honorable,\n    ruega por nosotros.\nVaso insigne de devoción,\n    ruega por nosotros.\nRosa mística,\n    ruega por nosotros.\nTorre de David,\n    ruega por nosotros.\nTorre de marfil,\n    ruega por nosotros.\nCasa de oro,\n    ruega por nosotros.\nArca de la Alianza,\n    ruega por nosotros.\nPuerta del cielo,\n    ruega por nosotros.\nEstrella de la mañana,\n    ruega por nosotros.\nSalud de los enfermos,\n    ruega por nosotros.\nRefugio de los pecadores,\n    ruega por nosotros.\nConsuelo de los migrantes,\n    ruega por nosotros.\nConsoladora de los afligidos,\n    ruega por nosotros.\nAuxilio de los cristianos,\n    ruega por nosotros.\nReina de los Ángeles,\n    ruega por nosotros.\nReina de los Patriarcas,\n    ruega por nosotros.\nReina de los Profetas,\n    ruega por nosotros.\nReina de los Apóstoles,\n    ruega por nosotros.\nReina de los Mártires,\n    ruega por nosotros.\nReina de los Confesores,\n    ruega por nosotros.\nReina de las Vírgenes,\n    ruega por nosotros.\nReina de todos los Santos,\n    ruega por nosotros.\nReina concebida sin pecado original,\n    ruega por nosotros.\nReina asunta al Cielo,\n    ruega por nosotros.\nReina del Santísimo Rosario,\n    ruega por nosotros.\nReina de la familia,\n    ruega por nosotros.\nReina de la paz,\n    ruega por nosotros.\n\nCordero de Dios, que quitas el pecado del mundo,\n    perdónanos, Señor.\nCordero de Dios, que quitas el pecado del mundo,\n    escúchanos, Señor.\nCordero de Dios, que quitas el pecado del mundo,\n    ten piedad de nosotros.\n\nRuega por nosotros, Santa Madre de Dios.\nPara que seamos dignos de alcanzar las promesas de Nuestro Señor Jesucristo.\n\nOración.\nTe rogamos nos concedas, Señor Dios nuestro, gozar de continua salud de alma y cuerpo, y por la gloriosa intercesión de la bienaventurada siempre Virgen María, vernos libres de las tristezas de la vida presente y disfrutar de las alegrías eternas. Por Cristo nuestro Señor. Amén."
+      "content": `Dios te salve, María, Hija de Dios Padre, llena eres de gracia; el Señor es contigo; bendita Tú eres entre todas las mujeres, y bendito es el fruto de tu vientre, Jesús.
+Santa María, Madre de Dios, ruega por nosotros, pecadores, ahora y en la hora de nuestra muerte. Amén.
+
+Dios te salve, María, Madre de Dios Hijo, llena eres de gracia; el Señor es contigo; bendita Tú eres entre todas las mujeres, y bendito es el fruto de tu vientre, Jesús.
+Santa María, Madre de Dios, ruega por nosotros, pecadores, ahora y en la hora de nuestra muerte. Amén.
+
+Dios te salve, María, Esposa de Dios Espíritu Santo, llena eres de gracia; el Señor es contigo; bendita Tú eres entre todas las mujeres, y bendito es el fruto de tu vientre, Jesús.
+Santa María, Madre de Dios, ruega por nosotros, pecadores, ahora y en la hora de nuestra muerte. Amén.
+
+Señor,
+*ten piedad de nosotros.*
+Cristo,
+*ten piedad de nosotros.*
+Señor,
+*ten piedad de nosotros.*
+Cristo,
+*óyenos.*
+Cristo,
+*escúchanos.*
+
+Dios, Padre celestial,
+*ten piedad de nosotros.*
+Dios, Hijo, Redentor del mundo,
+*ten piedad de nosotros.*
+Dios, Espíritu Santo,
+*ten piedad de nosotros.*
+Trinidad Santa, un solo Dios,
+*ten piedad de nosotros.*
+
+Santa María,
+*ruega por nosotros.*
+Santa Madre de Dios,
+*ruega por nosotros.*
+Santa Virgen de las Vírgenes,
+*ruega por nosotros.*
+Madre de Cristo,
+*ruega por nosotros.*
+Madre de la Iglesia,
+*ruega por nosotros.*
+Madre de la misericordia,
+*ruega por nosotros.*
+Madre de la divina gracia,
+*ruega por nosotros.*
+Madre de la esperanza,
+*ruega por nosotros.*
+Madre purísima,
+*ruega por nosotros.*
+Madre castísima,
+*ruega por nosotros.*
+Madre siempre virgen,
+*ruega por nosotros.*
+Madre inmaculada,
+*ruega por nosotros.*
+Madre amable,
+*ruega por nosotros.*
+Madre admirable,
+*ruega por nosotros.*
+Madre del buen consejo,
+*ruega por nosotros.*
+Madre del Creador,
+*ruega por nosotros.*
+Madre del Salvador,
+*ruega por nosotros.*
+Virgen prudentísima,
+*ruega por nosotros.*
+Virgen digna de veneración,
+*ruega por nosotros.*
+Virgen digna de alabanza,
+*ruega por nosotros.*
+Virgen poderosa,
+*ruega por nosotros.*
+Virgen clemente,
+*ruega por nosotros.*
+Virgen fiel,
+*ruega por nosotros.*
+Espejo de justicia,
+*ruega por nosotros.*
+Trono de la sabiduría,
+*ruega por nosotros.*
+Causa de nuestra alegría,
+*ruega por nosotros.*
+Vaso espiritual,
+*ruega por nosotros.*
+Vaso digno de honor,
+*ruega por nosotros.*
+Vaso de insigne devoción,
+*ruega por nosotros.*
+Rosa mística,
+*ruega por nosotros.*
+Torre de David,
+*ruega por nosotros.*
+Torre de marfil,
+*ruega por nosotros.*
+Casa de oro,
+*ruega por nosotros.*
+Arca de la Alianza,
+*ruega por nosotros.*
+Puerta del cielo,
+*ruega por nosotros.*
+Estrella de la mañana,
+*ruega por nosotros.*
+Salud de los enfermos,
+*ruega por nosotros.*
+Refugio de los pecadores,
+*ruega por nosotros.*
+Consuelo de los migrantes,
+*ruega por nosotros.*
+Consoladora de los afligidos,
+*ruega por nosotros.*
+Auxilio de los cristianos,
+*ruega por nosotros.*
+Reina de los Ángeles,
+*ruega por nosotros.*
+Reina de los Patriarcas,
+*ruega por nosotros.*
+Reina de los Profetas,
+*ruega por nosotros.*
+Reina de los Apóstoles,
+*ruega por nosotros.*
+Reina de los Mártires,
+*ruega por nosotros.*
+Reina de los Confesores,
+*ruega por nosotros.*
+Reina de las Vírgenes,
+*ruega por nosotros.*
+Reina de todos los Santos,
+*ruega por nosotros.*
+Reina concebida sin pecado original,
+*ruega por nosotros.*
+Reina asunta a los Cielos,
+*ruega por nosotros.*
+Reina del Santísimo Rosario,
+*ruega por nosotros.*
+Reina de la familia,
+*ruega por nosotros.*
+Reina de la paz,
+*ruega por nosotros.*
+
+Cordero de Dios, que quitas el pecado del mundo,
+*perdónanos, Señor.*
+Cordero de Dios, que quitas el pecado del mundo,
+*escúchanos, Señor.*
+Cordero de Dios, que quitas el pecado del mundo,
+*ten piedad de nosotros.*
+
+Bajo tu amparo nos acogemos, Santa Madre de Dios; no deseches las súplicas que te dirigimos en nuestras necesidades; antes bien, líbranos de todo peligro, ¡oh Virgen gloriosa y bendita!
+Ruega por nosotros, Santa Madre de Dios.
+*Para que seamos dignos de alcanzar las promesas de Nuestro Señor Jesucristo.*
+
+Oración
+Te rogamos nos concedas, Señor Dios nuestro, gozar de continua salud de alma y cuerpo, y por la gloriosa intercesión de la bienaventurada siempre Virgen María, vernos libres de las tristezas de la vida presente y disfrutar de las alegrías eternas. Por Cristo nuestro Señor.
+*Amén.*
+
+Por las intenciones del Romano Pontífice:
+Padre nuestro, que estás en el cielo, santificado sea tu Nombre; venga a nosotros tu reino; hágase tu voluntad en la tierra como en el cielo.
+*Danos hoy nuestro pan de cada día; perdona nuestras ofensas, como también nosotros perdonamos a los que nos ofenden; no nos dejes caer en la tentación, y líbranos del mal. Amén.*
+
+Dios te salve, María, llena eres de gracia; el Señor es contigo; bendita Tú eres entre todas las mujeres, y bendito es el fruto de tu vientre, Jesús.
+*Santa María, Madre de Dios, ruega por nosotros, pecadores, ahora y en la hora de nuestra muerte. Amén.*
+
+Gloria al Padre, y al Hijo, y al Espíritu Santo.
+*Como era en el principio, ahora y siempre, por los siglos de los siglos. Amén.*
+
+Por las benditas ánimas del Purgatorio:
+Padre nuestro... Dios te salve, María... Dale, Señor, el descanso eterno.
+*Y brille para ellas la luz perpetua.*
+Descansen en paz.
+*Amén.*`
     }
   ]
 };

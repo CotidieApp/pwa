@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import * as Icon from 'lucide-react';
 
-type SettingsTab = 'visual' | 'alertas' | 'datos' | 'admin';
+type SettingsTab = 'visual' | 'alertas' | 'datos' | 'otros';
 
 interface SettingsProps {
   onOpenDeveloperDashboard?: () => void;
@@ -24,7 +24,7 @@ export default function Settings({ onOpenDeveloperDashboard, onShowWrapped }: Se
     { id: 'visual', label: 'Visual', icon: Icon.Palette },
     { id: 'alertas', label: 'Alertas', icon: Icon.Bell },
     { id: 'datos', label: 'Datos', icon: Icon.Database },
-    { id: 'admin', label: 'Desarrollo', icon: Icon.Settings2 },
+    { id: 'otros', label: 'Otros', icon: Icon.Settings2 },
   ];
 
   const activeIndex = tabs.findIndex(tab => tab.id === activeTab);
@@ -104,7 +104,7 @@ export default function Settings({ onOpenDeveloperDashboard, onShowWrapped }: Se
                     {tab.id === 'visual' && <AppearanceSettings />}
                     {tab.id === 'alertas' && <NotificationSettings />}
                     {tab.id === 'datos' && <ContentSettings onShowWrapped={onShowWrapped} />}
-                    {tab.id === 'admin' && <DeveloperSettings onOpenDashboard={onOpenDeveloperDashboard} />}
+                    {tab.id === 'otros' && <DeveloperSettings onOpenDashboard={onOpenDeveloperDashboard} />}
                 </div>
             ))}
         </div>

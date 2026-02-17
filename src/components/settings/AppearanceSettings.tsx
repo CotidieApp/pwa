@@ -15,12 +15,13 @@ import { useToast } from '@/hooks/use-toast';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
+import { Form } from '@/components/ui/form';
 import { cn } from '@/lib/utils';
 import { extractThemeColorsFromImageUrl, clampNumber, type ThemeColors } from '@/lib/theme-utils';
+import ImageCropper from '@/components/ui/ImageCropper';
 
 const imageFormSchema = z.object({
-  description: z.string().min(3, { message: "La descripción es requerida." })
+  // Description is no longer required by user
 });
 type ImageFormValues = z.infer<typeof imageFormSchema>;
 
@@ -126,42 +127,67 @@ export default function AppearanceSettings() {
 
   const { toast } = useToast();
   const [newBackgroundFile, setNewBackgroundFile] = useState<File | null>(null);
+  const [isCropperOpen, setIsCropperOpen] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  const [finalCroppedImage, setFinalCroppedImage] = useState<string | null>(null);
 
   const imageForm = useForm<ImageFormValues>({
     resolver: zodResolver(imageFormSchema),
-    defaultValues: { description: '' },
+    defaultValues: {},
   });
 
-  const onImageSubmit: SubmitHandler<ImageFormValues> = async (data) => {
-    if (!newBackgroundFile) {
-      toast({ variant: 'destructive', title: 'Selecciona una imagen', description: 'Debes elegir un archivo de imagen.' });
+  const onImageSubmit: SubmitHandler<ImageFormValues> = async () => {
+    if (!finalCroppedImage) {
+      toast({ variant: 'destructive', title: 'Selecciona una imagen', description: 'Debes elegir y recortar una imagen.' });
       return;
     }
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const imageUrl = reader.result as string;
-      let themeColors: ThemeColors = {
-        primary: { h: 36, s: 60 },
-        background: { h: 216, s: 25 },
-        accent: { h: 45, s: 55 },
-      };
-
-      try {
-        const extracted = await extractThemeColorsFromImageUrl(imageUrl);
-        if (extracted) themeColors = extracted;
-      } catch {}
-
-      addUserHomeBackground({
-        imageUrl,
-        description: data.description,
-        imageHint: data.description,
-        themeColors,
-      });
-      imageForm.reset();
-      setNewBackgroundFile(null);
-      toast({ title: 'Fondo agregado.' });
+    
+    const imageUrl = finalCroppedImage;
+    let themeColors: ThemeColors = {
+      primary: { h: 36, s: 60 },
+      background: { h: 216, s: 25 },
+      accent: { h: 45, s: 55 },
     };
-    reader.readAsDataURL(newBackgroundFile);
+
+    try {
+      const extracted = await extractThemeColorsFromImageUrl(imageUrl);
+      if (extracted) themeColors = extracted;
+    } catch {}
+
+    const generatedDescription = `Fondo personalizado ${new Date().toLocaleDateString()}`;
+
+    addUserHomeBackground({
+      imageUrl,
+      description: generatedDescription,
+      imageHint: generatedDescription,
+      themeColors,
+    });
+    imageForm.reset();
+    setNewBackgroundFile(null);
+    setFinalCroppedImage(null);
+    setImageToCrop(null);
+    toast({ title: 'Fondo agregado.' });
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setNewBackgroundFile(file);
+      const reader = new FileReader();
+      reader.onload = () => {
+        setImageToCrop(reader.result as string);
+        setIsCropperOpen(true);
+      };
+      reader.readAsDataURL(file);
+    }
+    // Clear input value so same file can be selected again
+    e.target.value = '';
+  };
+
+  const handleCropComplete = (croppedImage: string) => {
+    setFinalCroppedImage(croppedImage);
+    setIsCropperOpen(false);
+    setImageToCrop(null);
   };
 
   const handleThemeChange = (checked: boolean) => {
@@ -332,41 +358,40 @@ export default function AppearanceSettings() {
                       type="file"
                       accept="image/*"
                       className="sr-only"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0] || null;
-                        setNewBackgroundFile(file);
-                      }}
+                      onChange={handleFileChange}
                     />
                     <Button asChild variant="outline" size="sm">
                       <label htmlFor="new-background-file" className="cursor-pointer">
                         Seleccionar imagen
                       </label>
                     </Button>
-                    {newBackgroundFile?.name ? (
+                    {newBackgroundFile?.name && (
                       <p className="text-xs text-muted-foreground font-body break-all">
-                        {newBackgroundFile.name}
+                        {newBackgroundFile.name} {finalCroppedImage && "(Recortada)"}
                       </p>
-                    ) : null}
+                    )}
                   </div>
                 </div>
-                <FormField
-                  control={imageForm.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <Label>Descripción</Label>
-                      <FormControl>
-                        <Input placeholder="Descripción de la imagen" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {/* Description field removed as requested */}
                 <Button type="submit" size="sm" className="w-full">Agregar Fondo</Button>
               </form>
             </Form>
         </CardContent>
       </Card>
+
+      {isCropperOpen && (
+        <ImageCropper
+          imageSrc={imageToCrop}
+          onCropComplete={handleCropComplete}
+          onCancel={() => {
+            setIsCropperOpen(false);
+            setNewBackgroundFile(null);
+            setImageToCrop(null);
+            setFinalCroppedImage(null);
+          }}
+          isOpen={isCropperOpen}
+        />
+      )}
     </div>
   );
 }

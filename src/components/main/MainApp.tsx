@@ -552,7 +552,13 @@ export default function MainApp() {
       case 'viaCrucis':
         return <ViaCrucisImmersive onClose={() => setNavState({ ...initialState, activeView: 'category', selectedCategoryId: 'plan-de-vida' })} />;
       case 'rosary':
-        return <RosaryImmersive onClose={() => setNavState({ ...initialState, activeView: 'category', selectedCategoryId: 'plan-de-vida' })} />;
+        return <RosaryImmersive onClose={(targetId) => {
+          if (targetId) {
+            handleOpenPrayerById(targetId);
+          } else {
+            setNavState({ ...initialState, activeView: 'category', selectedCategoryId: 'plan-de-vida' });
+          }
+        }} />;
       case 'category':
         return <div className="p-4">{renderCategory()}</div>;
       case 'customPlan': {
