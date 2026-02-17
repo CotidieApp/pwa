@@ -41,7 +41,7 @@ R. Ruega por nosotros a Dios. Aleluya.
 V. Goza y alégrate, Virgen María. Aleluya.
 R. Porque ha resucitado verdaderamente. Aleluya.
 
-*Oremos:*
+_Oremos:_
 Oh Dios, que por la resurrección de tu Hijo te has dignado dar alegría al mundo, concédenos que por su madre la Virgen María alcancemos los gozos de la vida eterna. Por el mismo Jesucristo nuestro Señor. 
 Amén.`
   }
