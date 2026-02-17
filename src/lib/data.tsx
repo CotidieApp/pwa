@@ -51,6 +51,7 @@ import { queBienSeEstaContigo } from './prayers/oraciones/que-bien-se-esta-conti
 import { oracionPorLosDifuntos } from './prayers/oraciones/oracion-difuntos';
 import { oracionDeLaFamilia } from './prayers/oraciones/oracion-familia';
 import { letaniasHumildad } from './prayers/oraciones/letanias-humildad';
+import { estructurales } from './prayers/oraciones/estructurales';
 
 export const categories: Category[] = [
   { 
@@ -165,6 +166,7 @@ export const initialPrayers: Prayer[] = [
   viaCrucis,
   
   // Oraciones Varias
+  estructurales,
   comunionEspiritualAntes,
   comunionEspiritual,
   oracionPorLasVocaciones,
