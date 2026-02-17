@@ -4,7 +4,7 @@ export const avesMariasPureza: Prayer = {
   id: 'aves-marias-pureza',
   title: 'Aves Marías de Pureza',
   categoryId: 'plan-de-vida',
-  content: `*(De rodillas)*
+  content: `<em>(De rodillas)</em>
 
 *Por el poder que te concedió el Padre Eterno.*
 
@@ -18,6 +18,6 @@ Santa María, Madre de Dios, ruega por nosotros pecadores, ahora y en la hora de
 
 *Por el amor que te concedió el Espíritu Santo.*
 
-_Dios_ te salve, María, llena eres de gracia, el Señor es contigo, bendita tú eres entre todas las mujeres y bendito es el fruto de tu vientre, Jesús.
+Dios te salve, María, llena eres de gracia, el Señor es contigo, bendita tú eres entre todas las mujeres y bendito es el fruto de tu vientre, Jesús.
 Santa María, Madre de Dios, ruega por nosotros pecadores, ahora y en la hora de nuestra muerte.`
 };
