@@ -13,9 +13,10 @@ type SettingsTab = 'visual' | 'alertas' | 'datos' | 'admin';
 
 interface SettingsProps {
   onOpenDeveloperDashboard?: () => void;
+  onShowWrapped?: () => void;
 }
 
-export default function Settings({ onOpenDeveloperDashboard }: SettingsProps) {
+export default function Settings({ onOpenDeveloperDashboard, onShowWrapped }: SettingsProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>('visual');
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -102,7 +103,7 @@ export default function Settings({ onOpenDeveloperDashboard }: SettingsProps) {
                 <div key={tab.id} className="w-full shrink-0 px-1">
                     {tab.id === 'visual' && <AppearanceSettings />}
                     {tab.id === 'alertas' && <NotificationSettings />}
-                    {tab.id === 'datos' && <ContentSettings />}
+                    {tab.id === 'datos' && <ContentSettings onShowWrapped={onShowWrapped} />}
                     {tab.id === 'admin' && <DeveloperSettings onOpenDashboard={onOpenDeveloperDashboard} />}
                 </div>
             ))}

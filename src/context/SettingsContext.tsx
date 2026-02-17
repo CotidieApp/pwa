@@ -234,6 +234,9 @@ type Settings = {
   updateUserStats: (newStats: UserStats) => void;
   globalUserStats: UserStats;
   incrementGlobalStat: (key: keyof UserStats, subKey?: string) => void;
+
+  hasViewedWrapped: boolean;
+  setHasViewedWrapped: (viewed: boolean) => void;
 };
 
 const SettingsContext = createContext<Settings | undefined>(undefined);
@@ -362,6 +365,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [simulatedStats, setSimulatedStats] = useState<UserStats | null>(null);
 
   const [showZeroStats, setShowZeroStats] = useState(false);
+  const [hasViewedWrapped, setHasViewedWrapped] = useState(false);
 
   /* =======================
      LOCAL STORAGE (BLINDADO) & INDEXEDDB
@@ -548,6 +552,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
           setShownEasterEggQuoteIds(s.shownEasterEggQuoteIds ?? []);
 
+          setHasViewedWrapped(s.hasViewedWrapped ?? false);
+
           setSaintOfTheDay(s.saintOfTheDay ?? null);
           setSaintOfTheDayImage(s.saintOfTheDayImage ?? null);
           setLastSaintUpdate(s.lastSaintUpdate ?? null);
@@ -581,6 +587,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
              // Reset yearly stats
              setUserStats(defaultUserStats);
              setStatsYear(currentYear);
+             setHasViewedWrapped(false); // Reset wrapped view for new year
              
              // Initialize global stats from old userStats if global didn't exist
              // (Migration for existing users: assume previous stats were global)
@@ -745,6 +752,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     statsYear,
     forceWrappedSeason,
     showZeroStats,
+    hasViewedWrapped,
     saveState,
   ]);
 
@@ -1964,10 +1972,14 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
        // 2. Check Fixed Saints
        const fixed = saintsData.saints.find(s => s.month === currentMonth && s.day === currentDay);
 
-       // Priority: Movable > Fixed (unless fixed is Christmas/Special, but usually Movable wins like Ash Wed)
-       const effectiveSaint = movable || fixed || null;
+       // Priority logic based on user setting
+       // If enabled: Movable takes precedence (e.g. Ash Wednesday > San Simeón)
+       // If disabled: Fixed takes precedence (e.g. San Simeón > Ash Wednesday)
+       const effectiveSaint = movableFeastsEnabled 
+          ? (movable || fixed) 
+          : (fixed || movable);
 
-       setSaintOfTheDay(effectiveSaint);
+       setSaintOfTheDay(effectiveSaint || null);
        setLastSaintUpdate(dateKey);
        const dow = now.getDay(); // 0..6
        const dayImageId = `saintoftheday-${dow}`;
@@ -2005,7 +2017,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
        }
        setSaintOfTheDayImage(image || null);
     }
-  }, [simulatedDate, lastSaintUpdate]);
+  }, [simulatedDate, lastSaintUpdate, movableFeastsEnabled]);
 
   return (
     <SettingsContext.Provider
@@ -2120,6 +2132,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         setForceWrappedSeason,
         showZeroStats,
         setShowZeroStats,
+        hasViewedWrapped,
+        setHasViewedWrapped,
       }}
     >
       {children}

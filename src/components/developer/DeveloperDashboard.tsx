@@ -138,6 +138,8 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
     simulatedQuoteId,
     setSimulatedQuoteId,
     incrementStat,
+    movableFeastsEnabled,
+    setMovableFeastsEnabled,
     allPrayers,
     userHomeBackgrounds,
     isCustomThemeActive,
@@ -685,6 +687,14 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6">
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                    <Label className="text-base">Priorizar Fiestas Móviles</Label>
+                                    <p className="text-xs text-slate-400">Si está activo, Miércoles de Ceniza anula al santo fijo.</p>
+                                </div>
+                                <Switch checked={movableFeastsEnabled} onCheckedChange={setMovableFeastsEnabled} />
+                            </div>
+                            <Separator className="bg-slate-800" />
                             <div className="space-y-2">
                                 <Label className="text-slate-400">Simulador de Fecha</Label>
                                 <div className="flex flex-col sm:flex-row gap-4">

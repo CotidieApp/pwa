@@ -131,6 +131,8 @@ export default function MainApp() {
     forceWrappedSeason,
     overlayPositions,
     setOverlayPosition,
+    hasViewedWrapped,
+    setHasViewedWrapped,
   } = useSettings();
 
   const [isDraggingWrapped, setIsDraggingWrapped] = useState(false);
@@ -541,7 +543,10 @@ export default function MainApp() {
   const renderContent = () => {
     switch (navState.activeView) {
       case 'settings':
-        return <Settings onOpenDeveloperDashboard={handleOpenDeveloperDashboard} />;
+        return <Settings 
+          onOpenDeveloperDashboard={handleOpenDeveloperDashboard} 
+          onShowWrapped={() => setShowWrapped(true)}
+        />;
       case 'developer':
         return <DeveloperDashboard onBack={handleBack} />;
       case 'viaCrucis':
@@ -754,7 +759,7 @@ export default function MainApp() {
 
   return (
     <div className={cn("h-full w-full text-foreground relative", navState.activeView === 'home' ? "bg-transparent" : "bg-background")}>
-      {isSeason && navState.activeView === 'home' && (
+      {isSeason && !hasViewedWrapped && navState.activeView === 'home' && (
           <div 
             className="absolute z-40 cursor-pointer animate-in fade-in zoom-in duration-500 hover:scale-110 transition-transform"
             style={{ 
@@ -873,7 +878,10 @@ export default function MainApp() {
       <AnimatePresence>
         {showWrapped && (
           <WrappedStory 
-              onClose={() => setShowWrapped(false)} 
+              onClose={() => {
+                  setShowWrapped(false);
+                  setHasViewedWrapped(true);
+              }} 
               originRect={overlayPositions.wrappedBubble ? { 
                   top: overlayPositions.wrappedBubble.y, 
                   left: overlayPositions.wrappedBubble.x, 

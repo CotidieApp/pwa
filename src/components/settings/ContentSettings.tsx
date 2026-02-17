@@ -29,6 +29,7 @@ import { catholicQuotes } from '@/lib/quotes';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { getImageObjectPosition } from '@/lib/image-display';
 import { generateSaintsICS } from '@/lib/ics-generator';
+import { isWrappedSeason } from '@/lib/movable-feasts';
 
 const quoteFormSchema = z.object({
     text: z.string().min(5, { message: 'El texto de la cita es requerido.' }),
@@ -36,7 +37,11 @@ const quoteFormSchema = z.object({
 });
 type QuoteFormValues = z.infer<typeof quoteFormSchema>;
 
-export default function ContentSettings() {
+interface ContentSettingsProps {
+  onShowWrapped?: () => void;
+}
+
+export default function ContentSettings({ onShowWrapped }: ContentSettingsProps) {
   const {
     allPrayers,
     alwaysShowPrayers,
@@ -60,6 +65,8 @@ export default function ContentSettings() {
     homeBackgroundId,
     autoRotateBackground,
     isDeveloperMode,
+    forceWrappedSeason,
+    hasViewedWrapped,
   } = useSettings();
 
   const { toast } = useToast();
@@ -353,8 +360,36 @@ export default function ContentSettings() {
     setSelectedImage(foundImage || null);
   };
 
+  const isSeason = useMemo(() => {
+    if (forceWrappedSeason) return true;
+    const now = simulatedDate ? new Date(simulatedDate) : new Date();
+    return isWrappedSeason(now);
+  }, [simulatedDate, forceWrappedSeason]);
+
   return (
     <div className="space-y-6 animate-in fade-in-0 duration-500">
+      {isSeason && hasViewedWrapped && onShowWrapped && (
+        <Card className="bg-gradient-to-br from-yellow-500/10 to-amber-500/10 border-yellow-500/20">
+            <CardHeader>
+                <CardTitle className="font-headline text-base flex items-center gap-2">
+                    <span>✨</span> Resumen del Año
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <Button 
+                    onClick={onShowWrapped} 
+                    className="w-full bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-600 hover:to-amber-700 text-white border-0 shadow-lg shadow-yellow-500/20"
+                >
+                    <Icon.Play className="mr-2 h-4 w-4 fill-current" />
+                    Ver Cotidie Annuum {new Date().getFullYear()}
+                </Button>
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                    Revive tus momentos de oración de este año.
+                </p>
+            </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="font-headline text-base">Visibilidad de Oraciones</CardTitle>

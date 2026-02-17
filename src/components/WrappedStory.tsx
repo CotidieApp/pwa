@@ -346,9 +346,22 @@ function DaysActiveSlide({ userStats }: { userStats: UserStats }) {
 }
 
 function TopPrayerSlide({ userStats, allPrayers }: { userStats: UserStats, allPrayers: any[] }) {
-  const topPrayerId = Object.entries(userStats.prayersOpenedHistory).sort((a, b) => b[1] - a[1])[0]?.[0];
+  // Filter out prayers that are actually sections (have sub-prayers)
+  // or are just containers/categories if identified as such.
+  // We want the "leaf" prayer with the most opens.
+  const validPrayers = Object.entries(userStats.prayersOpenedHistory)
+    .filter(([id]) => {
+        const p = allPrayers.find(prayer => prayer.id === id);
+        // Exclude if not found or if it has sub-prayers (is a section)
+        if (!p) return false;
+        if (p.prayers && p.prayers.length > 0) return false;
+        return true;
+    })
+    .sort((a, b) => b[1] - a[1]);
+
+  const topPrayerId = validPrayers[0]?.[0];
   const topPrayer = allPrayers.find(p => p.id === topPrayerId);
-  const count = userStats.prayersOpenedHistory[topPrayerId] || 0;
+  const count = topPrayerId ? (userStats.prayersOpenedHistory[topPrayerId] || 0) : 0;
 
   let irony = "Es una excelente elección para el alma.";
   if (count > 200) irony = "¿Acaso la escribiste tú?";
@@ -358,10 +371,19 @@ function TopPrayerSlide({ userStats, allPrayers }: { userStats: UserStats, allPr
   if (topPrayerId?.includes('misa')) irony = "La fuente y culmen de tu vida cristiana.";
 
   if (!topPrayer) {
+    // Fallback if absolutely no prayers have been opened (and not sections)
     return (
-      <div className="text-center relative">
-        <h2 className="text-3xl font-bold">Aún estás comenzando...</h2>
-        <p className="mt-4 text-xl">Pronto descubrirás tu oración favorita.</p>
+      <div className="text-center relative space-y-6">
+        <h2 className="text-3xl font-bold">Tu viaje comienza hoy</h2>
+         <motion.div 
+          initial={{ scale: 0 }} 
+          animate={{ scale: 1 }} 
+          transition={{ type: 'spring', delay: 0.3 }}
+          className="text-8xl"
+        >
+          🙏
+        </motion.div>
+        <p className="mt-4 text-xl">Cada oración cuenta, empieza ahora.</p>
       </div>
     );
   }
