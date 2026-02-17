@@ -1,22 +1,22 @@
 {
   "placeholderImages": [
     {
-      "id": "home-sacred-heart",
-      "description": "Santísimo Sacramento del Altar",
-      "imageUrl": "/images/sacred-heart.jpeg",
-      "imageHint": "sacred heart",
+      "id": "home-christ",
+      "description": "Monte de Cristo",
+      "imageUrl": "/images/monte-cristo.jpg",
+      "imageHint": "Monte de Cristo",
       "themeColors": {
         "primary": {
-          "h": 15,
-          "s": 85
+          "h": 36,
+          "s": 88
         },
         "background": {
-          "h": 25,
-          "s": 25
+          "h": 216,
+          "s": 33
         },
         "accent": {
-          "h": 35,
-          "s": 70
+          "h": 45,
+          "s": 86
         }
       }
     },
@@ -61,22 +61,22 @@
       }
     },
     {
-      "id": "home-christ",
-      "description": "Monte de Cristo",
-      "imageUrl": "/images/monte-cristo.jpg",
-      "imageHint": "Monte de Cristo",
+      "id": "home-sacred-heart",
+      "description": "Santísimo Sacramento del Altar",
+      "imageUrl": "/images/sacred-heart.jpeg",
+      "imageHint": "sacred heart",
       "themeColors": {
         "primary": {
-          "h": 36,
-          "s": 88
+          "h": 15,
+          "s": 85
         },
         "background": {
-          "h": 216,
-          "s": 33
+          "h": 25,
+          "s": 25
         },
         "accent": {
-          "h": 45,
-          "s": 86
+          "h": 35,
+          "s": 70
         }
       }
     },

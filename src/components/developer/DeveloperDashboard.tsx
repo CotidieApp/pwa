@@ -530,9 +530,10 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
                                         placeholder="Seleccionar frase..."
                                         searchPlaceholder="Buscar frase..."
                                         noResultsText="No se encontró la frase."
+                                        className="bg-slate-900 border-slate-700 text-slate-200 hover:bg-slate-800 hover:text-white"
                                     />
                                 </div>
-                                <Button onClick={() => setSimulatedQuoteId(null)} variant="outline" size="sm" className="border-slate-700">
+                                <Button onClick={() => setSimulatedQuoteId(null)} variant="outline" size="sm" className="border-slate-700 bg-transparent text-slate-200 hover:bg-slate-800 hover:text-white">
                                     <Icon.RotateCcw className="size-4" />
                                 </Button>
                              </div>
@@ -622,6 +623,7 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
                                 placeholder="Seleccionar imagen..."
                                 searchPlaceholder="Buscar imagen..."
                                 noResultsText="No se encontró la imagen."
+                                className="bg-slate-900 border-slate-700 text-slate-200 hover:bg-slate-800 hover:text-white"
                             />
                             {selectedImage && (
                             <div className="space-y-2 mt-4">
@@ -640,7 +642,7 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
                                     <code className="text-[10px] text-slate-500 bg-slate-950 px-2 py-1 rounded border border-slate-800 truncate max-w-[200px]">
                                         {selectedImage.imageUrl.substring(0, 30)}...
                                     </code>
-                                    <Button size="sm" variant="outline" onClick={() => setIsImageViewerOpen(true)} className="border-slate-700">
+                                    <Button size="sm" variant="outline" onClick={() => setIsImageViewerOpen(true)} className="border-slate-700 bg-transparent text-slate-200 hover:bg-slate-800 hover:text-white">
                                         Pantalla completa
                                     </Button>
                                 </div>
@@ -660,7 +662,7 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
                         <Button 
                             onClick={handleExportCalendar} 
                             variant="outline" 
-                            className="w-full justify-start border-slate-700 hover:bg-slate-800 text-slate-300"
+                            className="w-full justify-start border-slate-700 bg-transparent hover:bg-slate-800 text-slate-300 hover:text-white"
                         >
                             <Icon.Download className="mr-2 h-4 w-4" />
                             Descargar Santoral para Google Calendar (.ics)
@@ -768,7 +770,7 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
                                     color={activeThemeColors.accent}
                                     onColorChange={(newColor) => setCustomThemeColor('accent', newColor)}
                                 />
-                                <Button onClick={resetCustomTheme} variant="outline" size="sm" className="w-full mt-2 border-slate-700 hover:bg-slate-800">
+                                <Button onClick={resetCustomTheme} variant="outline" size="sm" className="w-full mt-2 border-slate-700 bg-transparent text-slate-200 hover:bg-slate-800 hover:text-white">
                                     Restablecer Colores
                                 </Button>
                             </div>
