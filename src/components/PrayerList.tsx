@@ -124,7 +124,7 @@ export default function PrayerList({
       if (!prayer || !prayer.id) return false;
       if (alwaysShowPrayers.includes(prayer.id)) return true;
 
-      if (prayer.id === 'oracion-mes-de-maria') return isMesDeMaria;
+      if (prayer.id === 'mes-de-maria') return isMesDeMaria;
 
       // Manejo de oraciones generales
       if (prayer.isDaySpecific && prayer.showOnDay === undefined) return false;

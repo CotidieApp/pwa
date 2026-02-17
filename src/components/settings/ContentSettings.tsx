@@ -369,7 +369,7 @@ export default function ContentSettings() {
                     Originalmente solo los {daysOfWeek[prayer.showOnDay]}
                   </span>
                 )}
-                 {prayer.id === 'oracion-mes-de-maria' ? (
+                 {prayer.id === 'mes-de-maria' ? (
                   <span className="text-xs text-muted-foreground">
                     Visible por defecto del 8 de noviembre al 8 de diciembre
                   </span>
