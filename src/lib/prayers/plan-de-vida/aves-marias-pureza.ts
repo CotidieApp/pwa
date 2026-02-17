@@ -4,7 +4,7 @@ export const avesMariasPureza: Prayer = {
   id: 'aves-marias-pureza',
   title: 'Aves Marías de Pureza',
   categoryId: 'plan-de-vida',
-  content: `<em>(De rodillas)</em>
+  content: `\*\*(De rodillas)\*\*
 
 *Por el poder que te concedió el Padre Eterno.*
 
