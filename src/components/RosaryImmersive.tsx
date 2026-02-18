@@ -760,8 +760,6 @@ export default function RosaryImmersive({
             </>
         )}
 
-        {meditationOverlay}
-
         {/* Top Bar */}
         <div className="w-full flex justify-between items-start p-4 relative z-20">
             <div className="flex items-center gap-2">
