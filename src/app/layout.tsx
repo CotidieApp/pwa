@@ -46,6 +46,11 @@ export default function RootLayout({
         <meta name="google" content="notranslate" />
 
         <link rel="manifest" href="/manifest.json" />
+        
+        {/* Íconos Adaptativos (Dark/Light) */}
+        <link rel="icon" href="/icons/icon.png" />
+        <link rel="icon" href="/icons/black_icon.png" media="(prefers-color-scheme: light)" />
+        <link rel="icon" href="/icons/white_icon.png" media="(prefers-color-scheme: dark)" />
 
         {/* Fuentes Locales */}
         <link rel="stylesheet" href="/fonts/fonts.css" />

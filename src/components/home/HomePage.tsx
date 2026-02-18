@@ -186,11 +186,11 @@ export default function HomePage({ onSelectCategory, onOpenCustomPlan, onCreateC
         />
         <main className="flex flex-col flex-1 min-h-0 items-center justify-center text-center px-4 py-[clamp(0.75rem,2vh,1.5rem)]">
           <div className="md:max-w-md mx-auto">
-            <h1 className="!text-[clamp(4.25rem,18vw,7.25rem)] leading-none font-premium text-white [text-shadow:0_4px_16px_rgba(0,0,0,0.9)] transition-opacity duration-300">
+            <h1 className="!text-[clamp(4.25rem,18vw,8rem)] leading-none font-premium text-white [text-shadow:0_4px_16px_rgba(0,0,0,0.9)] transition-opacity duration-300 w-full px-2 break-words">
               <span
                 role="button"
                 tabIndex={0}
-                className="inline-block w-fit cursor-pointer select-none"
+                className="inline-block w-full cursor-pointer select-none"
                 onClick={triggerEasterEgg}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
@@ -204,11 +204,11 @@ export default function HomePage({ onSelectCategory, onOpenCustomPlan, onCreateC
             </h1>
 
             {quoteOfTheDay && (
-              <div className="mt-[clamp(0.75rem,2vh,1.5rem)]">
-                <blockquote className="text-white/95 text-[clamp(1.15rem,4.8vw,1.65rem)] leading-snug italic whitespace-normal break-words [text-shadow:0_10px_40px_rgba(0,0,0,1),0_4px_14px_rgba(0,0,0,1)]">
+              <div className="mt-[clamp(0.75rem,2vh,1.5rem)] px-4">
+                <blockquote className="text-white/95 text-[clamp(1.25rem,5.5vw,1.85rem)] leading-snug italic whitespace-normal break-words [text-shadow:0_10px_40px_rgba(0,0,0,1),0_4px_14px_rgba(0,0,0,1)]">
                   “{quoteOfTheDay.text}”
                 </blockquote>
-                <p className="text-white/95 text-[clamp(1rem,4vw,1.25rem)] mt-[clamp(0.35rem,1vh,0.5rem)] [text-shadow:0_10px_40px_rgba(0,0,0,1),0_4px_14px_rgba(0,0,0,1)]">
+                <p className="text-white/95 text-[clamp(1.1rem,4.5vw,1.4rem)] mt-[clamp(0.35rem,1vh,0.5rem)] [text-shadow:0_10px_40px_rgba(0,0,0,1),0_4px_14px_rgba(0,0,0,1)]">
                   – {quoteOfTheDay.author}
                 </p>
               </div>

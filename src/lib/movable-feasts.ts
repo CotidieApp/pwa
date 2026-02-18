@@ -127,78 +127,109 @@ const movableFeastsDefinitions: Record<string, MovableFeastDefinition> = {
     title: "Solemnidad",
     type: "celebration",
   },
+  advent1: {
+    offset: 0, // Placeholder
+    name: "I Domingo de Adviento",
+    bio: "Inicio del Año Litúrgico. La Iglesia comienza el tiempo de espera y preparación para la venida de Cristo.",
+    title: "Domingo de Adviento",
+    type: "celebration",
+  },
+  advent2: {
+    offset: 0, // Placeholder
+    name: "II Domingo de Adviento",
+    bio: "La voz del Bautista resuena en el desierto: «Preparad el camino del Señor».",
+    title: "Domingo de Adviento",
+    type: "celebration",
+  },
+  advent3: {
+    offset: 0, // Placeholder
+    name: "III Domingo de Adviento (Gaudete)",
+    bio: "Domingo de la alegría. «Estad siempre alegres en el Señor; os lo repito, estad alegres» (Fil 4, 4).",
+    title: "Domingo de Adviento",
+    type: "celebration",
+  },
+  advent4: {
+    offset: 0, // Placeholder
+    name: "IV Domingo de Adviento",
+    bio: "María, la Virgen de la espera. El Señor está cerca.",
+    title: "Domingo de Adviento",
+    type: "celebration",
+  },
+};
+
+/**
+ * Calculates important dates for the Advent season.
+ * First Sunday of Advent is the Sunday closest to St. Andrew (Nov 30),
+ * or the Sunday that falls between Nov 27 and Dec 3 inclusive.
+ */
+const getAdventDates = (year: number) => {
+    // Start searching from Nov 27
+    const startWindow = new Date(year, 10, 27); // Nov 27
+    let advent1 = new Date(startWindow);
+    
+    // Find the first Sunday on or after Nov 27
+    while (advent1.getDay() !== 0) {
+        advent1.setDate(advent1.getDate() + 1);
+    }
+    // advent1 is now the First Sunday of Advent
+
+    return {
+        advent1,
+        advent2: addDays(advent1, 7),
+        advent3: addDays(advent1, 14),
+        advent4: addDays(advent1, 21),
+        christTheKing: addDays(advent1, -7)
+    };
 };
 
 export const getMovableFeast = (currentDate: Date, easterDate: Date): SaintOfTheDay | null => {
   const current = startOfDay(currentDate);
   const easter = startOfDay(easterDate);
+  const year = current.getFullYear();
 
-  // Christ the King is 34th Sunday in Ordinary Time (Last Sunday before Advent)
-  // Advent starts 4 Sundays before Christmas.
-  // So Christ the King is 1 week before First Sunday of Advent.
-  const christmas = new Date(currentDate.getFullYear(), 11, 25); // Dec 25
-  const christmasDayOfWeek = christmas.getDay(); // 0-6
-  // Advent starts on the Sunday closest to Nov 30? No, it's 4 Sundays before Christmas.
-  // Actually, 4th Sunday of Advent is the Sunday before Christmas (or Christmas itself if Sunday? No).
-  // First Sunday of Advent is 4 Sundays back.
-  // Simplest: Find Sunday before Dec 25, then go back 3 weeks to get 1st Sunday of Advent.
-  // Then go back 1 week for Christ the King.
-  // So Christ the King is 5 Sundays before Dec 25?
-  // Let's verify:
-  // Dec 25 2024 is Wednesday.
-  // Sun Dec 22 (4th Adv), Sun Dec 15 (3rd), Sun Dec 8 (2nd), Sun Dec 1 (1st Adv).
-  // Sun Nov 24 (Christ the King).
-  // 5 Sundays back from Dec 25?
-  // Dec 25 -> previous Sunday is Dec 22.
-  // Dec 22 - 7*4 = Dec 22 - 28 = Nov 24. Correct.
-  
-  // Dec 25 2025 is Thursday.
-  // Sun Dec 21 (4th), Dec 14 (3rd), Dec 7 (2nd), Nov 30 (1st).
-  // Christ King: Nov 23.
-  // Dec 21 - 28 = Nov 23. Correct.
-  
-  const tempXmas = new Date(current.getFullYear(), 11, 25);
-  const tempXmasDay = tempXmas.getDay();
-  // If Xmas is Sunday, 4th Sunday of Advent is Dec 18? No, if Xmas is Sunday, Advent 4 is Dec 18.
-  // Wait, if Xmas is Sunday, Dec 25. Previous Sunday is Dec 18.
-  // Let's use `lastSunday` logic.
-  const lastSundayBeforeXmas = new Date(tempXmas);
-  lastSundayBeforeXmas.setDate(tempXmas.getDate() - (tempXmasDay === 0 ? 7 : tempXmasDay)); 
-  // If Xmas is Sunday (0), we want Dec 18? No, if Xmas is Sunday, the 4th Sunday of Advent is Dec 18.
-  // Actually, "The First Sunday of Advent is the Sunday closest to St. Andrew's Day (30 November)."
-  // Or: "Advent begins on the Sunday that falls between November 27 and December 3 inclusive."
-  // Christ the King is the Sunday before First Advent.
-  // Range of Christ the King: Nov 20 - Nov 26.
-  
-  // Let's stick to: Sunday before Advent 1.
-  // Advent 1:
-  let advent1 = new Date(current.getFullYear(), 10, 30); // Nov 30
-  // Find nearest Sunday? No, "Sunday closest to Nov 30".
-  // "Between Nov 27 and Dec 3".
-  // Loop from Nov 27 to Dec 3, find Sunday.
-  for(let d = 27; d <= 30 + 3; d++) {
-      // Logic is tricky with dates.
-      // Simpler: Start Nov 27.
-      const candidate = new Date(current.getFullYear(), 10, 27);
-      while(candidate.getDay() !== 0) {
-          candidate.setDate(candidate.getDate() + 1);
-      }
-      advent1 = candidate;
-      break;
+  // 1. Calculate Advent Dates
+  const adventDates = getAdventDates(year);
+
+  // 2. Check for Advent-related Feasts
+  if (isSameDay(current, adventDates.christTheKing)) {
+    return {
+        ...movableFeastsDefinitions.christTheKing,
+        day: adventDates.christTheKing.getDate(),
+        month: adventDates.christTheKing.getMonth() + 1
+    };
   }
-  
-  const christTheKing = addDays(advent1, -7);
-  
-  if (isSameDay(current, christTheKing)) {
-      return {
-          ...movableFeastsDefinitions.christTheKing,
-          day: christTheKing.getDate(),
-          month: christTheKing.getMonth() + 1
-      };
+  if (isSameDay(current, adventDates.advent1)) {
+    return {
+        ...movableFeastsDefinitions.advent1,
+        day: adventDates.advent1.getDate(),
+        month: adventDates.advent1.getMonth() + 1
+    };
+  }
+  if (isSameDay(current, adventDates.advent2)) {
+    return {
+        ...movableFeastsDefinitions.advent2,
+        day: adventDates.advent2.getDate(),
+        month: adventDates.advent2.getMonth() + 1
+    };
+  }
+  if (isSameDay(current, adventDates.advent3)) {
+    return {
+        ...movableFeastsDefinitions.advent3,
+        day: adventDates.advent3.getDate(),
+        month: adventDates.advent3.getMonth() + 1
+    };
+  }
+  if (isSameDay(current, adventDates.advent4)) {
+    return {
+        ...movableFeastsDefinitions.advent4,
+        day: adventDates.advent4.getDate(),
+        month: adventDates.advent4.getMonth() + 1
+    };
   }
 
+  // 3. Check for Easter-related Feasts
   for (const key in movableFeastsDefinitions) {
-    if (key === 'christTheKing') continue; // Handled above
+    if (key === 'christTheKing' || key.startsWith('advent')) continue; // Handled above
     const feast = movableFeastsDefinitions[key];
     const feastDate = addDays(easter, feast.offset);
     
@@ -218,29 +249,14 @@ export const isWrappedSeason = (date: Date): boolean => {
     const current = startOfDay(date);
     const year = current.getFullYear();
     
-    // 1. Calculate Christ the King
-    let advent1 = new Date(year, 10, 27); // Nov 27
-    while(advent1.getDay() !== 0) {
-        advent1.setDate(advent1.getDate() + 1);
-    }
-    const christTheKing = addDays(advent1, -7);
+    // 1. Calculate Christ the King (Start of Wrapped Season)
+    const { christTheKing } = getAdventDates(year);
     
-    // 2. Season start: Christ the King
-    // 3. Season end: End of January (e.g., Jan 31st to be safe, or Baptism of Lord)
-    // "Hasta finales del tiempo de Navidad, o sea, en enero."
-    // Let's allow it until Jan 31st of the *next* year.
-    
-    // Check if we are in the "end of year" part (Nov/Dec)
-    // End on Dec 31
+    // 2. Check if we are in the "end of year" part (Nov/Dec)
+    // Season starts at Christ the King and ends on Dec 31
     if (current >= christTheKing && current.getMonth() >= 10) {
         return true;
     }
-    
-    // Check if we are in the "beginning of year" part (Jan)
-    // Remove Jan support as requested: "terminar el 31 de diciembre"
-    // if (current.getMonth() === 0) {
-    //    return true;
-    // }
     
     return false;
 };

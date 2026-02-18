@@ -12,9 +12,10 @@ interface ImageCropperProps {
   onCropComplete: (croppedImage: string) => void;
   onCancel: () => void;
   isOpen: boolean;
+  aspect?: number;
 }
 
-export default function ImageCropper({ imageSrc, onCropComplete, onCancel, isOpen }: ImageCropperProps) {
+export default function ImageCropper({ imageSrc, onCropComplete, onCancel, isOpen, aspect = 16 / 9 }: ImageCropperProps) {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
@@ -57,7 +58,7 @@ export default function ImageCropper({ imageSrc, onCropComplete, onCancel, isOpe
               image={imageSrc}
               crop={crop}
               zoom={zoom}
-              aspect={16 / 9} // Adjust aspect ratio as needed for your app background
+              aspect={aspect}
               onCropChange={onCropChange}
               onZoomChange={onZoomChange}
               onCropComplete={onCropCompleteHandler}

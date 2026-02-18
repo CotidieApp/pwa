@@ -1,8 +1,9 @@
 'use client';
 
+import React, { useState } from 'react';
 import type { Prayer } from '@/lib/types';
 import { Card, CardTitle, CardContent, CardHeader } from '@/components/ui/card';
-import { ChevronRight, Trash2, PlusCircle, Edit } from 'lucide-react';
+import { ChevronRight, Trash2, PlusCircle, Edit, Eye } from 'lucide-react';
 import { useMemo } from 'react';
 import { useSettings } from '@/context/SettingsContext';
 import { Button } from './ui/button';
@@ -44,33 +45,60 @@ type SaintOfTheDayCardProps = {
 };
 
 const SaintOfTheDayCard = ({ onSelectPrayer, allPrayers }: SaintOfTheDayCardProps) => {
-  const { saintOfTheDay, saintOfTheDayImage, saintOfTheDayPrayerId } = useSettings();
+  const { 
+    saintOfTheDay, 
+    saintOfTheDayImage, 
+    overriddenFixedSaint, 
+    overriddenFixedSaintImage 
+  } = useSettings();
 
-  if (!saintOfTheDay) return null;
+  const [isPeeking, setIsPeeking] = useState(false);
 
-  const color = getLiturgicalColor(saintOfTheDay);
+  // Determinar qué santo mostrar (Móvil por defecto, Fijo si se está haciendo peek)
+  const showFixed = isPeeking && overriddenFixedSaint;
+  const activeSaint = showFixed ? overriddenFixedSaint : saintOfTheDay;
+  const activeImage = showFixed ? overriddenFixedSaintImage : saintOfTheDayImage;
+
+  if (!activeSaint) return null;
+
+  const color = getLiturgicalColor(activeSaint);
   const isLightColor = color === '#D4AF37' || color === '#F8F9FA' || color === '#B8860B';
   const textColor = isLightColor ? 'text-slate-800' : 'text-white';
-  const objectPosition = getImageObjectPosition(saintOfTheDayImage?.id);
+  const objectPosition = getImageObjectPosition(activeImage?.id);
 
   return (
-    <Card className={cn('shadow-md mb-4 overflow-hidden', textColor)} style={{ backgroundColor: color }}>
-      {saintOfTheDayImage && (
+    <Card className={cn('shadow-md mb-4 overflow-hidden relative', textColor)} style={{ backgroundColor: color }}>
+      {activeImage && (
         <div className="relative w-full aspect-[3/2]">
           <Image
-            src={saintOfTheDayImage.imageUrl}
-            alt={saintOfTheDayImage.description || 'Imagen del Santo del Día'}
+            src={activeImage.imageUrl}
+            alt={activeImage.description || 'Imagen del Santo del Día'}
             fill
             sizes="(max-width: 768px) 100vw, 33vw"
             className="object-cover"
             style={{ objectPosition }}
-            data-ai-hint={saintOfTheDayImage.imageHint}
+            data-ai-hint={activeImage.imageHint}
             priority
           />
+          
+          {/* Botón Peek (Solo si hay un santo fijo oculto) */}
+          {overriddenFixedSaint && (
+             <button
+                className="absolute bottom-2 right-2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full backdrop-blur-sm transition-all active:scale-95 z-10"
+                onPointerDown={() => setIsPeeking(true)}
+                onPointerUp={() => setIsPeeking(false)}
+                onPointerLeave={() => setIsPeeking(false)}
+                aria-label="Ver santo fijo"
+             >
+                <Eye className="size-5" />
+             </button>
+          )}
         </div>
       )}
       <CardHeader>
-        <CardTitle className="font-headline text-base font-bold">{saintOfTheDay.name}</CardTitle>
+        <CardTitle className="font-headline text-base font-bold flex justify-between items-start gap-2">
+            <span>{activeSaint.name}</span>
+        </CardTitle>
       </CardHeader>
       <CardContent>
         {/* Formateo aplicado al texto del Santo */}
@@ -80,7 +108,7 @@ const SaintOfTheDayCard = ({ onSelectPrayer, allPrayers }: SaintOfTheDayCardProp
             isLightColor ? 'text-slate-700' : 'text-white/90'
           )}
         >
-          {renderText(saintOfTheDay.bio || '')}
+          {renderText(activeSaint.bio || '')}
         </div>
       </CardContent>
     </Card>

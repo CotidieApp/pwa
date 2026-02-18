@@ -172,12 +172,14 @@ type ImmersiveRosaryProps = {
   mysteryGroup?: string;
   mysteryContent?: string;
   onClose: (targetId?: string) => void;
+  onSwitchToMeditated?: () => void;
 };
 
 const JACULATORIAS_STORAGE_KEY = 'rosary_jaculatorias';
 
 export default function RosaryImmersive({
   onClose,
+  onSwitchToMeditated,
   mysteryTitle: initialTitle,
   mysteryGroup: initialGroup,
   mysteryContent: initialContent,
@@ -188,10 +190,6 @@ export default function RosaryImmersive({
   const [mode, setMode] = useState<'selection' | 'prayer'>(
     initialTitle ? 'prayer' : 'selection'
   );
-
-  const [isReadingMode, setIsReadingMode] = useState(false);
-  const [showMeditationMenu, setShowMeditationMenu] = useState(false);
-  const [selectedMeditationIndex, setSelectedMeditationIndex] = useState<number | null>(null);
 
   const [isPreRosary, setIsPreRosary] = useState(true);
   const [preStepIndex, setPreStepIndex] = useState(0);
@@ -577,26 +575,31 @@ export default function RosaryImmersive({
     'gozoso-4': 40,
     'gozoso-5': 50,
     // Misterios Luminosos
-    'luminoso-1': 80,
-    'luminoso-2': 80,
-    'luminoso-3': 80,
-    'luminoso-4': 80,
-    'luminoso-5': 80,
+    'luminoso-1': 60,
+    'luminoso-2': 60,
+    'luminoso-3': 70,
+    'luminoso-4': 60,
+    'luminoso-5': 60,
     // Misterios Dolorosos
-    'doloroso-1': 80,
-    'doloroso-2': 80,
-    'doloroso-3': 80,
-    'doloroso-4': 80,
-    'doloroso-5': 80,
+    'doloroso-1': 40,
+    'doloroso-2': 50,
+    'doloroso-3': 50,
+    'doloroso-4': 60,
+    'doloroso-5': 35,
     // Misterios Gloriosos
-    'glorioso-1': 80,
-    'glorioso-2': 80,
-    'glorioso-3': 80,
-    'glorioso-4': 80,
-    'glorioso-5': 80,
+    'glorioso-1': 40,
+    'glorioso-2': 50,
+    'glorioso-3': 60,
+    'glorioso-4': 60,
+    'glorioso-5': 50,
   };
 
   const mysteryProgress = useMemo(() => {
+    // Si estamos en Pre o Post Rosario, devolvemos 50% fijo (centro)
+    if (isPreRosaryActive || isPostRosaryActive) {
+        return 50;
+    }
+
     const total = sequence.length - 1;
     const current = currentStepIndex;
     const ratio = total > 0 ? Math.min(Math.max(current / total, 0), 1) : 0;
@@ -612,7 +615,7 @@ export default function RosaryImmersive({
     const range = end - start;
     
     return start + (ratio * range);
-  }, [currentStepIndex, sequence.length, selectedMysteryType, currentMysteryIndex]);
+  }, [currentStepIndex, sequence.length, selectedMysteryType, currentMysteryIndex, isPreRosaryActive, isPostRosaryActive]);
 
   useEffect(() => {
     if (!isDraggingNav) return;
@@ -644,61 +647,7 @@ export default function RosaryImmersive({
   }, [isDraggingNav]);
 
   // --- MEDITATION MENU OVERLAY ---
-  const selectedMysteryGroup = santoRosario.prayers?.find(p => p.id === `misterios-${selectedMysteryType}`);
-  const selectedMeditation = selectedMeditationIndex !== null ? selectedMysteryGroup?.prayers?.[selectedMeditationIndex] : null;
-
-  const meditationOverlay = (
-    <AnimatePresence>
-        {showMeditationMenu && (
-            <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="fixed inset-4 z-[60] bg-background/95 backdrop-blur-md border border-border rounded-xl shadow-2xl p-6 overflow-hidden flex flex-col"
-            >
-                <div className="flex justify-between items-center mb-6 shrink-0">
-                    <div className="flex items-center gap-2">
-                        {selectedMeditationIndex !== null && (
-                            <Button variant="ghost" size="icon" onClick={() => setSelectedMeditationIndex(null)}>
-                                <ChevronLeft />
-                            </Button>
-                        )}
-                        <h3 className="font-bold text-xl">
-                            {selectedMeditationIndex !== null ? 'Meditación' : `Misterios ${selectedMysteryType.charAt(0).toUpperCase() + selectedMysteryType.slice(1)}`}
-                        </h3>
-                    </div>
-                    <Button variant="ghost" size="icon" onClick={() => { setShowMeditationMenu(false); setSelectedMeditationIndex(null); }}><X /></Button>
-                </div>
-
-                <div className="flex-1 overflow-y-auto">
-                    {selectedMeditationIndex === null ? (
-                        <div className="space-y-3">
-                            {selectedMysteryGroup?.prayers?.map((m, i) => (
-                                <Button
-                                    key={m.id}
-                                    variant="outline"
-                                    className="w-full justify-start h-auto py-4 text-left whitespace-normal"
-                                    onClick={() => setSelectedMeditationIndex(i)}
-                                >
-                                    <span className="font-serif text-lg">{i + 1}. {FULL_MYSTERY_TITLES[m.id || '']}</span>
-                                </Button>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="prose dark:prose-invert max-w-none">
-                            <h4 className="text-xl font-bold mb-4">
-                                {FULL_MYSTERY_TITLES[selectedMeditation?.id || ''] || ''}
-                            </h4>
-                            <p className="whitespace-pre-wrap text-lg leading-relaxed opacity-90">
-                                {typeof selectedMeditation?.content === 'string' ? selectedMeditation.content : ''}
-                            </p>
-                        </div>
-                    )}
-                </div>
-            </motion.div>
-        )}
-    </AnimatePresence>
-  );
+  // (Removed - moved to RosaryMeditated.tsx)
 
   // --- SELECTION VIEW ---
   if (mode === 'selection') {
@@ -707,21 +656,22 @@ export default function RosaryImmersive({
         "fixed inset-0 z-50 flex flex-col items-center justify-center p-6 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] bg-background/95 backdrop-blur-sm",
         isDark ? "text-white" : "text-zinc-900"
       )}>
-        {meditationOverlay}
         <Button variant="ghost" size="icon" className="absolute top-4 left-4 mt-[env(safe-area-inset-top)]" onClick={() => onClose()}>
             <X />
         </Button>
         
         <div className="absolute top-4 right-4 mt-[env(safe-area-inset-top)] flex gap-2">
-            <Button
-                variant={isReadingMode ? "default" : "outline"}
-                size="sm"
-                className="gap-2"
-                onClick={() => setIsReadingMode(!isReadingMode)}
-            >
-                <BookOpen className="size-4" />
-                {isReadingMode ? "Leer" : "Rezar"}
-            </Button>
+            {onSwitchToMeditated && (
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={onSwitchToMeditated}
+                >
+                    <BookOpen className="size-4" />
+                    Leer
+                </Button>
+            )}
             <Button 
                 variant="outline" 
                 size="sm" 
@@ -746,17 +696,13 @@ export default function RosaryImmersive({
                         )}
                         onClick={() => {
                             setSelectedMysteryType(type);
-                            if (isReadingMode) {
-                                setShowMeditationMenu(true);
-                            } else {
-                                setMode('prayer');
-                                setIsPreRosary(true);
-                                setPreStepIndex(0);
-                                setIsPostRosary(false);
-                                setPostStepIndex(0);
-                                setCurrentMysteryIndex(0);
-                                setCurrentStepIndex(0);
-                            }
+                            setMode('prayer');
+                            setIsPreRosary(true);
+                            setPreStepIndex(0);
+                            setIsPostRosary(false);
+                            setPostStepIndex(0);
+                            setCurrentMysteryIndex(0);
+                            setCurrentStepIndex(0);
                         }}
                     >
                         <span>{MYSTERY_NAMES[type]}</span>
@@ -779,9 +725,6 @@ export default function RosaryImmersive({
     );
   }
 
-  // --- MEDITATION MENU OVERLAY ---
-  // (Moved to top)
-
   // --- PRAYER VIEW ---
   return (
     <div className={cn(
@@ -799,7 +742,7 @@ export default function RosaryImmersive({
                         backgroundPosition: `${mysteryProgress}% center`
                     }}
                     transition={{
-                        duration: 1,
+                        duration: 1.5,
                         ease: "easeInOut"
                     }}
                     style={{ 

@@ -130,6 +130,7 @@ export default function AppearanceSettings() {
   const [isCropperOpen, setIsCropperOpen] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const [finalCroppedImage, setFinalCroppedImage] = useState<string | null>(null);
+  const [cropAspect, setCropAspect] = useState(9 / 16);
 
   const imageForm = useForm<ImageFormValues>({
     resolver: zodResolver(imageFormSchema),
@@ -173,6 +174,10 @@ export default function AppearanceSettings() {
     const file = e.target.files?.[0];
     if (file) {
       setNewBackgroundFile(file);
+      // Calculate screen aspect ratio for the crop
+      if (typeof window !== 'undefined') {
+        setCropAspect(window.innerWidth / window.innerHeight);
+      }
       const reader = new FileReader();
       reader.onload = () => {
         setImageToCrop(reader.result as string);
@@ -390,6 +395,7 @@ export default function AppearanceSettings() {
             setFinalCroppedImage(null);
           }}
           isOpen={isCropperOpen}
+          aspect={cropAspect}
         />
       )}
     </div>

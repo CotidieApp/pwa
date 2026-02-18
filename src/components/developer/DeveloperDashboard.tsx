@@ -667,7 +667,7 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
                             className="w-full justify-start border-slate-700 bg-transparent hover:bg-slate-800 text-slate-300 hover:text-white"
                         >
                             <Icon.Download className="mr-2 h-4 w-4" />
-                            Descargar Santoral para Google Calendar (.ics)
+                            Descargar Santoral (.ics)
                         </Button>
                         <p className="text-xs text-slate-500">
                             Genera un archivo ICS con todos los santos fijos del año. Importable en Google Calendar, Outlook, etc.
@@ -690,7 +690,7 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
                             <div className="flex items-center justify-between">
                                 <div className="space-y-0.5">
                                     <Label className="text-base">Priorizar Fiestas Móviles</Label>
-                                    <p className="text-xs text-slate-400">Si está activo, Miércoles de Ceniza anula al santo fijo.</p>
+                                    <p className="text-xs text-slate-400">Si está activo, las fiestas móviles (Pascua, Ceniza, etc.) anulan al santo fijo.</p>
                                 </div>
                                 <Switch checked={movableFeastsEnabled} onCheckedChange={setMovableFeastsEnabled} />
                             </div>

@@ -16,6 +16,7 @@ import PrayerAccordion from '@/components/PrayerAccordion';
 import HomePage from '../home/HomePage';
 import CustomPlanView from '../plans/CustomPlanView';
 import RosaryImmersive from '../RosaryImmersive';
+import RosaryMeditated from '../RosaryMeditated';
 import ViaCrucisImmersive from '../ViaCrucisImmersive';
 import SearchCamino from '@/components/SearchCamino';
 import { cn } from '@/lib/utils';
@@ -37,7 +38,7 @@ import { Card, CardContent } from '../ui/card';
 import { Button } from '@/components/ui/button';
 
 type AddFormMode = 'devotion' | 'entry' | 'letter' | 'predefined';
-type AppView = 'home' | 'category' | 'prayer' | 'settings' | 'addForm' | 'editForm' | 'customPlan' | 'developer' | 'viaCrucis' | 'rosary';
+type AppView = 'home' | 'category' | 'prayer' | 'settings' | 'addForm' | 'editForm' | 'customPlan' | 'developer' | 'viaCrucis' | 'rosary' | 'rosaryMeditated';
 
 interface NavigationState {
   activeView: AppView;
@@ -552,13 +553,21 @@ export default function MainApp() {
       case 'viaCrucis':
         return <ViaCrucisImmersive onClose={() => setNavState({ ...initialState, activeView: 'category', selectedCategoryId: 'plan-de-vida' })} />;
       case 'rosary':
-        return <RosaryImmersive onClose={(targetId) => {
-          if (targetId) {
-            handleOpenPrayerById(targetId);
-          } else {
-            setNavState({ ...initialState, activeView: 'category', selectedCategoryId: 'plan-de-vida' });
-          }
-        }} />;
+        return <RosaryImmersive 
+          onClose={(targetId) => {
+            if (targetId) {
+              handleOpenPrayerById(targetId);
+            } else {
+              setNavState({ ...initialState, activeView: 'category', selectedCategoryId: 'plan-de-vida' });
+            }
+          }} 
+          onSwitchToMeditated={() => setNavState(prev => ({ ...prev, activeView: 'rosaryMeditated' }))}
+        />;
+      case 'rosaryMeditated':
+        return <RosaryMeditated 
+          onClose={() => setNavState({ ...initialState, activeView: 'category', selectedCategoryId: 'plan-de-vida' })}
+          onSwitchToImmersive={() => setNavState(prev => ({ ...prev, activeView: 'rosary' }))}
+        />;
       case 'category':
         return <div className="p-4">{renderCategory()}</div>;
       case 'customPlan': {

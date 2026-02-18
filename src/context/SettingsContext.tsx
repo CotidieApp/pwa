@@ -210,6 +210,10 @@ type Settings = {
   saintOfTheDay: SaintOfTheDay | null;
   saintOfTheDayImage: ImagePlaceholder | null;
   saintOfTheDayPrayerId: string | null;
+  
+  // Nuevo: Santo fijo oculto (para funcionalidad "peek")
+  overriddenFixedSaint: SaintOfTheDay | null;
+  overriddenFixedSaintImage: ImagePlaceholder | null;
 
   customPlans: Array<CustomPlan | null>;
   createCustomPlan: (slot: 1 | 2 | 3 | 4, name: string) => void;
@@ -349,6 +353,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [saintOfTheDayImage, setSaintOfTheDayImage] =
     useState<ImagePlaceholder | null>(null);
   const [saintOfTheDayPrayerId, setSaintOfTheDayPrayerId] = useState<string | null>(null);
+  
+  const [overriddenFixedSaint, setOverriddenFixedSaint] = useState<SaintOfTheDay | null>(null);
+  const [overriddenFixedSaintImage, setOverriddenFixedSaintImage] = useState<ImagePlaceholder | null>(null);
+  
   const [lastSaintUpdate, setLastSaintUpdate] = useState<string | null>(null);
   
   const [forceWrappedSeason, setForceWrappedSeason] = useState(false);
@@ -1188,8 +1196,9 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setShownEasterEggQuoteIds(Array.isArray(data.shownEasterEggQuoteIds) ? data.shownEasterEggQuoteIds : []);
 
     setSaintOfTheDay(data.saintOfTheDay ?? null);
-    setSaintOfTheDayImage(data.saintOfTheDayImage ?? null);
-    setLastSaintUpdate(typeof data.lastSaintUpdate === 'string' ? data.lastSaintUpdate : null);
+          setSaintOfTheDayImage(data.saintOfTheDayImage ?? null);
+          setLastSaintUpdate(typeof data.lastSaintUpdate === 'string' ? data.lastSaintUpdate : null);
+          // No necesitamos persistir overriddenFixedSaint, se recalcula
 
     const rawCustomPlans = Array.isArray(data.customPlans) ? data.customPlans : [];
     const normalizedPlans: Array<CustomPlan | null> = [null, null, null, null];
@@ -2113,6 +2122,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         saintOfTheDay,
         saintOfTheDayImage,
         saintOfTheDayPrayerId,
+        overriddenFixedSaint,
+        overriddenFixedSaintImage,
         customPlans,
         createCustomPlan,
         deleteCustomPlan,

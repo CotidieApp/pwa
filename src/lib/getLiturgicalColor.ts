@@ -1,4 +1,3 @@
-// src/lib/getLiturgicalColor.ts
 export function getLiturgicalColor(saint: { title?: string; type?: string; name?: string }) {
   if (!saint) return "hsl(var(--card))"; // Color de la tarjeta por defecto
 
@@ -6,63 +5,77 @@ export function getLiturgicalColor(saint: { title?: string; type?: string; name?
   const type = saint.type?.toLowerCase() || "";
   const name = saint.name?.toLowerCase() || "";
 
-  // Colores litúrgicos con tonos más sobrios
+  // Colores litúrgicos oficiales
   const colors = {
-    gold: "#B8860B",      // Dorado oscuro para Solemnidades/Fiestas del Señor
-    red: "#8B0000",       // Rojo oscuro para mártires y apóstoles
-    white: "#F8F9FA",     // Blanco/Plata para Pascua, Navidad, Vírgenes, Santos no mártires
-    purple: "#5A2A69",    // Morado para Adviento/Cuaresma
-    green: "#225722",     // Verde bosque oscuro para Tiempo Ordinario
-    blue: "#3A5F7A",      // Azul apagado para fiestas marianas
-    default: "hsl(var(--card))",
+    gold: "#B8860B",      // Solemnidades, Fiestas del Señor
+    red: "#8B0000",       // Pasión, Mártires, Apóstoles, Evangelistas, Pentecostés
+    white: "#F8F9FA",     // Navidad, Pascua, Santos (no mártires), Doctores, Vírgenes
+    purple: "#5A2A69",    // Adviento, Cuaresma, Misas de Difuntos
+    green: "#225722",     // Tiempo Ordinario
+    blue: "#3A5F7A",      // Privilegio hispano para Inmaculada y fiestas marianas
+    rose: "#D470A2",      // Gaudete (Adviento 3) y Laetare (Cuaresma 4) - Opcional
   };
 
-  // 1. Solemnidades y Fiestas del Señor
-  if (title.includes("solemnidad") || name.includes("señor") || name.includes("cristo rey")) {
+  // 1. Solemnidades y Fiestas del Señor (Blanco/Dorado)
+  if (title.includes("solemnidad") || name.includes("señor") || name.includes("cristo rey") || title.includes("fiesta del señor")) {
+    // Excepción: Viernes Santo (Pasión) es Rojo, aunque sea "del Señor"
+    if (name.includes("pasión") || name.includes("viernes santo") || name.includes("cruz")) {
+      return colors.red;
+    }
     return colors.gold;
   }
-  if (title.includes("fiesta del señor")) {
-      return colors.gold;
-  }
-  if (title.includes("fiesta") && !(type.includes("marian") || type.includes("apostle"))) {
-    return colors.white; 
-  }
 
-  // 2. Mártires, Apóstoles y Evangelistas
-  if (type.includes("martyr") || type.includes("mártir") || name.toLowerCase().includes("mártir") || type.includes("apostle") || type.includes("evangelist")) {
-    return colors.red;
-  }
-  
-  // 3. Fiestas Marianas
-  if (type.includes("marian")) {
-    return colors.blue;
-  }
-
-  // 4. Vírgenes (no mártires)
-  // El usuario solicitó explícitamente verde para vírgenes no marianas.
-  // Nota: Santa Escolástica (y otras vírgenes) aparecían en azul porque se clasificaban erróneamente en la lógica anterior o por defecto.
-  if (type.includes("virgin") || type.includes("virgen")) {
-    // Excepción: Si es mártir, debe ser rojo (ya cubierto arriba, pero reforzamos por si acaso el orden importa)
-    if (type.includes("martyr") || type.includes("mártir")) {
-        return colors.red;
+  // 2. Tiempos Penitenciales: Adviento y Cuaresma (Morado)
+  if (type.includes("advent") || type.includes("lent") || title.includes("ceniza")) {
+    // Excepción: Domingo de Ramos (Rojo)
+    if (name.includes("ramos") || name.includes("palm")) {
+      return colors.red;
     }
-    return colors.green;
-  }
-  
-  // 5. Papas y Obispos
-  if (type.includes("pope") || type.includes("papa")) {
     return colors.purple;
   }
 
-  // 5. Memorias y Tiempo Ordinario
-  if (title.includes("memoria")) {
-    // Si es un tipo que normalmente sería blanco (doctor, obispo, confesor, etc.) pero es una memoria, usa verde.
-    if (type.includes("doctor") || type.includes("confessor") || type.includes("abbot") || type.includes("bishop") || type.includes("priest") || type.includes("religious")) {
-       return colors.green;
+  // 3. Pasión, Espíritu Santo y Mártires (Rojo)
+  if (
+    name.includes("viernes santo") || 
+    name.includes("pentecostés") || 
+    name.includes("espíritu santo") ||
+    name.includes("pasión") ||
+    type.includes("martyr") || type.includes("mártir") || name.includes("mártir") ||
+    type.includes("apostle") || type.includes("apóstol") ||
+    type.includes("evangelist") || type.includes("evangelista")
+  ) {
+    // Excepción: San Juan Evangelista es Blanco (no mártir) tradicionalmente, pero litúrgicamente se usa blanco.
+    // Si el dato dice "Apóstol y Evangelista", la regla general es Rojo, pero Juan es excepción.
+    if (name.includes("juan") && name.includes("evangelista")) {
+      return colors.white;
     }
-     // Las memorias de mártires o vírgenes ya están cubiertas arriba.
+    return colors.red;
+  }
+
+  // 4. Fiestas Marianas (Blanco o Azul hispano)
+  if (type.includes("marian") || name.includes("virgen") || name.includes("inmaculada") || name.includes("asunción") || name.includes("madre de dios")) {
+    return colors.blue; 
+  }
+
+  // 5. Vírgenes (no mártires) -> Verde (Petición explícita usuario)
+  if (type.includes("virgin") || type.includes("virgen")) {
+    return colors.green;
+  }
+
+  // 6. Santos no mártires (Blanco)
+  // Confesores, Doctores, Papas, Religiosos, Obispos
+  if (
+    type.includes("confessor") || 
+    type.includes("doctor") || 
+    type.includes("pope") || type.includes("papa") || 
+    type.includes("bishop") || type.includes("obispo") ||
+    type.includes("religious") || type.includes("religioso") ||
+    type.includes("abbot") || type.includes("abad") ||
+    title.includes("fiesta") || title.includes("memoria")
+  ) {
+    return colors.white;
   }
   
-  // Color por defecto para Tiempo Ordinario
+  // 7. Tiempo Ordinario / Feria (Verde)
   return colors.green;
 }
