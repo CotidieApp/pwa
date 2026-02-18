@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useSettings } from '@/context/SettingsContext';
 import { santoRosario } from '@/lib/prayers/plan-de-vida/santo-rosario';
+import { letanias as letaniasData } from '@/lib/prayers/plan-de-vida/santo-rosario/letanias';
 
 // Standard Rosary Sequence per Mystery
 const ROSARY_SEQUENCE = [
@@ -37,38 +38,29 @@ const DEFAULT_JACULATORIAS: Jaculatoria[] = [
 
 const ADORACION_SANTISIMO_TEXT_1 = `Bendito sea Jesús en el Santísimo Sacramento.
 
-Padre Nuestro:
 ${PRAYERS_TEXT.padre_nuestro}
 
-Ave María:
 ${PRAYERS_TEXT.ave_maria}
 
-Gloria:
 ${PRAYERS_TEXT.gloria}`;
 
 const ADORACION_SANTISIMO_TEXT_2 = `Bendito sea Jesús en el Santísimo Sacramento.
 
-Padre Nuestro:
 ${PRAYERS_TEXT.padre_nuestro}
 
-Ave María:
 ${PRAYERS_TEXT.ave_maria}
 
-Gloria:
 ${PRAYERS_TEXT.gloria}`;
 
 const ADORACION_SANTISIMO_TEXT_3 = `Bendito sea Jesús en el Santísimo Sacramento.
 
-Padre Nuestro:
 ${PRAYERS_TEXT.padre_nuestro}
 
-Ave María:
 ${PRAYERS_TEXT.ave_maria}
 
-Gloria:
 ${PRAYERS_TEXT.gloria}`;
 
-const COMUNION_ESPIRITUAL_TEXT = `Comunión espiritual:
+const COMUNION_ESPIRITUAL_TEXT = `*Comunión espiritual*
 Yo quisiera, Señor, recibiros con aquella pureza, humildad y devoción con que os recibió vuestra Santísima Madre, con el espíritu y fervor de los santos.`;
 
 const SENAL_DE_LA_CRUZ_TEXT = `Por la señal de la Santa Cruz, de nuestros enemigos, líbranos, Señor, Dios nuestro. En el nombre del Padre, y del Hijo, y del Espíritu Santo. Amén.`;
@@ -364,8 +356,18 @@ export default function RosaryImmersive({
   );
 
   const postSteps = useMemo(() => {
-    const letanias = santoRosario.prayers?.find(p => p.id === 'letanias');
-    const letaniasText = typeof letanias?.content === 'string' ? letanias.content : '';
+    const raw = typeof letaniasData?.content === 'string' ? letaniasData.content : '';
+    const letaniasText = raw
+      .split('\n')
+      .map((line) => {
+        if (/^\s+\S/.test(line)) {
+          const leading = line.match(/^\s+/)?.[0] ?? '';
+          const text = line.trim();
+          return `${leading}*${text}*`;
+        }
+        return line;
+      })
+      .join('\n');
     const jaculatoriasText = formatJaculatorias(jaculatorias);
     const steps = [
       { type: 'letanias', label: 'Letanías', content: letaniasText },
@@ -527,15 +529,19 @@ export default function RosaryImmersive({
     setJaculatorias((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const getMysteryImage = useCallback((type: MysteryType, index: number) => {
-      const typeShort = type.endsWith('s') ? type.slice(0, -1) : type; // gozosos -> gozoso
-      const specificKey = `${typeShort}-${index + 1}`;
-      return MYSTERY_SPECIFIC_IMAGES[specificKey] || MYSTERY_IMAGES[type];
-  }, []);
-
   const isDark = theme === 'dark' || isDistractionFree;
   const isPreRosaryActive = isPreRosary && preSteps.length > 0;
   const isPostRosaryActive = (isPostRosary && postSteps.length > 0) || isSalveActive;
+
+  const getMysteryImage = useCallback((type: MysteryType, index: number) => {
+      // Imagenes específicas para Pre y Post Rosario
+      if (isPreRosaryActive) return '/images/sacred-heart.jpeg';
+      if (isPostRosaryActive) return '/images/immaculate-conception.jpeg';
+
+      const typeShort = type.endsWith('s') ? type.slice(0, -1) : type; // gozosos -> gozoso
+      const specificKey = `${typeShort}-${index + 1}`;
+      return MYSTERY_SPECIFIC_IMAGES[specificKey] || MYSTERY_IMAGES[type];
+  }, [isPreRosaryActive, isPostRosaryActive]);
   const totalMysteries = initialTitle ? 1 : 5;
   const totalSteps = preSteps.length + sequence.length * totalMysteries + postSteps.length;
   const progressIndex = isPreRosaryActive
@@ -1150,7 +1156,14 @@ export default function RosaryImmersive({
                 size="icon" 
                 className="hover:bg-foreground/5"
                 onClick={handlePrev}
-                disabled={currentStepIndex === 0 && currentMysteryIndex === 0}
+                disabled={
+                    !isSalveActive &&
+                    !isPostRosary &&
+                    (isPreRosary 
+                        ? preStepIndex === 0 
+                        : (currentMysteryIndex === 0 && currentStepIndex === 0 && preSteps.length === 0)
+                    )
+                }
              >
                 <ChevronLeft className="size-5" />
              </Button>
