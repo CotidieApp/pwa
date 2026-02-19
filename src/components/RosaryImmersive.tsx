@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { useSettings } from '@/context/SettingsContext';
 import { santoRosario } from '@/lib/prayers/plan-de-vida/santo-rosario';
 import { letanias as letaniasData } from '@/lib/prayers/plan-de-vida/santo-rosario/letanias';
+import { renderText } from '@/lib/textFormatter';
 
 // Standard Rosary Sequence per Mystery
 const ROSARY_SEQUENCE = [
@@ -23,7 +24,7 @@ const PRAYERS_TEXT = {
   padre_nuestro: `Padre nuestro, que estás en el cielo, santificado sea tu Nombre; venga a nosotros tu reino; hágase tu voluntad en la tierra como en el cielo. Danos hoy nuestro pan de cada día; perdona nuestras ofensas, como también nosotros perdonamos a los que nos ofenden; no nos dejes caer en la tentación, y líbranos del mal. Amén.`,
   ave_maria: `Dios te salve, María, llena eres de gracia; el Señor es contigo; bendita Tú eres entre todas las mujeres, y bendito es el fruto de tu vientre, Jesús. Santa María, Madre de Dios, ruega por nosotros, pecadores, ahora y en la hora de nuestra muerte. Amén.`,
   gloria: `Gloria al Padre, y al Hijo, y al Espíritu Santo. Como era en el principio, ahora y siempre, por los siglos de los siglos. Amén.`,
-  jaculatoria: `¡Oh Jesús mío! Perdona nuestros pecados, líbranos del fuego del infierno, lleva al cielo a todas las almas, especialmente a las más necesitadas de tu misericordia.`,
+  jaculatoria: `Â¡Oh Jesús mío! Perdona nuestros pecados, líbranos del fuego del infierno, lleva al cielo a todas las almas, especialmente a las más necesitadas de tu misericordia.`,
   start: `Ofrecemos este misterio por...`,
 };
 
@@ -67,7 +68,17 @@ const SENAL_DE_LA_CRUZ_TEXT = `Por la señal de la Santa Cruz, de nuestros enemi
 
 const ACTO_CONTRICION_TEXT = `Señor mío Jesucristo, Dios y hombre verdadero, Creador, Padre y Redentor mío; por ser Tú quien eres, bondad infinita, y porque te amo sobre todas las cosas, me pesa de todo corazón haberte ofendido. También me pesa porque puedes castigarme con las penas del infierno. Ayudado de tu divina gracia, propongo firmemente nunca más pecar, confesarme y cumplir la penitencia que me fuere impuesta. Amén.`;
 
-const SALVE_TEXT = `Dios te salve, Reina y Madre de misericordia, vida, dulzura y esperanza nuestra; Dios te salve. A Ti llamamos los desterrados hijos de Eva; a Ti suspiramos, gimiendo y llorando, en este valle de lágrimas. Ea, pues, Señora, abogada nuestra, vuelve a nosotros esos tus ojos misericordiosos; y después de este destierro muéstranos a Jesús, fruto bendito de tu vientre. ¡Oh clementísima, oh piadosa, oh dulce Virgen María! Ruega por nosotros, Santa Madre de Dios, para que seamos dignos de alcanzar las promesas de Nuestro Señor Jesucristo. Amén.`;
+const SALVE_TEXT = `Dios te salve, Reina y Madre de misericordia, vida, dulzura y esperanza nuestra; Dios te salve. A Ti llamamos los desterrados hijos de Eva; a Ti suspiramos, gimiendo y llorando, en este valle de lágrimas. Ea, pues, Señora, abogada nuestra, vuelve a nosotros esos tus ojos misericordiosos; y después de este destierro muéstranos a Jesús, fruto bendito de tu vientre. Â¡Oh clementísima, oh piadosa, oh dulce Virgen María! Ruega por nosotros, Santa Madre de Dios, para que seamos dignos de alcanzar las promesas de Nuestro Señor Jesucristo. Amén.`;
+
+const INVOCACIONES_INICIALES_TEXT = `**V.** Abre, Señor, mis labios.
+**R.** Y mi boca proclamará tu alabanza.
+
+**V.** Dios mí­o, ven en mi auxilio.
+**R.** Señor, date prisa en socorrerme.
+
+Gloria al Padre, y al Hijo, y al Espí­ritu Santo.
+Como era en el principio, ahora y siempre,
+por los siglos de los siglos. Amén.`;
 
 const PRE_ROSARY_STEPS = [
   { type: 'adoracion', label: 'Adoración', content: ADORACION_SANTISIMO_TEXT_1 },
@@ -76,6 +87,7 @@ const PRE_ROSARY_STEPS = [
   { type: 'comunion', label: 'Comunión Espiritual', content: COMUNION_ESPIRITUAL_TEXT },
   { type: 'senal_cruz', label: 'Señal de la Cruz', content: SENAL_DE_LA_CRUZ_TEXT },
   { type: 'acto_contricion', label: 'Acto de contrición', content: ACTO_CONTRICION_TEXT },
+  { type: 'invocaciones', label: 'Invocaciones', content: INVOCACIONES_INICIALES_TEXT },
 ];
 
 type MysteryType = 'gozosos' | 'luminosos' | 'dolorosos' | 'gloriosos';
@@ -184,7 +196,25 @@ export default function RosaryImmersive({
   mysteryGroup: initialGroup,
   mysteryContent: initialContent,
 }: ImmersiveRosaryProps) {
-  const { isDistractionFree, theme } = useSettings();
+  const { isDistractionFree, theme, arrowBubbleSize } = useSettings();
+
+  const navBubbleClass = {
+    sm: "gap-1 p-1 pl-2 rounded-xl",
+    md: "gap-2 p-2 pl-3 rounded-2xl",
+    lg: "gap-2.5 p-2.5 pl-4 rounded-2xl",
+  }[arrowBubbleSize];
+
+  const navButtonClass = {
+    sm: "h-10 w-10",
+    md: "h-12 w-12",
+    lg: "h-14 w-14",
+  }[arrowBubbleSize];
+
+  const navIconClass = {
+    sm: "size-5",
+    md: "size-6",
+    lg: "size-7",
+  }[arrowBubbleSize];
   
   // State for Selection Mode vs Prayer Mode
   const [mode, setMode] = useState<'selection' | 'prayer'>(
@@ -562,7 +592,7 @@ export default function RosaryImmersive({
 
   const showEditJaculatorias = isPostRosaryActive && currentPostStep.type === 'jaculatorias' && !isSalveActive;
 
-  // --- CONFIGURACIÓN DE VISIBILIDAD ---
+  // --- CONFIGURACIí“N DE VISIBILIDAD ---
   // Porcentaje de la imagen que se mostrará durante el recorrido (default 80%)
   // Se puede especificar un valor diferente por cada misterio usando su clave (ej: 'gozoso-1')
   const DEFAULT_VISIBILITY_PERCENTAGE = 80;
@@ -812,7 +842,7 @@ export default function RosaryImmersive({
                             exit={{ opacity: 0, y: -5 }}
                             className="text-[10px] uppercase tracking-wider font-medium opacity-60 mb-1 truncate w-full"
                         >
-                            {randomIntention || "INTENCIÓN GENERAL"}
+                            {randomIntention || "INTENCIí“N GENERAL"}
                         </motion.div>
                     )}
                  </AnimatePresence>
@@ -984,28 +1014,28 @@ export default function RosaryImmersive({
                     )}>
                         {isPreRosaryActive
                           ? currentPreStep?.type === 'adoracion'
-                            ? '🕯️'
+                            ? 'ðŸ•¯ï¸'
                             : currentPreStep?.type === 'senal_cruz'
-                            ? '✝️'
-                            : '🙏'
+                            ? 'âœï¸'
+                            : 'ðŸ™'
                           : isPostRosaryActive
                           ? currentPostStep?.type === 'letanias'
-                            ? '📜'
+                            ? 'ðŸ“œ'
                             : currentPostStep?.type === 'salve'
-                            ? '👑'
-                            : '🕊️'
+                            ? 'ðŸ‘‘'
+                            : 'ðŸ•Šï¸'
                           : currentStep?.type === 'ave_maria'
                           ? `#${currentStep.index}`
                           : currentStep?.type === 'gloria'
-                          ? '†'
+                          ? 'â€ '
                           : currentStep?.type === 'intro'
-                          ? '🙏'
+                          ? 'ðŸ™'
                           : currentStep?.type === 'reading'
-                          ? '📖'
+                          ? 'ðŸ“–'
                           : currentStep?.type === 'jaculatoria'
-                          ? '🕊️'
+                          ? 'ðŸ•Šï¸'
                           : currentStep?.type === 'padre_nuestro'
-                          ? '✝️'
+                          ? 'âœï¸'
                           : ''}
                     </div>
 
@@ -1064,7 +1094,8 @@ export default function RosaryImmersive({
         <div
           ref={navRef}
           className={cn(
-            "fixed z-50 flex items-center gap-1 p-1 pl-2 rounded-xl bg-background/80 shadow-lg border border-border/20 backdrop-blur-md",
+            "fixed z-50 flex items-center bg-background/80 shadow-lg border border-border/20 backdrop-blur-md",
+            navBubbleClass,
             navPos ? "" : "bottom-[calc(2rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2"
           )}
           style={navPos ? { left: navPos.x, top: navPos.y } : undefined}
@@ -1095,7 +1126,7 @@ export default function RosaryImmersive({
              <Button 
                 variant="ghost" 
                 size="icon" 
-                className="hover:bg-foreground/5"
+                className={cn("hover:bg-foreground/5", navButtonClass)}
                 onClick={handlePrev}
                 disabled={
                     !isSalveActive &&
@@ -1106,7 +1137,7 @@ export default function RosaryImmersive({
                     )
                 }
              >
-                <ChevronLeft className="size-5" />
+                <ChevronLeft className={navIconClass} />
              </Button>
 
              <div className="w-px h-6 bg-border mx-1" />
@@ -1114,10 +1145,10 @@ export default function RosaryImmersive({
              <Button 
                 variant="ghost" 
                 size="icon" 
-                className="hover:bg-foreground/5"
+                className={cn("hover:bg-foreground/5", navButtonClass)}
                 onClick={handleNext}
              >
-                <ChevronRight className="size-5" />
+                <ChevronRight className={navIconClass} />
              </Button>
         </div>
 
@@ -1131,3 +1162,5 @@ export default function RosaryImmersive({
     </div>
   );
 }
+
+

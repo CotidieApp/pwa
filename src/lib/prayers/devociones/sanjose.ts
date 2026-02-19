@@ -17,7 +17,7 @@ export const sanJosePrayer: Prayer = {
       id: 'san-jose-jaculatoria',
       title: 'Jaculatoria',
       categoryId: 'devociones',
-      imageUrl: '/images/san-jose.jpeg',
+      imageUrl: '/images/san-jose.jpg',
       content: `¡Oh glorioso San José! Haced que sea constante en el bien; corregid mis faltas y alcanzadme el perdón de mis pecados.`
     },
     {
@@ -31,7 +31,7 @@ export const sanJosePrayer: Prayer = {
       id: 'san-jose-oracion-diaria',
       title: 'Oración para todos los días',
       categoryId: 'devociones',
-      imageUrl: '/images/san-jose.jpeg',
+      imageUrl: '/images/san-jose.jpg',
       content: `¡Glorioso Patriarca San José!, animado de una gran confianza en vuestro gran valimiento, a Vos acudo para que seáis mi protector durante los días de mi destierro en este valle de lágrimas. Vuestra altísima dignidad de Padre putativo de mi amante Jesús hace que nada se os niegue de cuanto pidáis en el cielo. Sed mi abogado, especialísimamente en la hora de mi muerte, y alcanzadme la gracia de que mi alma, cuando se desprenda de la carne, vaya a descansar en las manos del Señor. Amen.`
     },
     {
@@ -45,7 +45,7 @@ export const sanJosePrayer: Prayer = {
       id: 'san-jose-dolores-gozos',
       title: 'Dolores y Gozos',
       categoryId: 'devociones',
-      imageUrl: '/images/san-jose.jpeg',
+      imageUrl: '/images/san-jose.jpg',
       content: `1. Primer Dolor y Gozo:
 La duda de San José (Mt 1, 19).
 El mensaje del Ángel (Mt 1, 20).

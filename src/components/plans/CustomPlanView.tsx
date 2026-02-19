@@ -85,8 +85,21 @@ export default function CustomPlanView({ slot, onOpenPrayerId, onOpenPlanPrayerA
     deleteCustomPlan,
     createCustomPlan,
     importUserData,
+    arrowBubbleSize,
   } = useSettings();
   const { toast } = useToast();
+
+  const arrowButtonClass = {
+    sm: "h-10 w-10",
+    md: "h-12 w-12",
+    lg: "h-14 w-14",
+  }[arrowBubbleSize];
+
+  const arrowIconClass = {
+    sm: "size-4",
+    md: "size-5",
+    lg: "size-6",
+  }[arrowBubbleSize];
 
   const plan = customPlans[slot - 1];
 
@@ -361,18 +374,20 @@ export default function CustomPlanView({ slot, onOpenPrayerId, onOpenPlanPrayerA
                       <Button
                         variant="ghost"
                         size="icon"
+                        className={arrowButtonClass}
                         disabled={index === 0}
                         onClick={() => moveCustomPlanPrayer(slot, index, index - 1)}
                       >
-                        <ArrowUp />
+                        <ArrowUp className={arrowIconClass} />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
+                        className={arrowButtonClass}
                         disabled={index === plan.prayerIds.length - 1}
                         onClick={() => moveCustomPlanPrayer(slot, index, index + 1)}
                       >
-                        <ArrowDown />
+                        <ArrowDown className={arrowIconClass} />
                       </Button>
                       <Button
                         variant="ghost"

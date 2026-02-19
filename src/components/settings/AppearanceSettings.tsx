@@ -118,6 +118,8 @@ export default function AppearanceSettings() {
     resetCustomTheme,
     pinchToZoomEnabled,
     setPinchToZoomEnabled,
+    arrowBubbleSize,
+    setArrowBubbleSize,
     userHomeBackgrounds,
     addUserHomeBackground,
     removeUserHomeBackground,
@@ -174,10 +176,7 @@ export default function AppearanceSettings() {
     const file = e.target.files?.[0];
     if (file) {
       setNewBackgroundFile(file);
-      // Calculate screen aspect ratio for the crop
-      if (typeof window !== 'undefined') {
-        setCropAspect(window.innerWidth / window.innerHeight);
-      }
+      setCropAspect(9 / 16);
       const reader = new FileReader();
       reader.onload = () => {
         setImageToCrop(reader.result as string);
@@ -215,6 +214,23 @@ export default function AppearanceSettings() {
           <CardTitle className="font-headline text-base">Apariencia General</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Label className="flex flex-col gap-1 text-sm">
+              <span>Tamaño de globos de flechas</span>
+              <span className="text-xs text-muted-foreground">Ajusta el tamaño en Plan Personalizado y Rosario.</span>
+            </Label>
+            <Select value={arrowBubbleSize} onValueChange={(value) => setArrowBubbleSize(value as any)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar tamaño" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sm">Pequeño</SelectItem>
+                <SelectItem value="md">Mediano</SelectItem>
+                <SelectItem value="lg">Grande</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="flex items-center justify-between">
             <Label htmlFor="dark-mode-switch" className="flex items-center gap-2 text-sm">
               Modo Oscuro
@@ -323,14 +339,15 @@ export default function AppearanceSettings() {
                   className="relative group cursor-pointer rounded-lg overflow-hidden border-2 border-transparent hover:border-primary transition-all"
                   onClick={() => setHomeBackgroundId(image.id)}
                 >
-                  <Image
-                    src={image.imageUrl}
-                    alt={image.description}
-                    width={200}
-                    height={120}
-                    className="object-cover w-full h-24"
-                    data-ai-hint={image.imageHint}
-                  />
+                  <div className="relative w-full aspect-[9/16]">
+                    <Image
+                      src={image.imageUrl}
+                      alt={image.description}
+                      fill
+                      className="object-cover"
+                      data-ai-hint={image.imageHint}
+                    />
+                  </div>
                   {homeBackgroundId === image.id && (
                     <div className="absolute inset-0 bg-primary/50 flex items-center justify-center">
                       <Icon.CheckCircle2 className="size-8 text-primary-foreground" />

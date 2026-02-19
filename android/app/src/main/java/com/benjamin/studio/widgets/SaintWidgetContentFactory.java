@@ -40,7 +40,7 @@ final class SaintWidgetContentFactory {
 
         String imageAssetPath = pickSaintImageAssetPath(saint, dow);
 
-        int backgroundColor = getLiturgicalColor(saint);
+        int backgroundColor = getLiturgicalColor(saint, now, easter);
         boolean lightBg = isLightColor(backgroundColor);
         int titleTextColor = lightBg ? Color.parseColor("#1E293B") : Color.WHITE;
         int bodyTextColor = lightBg ? Color.parseColor("#334155") : Color.argb(230, 255, 255, 255);
@@ -159,7 +159,7 @@ final class SaintWidgetContentFactory {
         }
     }
 
-    private static int getLiturgicalColor(SaintEntry saint) {
+    private static int getLiturgicalColor(SaintEntry saint, Calendar current, Calendar easter) {
         if (saint == null) return Color.parseColor("#225722");
 
         String title = saint.title != null ? saint.title.toLowerCase(Locale.getDefault()) : "";
@@ -173,26 +173,18 @@ final class SaintWidgetContentFactory {
         int purple = Color.parseColor("#5A2A69");
         int green = Color.parseColor("#225722");
         int blue = Color.parseColor("#3A5F7A");
+        int baseColor = green;
 
         // 1. Solemnities and Feasts of the Lord (Gold/White)
         if (title.contains("solemnidad") || name.contains("señor") || name.contains("cristo rey") || title.contains("fiesta del señor")) {
             // Exception: Good Friday / Passion is Red
             if (name.contains("pasión") || name.contains("viernes santo") || name.contains("cruz")) {
-                return red;
+                return applySeasonOverride(red, current, easter, red, blue, gold, purple);
             }
-            return gold;
+            return applySeasonOverride(gold, current, easter, red, blue, gold, purple);
         }
 
-        // 2. Penitential Seasons: Advent & Lent (Purple)
-        if (type.contains("advent") || type.contains("lent") || title.contains("ceniza")) {
-             // Exception: Palm Sunday (Red)
-             if (name.contains("ramos") || name.contains("palm")) {
-                 return red;
-             }
-             return purple;
-        }
-
-        // 3. Passion, Holy Spirit, Martyrs, Apostles (Red)
+        // 2. Passion, Holy Spirit, Martyrs, Apostles (Red)
         if (name.contains("viernes santo") || 
             name.contains("pentecostés") || 
             name.contains("espíritu santo") ||
@@ -203,19 +195,19 @@ final class SaintWidgetContentFactory {
             
             // Exception: St. John Evangelist is White
             if (name.contains("juan") && name.contains("evangelista")) {
-                return white;
+                return applySeasonOverride(white, current, easter, red, blue, gold, purple);
             }
-            return red;
+            return applySeasonOverride(red, current, easter, red, blue, gold, purple);
         }
 
         // 4. Marian Feasts (Blue - Hispanic privilege, or White)
         if (type.contains("marian") || name.contains("virgen") || name.contains("inmaculada") || name.contains("asunción") || name.contains("madre de dios")) {
-            return blue;
+            return applySeasonOverride(blue, current, easter, red, blue, gold, purple);
         }
 
         // 5. Virgins (Green - User explicit request)
         if (type.contains("virgin") || type.contains("virgen")) {
-            return green;
+            return applySeasonOverride(green, current, easter, red, blue, gold, purple);
         }
 
         // 6. Saints (Non-Martyrs), Popes, Doctors (White)
@@ -226,11 +218,11 @@ final class SaintWidgetContentFactory {
             type.contains("religious") || type.contains("religioso") ||
             type.contains("abbot") || type.contains("abad") ||
             title.contains("fiesta") || title.contains("memoria")) {
-            return white;
+            return applySeasonOverride(white, current, easter, red, blue, gold, purple);
         }
 
         // 7. Ordinary Time (Green)
-        return green;
+        return applySeasonOverride(green, current, easter, red, blue, gold, purple);
     }
 
     private static boolean isLightColor(int color) {
@@ -239,6 +231,58 @@ final class SaintWidgetContentFactory {
         double b = Color.blue(color) / 255.0;
         double luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
         return luma > 0.60;
+    }
+
+    private static int applySeasonOverride(
+        int baseColor,
+        Calendar current,
+        Calendar easter,
+        int red,
+        int blue,
+        int gold,
+        int purple
+    ) {
+        if (isPenitentialSeason(current, easter)) {
+            if (baseColor != red && baseColor != blue && baseColor != gold) {
+                return purple;
+            }
+        }
+        return baseColor;
+    }
+
+    private static boolean isPenitentialSeason(Calendar current, Calendar easter) {
+        Calendar day = startOfDay(current);
+        int year = day.get(Calendar.YEAR);
+
+        Map<String, Calendar> adventDates = getAdventDates(year);
+        Calendar adventStart = adventDates.get("advent1");
+        Calendar adventEnd = Calendar.getInstance();
+        adventEnd.set(year, Calendar.DECEMBER, 24, 0, 0, 0);
+        adventEnd.set(Calendar.MILLISECOND, 0);
+
+        if (adventStart != null && isWithinInclusive(day, adventStart, adventEnd)) {
+            return true;
+        }
+
+        Calendar ashWednesday = addDays(easter, -46);
+        Calendar holySaturday = addDays(easter, -1);
+        return isWithinInclusive(day, ashWednesday, holySaturday);
+    }
+
+    private static Calendar startOfDay(Calendar source) {
+        Calendar c = (Calendar) source.clone();
+        c.set(Calendar.HOUR_OF_DAY, 0);
+        c.set(Calendar.MINUTE, 0);
+        c.set(Calendar.SECOND, 0);
+        c.set(Calendar.MILLISECOND, 0);
+        return c;
+    }
+
+    private static boolean isWithinInclusive(Calendar current, Calendar start, Calendar end) {
+        Calendar c = startOfDay(current);
+        Calendar s = startOfDay(start);
+        Calendar e = startOfDay(end);
+        return !c.before(s) && !c.after(e);
     }
 
     // ==========================================
@@ -362,7 +406,7 @@ final class SaintWidgetContentFactory {
         
         // Let's iterate definitions
         Map<Integer, SaintEntry> easterFeasts = new HashMap<>();
-        easterFeasts.put(-46, new SaintEntry(0, 0, "Miércoles de Ceniza", "Inicio de la Cuaresma...", "Conmemoración", "celebration;lent;ceniza"));
+        easterFeasts.put(-46, new SaintEntry(0, 0, "Miércoles de Ceniza", "Inicio de la Cuaresma, un tiempo de penitencia y conversión de cuarenta días en preparación para la Pascua. Se caracteriza por la imposición de la ceniza en la frente.", "Conmemoración", "celebration;lent;ceniza"));
         easterFeasts.put(-7, new SaintEntry(0, 0, "Domingo de Ramos", "Inicio de la Semana Santa...", "Celebración del Día", "celebration;lent;ramos"));
         easterFeasts.put(-6, new SaintEntry(0, 0, "Lunes Santo", "Día para preparar el alma...", "Celebración del Día", "celebration;lent"));
         easterFeasts.put(-5, new SaintEntry(0, 0, "Martes Santo", "Día para preparar el alma...", "Celebración del Día", "celebration;lent"));

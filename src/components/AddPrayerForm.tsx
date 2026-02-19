@@ -21,6 +21,7 @@ import { useSettings } from '@/context/SettingsContext';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Info, Eye } from 'lucide-react';
 import { renderText } from '@/lib/textFormatter';
+import ImageCropper from '@/components/ui/ImageCropper';
 
 const formSchema = z.object({
   title: z.string().min(1, { message: 'El título es requerido.' }),
@@ -54,6 +55,9 @@ export default function AddPrayerForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [selectedImageFileName, setSelectedImageFileName] = useState<string | null>(null);
+  const [isCropperOpen, setIsCropperOpen] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  const [finalCroppedImage, setFinalCroppedImage] = useState<string | null>(null);
   const unmountedRef = useRef(false);
 
   const isContentEditable = useMemo(() => {
@@ -91,6 +95,9 @@ export default function AddPrayerForm({
       });
     }
     setSelectedImageFileName(null);
+    setFinalCroppedImage(null);
+    setImageToCrop(null);
+    setIsCropperOpen(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [existingPrayer?.id, formType]);
 
@@ -106,6 +113,11 @@ export default function AddPrayerForm({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!finalCroppedImage) return;
+    form.setValue('imageUrl', finalCroppedImage, { shouldValidate: true });
+  }, [finalCroppedImage, form]);
 
   const onSubmit: SubmitHandler<FormValues> = async (data) => {
     if (isSubmitting) return;
@@ -137,7 +149,8 @@ export default function AddPrayerForm({
 
   // === Render principal ===
   return (
-    <Card className="bg-card shadow-md border-border/50 animate-in fade-in-0 duration-500">
+    <>
+      <Card className="bg-card shadow-md border-border/50 animate-in fade-in-0 duration-500">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="p-6 space-y-4">
@@ -222,13 +235,17 @@ export default function AddPrayerForm({
                           if (!file) {
                             field.onChange('');
                             setSelectedImageFileName(null);
+                            setFinalCroppedImage(null);
                             return;
                           }
+                          field.onChange('');
                           setSelectedImageFileName(file.name);
+                          setFinalCroppedImage(null);
                           const reader = new FileReader();
                           reader.onload = () => {
                             const result = reader.result as string;
-                            field.onChange(result);
+                            setImageToCrop(result);
+                            setIsCropperOpen(true);
                           };
                           reader.readAsDataURL(file);
                         }}
@@ -240,7 +257,7 @@ export default function AddPrayerForm({
                       </Button>
                       {selectedImageFileName ? (
                         <p className="text-xs text-muted-foreground font-body break-all">
-                          {selectedImageFileName}
+                          {selectedImageFileName} {finalCroppedImage ? '(Recortada)' : ''}
                         </p>
                       ) : null}
                     </div>
@@ -270,6 +287,26 @@ export default function AddPrayerForm({
           </CardFooter>
         </form>
       </Form>
-    </Card>
+      </Card>
+      {isCropperOpen && (
+      <ImageCropper
+        imageSrc={imageToCrop}
+        onCropComplete={(croppedImage) => {
+          setFinalCroppedImage(croppedImage);
+          setIsCropperOpen(false);
+          setImageToCrop(null);
+        }}
+        onCancel={() => {
+          setIsCropperOpen(false);
+          setImageToCrop(null);
+          setFinalCroppedImage(null);
+          form.setValue('imageUrl', '');
+          setSelectedImageFileName(null);
+        }}
+        isOpen={isCropperOpen}
+        aspect={16 / 9}
+      />
+      )}
+    </>
   );
 }

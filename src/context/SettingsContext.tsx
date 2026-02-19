@@ -31,6 +31,7 @@ const saintsData = saintsDataRaw as { saints: SaintOfTheDay[] };
 
 type Theme = 'light' | 'dark';
 type FontSize = number;
+type ArrowBubbleSize = 'sm' | 'md' | 'lg';
 type OverlayPosition = { x: number; y: number };
 type OverlayPositions = { timer: OverlayPosition; planNav: OverlayPosition; wrappedBubble: OverlayPosition };
 
@@ -189,6 +190,9 @@ type Settings = {
   pinchToZoomEnabled: boolean;
   setPinchToZoomEnabled: (enabled: boolean) => void;
 
+  arrowBubbleSize: ArrowBubbleSize;
+  setArrowBubbleSize: (size: ArrowBubbleSize) => void;
+
   userHomeBackgrounds: ImagePlaceholder[];
   allHomeBackgrounds: ImagePlaceholder[];
 
@@ -339,6 +343,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [isCustomThemeActive, setIsCustomThemeActive] = useState(false);
 
   const [pinchToZoomEnabled, setPinchToZoomEnabled] = useState(true);
+  const [arrowBubbleSize, setArrowBubbleSize] = useState<ArrowBubbleSize>('sm');
 
   const [userHomeBackgrounds, setUserHomeBackgrounds] = useState<ImagePlaceholder[]>([]);
   const [scrollPositions, setScrollPositions] = useState<{ [k: string]: number }>({});
@@ -549,6 +554,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           setIsCustomThemeActive(s.isCustomThemeActive ?? false);
 
           setPinchToZoomEnabled(s.pinchToZoomEnabled ?? true);
+          setArrowBubbleSize(s.arrowBubbleSize === 'md' || s.arrowBubbleSize === 'lg' ? s.arrowBubbleSize : 'sm');
 
           const resolvedUserHomeBackgrounds = Array.isArray(s.userHomeBackgrounds) ? s.userHomeBackgrounds : [];
           setUserHomeBackgrounds(resolvedUserHomeBackgrounds);
@@ -700,6 +706,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       customThemeColors,
       isCustomThemeActive,
       pinchToZoomEnabled,
+      arrowBubbleSize,
       userHomeBackgrounds,
       scrollPositions,
       quoteOfTheDay,
@@ -745,6 +752,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     customThemeColors,
     isCustomThemeActive,
     pinchToZoomEnabled,
+    arrowBubbleSize,
     userHomeBackgrounds,
     scrollPositions,
     quoteOfTheDay,
@@ -1066,6 +1074,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setFontSize(15);
     setHomeBackgroundId(defaultHomeBackgroundId);
     setOverlayPositions(defaultOverlayPositions);
+    setArrowBubbleSize('sm');
     // ... reset others as needed, but usually we keep user data
     toast({ title: 'Configuración restablecida.' });
   };
@@ -1185,6 +1194,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setCustomThemeColors(data.customThemeColors ?? defaultThemeColors);
     setIsCustomThemeActive(data.isCustomThemeActive ?? false);
     setPinchToZoomEnabled(data.pinchToZoomEnabled ?? true);
+    setArrowBubbleSize(data.arrowBubbleSize === 'md' || data.arrowBubbleSize === 'lg' ? data.arrowBubbleSize : 'sm');
 
     setUserHomeBackgrounds(Array.isArray(data.userHomeBackgrounds) ? data.userHomeBackgrounds : []);
     setScrollPositions(data.scrollPositions && typeof data.scrollPositions === 'object' ? data.scrollPositions : {});
@@ -2108,6 +2118,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         resetCustomTheme,
         pinchToZoomEnabled,
         setPinchToZoomEnabled,
+        arrowBubbleSize,
+        setArrowBubbleSize,
         userHomeBackgrounds,
         allHomeBackgrounds,
         addUserHomeBackground,

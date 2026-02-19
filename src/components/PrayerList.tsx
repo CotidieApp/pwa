@@ -49,7 +49,8 @@ const SaintOfTheDayCard = ({ onSelectPrayer, allPrayers }: SaintOfTheDayCardProp
     saintOfTheDay, 
     saintOfTheDayImage, 
     overriddenFixedSaint, 
-    overriddenFixedSaintImage 
+    overriddenFixedSaintImage,
+    simulatedDate
   } = useSettings();
 
   const [isPeeking, setIsPeeking] = useState(false);
@@ -61,7 +62,7 @@ const SaintOfTheDayCard = ({ onSelectPrayer, allPrayers }: SaintOfTheDayCardProp
 
   if (!activeSaint) return null;
 
-  const color = getLiturgicalColor(activeSaint);
+  const color = getLiturgicalColor(activeSaint, simulatedDate);
   const isLightColor = color === '#D4AF37' || color === '#F8F9FA' || color === '#B8860B';
   const textColor = isLightColor ? 'text-slate-800' : 'text-white';
   const objectPosition = getImageObjectPosition(activeImage?.id);

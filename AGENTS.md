@@ -1,15 +1,52 @@
-# Registro de Actividad de Agentes (AGENTS.md)
+﻿# Registro de Actividad de Agentes (AGENTS.md)
+
+Este archivo documenta todas las intervenciones realizadas por el asistente (Trae AI), detallando planes, ejecuciones y archivos modificados para mantener un historial claro de cambios y facilitar la depuración.
+
+### [2026-02-19 00:15] 45. Correcciones Post-Compilación (Colores, Recortes, Rosario, Widgets)
+**Planificación:**
+- Ajustar lógica de color litúrgico para Adviento/Cuaresma con prioridad a rojo/celeste/dorado.
+- Añadir ajuste para tamaño de globos de flechas (plan personalizado y Rosario).
+- Cambiar vista previa de fondos a formato vertical.
+- Forzar recorte de imágenes: fondos (vertical) y oraciones (horizontal).
+- Corregir imagen de San José usando `public/images/san-jose.jpg`.
+- Aplicar formateo de texto (asteriscos) en Rosario Inmersivo.
+- Agregar frases faltantes tras Acto de contrición (con búsqueda web).
+- Igualar texto de Miércoles de Ceniza entre app y widget.
+- Configurar actualización del widget a las 00:00 con alarmas exactas.
+- Revisar el caso de San Conrado en blanco.
+**Ejecución:**
+- **Colores litúrgicos**: Se implementó detección de Adviento/Cuaresma con prioridad a rojo/celeste/dorado (app y widget) y se pasó la fecha simulada al cálculo de color.
+- **Ajuste de tamaño de flechas**: Se añadió preferencia (pequeño/mediano/grande) y se aplicó a Plan Personalizado y Rosario Inmersivo.
+- **Fondos**: La vista previa se hizo vertical y el recorte de fondo quedó fijo a 9:16.
+- **Imágenes de oración**: Se integró recorte obligatorio 16:9 al subir imagen en oraciones.
+- **San José**: Se cambió la imagen a `san-jose.jpg`.
+- **Rosario Inmersivo**: Se agregaron las invocaciones posteriores al Acto de contrición y se aplicó formateo de asteriscos en pre-rosario.
+- **Widgets**: Se completó el texto de Miércoles de Ceniza y se añadió alarma exacta diaria (00:00) con receptor dedicado.
+
+**Archivos Modificados:**
+- `src/lib/getLiturgicalColor.ts`
+- `src/components/PrayerList.tsx`
+- `src/context/SettingsContext.tsx`
+- `src/components/settings/AppearanceSettings.tsx`
+- `src/components/plans/CustomPlanView.tsx`
+- `src/components/RosaryImmersive.tsx`
+- `src/components/AddPrayerForm.tsx`
+- `src/lib/prayers/devociones/sanjose.ts`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetContentFactory.java`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetScheduler.java`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetAlarmReceiver.java` (NUEVO)
+- `android/app/src/main/AndroidManifest.xml`
 
 Este archivo documenta todas las intervenciones realizadas por el asistente (Trae AI), detallando planes, ejecuciones y archivos modificados para mantener un historial claro de cambios y facilitar la depuración.
 
 ### [2026-02-17 13:30] 44. Corrección de Flujo Salve (Ramificación)
 **Planificación:**
-- Modificar `handleNext` en `RosaryImmersive.tsx` para que al terminar la Salve no salte automáticamente al final (Jaculatorias), sino que simplemente cierre el "desvío" y devuelva al usuario al contexto donde estaba (o al inicio de las oraciones finales si vino desde el misterio).
+- Modificar `handleNext` en `RosaryImmersive.tsx` para que al terminar la Salve no salte automáticamente al final (Jaculatorias), sino que simplemente cierre el "desví­o" y devuelva al usuario al contexto donde estaba (o al inicio de las oraciones finales si vino desde el misterio).
 
 **Ejecución:**
 - **RosaryImmersive.tsx**:
     - Se eliminó la lógica que forzaba `setPostStepIndex(jacIndex)` al cerrar la Salve.
-    - Ahora `setIsSalveActive(false)` es la única acción, permitiendo que el estado subyacente (`postStepIndex`) determine qué mostrar a continuación (normalmente Letanías si se accedió desde el final del misterio).
+    - Ahora `setIsSalveActive(false)` es la única acción, permitiendo que el estado subyacente (`postStepIndex`) determine qué mostrar a continuación (normalmente Letaní­as si se accedió desde el final del misterio).
 
 **Archivos Modificados:**
 - `src/components/RosaryImmersive.tsx`
@@ -17,22 +54,22 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 ### [2026-02-17 13:15] 43. Mejoras Integrales en Rosario Inmersivo
 **Planificación:**
 - Implementar los 11 puntos solicitados para mejorar la experiencia del Rosario.
-- **Lógica**: Saltar intenciones si están vacías.
+- **Lógica**: Saltar intenciones si están vací­as.
 - **UI**: Aumentar opacidad del fondo (0.65), ocultar botón de edición de jaculatorias cuando no corresponde.
-- **Navegación**: Corregir botón "Salve" y "Ir a Letanías".
-- **Contenido**: Actualizar texto de Letanías según versión Opus Dei (incluyendo oraciones finales y nuevas invocaciones).
+- **Navegación**: Corregir botón "Salve" y "Ir a Letaní­as".
+- **Contenido**: Actualizar texto de Letaní­as según versión Opus Dei (incluyendo oraciones finales y nuevas invocaciones).
 
 **Ejecución:**
 - **RosaryImmersive.tsx**:
     - Se aumentó la opacidad de la imagen de fondo.
     - Se corrigió la lógica de visibilidad del botón "Salve" y "Editar Jaculatorias" (mutuamente exclusivos).
     - Se aseguró que `isPostRosaryActive` se active correctamente al pulsar "Salve".
-    - Se verificó la lógica de salto de intenciones (ya existía, se confirmó su funcionamiento).
-- **Letanías (index.ts)**:
+    - Se verificó la lógica de salto de intenciones (ya existí­a, se confirmó su funcionamiento).
+- **Letaní­as (index.ts)**:
     - Se actualizó el texto con las nuevas invocaciones (*Mater misericordiae, Mater spei, Solacium migrantium*).
     - Se corrigió la oración final (se reemplazó el Angelus por la Colecta del Rosario "Oh Dios, cuyo Unigénito Hijo...").
-    - Se ajustaron las intenciones finales (Por el Papa, por las Ánimas).
-    - Se aplicó formato de sangría para que las respuestas se rendericen en negrita automáticamente.
+    - Se ajustaron las intenciones finales (Por el Papa, por las ínimas).
+    - Se aplicó formato de sangrí­a para que las respuestas se rendericen en negrita automáticamente.
 
 **Archivos Modificados:**
 - `src/components/RosaryImmersive.tsx`
@@ -55,7 +92,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 ### [2026-02-17 12:45] 41. Recorte de Imágenes para Fondos de Pantalla
 **Planificación:**
 - Implementar una herramienta de recorte de imágenes (cropping) para que el usuario pueda ajustar las imágenes subidas como fondo de pantalla.
-- Utilizar la librería `react-easy-crop` para la interfaz de recorte.
+- Utilizar la librerí­a `react-easy-crop` para la interfaz de recorte.
 - Crear utilidades para procesar la imagen (canvas) y generar el resultado final.
 
 **Ejecución:**
@@ -91,13 +128,13 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 
 ### [2026-02-09 21:50] 12. Limpieza de Interfaz Desarrollador
 **Planificación:**
-- Eliminar la tabla JSON sin formato en la pestaña de Estadísticas.
+- Eliminar la tabla JSON sin formato en la pestaña de Estadí­sticas.
 - Ocultar el encabezado global ("Cotidie") cuando se está en el panel de desarrollador.
 - Cambiar la etiqueta "development" por "desarrollador" en la consola.
 
 **Ejecución:**
 - **DeveloperDashboard.tsx**:
-    - Se eliminó el bloque `<pre>` que mostraba el JSON crudo en "Estadísticas" y "Globales".
+    - Se eliminó el bloque `<pre>` que mostraba el JSON crudo en "Estadí­sticas" y "Globales".
     - Se reemplazó el texto del entorno para mostrar "desarrollador".
 - **MainApp.tsx**:
     - Se añadió la condición `navState.activeView !== 'developer'` para evitar renderizar el componente `<Header />` en esa vista.
@@ -112,7 +149,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - Se revisaron los componentes principales para asegurar la localización.
 
 **Ejecución:**
-- **Developer Dashboard**: Se tradujeron las claves de las estadísticas (que se mostraban en inglés como `daysActive`, etc.) a etiquetas legibles en español (`Días Activo`, `Oraciones Abiertas`).
+- **Developer Dashboard**: Se tradujeron las claves de las estadí­sticas (que se mostraban en inglés como `daysActive`, etc.) a etiquetas legibles en español (`Dí­as Activo`, `Oraciones Abiertas`).
 - **Verificación**: Se confirmó que `WrappedStory.tsx`, `Settings.tsx` y sus subcomponentes ya se encuentran traducidos.
 
 **Archivos Modificados:**
@@ -125,18 +162,18 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - Se revisó manualmente `DeveloperDashboard.tsx`.
 
 **Ejecución:**
-- **Análisis Build**: La compilación (`npm run build`) finalizó con éxito (Exit Code 0), confirmando que no hay errores de sintaxis ni de tipos críticos.
-- **Mejora UX**: En `DeveloperDashboard.tsx`, se detectó que el input de edición de estadísticas no permitía borrar el número completamente (backspace bloqueado por validación `NaN`). Se corrigió para permitir strings vacíos temporalmente (seteando valor a 0), mejorando la experiencia de edición.
+- **Análisis Build**: La compilación (`npm run build`) finalizó con éxito (Exit Code 0), confirmando que no hay errores de sintaxis ni de tipos crí­ticos.
+- **Mejora UX**: En `DeveloperDashboard.tsx`, se detectó que el input de edición de estadí­sticas no permití­a borrar el número completamente (backspace bloqueado por validación `NaN`). Se corrigió para permitir strings vací­os temporalmente (seteando valor a 0), mejorando la experiencia de edición.
 
 **Archivos Modificados:**
 - `src/components/developer/DeveloperDashboard.tsx`
 
 ### [2026-02-09 18:20] 8. Limpieza de APKs Antiguos
 **Planificación:**
-- El usuario solicitó que al compilar una nueva versión, se eliminen automáticamente las versiones anteriores (`.apk`) presentes en la raíz.
+- El usuario solicitó que al compilar una nueva versión, se eliminen automáticamente las versiones anteriores (`.apk`) presentes en la raí­z.
 
 **Ejecución:**
-- **Script Update**: Se modificó `scripts/android-apk.mjs` para buscar y eliminar archivos que coincidan con el patrón `cotidie-installer-v*.apk` en la raíz del proyecto antes de copiar el nuevo APK generado.
+- **Script Update**: Se modificó `scripts/android-apk.mjs` para buscar y eliminar archivos que coincidan con el patrón `cotidie-installer-v*.apk` en la raí­z del proyecto antes de copiar el nuevo APK generado.
 
 **Archivos Modificados:**
 - `scripts/android-apk.mjs`
@@ -162,7 +199,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - El usuario solicitó actualizar el año de inicio en el copyright a 2025.
 
 **Ejecución:**
-- **Copyright Update**: Se actualizó el texto en `DeveloperSettings.tsx` para mostrar "© 2025 - {año_actual}".
+- **Copyright Update**: Se actualizó el texto en `DeveloperSettings.tsx` para mostrar "Â© 2025 - {año_actual}".
 
 **Archivos Modificados:**
 - `src/components/settings/DeveloperSettings.tsx`
@@ -170,13 +207,13 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 ### [2026-02-09 18:35] 10. Devoción a San José y Mejoras en Simulación de Fechas
 **Planificación:**
 - Agregar devoción a San José.
-- Restringir el simulador de fechas para que solo afecte al "Santo del Día" y no a la lógica global de la app.
+- Restringir el simulador de fechas para que solo afecte al "Santo del Dí­a" y no a la lógica global de la app.
 - Habilitar la navegación a la devoción del santo al hacer clic en su tarjeta.
 - Corregir la navegación doble al guardar una oración editada.
 
 **Ejecución:**
 - **San José**: Se creó `src/lib/prayers/devociones/sanjose.ts` y se registró en `data.tsx`.
-- **Scope Simulación**: Se modificó `SettingsContext.tsx` para usar `new Date()` en rotación de fondos y estadísticas, limitando `simulatedDate` solo al cálculo del santo.
+- **Scope Simulación**: Se modificó `SettingsContext.tsx` para usar `new Date()` en rotación de fondos y estadí­sticas, limitando `simulatedDate` solo al cálculo del santo.
 - **Link Santo**: Se añadió lógica en `SettingsContext` para resolver el ID de la oración del santo y se actualizó `PrayerList.tsx` (`SaintOfTheDayCard`) para ser clickeable.
 - **Nav Fix**: Se eliminó la llamada redundante a `handleBack()` en `MainApp.tsx` (`handleSavePrayer`), ya que `AddPrayerForm` ya maneja la cancelación/retorno.
 
@@ -206,10 +243,10 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `src/components/settings/ContentSettings.tsx`
 - `android/app/src/main/AndroidManifest.xml`
 
-### [2026-02-11 11:15] 39. Refinamiento de Estadísticas
+### [2026-02-11 11:15] 39. Refinamiento de Estadí­sticas
 **Planificación:**
-- **Stats**: Cambiar la lógica de "Racha" (consecutiva) a "Total de Días" (acumulativa única) para Mañana, Noche y Misa.
-- **App Usage**: Añadir contador de "Días no usados" (calculado como diferencia entre días del año transcurridos y días activo).
+- **Stats**: Cambiar la lógica de "Racha" (consecutiva) a "Total de Dí­as" (acumulativa única) para Mañana, Noche y Misa.
+- **App Usage**: Añadir contador de "Dí­as no usados" (calculado como diferencia entre dí­as del año transcurridos y dí­as activo).
 - **Persistencia**: Confirmar compatibilidad de IndexedDB con APK (WebView).
 
 **Ejecución:**
@@ -217,8 +254,8 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
     - Se añadieron nuevas propiedades a `UserStats`: `morningDaysCount`, `nightDaysCount`, `massDaysCount`.
     - Se actualizó `incrementStat` para incrementar estos contadores solo si la fecha difiere de la última registrada (`lastMorningPrayerDate`, etc.).
 - **DeveloperDashboard**:
-    - Se actualizaron las etiquetas para reflejar "Días Totales" en lugar de "Rachas".
-    - Se añadió visualización de "Días Faltantes" bajo el contador de "Días Activo".
+    - Se actualizaron las etiquetas para reflejar "Dí­as Totales" en lugar de "Rachas".
+    - Se añadió visualización de "Dí­as Faltantes" bajo el contador de "Dí­as Activo".
 
 **Archivos Modificados:**
 - `src/context/SettingsContext.tsx`
@@ -231,7 +268,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - **Movable Feasts**: Corregir algoritmo de Miércoles de Ceniza (no se mostraba correctamente).
 - **Nueva Oración**: Agregar "Oración antes de la comunión" (Comunión espiritual).
 - **UX**: Implementar gesto "Pinch to Zoom" en el detalle de oraciones para cambiar tamaño de letra dinámicamente.
-- **Stats**: Reemplazar contadores absolutos de oraciones mañana/noche por "Racha de días" (Streak) en el panel de desarrollador.
+- **Stats**: Reemplazar contadores absolutos de oraciones mañana/noche por "Racha de dí­as" (Streak) en el panel de desarrollador.
 - **PWA Persistence**: Implementar `IndexedDB` para evitar pérdida de datos en actualizaciones de PWA (reemplazando `localStorage` como fuente primaria).
 - **UI**: Corregir botón "Salir de Pantalla Completa" para respetar `safe-area-inset-bottom`.
 
@@ -261,9 +298,9 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 
 ---
 
-### [2026-02-11 09:30] 37. Nueva Oración: Letanías de la Humildad
+### [2026-02-11 09:30] 37. Nueva Oración: Letaní­as de la Humildad
 **Planificación:**
-- El usuario solicitó agregar las "Letanías de la Humildad" en la sección de Oraciones.
+- El usuario solicitó agregar las "Letaní­as de la Humildad" en la sección de Oraciones.
 - Se creará un nuevo archivo de oración y se registrará en `src/lib/data.tsx`.
 
 **Ejecución:**
@@ -276,23 +313,23 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 
 ---
 
-### [2026-02-10 16:00] 35. Adoración Extendida y Guía PWA
+### [2026-02-10 16:00] 35. Adoración Extendida y Guí­a PWA
 **Planificación:**
 - **Rosario Immersive**:
-    - El usuario solicitó agregar "Padre Nuestro, Ave María y Gloria" a cada uno de los 3 pasos de "Adoración" iniciales.
+    - El usuario solicitó agregar "Padre Nuestro, Ave Marí­a y Gloria" a cada uno de los 3 pasos de "Adoración" iniciales.
     - Se modificará `PRE_ROSARY_STEPS` (o las constantes de texto) para incluir estas oraciones completas.
 - **Documentación**:
     - Se detallarán los pasos exactos para subir y desplegar la PWA en Vercel.
 
 **Ejecución:**
 - **RosaryImmersive.tsx**:
-    - Se actualizaron `ADORACION_SANTISIMO_TEXT_1`, `_2`, y `_3` para incluir el texto completo de Padre Nuestro, Ave María y Gloria después de la jaculatoria "Bendito sea...".
+    - Se actualizaron `ADORACION_SANTISIMO_TEXT_1`, `_2`, y `_3` para incluir el texto completo de Padre Nuestro, Ave Marí­a y Gloria después de la jaculatoria "Bendito sea...".
 
 **Archivos Modificados:**
 - `src/components/RosaryImmersive.tsx`
 **Planificación:**
 - **Rosario Immersive**:
-    - El usuario reportó que no se veían imágenes de fondo, solo colores.
+    - El usuario reportó que no se veí­an imágenes de fondo, solo colores.
     - Se constató que se usaban gradientes CSS.
     - Se decidió mapear los misterios a imágenes reales existentes en `public/images/`.
     - Se implementará un `div` con `backgroundImage` y opacidad reducida, manteniendo el gradiente como superposición (overlay) para asegurar legibilidad.
@@ -319,8 +356,8 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
     - Dividir Adoración inicial en 4 pasos.
     - Zona segura en selección de misterios.
     - Botones de salto en barra superior (evitar toques accidentales).
-    - Botón directo a Letanías.
-    - Título descriptivo en meditación.
+    - Botón directo a Letaní­as.
+    - Tí­tulo descriptivo en meditación.
     - Emoji de Salve (Corona) y lógica de salto.
 - **Archivos**: Usar API `Share` para exportar ICS y Backups de forma fiable en Android.
 - **Navegación**: Corregir botón "Atrás" en Plan de Vida.
@@ -334,9 +371,9 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
     - Se dividió `PRE_ROSARY_STEPS`.
     - Se añadieron clases `safe-area` en Selection View.
     - Se movieron botones de salto a la barra superior.
-    - Se implementó botón "Ir a Letanías".
-    - Se formatearon las Letanías (`whitespace-pre-wrap`).
-    - Se cambió lógica de Salve (botón explícito al final).
+    - Se implementó botón "Ir a Letaní­as".
+    - Se formatearon las Letaní­as (`whitespace-pre-wrap`).
+    - Se cambió lógica de Salve (botón explí­cito al final).
 - **ContentSettings**: Se implementó `Share.share()` para exportar archivos.
 - **Next Config**: Se configuró `withPWA` en `next.config.mjs`.
 
@@ -364,7 +401,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `src/components/settings/ContentSettings.tsx`
 - `android/app/src/main/AndroidManifest.xml`
 **Planificación:**
-- Aumentar el tamaño de los botones del menú lateral en la Consola de Desarrollo para facilitar su pulsación en dispositivos móviles, ya que actualmente son pequeños y difíciles de seleccionar.
+- Aumentar el tamaño de los botones del menú lateral en la Consola de Desarrollo para facilitar su pulsación en dispositivos móviles, ya que actualmente son pequeños y difí­ciles de seleccionar.
 
 **Ejecución:**
 - **NavButton Update**: Se aumentó el padding vertical (`py-2` -> `py-4`) y horizontal (`px-3` -> `px-4`) de los botones de navegación.
@@ -419,7 +456,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - Establecer la posición predeterminada de los controles de navegación en el centro inferior, respetando también el margen seguro inferior.
 
 **Ejecución:**
-- **Safe Areas**: Se reemplazaron las clases utilitarias `pt-safe-top`/`pb-safe-bottom` por valores explícitos `pt-[env(safe-area-inset-top)]` y `pb-[env(safe-area-inset-bottom)]` en `ViaCrucisImmersive.tsx` y `RosaryImmersive.tsx`.
+- **Safe Areas**: Se reemplazaron las clases utilitarias `pt-safe-top`/`pb-safe-bottom` por valores explí­citos `pt-[env(safe-area-inset-top)]` y `pb-[env(safe-area-inset-bottom)]` en `ViaCrucisImmersive.tsx` y `RosaryImmersive.tsx`.
 - **Nav Position**: Se actualizó la lógica CSS de posición por defecto de los controles de navegación para usar `env(safe-area-inset-bottom)` en lugar de variables CSS personalizadas, asegurando que aparezcan correctamente en el centro inferior sin ser cubiertos por la interfaz del sistema.
 
 **Archivos Modificados:**
@@ -428,13 +465,13 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 
 ### [2026-02-10 12:00] 26. Sincronización de Widgets Android
 **Planificación:**
-- El usuario reportó desincronización entre el "Santo del Día" en la app y los widgets de Android (color, imagen, zona de visión).
+- El usuario reportó desincronización entre el "Santo del Dí­a" en la app y los widgets de Android (color, imagen, zona de visión).
 - Se identificó que la lógica de los widgets reside en código nativo Java (`SaintWidgetContentFactory.java`).
-- Se requiere replicar la lógica de colores (verde para vírgenes) y selección de imagen (patrones marianos) en Java.
+- Se requiere replicar la lógica de colores (verde para ví­rgenes) y selección de imagen (patrones marianos) en Java.
 
 **Ejecución:**
-- **Color Sync**: Se actualizó `getLiturgicalColor` en `SaintWidgetContentFactory.java` para separar `virgin` de `marian` y asignar color verde (green) a las vírgenes no mártires.
-- **Image Sync**: Se replicó la lógica de detección de fiestas marianas (por nombre y tipo) y la lista de santos específicos en `pickSaintImageAssetPath`.
+- **Color Sync**: Se actualizó `getLiturgicalColor` en `SaintWidgetContentFactory.java` para separar `virgin` de `marian` y asignar color verde (green) a las ví­rgenes no mártires.
+- **Image Sync**: Se replicó la lógica de detección de fiestas marianas (por nombre y tipo) y la lista de santos especí­ficos en `pickSaintImageAssetPath`.
 - **Vision Zone**: Se verificó que `SaintWidgetUpdater.java` ya parsea `image-display.ts`, por lo que al alinear los IDs de imagen, la zona de visión se corrige automáticamente.
 
 **Archivos Modificados:**
@@ -442,12 +479,12 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 
 ### [2026-02-10 11:30] 25. Corrección Definitiva de Colores Litúrgicos
 **Planificación:**
-- El usuario reportó que Santa Escolástica (virgen) seguía apareciendo en celeste (azul) en lugar de verde.
-- Se revisó `getLiturgicalColor.ts` y se detectó que la lógica de "Memoria" podía estar interfiriendo o que la caché de la app no se actualizó.
-- Se reforzará la lógica para que `virgin` (no mariana, no mártir) sea explícitamente `green`.
+- El usuario reportó que Santa Escolástica (virgen) seguí­a apareciendo en celeste (azul) en lugar de verde.
+- Se revisó `getLiturgicalColor.ts` y se detectó que la lógica de "Memoria" podí­a estar interfiriendo o que la caché de la app no se actualizó.
+- Se reforzará la lógica para que `virgin` (no mariana, no mártir) sea explí­citamente `green`.
 
 **Ejecución:**
-- **Refactor**: Se añadió un bloque explícito para `virgin` que retorna `green`, asegurando que no caiga en el bloque de `default` o `blue` por error.
+- **Refactor**: Se añadió un bloque explí­cito para `virgin` que retorna `green`, asegurando que no caiga en el bloque de `default` o `blue` por error.
 - **Verificación**: Se comprobó que Santa Escolástica tiene `type: "virgin"` en `saints-data.json`, por lo que con el cambio, su color será verde.
 
 **Archivos Modificados:**
@@ -459,7 +496,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - Se aplicará validación de tipos antes de llamar a la función.
 
 **Ejecución:**
-- **Fix**: Se extrajo `rawContent` y se pasó a `getMeditationContent` solo si es string (o string vacío si no), asegurando compatibilidad de tipos.
+- **Fix**: Se extrajo `rawContent` y se pasó a `getMeditationContent` solo si es string (o string vací­o si no), asegurando compatibilidad de tipos.
 
 **Archivos Modificados:**
 - `src/components/ViaCrucisImmersive.tsx`
@@ -505,7 +542,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - La propiedad `content` de `Prayer` puede ser un objeto (mapa de strings), lo cual no es renderizable directamente por React.
 
 **Ejecución:**
-- **Fix**: Se añadió una comprobación `typeof content === 'string'` antes de renderizar. Si es un objeto, se renderiza string vacío (o se podría manejar de otra forma, pero por ahora asegura la compilación).
+- **Fix**: Se añadió una comprobación `typeof content === 'string'` antes de renderizar. Si es un objeto, se renderiza string vací­o (o se podrí­a manejar de otra forma, pero por ahora asegura la compilación).
 
 **Archivos Modificados:**
 - `src/components/ViaCrucisImmersive.tsx`
@@ -516,7 +553,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - Se verificó que TypeScript marca `id` como opcional en la interfaz `Prayer`.
 
 **Ejecución:**
-- **Fix**: Se añadió el operador `?.` (optional chaining) o comprobaciones explícitas de existencia (`p.id && ...`) antes de usar métodos de string como `startsWith`, `split` o `includes`.
+- **Fix**: Se añadió el operador `?.` (optional chaining) o comprobaciones explí­citas de existencia (`p.id && ...`) antes de usar métodos de string como `startsWith`, `split` o `includes`.
 
 **Archivos Modificados:**
 - `src/components/ViaCrucisImmersive.tsx`
@@ -557,7 +594,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 ### [2026-02-10 10:25] 15. Fix de Compilación (Tipos AppView)
 **Planificación:**
 - El usuario reportó error de compilación al asignar `'viaCrucis'` a `activeView` en `MainApp.tsx`.
-- El tipo `AppView` no incluía `'viaCrucis'` ni `'rosary'`, causando incompatibilidad de tipos en `setNavState`.
+- El tipo `AppView` no incluí­a `'viaCrucis'` ni `'rosary'`, causando incompatibilidad de tipos en `setNavState`.
 
 **Ejecución:**
 - **Type Fix**: Se actualizó la definición de `AppView` en `MainApp.tsx` para incluir `'viaCrucis' | 'rosary'`, alineándolo con el uso en el `switch` de renderizado y los manejadores de eventos.
@@ -565,17 +602,17 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 **Archivos Modificados:**
 - `src/components/main/MainApp.tsx`
 
-### [2026-02-10 10:15] 14. Corrección de Colores Litúrgicos (Vírgenes)
+### [2026-02-10 10:15] 14. Corrección de Colores Litúrgicos (Ví­rgenes)
 **Planificación:**
 - El usuario solicitó restringir el color celeste (`blue`) exclusivamente a fiestas marianas.
-- Las santas vírgenes (no marianas) deben usar verde (si no son mártires) o rojo (si son mártires).
+- Las santas ví­rgenes (no marianas) deben usar verde (si no son mártires) o rojo (si son mártires).
 - Se modificará la lógica de asignación de colores.
 
 **Ejecución:**
 - **Refactor `getLiturgicalColor`**:
     - Se separó la lógica de `marian` y `virgin`.
     - Se reforzó la detección de mártires buscando también en el `name` (para cubrir casos donde `type` sea solo `virgin` pero sea mártir).
-    - Se asignó `colors.green` a las vírgenes no mártires, según instrucción explícita.
+    - Se asignó `colors.green` a las ví­rgenes no mártires, según instrucción explí­cita.
 
 **Archivos Modificados:**
 - `src/lib/getLiturgicalColor.ts`
@@ -605,8 +642,8 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
     - Dividir Adoración inicial en 4 pasos.
     - Zona segura en selección de misterios.
     - Botones de salto en barra superior (evitar toques accidentales).
-    - Botón directo a Letanías.
-    - Título descriptivo en meditación.
+    - Botón directo a Letaní­as.
+    - Tí­tulo descriptivo en meditación.
     - Emoji de Salve (Corona) y lógica de salto.
 - **Archivos**: Usar API `Share` para exportar ICS y Backups de forma fiable en Android.
 - **Navegación**: Corregir botón "Atrás" en Plan de Vida.
@@ -620,9 +657,9 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
     - Se dividió `PRE_ROSARY_STEPS`.
     - Se añadieron clases `safe-area` en Selection View.
     - Se movieron botones de salto a la barra superior.
-    - Se implementó botón "Ir a Letanías".
-    - Se formatearon las Letanías (`whitespace-pre-wrap`).
-    - Se cambió lógica de Salve (botón explícito al final).
+    - Se implementó botón "Ir a Letaní­as".
+    - Se formatearon las Letaní­as (`whitespace-pre-wrap`).
+    - Se cambió lógica de Salve (botón explí­cito al final).
 - **ContentSettings**: Se implementó `Share.share()` para exportar archivos.
 - **Next Config**: Se configuró `withPWA` en `next.config.mjs`.
 
@@ -655,11 +692,11 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 
 ### [2026-02-09 17:40] 2. Configuración de Build APK y Scripts
 **Planificación:**
-- El usuario consultó sobre la ubicación del APK generado y pidió que se copiara a la raíz.
+- El usuario consultó sobre la ubicación del APK generado y pidió que se copiara a la raí­z.
 - Se detectó un problema con la ruta del SDK de Android.
 
 **Ejecución:**
-- **Script APK**: Se modificó `scripts/android-apk.mjs` para copiar el APK generado a la raíz del proyecto (`process.cwd()`).
+- **Script APK**: Se modificó `scripts/android-apk.mjs` para copiar el APK generado a la raí­z del proyecto (`process.cwd()`).
 - **Path Fix**: Se ajustó el script para usar `import.meta.url` y resolver rutas relativas de forma segura, evitando errores si se ejecuta desde otro directorio.
 - **Android Config**: Se actualizó `android/local.properties` con la ruta correcta del SDK: `C:\Users\balca\AppData\Local\Android\Sdk`.
 
@@ -717,3 +754,6 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `src/components/settings/DeveloperSettings.tsx`
 
 ---
+
+
+
