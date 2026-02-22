@@ -46,6 +46,7 @@ import { cartas } from './prayers/plan-de-vida/cartas';
 import { comunionEspiritual } from './prayers/oraciones/comunion-espiritual';
 import { comunionEspiritualAntes } from './prayers/oraciones/comunion-espiritual-antes';
 import { oracionPorLasVocaciones } from './prayers/oraciones/oracion-vocaciones';
+import { oracionporelPapa } from './prayers/oraciones/oracion-papa';
 import { oracionAlEspirituSanto } from './prayers/oraciones/oracion-espiritu-santo';
 import { oracionJuventudInquieta } from './prayers/oraciones/oracion-juventud-inquieta';
 import { queBienSeEstaContigo } from './prayers/oraciones/que-bien-se-esta-contigo';
@@ -121,6 +122,7 @@ export const initialPrayers: Prayer[] = [
   estructurales,
   comunionEspiritualAntes,
   comunionEspiritual,
+  oracionporelPapa,
   oracionPorLasVocaciones,
   oracionAlEspirituSanto,
   oracionJuventudInquieta,

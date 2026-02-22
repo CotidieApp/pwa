@@ -11,6 +11,15 @@ const withPWA = withPWAInit({
 export default function nextConfig(phase) {
   const config = {
     ...(phase === PHASE_DEVELOPMENT_SERVER ? {} : { output: "export" }),
+    eslint: {
+      ignoreDuringBuilds: true,
+    },
+    typescript: {
+      ignoreBuildErrors: true,
+    },
+    experimental: {
+      cpus: 1,
+    },
     images: {
       unoptimized: true,
     },

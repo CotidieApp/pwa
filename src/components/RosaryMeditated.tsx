@@ -202,7 +202,7 @@ export default function RosaryMeditated({ onClose, onSwitchToImmersive }: Medita
             ) : (
                 <div className="max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-300 pb-8">
                     {/* Meditation Detail */}
-                    <div className="w-full h-48 sm:h-64 rounded-xl bg-cover bg-center mb-6 shadow-md"
+                    <div className="w-full h-48 sm:h-64 rounded-xl bg-cover bg-top mb-6 shadow-md"
                          style={{ backgroundImage: `url(${getMysteryImage(selectedMysteryType, selectedMeditationIndex)})` }}
                     />
                     

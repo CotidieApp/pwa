@@ -65,43 +65,48 @@ export function getLiturgicalColor(
 
   let baseColor = colors.green;
 
+  const isFatimaSeers =
+    name.includes("jacinta") && name.includes("francisco") && name.includes("marto");
+
   // 1. Solemnidades y Fiestas del Señor (Blanco/Dorado)
-  if (title.includes("solemnidad") || name.includes("señor") || name.includes("cristo rey") || title.includes("fiesta del señor")) {
-    // Excepción: Viernes Santo (Pasión) es Rojo, aunque sea "del Señor"
-    if (name.includes("pasión") || name.includes("viernes santo") || name.includes("cruz")) {
-      baseColor = colors.red;
-    } else {
-      baseColor = colors.gold;
+  if (!isFatimaSeers) {
+    if (title.includes("solemnidad") || name.includes("señor") || name.includes("cristo rey") || title.includes("fiesta del señor")) {
+      // Excepción: Viernes Santo (Pasión) es Rojo, aunque sea "del Señor"
+      if (name.includes("pasión") || name.includes("viernes santo") || name.includes("cruz")) {
+        baseColor = colors.red;
+      } else {
+        baseColor = colors.gold;
+      }
+    } else if (
+      name.includes("viernes santo") || 
+      name.includes("pentecostés") || 
+      name.includes("espí­ritu santo") ||
+      name.includes("pasión") ||
+      type.includes("martyr") || type.includes("mártir") || name.includes("mártir") ||
+      type.includes("apostle") || type.includes("apóstol") ||
+      type.includes("evangelist") || type.includes("evangelista")
+    ) {
+      // Excepción: San Juan Evangelista es Blanco (no mártir) tradicionalmente, pero litúrgicamente se usa blanco.
+      // Si el dato dice "Apóstol y Evangelista", la regla general es Rojo, pero Juan es excepción.
+      baseColor = name.includes("juan") && name.includes("evangelista") ? colors.white : colors.red;
+    } else if (type.includes("marian") || name.includes("virgen") || name.includes("inmaculada") || name.includes("asunción") || name.includes("madre de dios")) {
+      baseColor = colors.blue; 
+    } else if (type.includes("virgin") || type.includes("virgen")) {
+      baseColor = colors.green;
+    } else if (
+      type.includes("confessor") || 
+      type.includes("doctor") || 
+      type.includes("pope") || type.includes("papa") || 
+      type.includes("bishop") || type.includes("obispo") ||
+      type.includes("religious") || type.includes("religioso") ||
+      type.includes("abbot") || type.includes("abad") ||
+      title.includes("fiesta") || title.includes("memoria")
+    ) {
+      baseColor = colors.white;
     }
-  } else if (
-    name.includes("viernes santo") || 
-    name.includes("pentecostés") || 
-    name.includes("espí­ritu santo") ||
-    name.includes("pasión") ||
-    type.includes("martyr") || type.includes("mártir") || name.includes("mártir") ||
-    type.includes("apostle") || type.includes("apóstol") ||
-    type.includes("evangelist") || type.includes("evangelista")
-  ) {
-    // Excepción: San Juan Evangelista es Blanco (no mártir) tradicionalmente, pero litúrgicamente se usa blanco.
-    // Si el dato dice "Apóstol y Evangelista", la regla general es Rojo, pero Juan es excepción.
-    baseColor = name.includes("juan") && name.includes("evangelista") ? colors.white : colors.red;
-  } else if (type.includes("marian") || name.includes("virgen") || name.includes("inmaculada") || name.includes("asunción") || name.includes("madre de dios")) {
-    baseColor = colors.blue; 
-  } else if (type.includes("virgin") || type.includes("virgen")) {
-    baseColor = colors.green;
-  } else if (
-    type.includes("confessor") || 
-    type.includes("doctor") || 
-    type.includes("pope") || type.includes("papa") || 
-    type.includes("bishop") || type.includes("obispo") ||
-    type.includes("religious") || type.includes("religioso") ||
-    type.includes("abbot") || type.includes("abad") ||
-    title.includes("fiesta") || title.includes("memoria")
-  ) {
-    baseColor = colors.white;
   }
 
-  const date = normalizeDate(dateInput);
+  const date = normalizeDate(dateInput ?? new Date());
   if (date && isPenitentialSeason(date)) {
     if (baseColor !== colors.red && baseColor !== colors.blue && baseColor !== colors.gold) {
       return colors.purple;
@@ -110,4 +115,3 @@ export function getLiturgicalColor(
 
   return baseColor;
 }
-

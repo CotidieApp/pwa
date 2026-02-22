@@ -4,6 +4,7 @@ import React, {
   createContext,
   useContext,
   useState,
+  useRef,
   ReactNode,
   useEffect,
   useCallback,
@@ -26,6 +27,7 @@ import { allowedDevCredentials } from '@/lib/dev-credentials';
 import saintsDataRaw from '@/lib/saints-data.json';
 import { getMovableFeast, getEasterDate } from '@/lib/movable-feasts';
 import { persistence } from '@/lib/persistence';
+import { fixedNotifications, type FixedNotificationEntry } from '@/lib/fixed-notifications';
 
 const saintsData = saintsDataRaw as { saints: SaintOfTheDay[] };
 
@@ -165,6 +167,7 @@ type Settings = {
   planDeVidaProgress: string[];
   togglePlanDeVidaItem: (id: string, force?: boolean) => void;
   resetPlanDeVidaProgress: () => void;
+  planDeVidaCalendar: Record<string, string[]>;
 
   isDistractionFree: boolean;
   toggleDistractionFree: () => void;
@@ -249,6 +252,7 @@ type Settings = {
 
 const SettingsContext = createContext<Settings | undefined>(undefined);
 const SAVED_STATE_KEY = 'cotidie_app_state';
+const PENDING_IMPORT_STORAGE_KEY = 'cotidie_pending_import';
 
 const defaultThemeColors: CustomThemeColors = {
   primary: { h: 36, s: 88 },
@@ -294,6 +298,7 @@ const defaultUserStats: UserStats = {
 
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
+  const lastProcessedPendingImportRef = useRef<string | null>(null);
 
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -329,6 +334,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   const [planDeVidaTrackerEnabled, setPlanDeVidaTrackerEnabled] = useState(true);
   const [planDeVidaProgress, setPlanDeVidaProgress] = useState<string[]>([]);
+  const [planDeVidaCalendar, setPlanDeVidaCalendar] = useState<Record<string, string[]>>({});
   const [lastResetTimestamp, setLastResetTimestamp] = useState(Date.now());
 
   const [isDistractionFree, setIsDistractionFree] = useState(false);
@@ -545,6 +551,11 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
           setPlanDeVidaTrackerEnabled(s.planDeVidaTrackerEnabled ?? true);
           setPlanDeVidaProgress(s.planDeVidaProgress ?? []);
+          const calendarRaw =
+            s.planDeVidaCalendar && typeof s.planDeVidaCalendar === 'object'
+              ? s.planDeVidaCalendar
+              : {};
+          setPlanDeVidaCalendar(calendarRaw);
           setLastResetTimestamp(s.lastResetTimestamp ?? Date.now());
 
           setUserQuotes(s.userQuotes ?? []);
@@ -700,6 +711,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       dailyReminders,
       planDeVidaTrackerEnabled,
       planDeVidaProgress,
+      planDeVidaCalendar,
       lastResetTimestamp,
       userQuotes,
       movableFeastsEnabled,
@@ -746,6 +758,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     dailyReminders,
     planDeVidaTrackerEnabled,
     planDeVidaProgress,
+    planDeVidaCalendar,
     lastResetTimestamp,
     userQuotes,
     movableFeastsEnabled,
@@ -1186,6 +1199,11 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
     setPlanDeVidaTrackerEnabled(data.planDeVidaTrackerEnabled ?? true);
     setPlanDeVidaProgress(Array.isArray(data.planDeVidaProgress) ? data.planDeVidaProgress : []);
+    setPlanDeVidaCalendar(
+      data.planDeVidaCalendar && typeof data.planDeVidaCalendar === 'object'
+        ? data.planDeVidaCalendar
+        : {}
+    );
     setLastResetTimestamp(typeof data.lastResetTimestamp === 'number' ? data.lastResetTimestamp : Date.now());
 
     setUserQuotes(Array.isArray(data.userQuotes) ? data.userQuotes : []);
@@ -1231,6 +1249,35 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     toast({ title: 'Datos importados.' });
   };
 
+  useEffect(() => {
+    if (!isLoaded || typeof window === 'undefined') return;
+
+    const consumePendingImport = () => {
+      try {
+        const raw = window.localStorage.getItem(PENDING_IMPORT_STORAGE_KEY);
+        if (!raw || raw === lastProcessedPendingImportRef.current) return;
+
+        lastProcessedPendingImportRef.current = raw;
+        window.localStorage.removeItem(PENDING_IMPORT_STORAGE_KEY);
+
+        const parsed = JSON.parse(raw);
+        importUserData(parsed);
+      } catch {
+        toast({
+          variant: 'destructive',
+          title: 'Error al importar',
+          description: 'El archivo compartido no es valido.',
+        });
+      }
+    };
+
+    consumePendingImport();
+    window.addEventListener('cotidie-pending-import', consumePendingImport);
+    return () => {
+      window.removeEventListener('cotidie-pending-import', consumePendingImport);
+    };
+  }, [isLoaded, importUserData, toast]);
+
   const setOverlayPosition = (key: keyof OverlayPositions, pos: OverlayPosition) => {
     setOverlayPositions((prev) => ({
       ...prev,
@@ -1275,11 +1322,35 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   }, [timerDuration]);
 
   const togglePlanDeVidaItem = (id: string, force?: boolean) => {
+     const now = simulatedDate ? new Date(simulatedDate) : new Date();
+     const yyyy = now.getFullYear();
+     const mm = String(now.getMonth() + 1).padStart(2, '0');
+     const dd = String(now.getDate()).padStart(2, '0');
+     const dateKey = `${yyyy}-${mm}-${dd}`;
+
      setPlanDeVidaProgress(prev => {
-        if (force !== undefined) {
-            return force ? [...prev, id] : prev.filter(p => p !== id);
+        const isChecked = prev.includes(id);
+        const nextChecked = force !== undefined ? force : !isChecked;
+
+        setPlanDeVidaCalendar(prevCalendar => {
+          const existing = Array.isArray(prevCalendar[dateKey]) ? prevCalendar[dateKey] : [];
+          if (nextChecked) {
+            if (existing.includes(id)) return prevCalendar;
+            return { ...prevCalendar, [dateKey]: [...existing, id] };
+          }
+          if (!existing.includes(id)) return prevCalendar;
+          const nextList = existing.filter((item) => item !== id);
+          if (nextList.length === 0) {
+            const { [dateKey]: _removed, ...rest } = prevCalendar;
+            return rest;
+          }
+          return { ...prevCalendar, [dateKey]: nextList };
+        });
+
+        if (nextChecked) {
+          return isChecked ? prev : [...prev, id];
         }
-        return prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id];
+        return prev.filter(p => p !== id);
      });
   };
 
@@ -1697,6 +1768,308 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     return `Recuerda rezar ${title}.`;
   }, [allPrayers, getPrayerById]);
 
+  const daysInMonth = (year: number, monthIndex: number) =>
+    new Date(year, monthIndex + 1, 0).getDate();
+
+  const addMonthsClamped = (date: Date, months: number) => {
+    const year = date.getFullYear();
+    const month = date.getMonth() + months;
+    const targetYear = year + Math.floor(month / 12);
+    const targetMonth = ((month % 12) + 12) % 12;
+    const maxDay = daysInMonth(targetYear, targetMonth);
+    const day = Math.min(date.getDate(), maxDay);
+    return new Date(
+      targetYear,
+      targetMonth,
+      day,
+      date.getHours(),
+      date.getMinutes(),
+      0,
+      0
+    );
+  };
+
+  const addYearsClamped = (date: Date, years: number) => {
+    const targetYear = date.getFullYear() + years;
+    const maxDay = daysInMonth(targetYear, date.getMonth());
+    const day = Math.min(date.getDate(), maxDay);
+    return new Date(
+      targetYear,
+      date.getMonth(),
+      day,
+      date.getHours(),
+      date.getMinutes(),
+      0,
+      0
+    );
+  };
+
+  const addDays = (date: Date, days: number) => {
+    const next = new Date(date);
+    next.setDate(next.getDate() + days);
+    return next;
+  };
+
+  type FixedDateKind = 'daily' | 'monthly' | 'yearly' | 'once' | 'relative-monthly';
+  type RelativeMonthlySpec = {
+    weekday: number;
+    ordinal: '1' | '2' | '3' | '4' | 'u';
+    hours: number;
+    minutes: number;
+  };
+  type ParsedFixedDate = { kind: FixedDateKind; date: Date; relative?: RelativeMonthlySpec };
+
+  const weekdayByLetter: Record<string, number> = {
+    d: 0,
+    l: 1,
+    m: 2,
+    w: 3,
+    j: 4,
+    v: 5,
+    s: 6,
+  };
+
+  const getNthWeekdayOfMonth = (year: number, monthIndex: number, weekday: number, nth: number) => {
+    const first = new Date(year, monthIndex, 1);
+    const firstDow = first.getDay();
+    const delta = (weekday - firstDow + 7) % 7;
+    const day = 1 + delta + (nth - 1) * 7;
+    return new Date(year, monthIndex, day);
+  };
+
+  const getLastWeekdayOfMonth = (year: number, monthIndex: number, weekday: number) => {
+    const lastDay = new Date(year, monthIndex + 1, 0);
+    const lastDow = lastDay.getDay();
+    const delta = (lastDow - weekday + 7) % 7;
+    const day = lastDay.getDate() - delta;
+    return new Date(year, monthIndex, day);
+  };
+
+  const buildRelativeMonthlyDate = (
+    year: number,
+    monthIndex: number,
+    spec: RelativeMonthlySpec
+  ) => {
+    const candidate =
+      spec.ordinal === 'u'
+        ? getLastWeekdayOfMonth(year, monthIndex, spec.weekday)
+        : getNthWeekdayOfMonth(year, monthIndex, spec.weekday, Number(spec.ordinal));
+    candidate.setHours(spec.hours, spec.minutes, 0, 0);
+    return candidate;
+  };
+
+  const parseFixedNotificationDate = (value: string, now: Date): ParsedFixedDate | null => {
+    const full = value.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})$/);
+    if (full) {
+      const [, dd, mm, yyyy, hh, min] = full;
+      const day = Number(dd);
+      const month = Number(mm);
+      const year = Number(yyyy);
+      const hours = Number(hh);
+      const minutes = Number(min);
+      if (![day, month, year, hours, minutes].every(Number.isFinite)) return null;
+      if (month < 1 || month > 12 || day < 1 || day > 31 || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
+      const maxDay = daysInMonth(year, month - 1);
+      if (day > maxDay) return null;
+      const date = new Date(year, month - 1, day, hours, minutes, 0, 0);
+      return Number.isNaN(date.getTime()) ? null : { kind: 'once', date };
+    }
+
+    const dayMonth = value.match(/^(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})$/);
+    if (dayMonth) {
+      const [, dd, mm, hh, min] = dayMonth;
+      const day = Number(dd);
+      const month = Number(mm);
+      const hours = Number(hh);
+      const minutes = Number(min);
+      if (![day, month, hours, minutes].every(Number.isFinite)) return null;
+      if (month < 1 || month > 12 || day < 1 || day > 31 || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
+      const year = now.getFullYear();
+      const maxDay = daysInMonth(year, month - 1);
+      const clampedDay = Math.min(day, maxDay);
+      const date = new Date(year, month - 1, clampedDay, hours, minutes, 0, 0);
+      return Number.isNaN(date.getTime()) ? null : { kind: 'yearly', date };
+    }
+
+    const dayOnly = value.match(/^(\d{2})\s+(\d{2}):(\d{2})$/);
+    if (dayOnly) {
+      const [, dd, hh, min] = dayOnly;
+      const day = Number(dd);
+      const hours = Number(hh);
+      const minutes = Number(min);
+      if (![day, hours, minutes].every(Number.isFinite)) return null;
+      if (day < 1 || day > 31 || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
+      const year = now.getFullYear();
+      const monthIndex = now.getMonth();
+      const maxDay = daysInMonth(year, monthIndex);
+      const clampedDay = Math.min(day, maxDay);
+      const date = new Date(year, monthIndex, clampedDay, hours, minutes, 0, 0);
+      return Number.isNaN(date.getTime()) ? null : { kind: 'monthly', date };
+    }
+
+    const relative = value.match(/^([lmwjvsd])([1234u])\s+(\d{2}):(\d{2})$/i);
+    if (relative) {
+      const [, letter, ordinal, hh, min] = relative;
+      const weekday = weekdayByLetter[String(letter).toLowerCase()];
+      const hours = Number(hh);
+      const minutes = Number(min);
+      if (typeof weekday !== 'number') return null;
+      if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
+      const spec: RelativeMonthlySpec = {
+        weekday,
+        ordinal: ordinal.toLowerCase() as RelativeMonthlySpec['ordinal'],
+        hours,
+        minutes,
+      };
+      const date = buildRelativeMonthlyDate(now.getFullYear(), now.getMonth(), spec);
+      return Number.isNaN(date.getTime())
+        ? null
+        : { kind: 'relative-monthly', date, relative: spec };
+    }
+
+    const timeOnly = value.match(/^(\d{2}):(\d{2})$/);
+    if (timeOnly) {
+      const [, hh, min] = timeOnly;
+      const hours = Number(hh);
+      const minutes = Number(min);
+      if (![hours, minutes].every(Number.isFinite)) return null;
+      if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
+      const date = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0, 0);
+      return Number.isNaN(date.getTime()) ? null : { kind: 'daily', date };
+    }
+
+    return null;
+  };
+
+  const addByKind = (date: Date, kind: FixedDateKind, relative?: RelativeMonthlySpec) => {
+    switch (kind) {
+      case 'daily':
+        return addDays(date, 1);
+      case 'monthly':
+        return addMonthsClamped(date, 1);
+      case 'yearly':
+        return addYearsClamped(date, 1);
+      case 'relative-monthly': {
+        if (!relative) return addMonthsClamped(date, 1);
+        const baseMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+        const nextMonth = addMonthsClamped(baseMonth, 1);
+        return buildRelativeMonthlyDate(nextMonth.getFullYear(), nextMonth.getMonth(), relative);
+      }
+      case 'once':
+      default:
+        return date;
+    }
+  };
+
+  const getNextOccurrence = (
+    base: Date,
+    kind: FixedDateKind,
+    now: Date,
+    relative?: RelativeMonthlySpec
+  ) => {
+    if (kind === 'relative-monthly' && relative) {
+      let next = buildRelativeMonthlyDate(now.getFullYear(), now.getMonth(), relative);
+      if (next.getTime() < now.getTime()) {
+        const nextMonth = addMonthsClamped(new Date(now.getFullYear(), now.getMonth(), 1), 1);
+        next = buildRelativeMonthlyDate(nextMonth.getFullYear(), nextMonth.getMonth(), relative);
+      }
+      return next;
+    }
+    let next = new Date(base);
+    if (kind === 'once') return next;
+    while (next.getTime() < now.getTime()) {
+      next = addByKind(next, kind);
+    }
+    return next;
+  };
+
+  const weekdayNames = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+  const weekdayShort = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+  const monthNames = [
+    'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+  ];
+  const monthShort = [
+    'ene', 'feb', 'mar', 'abr', 'may', 'jun',
+    'jul', 'ago', 'sep', 'oct', 'nov', 'dic'
+  ];
+
+  const formatTemplate = (template: string, date: Date) => {
+    const pad2 = (n: number) => String(n).padStart(2, '0');
+
+    const buildReplacements = (base: Date): Record<string, string> => {
+      const year = base.getFullYear();
+      const month = base.getMonth() + 1;
+      const day = base.getDate();
+      const hours = base.getHours();
+      const minutes = base.getMinutes();
+      const isoDate = `${year}-${pad2(month)}-${pad2(day)}`;
+      const dateEs = `${pad2(day)}/${pad2(month)}/${year}`;
+      const time = `${pad2(hours)}:${pad2(minutes)}`;
+      const isoDateTime = `${isoDate} ${time}`;
+
+      return {
+        year: String(year),
+        month: pad2(month),
+        day: pad2(day),
+        hour: pad2(hours),
+        minute: pad2(minutes),
+        weekday: weekdayNames[base.getDay()],
+        weekday_short: weekdayShort[base.getDay()],
+        month_name: monthNames[base.getMonth()],
+        month_short: monthShort[base.getMonth()],
+        date: dateEs,
+        date_iso: isoDate,
+        time,
+        datetime: `${dateEs} ${time}`,
+        datetime_iso: isoDateTime,
+      };
+    };
+
+    const applyOffset = (base: Date, key: string, offset: number) => {
+      if (!Number.isFinite(offset) || offset === 0) return new Date(base);
+      switch (key) {
+        case 'year':
+          return addYearsClamped(base, offset);
+        case 'month':
+        case 'month_name':
+        case 'month_short':
+          return addMonthsClamped(base, offset);
+        case 'day':
+        case 'date':
+        case 'date_iso':
+        case 'weekday':
+        case 'weekday_short':
+        case 'datetime':
+        case 'datetime_iso':
+          return addDays(base, offset);
+        case 'hour': {
+          const next = new Date(base);
+          next.setHours(next.getHours() + offset);
+          return next;
+        }
+        case 'minute': {
+          const next = new Date(base);
+          next.setMinutes(next.getMinutes() + offset);
+          return next;
+        }
+        default:
+          return new Date(base);
+      }
+    };
+
+    return template.replace(/\{([a-z_]+)([+-]\d+)?\}/gi, (match, key, delta) => {
+      const k = String(key).toLowerCase();
+      const offset = delta ? Number(delta) : 0;
+      if (k === 'year' && Number.isFinite(offset) && Math.abs(offset) >= 1000) {
+        return String(date.getFullYear() + offset);
+      }
+      const base = Number.isFinite(offset) && offset !== 0 ? applyOffset(date, k, offset) : date;
+      const replacements = buildReplacements(base);
+      return Object.prototype.hasOwnProperty.call(replacements, k) ? replacements[k] : match;
+    });
+  };
+
   const ensureAndroidNotificationChannel = useCallback(async () => {
     if (Capacitor.getPlatform() !== 'android') return;
     const channelId = 'cotidie-reminders';
@@ -1716,8 +2089,17 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     if (!Capacitor.isNativePlatform()) return;
 
     const active = notificationsEnabled ? dailyReminders.filter((r) => r.enabled) : [];
+    const fixedActive = notificationsEnabled ? fixedNotifications : [];
 
     const sync = async () => {
+      const now = new Date();
+      const platform = Capacitor.getPlatform();
+      const maxTotal = platform === 'ios' ? 60 : 180;
+      const totalSources = active.length + fixedActive.length;
+      const horizonDays = Math.min(30, Math.max(1, Math.floor(maxTotal / Math.max(1, totalSources))));
+      const horizonEnd = new Date(now);
+      horizonEnd.setDate(now.getDate() + horizonDays);
+
       const pending = await LocalNotifications.getPending().catch(() => null);
       const pendingIds =
         pending && Array.isArray((pending as any).notifications)
@@ -1727,7 +2109,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         await LocalNotifications.cancel({ notifications: pendingIds.map((id) => ({ id })) });
       }
 
-      if (!notificationsEnabled || active.length === 0) return;
+      if (!notificationsEnabled || (active.length === 0 && fixedActive.length === 0)) return;
 
       const currentPerms = await LocalNotifications.checkPermissions();
       const perms = currentPerms.display === 'granted'
@@ -1760,10 +2142,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
       const icon = theme === 'dark' ? 'small_icon_white' : 'small_icon_black';
 
-      const now = new Date();
-      const platform = Capacitor.getPlatform();
-      const maxTotal = platform === 'ios' ? 60 : 180;
-      const horizonDays = Math.min(30, Math.max(1, Math.floor(maxTotal / Math.max(1, active.length))));
       const pad2 = (n: number) => String(n).padStart(2, '0');
       const toDateKey = (d: Date) =>
         `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
@@ -1809,6 +2187,137 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
+      if (fixedActive.length > 0) {
+        fixedActive.forEach((entry: FixedNotificationEntry, index: number) => {
+          if (entry.devOnly && !isDeveloperMode) return;
+          const parsed = parseFixedNotificationDate(entry.date, now);
+          if (!parsed) {
+            console.warn('Invalid fixed notification date', entry);
+            return;
+          }
+          let next = getNextOccurrence(parsed.date, parsed.kind, now, parsed.relative);
+          while (next.getTime() <= horizonEnd.getTime()) {
+            const dateKey = toDateKey(next);
+            const id = toNotificationId(`fixed:${index}:${entry.date}:${dateKey}`);
+            let imagePath: string | null = null;
+            if (typeof entry.image === 'string') {
+              if (entry.image.startsWith('./')) {
+                imagePath = `/images/${entry.image.slice(2)}`;
+              } else {
+                console.warn('Invalid fixed notification image path (use ./...):', entry.image);
+              }
+            }
+            notifications.push({
+              id,
+              title: formatTemplate(entry.title, next),
+              body: formatTemplate(entry.text, next),
+              channelId: 'cotidie-reminders',
+              smallIcon: icon,
+              largeIcon: imagePath ?? icon,
+              attachments: imagePath ? [imagePath] : undefined,
+              schedule: {
+                at: next,
+                allowWhileIdle: true,
+              },
+              extra: {
+                fixed: true,
+                date: entry.date,
+                dateKey,
+                image: imagePath,
+                devOnly: entry.devOnly ?? false,
+                route: entry.route ?? null,
+              },
+            });
+            if (parsed.kind === 'once') break;
+            next = addByKind(next, parsed.kind, parsed.relative);
+          }
+        });
+      }
+
+      // Movable feasts notifications
+      const scheduleMovable = (year: number, offsetDays: number, title: string, body: string, key: string, hour = 9, minute = 0) => {
+        const easter = getEasterDate(year);
+        const base = addDays(easter, offsetDays);
+        const fireAt = new Date(
+          base.getFullYear(),
+          base.getMonth(),
+          base.getDate(),
+          hour,
+          minute,
+          0,
+          0
+        );
+        if (fireAt.getTime() < now.getTime() || fireAt.getTime() > horizonEnd.getTime()) return;
+        const dateKey = toDateKey(fireAt);
+        const id = toNotificationId(`fixed:${key}:${year}:${dateKey}`);
+        notifications.push({
+          id,
+          title: formatTemplate(title, fireAt),
+          body: formatTemplate(body, fireAt),
+          channelId: 'cotidie-reminders',
+          smallIcon: icon,
+          largeIcon: icon,
+          schedule: {
+            at: fireAt,
+            allowWhileIdle: true,
+          },
+          extra: {
+            fixed: true,
+            feast: key,
+            dateKey,
+          },
+        });
+      };
+
+      // Easter Sunday notification (movable feast)
+      const scheduleEaster = (year: number) => {
+        const easter = getEasterDate(year);
+        const fireAt = new Date(
+          easter.getFullYear(),
+          easter.getMonth(),
+          easter.getDate(),
+          12,
+          0,
+          0,
+          0
+        );
+        if (fireAt.getTime() < now.getTime() || fireAt.getTime() > horizonEnd.getTime()) return;
+        const dateKey = toDateKey(fireAt);
+        const id = toNotificationId(`fixed:easter:${year}:${dateKey}`);
+        notifications.push({
+          id,
+          title: formatTemplate('Domingo de Resurrección', fireAt),
+          body: formatTemplate('¡Cristo ha resucitado! Feliz Pascua.', fireAt),
+          channelId: 'cotidie-reminders',
+          smallIcon: icon,
+          largeIcon: icon,
+          schedule: {
+            at: fireAt,
+            allowWhileIdle: true,
+          },
+          extra: {
+            fixed: true,
+            feast: 'easter',
+            dateKey,
+          },
+        });
+      };
+
+      scheduleEaster(now.getFullYear());
+      scheduleEaster(now.getFullYear() + 1);
+      scheduleMovable(now.getFullYear(), 7, 'Domingo de la Divina Misericordia', 'Segundo Domingo de Pascua. Confia en la misericordia del Senor y acercate a su perdon.', 'divine-mercy', 9, 0);
+      scheduleMovable(now.getFullYear() + 1, 7, 'Domingo de la Divina Misericordia', 'Segundo Domingo de Pascua. Confia en la misericordia del Senor y acercate a su perdon.', 'divine-mercy', 9, 0);
+      scheduleMovable(now.getFullYear(), 39, 'Ascension del Senor', 'Solemnidad. Jesucristo sube al cielo y nos invita a elevar el corazon y la esperanza.', 'ascension', 9, 0);
+      scheduleMovable(now.getFullYear() + 1, 39, 'Ascension del Senor', 'Solemnidad. Jesucristo sube al cielo y nos invita a elevar el corazon y la esperanza.', 'ascension', 9, 0);
+      scheduleMovable(now.getFullYear(), 49, 'Pentecostes', 'Solemnidad. Invoca al Espiritu Santo y deja que renueve tu vida.', 'pentecost', 9, 0);
+      scheduleMovable(now.getFullYear() + 1, 49, 'Pentecostes', 'Solemnidad. Invoca al Espiritu Santo y deja que renueve tu vida.', 'pentecost', 9, 0);
+      scheduleMovable(now.getFullYear(), 56, 'Santisima Trinidad', 'Solemnidad. Alaba al Padre, al Hijo y al Espiritu Santo con fe y gratitud.', 'trinity', 9, 0);
+      scheduleMovable(now.getFullYear() + 1, 56, 'Santisima Trinidad', 'Solemnidad. Alaba al Padre, al Hijo y al Espiritu Santo con fe y gratitud.', 'trinity', 9, 0);
+      scheduleMovable(now.getFullYear(), 60, 'Corpus Christi', 'Solemnidad del Cuerpo y la Sangre de Cristo. Adora la Eucaristia y renueva tu amor por ella.', 'corpus-christi', 9, 0);
+      scheduleMovable(now.getFullYear() + 1, 60, 'Corpus Christi', 'Solemnidad del Cuerpo y la Sangre de Cristo. Adora la Eucaristia y renueva tu amor por ella.', 'corpus-christi', 9, 0);
+      scheduleMovable(now.getFullYear(), 68, 'Sagrado Corazon de Jesus', 'Solemnidad. Consagra tu corazon al Corazon de Jesus y confia en su amor.', 'sacred-heart', 9, 0);
+      scheduleMovable(now.getFullYear() + 1, 68, 'Sagrado Corazon de Jesus', 'Solemnidad. Consagra tu corazon al Corazon de Jesus y confia en su amor.', 'sacred-heart', 9, 0);
+
       try {
         await LocalNotifications.schedule({ notifications });
       } catch {
@@ -1832,6 +2341,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     getReminderTitle,
     buildDefaultReminderMessage,
     ensureAndroidNotificationChannel,
+    isDeveloperMode,
     theme,
   ]);
 
@@ -1983,60 +2493,67 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     const pad2 = (n: number) => String(n).padStart(2, '0');
     const dateKey = `${now.getFullYear()}-${pad2(currentMonth)}-${pad2(currentDay)}`;
 
-    if (lastSaintUpdate !== dateKey) {
-       // 1. Check Movable Feasts first (Ash Wednesday, Easter, etc.)
-       const easter = getEasterDate(now.getFullYear());
-       const movable = getMovableFeast(now, easter);
+    // 1. Check Movable Feasts first (Ash Wednesday, Easter, etc.)
+    const easter = getEasterDate(now.getFullYear());
+    const movable = getMovableFeast(now, easter);
 
-       // 2. Check Fixed Saints
-       const fixed = saintsData.saints.find(s => s.month === currentMonth && s.day === currentDay);
+    // 2. Check Fixed Saints
+    const fixed = saintsData.saints.find(s => s.month === currentMonth && s.day === currentDay);
 
-       // Priority logic based on user setting
-       // If enabled: Movable takes precedence (e.g. Ash Wednesday > San Simeón)
-       // If disabled: Fixed takes precedence (e.g. San Simeón > Ash Wednesday)
-       const effectiveSaint = movableFeastsEnabled 
-          ? (movable || fixed) 
-          : (fixed || movable);
+    // Priority logic based on user setting
+    // If enabled: Movable takes precedence (e.g. Ash Wednesday > San Simeón)
+    // If disabled: Fixed takes precedence (e.g. San Simeón > Ash Wednesday)
+    const effectiveSaint = movableFeastsEnabled 
+      ? (movable || fixed) 
+      : (fixed || movable);
 
-       setSaintOfTheDay(effectiveSaint || null);
-       setLastSaintUpdate(dateKey);
-       const dow = now.getDay(); // 0..6
-       const dayImageId = `saintoftheday-${dow}`;
-       const dayImage = PlaceHolderImages.find(img => img.id === dayImageId) || null;
+    const dow = now.getDay(); // 0..6
+    const dayImageId = `saintoftheday-${dow}`;
+    const dayImage = PlaceHolderImages.find(img => img.id === dayImageId) || null;
 
-       if (currentMonth === 12 && (currentDay === 24 || currentDay === 25)) {
-         const christmasImage = PlaceHolderImages.find((img) => img.id === 'christmas-image') || null;
-         setSaintOfTheDayImage(christmasImage || dayImage || null);
-         return;
-       }
+    let image = dayImage;
+    if (currentMonth === 12 && (currentDay === 24 || currentDay === 25)) {
+      const christmasImage = PlaceHolderImages.find((img) => img.id === 'christmas-image') || null;
+      image = christmasImage || dayImage;
+    } else {
+      const saintImageBySubstring: Array<{match: string; id: string}> = [
+        { match: 'Alberto Hurtado', id: 'sanalbertohurtado-image' },
+        { match: 'Francisco de Sales', id: 'sanfranciscodesales-image' },
+        { match: 'Agustín, obispo y doctor', id: 'sanagustindehipona-image' },
+        { match: 'Santo Tomás de Aquino', id: 'santotomasdeaquino-image' },
+        { match: 'Benjamín', id: 'sanbenjamin-image' },
+        { match: 'Natividad del Señor', id: 'nativity-image' },
+      ];
 
-       const saintImageBySubstring: Array<{match: string; id: string}> = [
-         { match: 'Alberto Hurtado', id: 'sanalbertohurtado-image' },
-         { match: 'Francisco de Sales', id: 'sanfranciscodesales-image' },
-         { match: 'Agustín, obispo y doctor', id: 'sanagustindehipona-image' },
-         { match: 'Santo Tomás de Aquino', id: 'santotomasdeaquino-image' },
-         { match: 'Benjamín', id: 'sanbenjamin-image' },
-         { match: 'Natividad del Señor', id: 'nativity-image' },
-       ];
+      const marianNamePattern =
+        /(Nuestra Señora|Virgen María|Inmaculada Concepción|Asunción de la Virgen|Presentación de la Virgen|Natividad de la Virgen|Visitación de la Virgen)/i;
+      const marianImage = PlaceHolderImages.find((img) => img.id === 'saintoftheday-6') || dayImage;
+      const isMarian = Boolean(
+        (effectiveSaint as any)?.type === 'marian' || (effectiveSaint?.name && marianNamePattern.test(effectiveSaint.name))
+      );
 
-       let image = dayImage;
-       const marianNamePattern =
-         /(Nuestra Señora|Virgen María|Inmaculada Concepción|Asunción de la Virgen|Presentación de la Virgen|Natividad de la Virgen|Visitación de la Virgen)/i;
-       const marianImage = PlaceHolderImages.find((img) => img.id === 'saintoftheday-6') || dayImage;
-       const isMarian = Boolean(
-         (effectiveSaint as any)?.type === 'marian' || (effectiveSaint?.name && marianNamePattern.test(effectiveSaint.name))
-       );
-
-       if (isMarian) {
-         image = marianImage;
-       } else if (effectiveSaint && effectiveSaint.name) {
-         const found = saintImageBySubstring.find(entry => effectiveSaint.name.includes(entry.match));
-         const mapped = found ? PlaceHolderImages.find(img => img.id === found.id) : null;
-         image = mapped || dayImage;
-       }
-       setSaintOfTheDayImage(image || null);
+      if (isMarian) {
+        image = marianImage;
+      } else if (effectiveSaint && effectiveSaint.name) {
+        const found = saintImageBySubstring.find(entry => effectiveSaint.name.includes(entry.match));
+        const mapped = found ? PlaceHolderImages.find(img => img.id === found.id) : null;
+        image = mapped || dayImage;
+      }
     }
-  }, [simulatedDate, lastSaintUpdate, movableFeastsEnabled]);
+
+    const sameSaint =
+      saintOfTheDay?.name === effectiveSaint?.name &&
+      saintOfTheDay?.type === (effectiveSaint as any)?.type;
+    const sameImage =
+      saintOfTheDayImage?.id === image?.id &&
+      saintOfTheDayImage?.imageUrl === image?.imageUrl;
+
+    if (lastSaintUpdate === dateKey && sameSaint && sameImage) return;
+
+    setSaintOfTheDay(effectiveSaint || null);
+    setSaintOfTheDayImage(image || null);
+    setLastSaintUpdate(dateKey);
+  }, [simulatedDate, lastSaintUpdate, movableFeastsEnabled, saintOfTheDay, saintOfTheDayImage]);
 
   return (
     <SettingsContext.Provider
@@ -2101,6 +2618,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         planDeVidaProgress,
         togglePlanDeVidaItem,
         resetPlanDeVidaProgress,
+        planDeVidaCalendar,
         isDistractionFree,
         toggleDistractionFree,
         userQuotes,

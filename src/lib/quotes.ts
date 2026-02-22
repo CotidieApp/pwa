@@ -100,6 +100,7 @@ export const catholicQuotes: Quote[] = [
   { text: "Que busques a Cristo: Que encuentres a Cristo: Que ames a Cristo.", author: "San Josemaría Escrivá" },
   { text: "El que no ama no ha conocido a Dios, porque Dios es amor.", author: "1 Juan 4, 8" },
   { text: "Nosotros amamos, porque él nos amó primero.", author: "1 Juan 4, 19" },
+  { text: "La felicidad del Cielo es para los que saben ser felices en la Tierra.", author: "San Josemaría Escrivá"},
   { text: "La fe, la esperanza y el amor; pero el mayor de ellos es el amor.", author: "1 Corintios 13, 13" },
   { text: "Por encima de todo, vestíos del amor, que es el vínculo perfecto.", author: "Colosenses 3, 14" },
   { text: "Nadie tiene mayor amor que este, que uno ponga su vida por sus amigos.", author: "Juan 15, 13" },

@@ -17,6 +17,7 @@ import HomePage from '../home/HomePage';
 import CustomPlanView from '../plans/CustomPlanView';
 import RosaryImmersive from '../RosaryImmersive';
 import RosaryMeditated from '../RosaryMeditated';
+import PlanDeVidaCalendar from '../plans/PlanDeVidaCalendar';
 import ViaCrucisImmersive from '../ViaCrucisImmersive';
 import SearchCamino from '@/components/SearchCamino';
 import { cn } from '@/lib/utils';
@@ -38,7 +39,19 @@ import { Card, CardContent } from '../ui/card';
 import { Button } from '@/components/ui/button';
 
 type AddFormMode = 'devotion' | 'entry' | 'letter' | 'predefined';
-type AppView = 'home' | 'category' | 'prayer' | 'settings' | 'addForm' | 'editForm' | 'customPlan' | 'developer' | 'viaCrucis' | 'rosary' | 'rosaryMeditated';
+type AppView =
+  | 'home'
+  | 'category'
+  | 'prayer'
+  | 'settings'
+  | 'addForm'
+  | 'editForm'
+  | 'customPlan'
+  | 'developer'
+  | 'viaCrucis'
+  | 'rosary'
+  | 'rosaryMeditated'
+  | 'planCalendar';
 
 interface NavigationState {
   activeView: AppView;
@@ -80,6 +93,64 @@ const initialState: NavigationState = {
   customPlanEditMode: false,
 };
 
+const NAV_STATE_STORAGE_KEY = 'cotidie_nav_state';
+const RESTORABLE_VIEWS = new Set<AppView>([
+  'home',
+  'category',
+  'prayer',
+  'settings',
+  'customPlan',
+  'viaCrucis',
+  'rosary',
+  'rosaryMeditated',
+  'planCalendar',
+]);
+
+const normalizeNavState = (raw: any): NavigationState => {
+  const activeView: AppView = RESTORABLE_VIEWS.has(raw?.activeView)
+    ? raw.activeView
+    : 'home';
+  const selectedCategoryId =
+    typeof raw?.selectedCategoryId === 'string' ? raw.selectedCategoryId : null;
+  const prayerPathIds = Array.isArray(raw?.prayerPathIds)
+    ? raw.prayerPathIds.filter((id: unknown) => typeof id === 'string')
+    : [];
+  const selectedCustomPlanSlot = [1, 2, 3, 4].includes(raw?.selectedCustomPlanSlot)
+    ? raw.selectedCustomPlanSlot
+    : null;
+  const customPlanPrayerSlot = [1, 2, 3, 4].includes(raw?.customPlanPrayerSlot)
+    ? raw.customPlanPrayerSlot
+    : null;
+  const customPlanPrayerIndex =
+    typeof raw?.customPlanPrayerIndex === 'number' && Number.isFinite(raw.customPlanPrayerIndex)
+      ? raw.customPlanPrayerIndex
+      : null;
+  const customPlanEditMode = Boolean(raw?.customPlanEditMode);
+
+  return {
+    activeView,
+    selectedCategoryId,
+    prayerPathIds,
+    editingPrayerId: null,
+    addFormMode: null,
+    selectedCustomPlanSlot,
+    customPlanPrayerSlot,
+    customPlanPrayerIndex,
+    customPlanEditMode,
+  };
+};
+
+const getInitialNavState = (): NavigationState => {
+  if (typeof window === 'undefined') return initialState;
+  try {
+    const raw = window.sessionStorage.getItem(NAV_STATE_STORAGE_KEY);
+    if (!raw) return initialState;
+    return normalizeNavState(JSON.parse(raw));
+  } catch {
+    return initialState;
+  }
+};
+
 const ORACION_DEL_DIA_ID = '__oracion_del_dia__';
 
 const resolveOracionDelDiaPrayerId = () => {
@@ -92,7 +163,7 @@ const resolveOracionDelDiaPrayerId = () => {
 };
 
 export default function MainApp() {
-  const [navState, setNavState] = useState<NavigationState>(initialState);
+  const [navState, setNavState] = useState<NavigationState>(() => getInitialNavState());
   const navStateRef = useRef(navState);
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [showWrapped, setShowWrapped] = useState(false);
@@ -174,6 +245,14 @@ export default function MainApp() {
 
   useEffect(() => {
     navStateRef.current = navState;
+  }, [navState]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const safeState = normalizeNavState(navState);
+      window.sessionStorage.setItem(NAV_STATE_STORAGE_KEY, JSON.stringify(safeState));
+    } catch {}
   }, [navState]);
 
   useEffect(() => {
@@ -268,7 +347,7 @@ export default function MainApp() {
   
   const handleBack = () => {
     if (navState.activeView === 'prayer' && navState.customPlanPrayerSlot !== null) {
-      window.history.replaceState(initialState, '');
+      window.history.replaceState(navStateRef.current ?? initialState, '');
       setNavState(initialState);
       return;
     }
@@ -568,6 +647,8 @@ export default function MainApp() {
           onClose={() => setNavState({ ...initialState, activeView: 'category', selectedCategoryId: 'plan-de-vida' })}
           onSwitchToImmersive={() => setNavState(prev => ({ ...prev, activeView: 'rosary' }))}
         />;
+      case 'planCalendar':
+        return <PlanDeVidaCalendar />;
       case 'category':
         return <div className="p-4">{renderCategory()}</div>;
       case 'customPlan': {
@@ -639,11 +720,61 @@ export default function MainApp() {
     });
   }, [allPrayers, getPrayerPathIds]);
 
+  const normalizeRouteSegment = (value: string) =>
+    value
+      .toLowerCase()
+      .replace(/[-_]/g, ' ')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
+
+  const findPrayerIdByTitle = useCallback((title: string, list: Prayer[]): string | null => {
+    const target = normalizeRouteSegment(title);
+    for (const prayer of list) {
+      const prayerTitle = normalizeRouteSegment(prayer.title || '');
+      if (prayerTitle === target) return prayer.id ?? null;
+      if (prayer.prayers && prayer.prayers.length > 0) {
+        const found = findPrayerIdByTitle(title, prayer.prayers);
+        if (found) return found;
+      }
+    }
+    return null;
+  }, []);
+
+  const handleRouteNavigation = useCallback((route: string) => {
+    const parts = route.split('/').map((p) => p.trim()).filter(Boolean);
+    if (parts.length === 0) return;
+
+    const root = normalizeRouteSegment(parts[0]);
+    if (root === 'inicio' || root === 'home') {
+      setNavState({ ...initialState, activeView: 'home' });
+      if (parts.length === 1) return;
+    }
+
+    if (parts.length >= 2) {
+      const categoryId = parts[1].toLowerCase();
+      setNavState({ ...initialState, activeView: 'category', selectedCategoryId: categoryId });
+
+      if (parts.length >= 3) {
+        const prayerTitle = parts[2];
+        const prayerId = findPrayerIdByTitle(prayerTitle, allPrayers);
+        if (prayerId) {
+          handleOpenPrayerById(prayerId);
+        }
+      }
+    }
+  }, [allPrayers, findPrayerIdByTitle, handleOpenPrayerById]);
+
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
 
     const sub = LocalNotifications.addListener('localNotificationActionPerformed', (action: ActionPerformed) => {
       const extra = action.notification.extra as any;
+      const route = typeof extra?.route === 'string' ? extra.route : null;
+      if (route) {
+        handleRouteNavigation(route);
+        return;
+      }
       const target = extra?.target as { type?: string; id?: string } | undefined;
       if (target?.type === 'prayer' && typeof target.id === 'string') {
         handleOpenPrayerById(target.id);
@@ -657,7 +788,7 @@ export default function MainApp() {
     return () => {
       sub.then((handle) => handle.remove()).catch(() => {});
     };
-  }, [handleOpenCategoryById, handleOpenPrayerById]);
+  }, [handleOpenCategoryById, handleOpenPrayerById, handleRouteNavigation]);
 
   const handleOpenCustomPlanPrayerAt = useCallback((slot: 1 | 2 | 3 | 4, index: number): boolean => {
     const plan = customPlans[slot - 1];
@@ -721,7 +852,10 @@ export default function MainApp() {
     navState.activeView === 'customPlan' && navState.selectedCustomPlanSlot
       ? customPlans[navState.selectedCustomPlanSlot - 1]?.name?.trim() || `Plan ${navState.selectedCustomPlanSlot}`
       : null;
-  const headerTitle = customPlanTitle || currentPrayer?.title || selectedCategory?.name || 'Cotidie';
+    const headerTitle =
+      navState.activeView === 'planCalendar'
+        ? 'Calendario'
+        : customPlanTitle || currentPrayer?.title || selectedCategory?.name || 'Cotidie';
   const customPlanValidIndices = useMemo(() => {
     if (!navState.customPlanPrayerSlot) return [];
     const plan = customPlans[navState.customPlanPrayerSlot - 1];
@@ -753,6 +887,17 @@ export default function MainApp() {
     currentPrayer?.isUserDefined === true;
   const canEditExamenDeConciencia =
     navState.activeView === 'prayer' && currentPrayer?.id === 'examen-conciencia';
+
+  const showPlanCalendarButton =
+    navState.activeView === 'category' && navState.selectedCategoryId === 'plan-de-vida';
+
+  const handleOpenPlanCalendar = () => {
+    setNavState({
+      ...initialState,
+      activeView: 'planCalendar',
+      selectedCategoryId: 'plan-de-vida',
+    });
+  };
   const currentPrayerEditMode: AddFormMode =
     currentPrayer?.categoryId === 'devociones'
       ? 'devotion'
@@ -847,6 +992,8 @@ export default function MainApp() {
             isDistractionFree={isDistractionFree}
             onToggleDistractionFree={toggleDistractionFree}
             showDistractionFreeButton
+            showCalendarButton={showPlanCalendarButton}
+            onOpenCalendar={showPlanCalendarButton ? handleOpenPlanCalendar : undefined}
             showEditButton={canEditCurrentPrayer || canEditExamenDeConciencia}
             onEdit={
               currentPrayerEditAction

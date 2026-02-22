@@ -89,11 +89,7 @@ export default function CustomPlanView({ slot, onOpenPrayerId, onOpenPlanPrayerA
   } = useSettings();
   const { toast } = useToast();
 
-  const arrowButtonClass = {
-    sm: "h-10 w-10",
-    md: "h-12 w-12",
-    lg: "h-14 w-14",
-  }[arrowBubbleSize];
+  const arrowButtonSize = arrowBubbleSize === 'sm' ? 'icon' : arrowBubbleSize === 'md' ? 'iconMd' : 'iconLg';
 
   const arrowIconClass = {
     sm: "size-4",
@@ -371,24 +367,22 @@ export default function CustomPlanView({ slot, onOpenPrayerId, onOpenPlanPrayerA
 
                   {canEdit && (
                     <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={arrowButtonClass}
-                        disabled={index === 0}
-                        onClick={() => moveCustomPlanPrayer(slot, index, index - 1)}
-                      >
-                        <ArrowUp className={arrowIconClass} />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={arrowButtonClass}
-                        disabled={index === plan.prayerIds.length - 1}
-                        onClick={() => moveCustomPlanPrayer(slot, index, index + 1)}
-                      >
-                        <ArrowDown className={arrowIconClass} />
-                      </Button>
+      <Button
+        variant="ghost"
+        size={arrowButtonSize}
+        disabled={index === 0}
+        onClick={() => moveCustomPlanPrayer(slot, index, index - 1)}
+      >
+        <ArrowUp className={arrowIconClass} />
+      </Button>
+      <Button
+        variant="ghost"
+        size={arrowButtonSize}
+        disabled={index === plan.prayerIds.length - 1}
+        onClick={() => moveCustomPlanPrayer(slot, index, index + 1)}
+      >
+        <ArrowDown className={arrowIconClass} />
+      </Button>
                       <Button
                         variant="ghost"
                         size="icon"

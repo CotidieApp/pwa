@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
-import { ArrowLeft, ChevronLeft, ChevronRight, RotateCcw, Expand, Minimize, Search, Pencil } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, RotateCcw, Expand, Minimize, Search, Pencil, Calendar } from 'lucide-react';
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
 import { useSettings } from '@/context/SettingsContext';
@@ -28,6 +28,8 @@ type HeaderProps = {
   nextDisabled?: boolean;
   showResetButton?: boolean;
   onReset?: () => void;
+  showCalendarButton?: boolean;
+  onOpenCalendar?: () => void;
   showDistractionFreeButton?: boolean;
   isDistractionFree?: boolean;
   onToggleDistractionFree?: () => void;
@@ -65,6 +67,8 @@ export default function Header({
   nextDisabled = false,
   showResetButton = false,
   onReset,
+  showCalendarButton = false,
+  onOpenCalendar,
   showDistractionFreeButton = false,
   isDistractionFree = false,
   onToggleDistractionFree,
@@ -280,12 +284,12 @@ export default function Header({
           </div>
         </div>
 
-        <div className="w-auto flex items-center justify-end gap-1 z-10">
-          {showSearchButton && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-primary-foreground"
+          <div className="w-auto flex items-center justify-end gap-1 z-10">
+            {showSearchButton && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-primary-foreground"
               onClick={onToggleSearch}
               title="Buscar en este texto"
             >
@@ -293,24 +297,36 @@ export default function Header({
             </Button>
           )}
 
-          {showEditButton && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-primary-foreground"
-              onClick={onEdit}
-              disabled={editDisabled}
-              title="Editar"
-            >
-              <Pencil />
-            </Button>
-          )}
+            {showEditButton && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-primary-foreground"
+                onClick={onEdit}
+                disabled={editDisabled}
+                title="Editar"
+              >
+                <Pencil />
+              </Button>
+            )}
 
-          {showDistractionFreeButton && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-primary-foreground"
+            {showCalendarButton && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-primary-foreground"
+                onClick={onOpenCalendar}
+                title="Calendario"
+              >
+                <Calendar />
+              </Button>
+            )}
+
+            {showDistractionFreeButton && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-primary-foreground"
               onClick={onToggleDistractionFree}
               title={
                 isDistractionFree

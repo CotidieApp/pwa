@@ -1,7 +1,7 @@
 "use client";
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import HomePage from '@/components/home/HomePage';
+import { Button } from '@/components/ui/button';
 
 interface Props {
   children: ReactNode;
@@ -37,28 +37,22 @@ class ErrorBoundary extends Component<Props, State> {
 
 // A functional component to use hooks inside the class component's render
 function FallbackUI() {
-    const handleSelectCategory = (category: any) => {
-        // A simple reset mechanism: reload the page to the specific category if possible, or just reload.
-        // This is a basic fallback, could be improved.
-        if (category.id === 'ajustes') {
-            window.location.href = '/?view=settings';
-        } else {
-             window.location.href = '/';
-        }
-    };
-    
-    // This is a simplified HomePage that doesn't rely on MainApp's navigation state
-    return (
-        <HomePage
-          onSelectCategory={handleSelectCategory}
-          onOpenCustomPlan={() => {
-            window.location.href = '/';
-          }}
-          onCreateCustomPlan={() => {
-            window.location.href = '/';
-          }}
-        />
-    );
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6 text-center">
+      <h1 className="text-xl font-semibold">OcurriÃ³ un error inesperado</h1>
+      <p className="text-sm text-muted-foreground max-w-sm">
+        La app no se reiniciarÃ¡ sin tu permiso. Puedes volver al inicio o recargar.
+      </p>
+      <div className="flex gap-2">
+        <Button variant="outline" onClick={() => (window.location.href = '/')}>
+          Ir al inicio
+        </Button>
+        <Button onClick={() => window.location.reload()}>
+          Recargar
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 

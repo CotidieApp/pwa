@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, X, Plus, Trash2, Settings2, Image as ImageIcon, Calendar, Pencil, BookOpen, Crown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Plus, Trash2, Settings2, Image as ImageIcon, Calendar, Pencil, BookOpen, Crown, Cross, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useSettings } from '@/context/SettingsContext';
@@ -24,7 +24,7 @@ const PRAYERS_TEXT = {
   padre_nuestro: `Padre nuestro, que estás en el cielo, santificado sea tu Nombre; venga a nosotros tu reino; hágase tu voluntad en la tierra como en el cielo. Danos hoy nuestro pan de cada día; perdona nuestras ofensas, como también nosotros perdonamos a los que nos ofenden; no nos dejes caer en la tentación, y líbranos del mal. Amén.`,
   ave_maria: `Dios te salve, María, llena eres de gracia; el Señor es contigo; bendita Tú eres entre todas las mujeres, y bendito es el fruto de tu vientre, Jesús. Santa María, Madre de Dios, ruega por nosotros, pecadores, ahora y en la hora de nuestra muerte. Amén.`,
   gloria: `Gloria al Padre, y al Hijo, y al Espíritu Santo. Como era en el principio, ahora y siempre, por los siglos de los siglos. Amén.`,
-  jaculatoria: `Â¡Oh Jesús mío! Perdona nuestros pecados, líbranos del fuego del infierno, lleva al cielo a todas las almas, especialmente a las más necesitadas de tu misericordia.`,
+  jaculatoria: `¡Oh Jesús mío! Perdona nuestros pecados, líbranos del fuego del infierno, lleva al cielo a todas las almas, especialmente a las más necesitadas de tu misericordia.`,
   start: `Ofrecemos este misterio por...`,
 };
 
@@ -61,10 +61,9 @@ ${PRAYERS_TEXT.ave_maria}
 
 ${PRAYERS_TEXT.gloria}`;
 
-const COMUNION_ESPIRITUAL_TEXT = `*Comunión espiritual*
-Yo quisiera, Señor, recibiros con aquella pureza, humildad y devoción con que os recibió vuestra Santísima Madre, con el espíritu y fervor de los santos.`;
+const COMUNION_ESPIRITUAL_TEXT = `Yo quisiera, Señor, recibiros con aquella pureza, humildad y devoción con que os recibió vuestra Santísima Madre, con el espíritu y fervor de los santos.`;
 
-const SENAL_DE_LA_CRUZ_TEXT = `Por la señal de la Santa Cruz, de nuestros enemigos, líbranos, Señor, Dios nuestro. En el nombre del Padre, y del Hijo, y del Espíritu Santo. Amén.`;
+const SENAL_DE_LA_CRUZ_TEXT = `Por la señal † de la Santa Cruz, de nuestros † enemigos, líbranos, Señor, † Dios nuestro. En el nombre del Padre, y del Hijo, † y del Espíritu Santo. Amén.`;
 
 const ACTO_CONTRICION_TEXT = `Señor mío Jesucristo, Dios y hombre verdadero, Creador, Padre y Redentor mío; por ser Tú quien eres, bondad infinita, y porque te amo sobre todas las cosas, me pesa de todo corazón haberte ofendido. También me pesa porque puedes castigarme con las penas del infierno. Ayudado de tu divina gracia, propongo firmemente nunca más pecar, confesarme y cumplir la penitencia que me fuere impuesta. Amén.`;
 
@@ -73,10 +72,10 @@ const SALVE_TEXT = `Dios te salve, Reina y Madre de misericordia, vida, dulzura 
 const INVOCACIONES_INICIALES_TEXT = `**V.** Abre, Señor, mis labios.
 **R.** Y mi boca proclamará tu alabanza.
 
-**V.** Dios mí­o, ven en mi auxilio.
+**V.** Dios mío, ven en mi auxilio.
 **R.** Señor, date prisa en socorrerme.
 
-Gloria al Padre, y al Hijo, y al Espí­ritu Santo.
+Gloria al Padre, y al Hijo, y al Espíritu Santo.
 Como era en el principio, ahora y siempre,
 por los siglos de los siglos. Amén.`;
 
@@ -89,6 +88,100 @@ const PRE_ROSARY_STEPS = [
   { type: 'acto_contricion', label: 'Acto de contrición', content: ACTO_CONTRICION_TEXT },
   { type: 'invocaciones', label: 'Invocaciones', content: INVOCACIONES_INICIALES_TEXT },
 ];
+
+const renderRosaryText = (text: string) => {
+  const lines = text.split('\n');
+  return (
+    <div className="text-center space-y-1">
+      {lines.map((line, i) => {
+        if (line.trim().length === 0) {
+          return <div key={`blank-${i}`} className="h-3" />;
+        }
+        const parts = line.split(/(\*\*.*?\*\*|\*.*?\*|_.*?_)/g);
+        return (
+          <div key={`line-${i}`} className="min-h-[1.2rem]">
+            {parts.map((part, j) => {
+              if (part.startsWith('**') && part.endsWith('**')) {
+                return (
+                  <span key={`bold-${i}-${j}`} className="font-bold text-foreground">
+                    {part.slice(2, -2)}
+                  </span>
+                );
+              }
+              if (part.startsWith('*') && part.endsWith('*')) {
+                return (
+                  <span key={`soft-${i}-${j}`} className="font-semibold text-muted-foreground">
+                    {part.slice(1, -1)}
+                  </span>
+                );
+              }
+              if (part.startsWith('_') && part.endsWith('_')) {
+                return (
+                  <span key={`italic-${i}-${j}`} className="italic">
+                    {part.slice(1, -1)}
+                  </span>
+                );
+              }
+              return <span key={`text-${i}-${j}`}>{part}</span>;
+            })}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+const renderCenterIcon = (
+  isPreRosaryActive: boolean,
+  isPostRosaryActive: boolean,
+  currentPreStep: { type: string } | undefined,
+  currentPostStep: { type: string } | undefined,
+  currentStep: { type: string; index?: number } | undefined
+) => {
+  if (isPreRosaryActive) {
+    switch (currentPreStep?.type) {
+      case 'adoracion':
+        return <Crown className="h-20 w-20" />;
+      case 'senal_cruz':
+        return <Cross className="h-20 w-20" />;
+      case 'invocaciones':
+        return <Sparkles className="h-20 w-20" />;
+      case 'comunion':
+      case 'acto_contricion':
+      default:
+        return <Crown className="h-20 w-20" />;
+    }
+  }
+
+  if (isPostRosaryActive) {
+    switch (currentPostStep?.type) {
+      case 'letanias':
+        return <BookOpen className="h-20 w-20" />;
+      case 'salve':
+        return <Crown className="h-20 w-20" />;
+      case 'jaculatorias':
+      default:
+        return <Sparkles className="h-20 w-20" />;
+    }
+  }
+
+  switch (currentStep?.type) {
+    case 'ave_maria':
+      return <span>{`#${currentStep.index ?? ''}`}</span>;
+    case 'gloria':
+      return <span>†</span>;
+    case 'intro':
+      return <Crown className="h-20 w-20" />;
+    case 'reading':
+      return <BookOpen className="h-20 w-20" />;
+    case 'jaculatoria':
+      return <Sparkles className="h-20 w-20" />;
+    case 'padre_nuestro':
+      return <Cross className="h-20 w-20" />;
+    default:
+      return <span />;
+  }
+};
 
 type MysteryType = 'gozosos' | 'luminosos' | 'dolorosos' | 'gloriosos';
 
@@ -679,6 +772,17 @@ export default function RosaryImmersive({
   // --- MEDITATION MENU OVERLAY ---
   // (Removed - moved to RosaryMeditated.tsx)
 
+  const startMystery = (type: MysteryType) => {
+    setSelectedMysteryType(type);
+    setMode('prayer');
+    setIsPreRosary(true);
+    setPreStepIndex(0);
+    setIsPostRosary(false);
+    setPostStepIndex(0);
+    setCurrentMysteryIndex(0);
+    setCurrentStepIndex(0);
+  };
+
   // --- SELECTION VIEW ---
   if (mode === 'selection') {
     return (
@@ -706,7 +810,7 @@ export default function RosaryImmersive({
                 variant="outline" 
                 size="sm" 
                 className="gap-2"
-                onClick={() => setSelectedMysteryType(getMysteryByDay())}
+                onClick={() => startMystery(getMysteryByDay())}
             >
                 <Calendar className="size-4" />
                 Día: {MYSTERY_NAMES[getMysteryByDay()].replace('Misterios ', '')}
@@ -724,16 +828,7 @@ export default function RosaryImmersive({
                             "h-24 text-lg font-serif flex flex-col gap-1",
                             selectedMysteryType === type && "ring-2 ring-offset-2"
                         )}
-                        onClick={() => {
-                            setSelectedMysteryType(type);
-                            setMode('prayer');
-                            setIsPreRosary(true);
-                            setPreStepIndex(0);
-                            setIsPostRosary(false);
-                            setPostStepIndex(0);
-                            setCurrentMysteryIndex(0);
-                            setCurrentStepIndex(0);
-                        }}
+                        onClick={() => startMystery(type)}
                     >
                         <span>{MYSTERY_NAMES[type]}</span>
                     </Button>
@@ -768,9 +863,9 @@ export default function RosaryImmersive({
                 <motion.div 
                     className="absolute inset-0 z-0 bg-cover"
                     initial={false}
-                    animate={{
-                        backgroundPosition: `${mysteryProgress}% center`
-                    }}
+                      animate={{
+                          backgroundPosition: `${mysteryProgress}% top`
+                      }}
                     transition={{
                         duration: 1.5,
                         ease: "easeInOut"
@@ -1008,35 +1103,19 @@ export default function RosaryImmersive({
                         </div>
                     )}
                     {/* Big Center Element */}
-                    <div className={cn(
+                    <div
+                      className={cn(
                         "text-8xl sm:text-9xl font-black mb-8 select-none transition-colors duration-500",
-                        currentStep?.type === 'ave_maria' ? "text-primary" : "text-foreground/20"
-                    )}>
-                        {isPreRosaryActive
-                          ? currentPreStep?.type === 'adoracion'
-                            ? 'ðŸ•¯ï¸'
-                            : currentPreStep?.type === 'senal_cruz'
-                            ? 'âœï¸'
-                            : 'ðŸ™'
-                          : isPostRosaryActive
-                          ? currentPostStep?.type === 'letanias'
-                            ? 'ðŸ“œ'
-                            : currentPostStep?.type === 'salve'
-                            ? 'ðŸ‘‘'
-                            : 'ðŸ•Šï¸'
-                          : currentStep?.type === 'ave_maria'
-                          ? `#${currentStep.index}`
-                          : currentStep?.type === 'gloria'
-                          ? 'â€ '
-                          : currentStep?.type === 'intro'
-                          ? 'ðŸ™'
-                          : currentStep?.type === 'reading'
-                          ? 'ðŸ“–'
-                          : currentStep?.type === 'jaculatoria'
-                          ? 'ðŸ•Šï¸'
-                          : currentStep?.type === 'padre_nuestro'
-                          ? 'âœï¸'
-                          : ''}
+                        currentStep?.type === 'ave_maria' ? "text-primary" : "text-foreground/60"
+                      )}
+                    >
+                      {renderCenterIcon(
+                        isPreRosaryActive,
+                        isPostRosaryActive,
+                        currentPreStep ?? undefined,
+                        currentPostStep ?? undefined,
+                        currentStep ?? undefined
+                      )}
                     </div>
 
                     {/* Prayer Text (Below Center) */}
@@ -1050,7 +1129,7 @@ export default function RosaryImmersive({
                     
                     <div className="text-lg sm:text-xl opacity-90 leading-relaxed max-h-[35vh] overflow-y-auto px-4 scrollbar-hide w-full">
                         {isPreRosaryActive
-                          ? <div className="whitespace-pre-wrap">{currentPreStep?.content}</div>
+                          ? <div>{renderRosaryText(currentPreStep?.content ?? '')}</div>
                           : isPostRosaryActive
                           ? currentPostStep?.type === 'letanias' 
                             ? (
@@ -1162,5 +1241,3 @@ export default function RosaryImmersive({
     </div>
   );
 }
-
-

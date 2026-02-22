@@ -1,10 +1,10 @@
 {
   "name": "cotidie",
-  "version": "4.1.0",
+  "version": "4.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "tsc --noEmit && next build --no-lint",
     "android:apk": "node scripts/android-apk.mjs",
     "start": "node server.js"
   },

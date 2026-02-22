@@ -112,9 +112,9 @@
     },
     {
       "id": "saintoftheday-5",
-      "description": "Crucifixión para el Viernes",
-      "imageUrl": "/images/crucifixion.jpeg",
-      "imageHint": "crucifixion"
+      "description": "Cruz a cuestas para el Viernes",
+      "imageUrl": "/images/rosario/crucifixion.jpeg",
+      "imageHint": "cross carrying"
     },
     {
       "id": "saintoftheday-6",
