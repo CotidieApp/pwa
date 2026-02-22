@@ -158,6 +158,8 @@ type Settings = {
   addDailyReminder: () => void;
   updateDailyReminder: (id: string, patch: Partial<Omit<DailyReminder, 'id' | 'createdAt'>>) => void;
   removeDailyReminder: (id: string) => void;
+  devTestNotificationEnabled: boolean;
+  setDevTestNotificationEnabled: (enabled: boolean) => void;
 
   simulatedDate: string | null;
   setSimulatedDate: (date: string | null) => void;
@@ -378,6 +380,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   const [notificationsEnabled, setNotificationsEnabledState] = useState(true);
   const [dailyReminders, setDailyReminders] = useState<DailyReminder[]>([]);
+  const [devTestNotificationEnabled, setDevTestNotificationEnabledState] = useState(false);
   const [userStats, setUserStats] = useState<UserStats>(defaultUserStats);
   const [globalUserStats, setGlobalUserStats] = useState<UserStats>(defaultUserStats);
   const [statsYear, setStatsYear] = useState<number>(new Date().getFullYear());
@@ -603,6 +606,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
           setNotificationsEnabledState(s.notificationsEnabled ?? true);
           setDailyReminders(normalizeDailyReminders(s.dailyReminders));
+          setDevTestNotificationEnabledState(Boolean(s.devTestNotificationEnabled));
           
           const currentYear = new Date().getFullYear();
           const savedStatsYear = typeof s.statsYear === 'number' ? s.statsYear : currentYear;
@@ -709,6 +713,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       overlayPositions,
       notificationsEnabled,
       dailyReminders,
+      devTestNotificationEnabled,
       planDeVidaTrackerEnabled,
       planDeVidaProgress,
       planDeVidaCalendar,
@@ -756,6 +761,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     overlayPositions,
     notificationsEnabled,
     dailyReminders,
+    devTestNotificationEnabled,
     planDeVidaTrackerEnabled,
     planDeVidaProgress,
     planDeVidaCalendar,
@@ -903,6 +909,15 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       })();
     }
     toast({ title: enabled ? 'Notificaciones activadas.' : 'Notificaciones desactivadas.' });
+  };
+
+  const setDevTestNotificationEnabled = (enabled: boolean) => {
+    setDevTestNotificationEnabledState(enabled);
+    toast({
+      title: enabled
+        ? 'Notificacion de prueba activada (cada 5 minutos).'
+        : 'Notificacion de prueba desactivada.',
+    });
   };
 
   const addDailyReminder = () => {
@@ -1117,6 +1132,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const logoutDeveloper = () => {
     setIsDeveloperMode(false);
     setIsEditModeEnabled(false);
+    setDevTestNotificationEnabledState(false);
   };
 
   const removePredefinedPrayer = (id: string) => {
@@ -2234,6 +2250,31 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         });
       }
 
+      if (devTestNotificationEnabled && isDeveloperMode) {
+        // 12 recurring notifications per hour -> every 5 minutes (:00, :05, ... :55).
+        for (let minute = 0; minute < 60; minute += 5) {
+          const id = toNotificationId(`dev:test:5m:${minute}`);
+          notifications.push({
+            id,
+            title: 'Notificacion de prueba (Dev)',
+            body: 'Recordatorio automatico cada 5 minutos.',
+            channelId: 'cotidie-reminders',
+            smallIcon: icon,
+            largeIcon: '/icons/icon.png',
+            attachments: ['/icons/icon.png'],
+            schedule: {
+              on: { minute },
+              allowWhileIdle: true,
+            },
+            extra: {
+              devTest: true,
+              everyMinutes: 5,
+              minute,
+            },
+          });
+        }
+      }
+
       // Movable feasts notifications
       const scheduleMovable = (year: number, offsetDays: number, title: string, body: string, key: string, hour = 9, minute = 0) => {
         const easter = getEasterDate(year);
@@ -2338,6 +2379,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     isLoaded,
     notificationsEnabled,
     dailyReminders,
+    devTestNotificationEnabled,
     getReminderTitle,
     buildDefaultReminderMessage,
     ensureAndroidNotificationChannel,
@@ -2611,6 +2653,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         addDailyReminder,
         updateDailyReminder,
         removeDailyReminder,
+        devTestNotificationEnabled,
+        setDevTestNotificationEnabled,
         simulatedDate,
         setSimulatedDate,
         planDeVidaTrackerEnabled,

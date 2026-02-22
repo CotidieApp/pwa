@@ -2,6 +2,41 @@
 
 Este archivo documenta todas las intervenciones realizadas por el asistente (Trae AI), detallando planes, ejecuciones y archivos modificados para mantener un historial claro de cambios y facilitar la depuración.
 
+### [2026-02-22 00:08] 62. Imagen en notificación de prueba (dev)
+**Planificación:**
+- Añadir una imagen visible en la notificación de prueba de 5 minutos para validar render de banner/icono.
+- Usar el ícono principal con fondo (`/icons/icon.png`).
+- Mantener el cambio acotado solo al bloque de notificación test.
+**Ejecución:**
+- **Notificación test**: Se configuró imagen explícita en el payload:
+  - `largeIcon: '/icons/icon.png'`
+  - `attachments: ['/icons/icon.png']`
+- **Alcance**: Solo en el bloque `devTestNotificationEnabled` del scheduler.
+- **Validación**: `tsc --noEmit` sin errores.
+
+**Archivos Modificados:**
+- `src/context/SettingsContext.tsx`
+
+### [2026-02-22 00:02] 61. Notificacion de prueba cada 5 minutos (solo desarrollador)
+**Planificación:**
+- Agregar un flag persistente en `SettingsContext` para activar/desactivar una notificacion de prueba.
+- Exponer ese flag en la API del contexto y en la UI de `DeveloperDashboard`.
+- Programar notificaciones cada 5 minutos usando `LocalNotifications` sin afectar los recordatorios del usuario.
+- Limitarla a modo desarrollador y mantenerla desactivable desde el panel.
+**Ejecución:**
+- **Contexto/Ajustes**: Se añadió `devTestNotificationEnabled` y `setDevTestNotificationEnabled` en `SettingsContext` con persistencia en estado guardado.
+- **Seguridad de modo**: Al cerrar sesión de desarrollador (`logoutDeveloper`) se desactiva automáticamente la notificación de prueba.
+- **Scheduler**: Se agregaron 12 notificaciones recurrentes por hora (`on.minute = 0,5,10,...,55`) para lograr repetición efectiva cada 5 minutos, solo si:
+  - notificaciones globales están activas,
+  - modo desarrollador está activo,
+  - y el switch de test está encendido.
+- **UI Dev Panel**: Se agregó switch `Notificación Test (5 min)` en la sección de ajustes rápidos del `DeveloperDashboard`.
+- **Validación**: `tsc --noEmit` sin errores.
+
+**Archivos Modificados:**
+- `src/context/SettingsContext.tsx`
+- `src/components/developer/DeveloperDashboard.tsx`
+
 ### [2026-02-21 23:52] 60. Fix compilación Android MainActivity (onResume)
 **Planificación:**
 - Corregir el error de compilación Java en `MainActivity` por visibilidad incompatible al sobrescribir `onResume`.

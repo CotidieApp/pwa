@@ -140,6 +140,8 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
     incrementStat,
     movableFeastsEnabled,
     setMovableFeastsEnabled,
+    devTestNotificationEnabled,
+    setDevTestNotificationEnabled,
     allPrayers,
     userHomeBackgrounds,
     isCustomThemeActive,
@@ -419,6 +421,14 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
                         <p className="text-xs text-slate-400">Muestra contadores vacíos en Annuum.</p>
                       </div>
                       <Switch checked={showZeroStats} onCheckedChange={setShowZeroStats} />
+                    </div>
+                    <Separator className="bg-slate-800" />
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">Notificación Test (5 min)</Label>
+                        <p className="text-xs text-slate-400">Solo modo desarrollador. Envía una notificación cada 5 minutos.</p>
+                      </div>
+                      <Switch checked={devTestNotificationEnabled} onCheckedChange={setDevTestNotificationEnabled} />
                     </div>
                   </CardContent>
                 </Card>
