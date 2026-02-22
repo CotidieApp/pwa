@@ -2,6 +2,21 @@
 
 Este archivo documenta todas las intervenciones realizadas por el asistente (Trae AI), detallando planes, ejecuciones y archivos modificados para mantener un historial claro de cambios y facilitar la depuración.
 
+### [2026-02-22 00:19] 63. Aumento de safe zone del icono launcher
+**Planificación:**
+- Aumentar la zona segura del ícono de app en Android para evitar recorte visual en bordes.
+- Ajustar el `inset` del `adaptive-icon` (normal y round) en `mipmap-anydpi-v26`.
+- Mantener el cambio acotado solo a launcher icon.
+**Ejecución:**
+- **Launcher icon**: Se aumentó `android:inset` de `8%` a `16%` en:
+  - `ic_launcher.xml`
+  - `ic_launcher_round.xml`
+- **Resultado**: El ícono se renderiza más adentro del mask, con mayor margen de seguridad para que no se corten bordes.
+
+**Archivos Modificados:**
+- `android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml`
+- `android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml`
+
 ### [2026-02-22 00:08] 62. Imagen en notificación de prueba (dev)
 **Planificación:**
 - Añadir una imagen visible en la notificación de prueba de 5 minutos para validar render de banner/icono.
