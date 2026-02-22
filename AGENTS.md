@@ -2,6 +2,35 @@
 
 Este archivo documenta todas las intervenciones realizadas por el asistente (Trae AI), detallando planes, ejecuciones y archivos modificados para mantener un historial claro de cambios y facilitar la depuración.
 
+### [2026-02-22 00:40] 64. Fix imagen en notificaciones Android (dev y fijas)
+**Planificación:**
+- Corregir por qué no se mostraba imagen en Android para notificaciones de prueba y fijas.
+- Ajustar pipeline para que imágenes web se copien a `res/drawable` con nombres de recurso válidos.
+- Mapear rutas (`/images/...`, `/icons/icon.png`) a `largeIcon` Android usando resource IDs.
+
+**Ejecución:**
+- **Diagnóstico**: Se verificó el tipado oficial de Capacitor Local Notifications:
+  - `attachments` es solo iOS.
+  - `largeIcon` en Android requiere nombre de recurso drawable, no URL web.
+- **Build Android**: Se agregó task `copyNotificationImagesToDrawable` en `android/app/build.gradle`:
+  - copia `public/images/**/*.(png|jpg|jpeg|webp)` y `public/icons/icon.png` a `android/app/src/main/res/drawable`;
+  - renombra automáticamente a resource names válidos (`a-z0-9_`) con sufijo de extensión.
+- **Scheduler** (`SettingsContext.tsx`):
+  - se agregó `toAndroidDrawableResource(path)` para convertir rutas web a drawable IDs;
+  - en notificaciones fijas:
+    - Android: `largeIcon` usa drawable ID;
+    - iOS: mantiene `attachments` con ruta web.
+  - en notificación de prueba dev:
+    - Android: `largeIcon` usa drawable ID de `/icons/icon.png`;
+    - iOS: `attachments` usa `/icons/icon.png`.
+- **Validación**:
+  - `tsc --noEmit` OK.
+  - `.\gradlew.bat :app:compileDebugJavaWithJavac` OK (incluyendo ejecución del nuevo task de copiado).
+
+**Archivos Modificados:**
+- `android/app/build.gradle`
+- `src/context/SettingsContext.tsx`
+
 ### [2026-02-22 00:19] 63. Aumento de safe zone del icono launcher
 **Planificación:**
 - Aumentar la zona segura del ícono de app en Android para evitar recorte visual en bordes.

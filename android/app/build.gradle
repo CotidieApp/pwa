@@ -1,4 +1,5 @@
 apply plugin: 'com.android.application'
+import org.gradle.api.file.DuplicatesStrategy
 
 android {
     namespace = "com.benjamin.studio"
@@ -17,8 +18,8 @@ android {
         applicationId "com.benjamin.studio"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 22
-        versionName "4.2.0"
+        versionCode 23
+        versionName "4.2.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -70,6 +71,48 @@ tasks.register('copyNotificationIconsToDrawable', Copy) {
     into("${project.projectDir}/src/main/res/drawable")
 }
 
+def toDrawableResourceName = { String relativePath ->
+    def normalized = relativePath.replace('\\', '/').toLowerCase()
+    def ext = ''
+    if (normalized.lastIndexOf('.') > normalized.lastIndexOf('/')) {
+        ext = normalized.substring(normalized.lastIndexOf('.') + 1)
+        normalized = normalized.substring(0, normalized.lastIndexOf('.'))
+    }
+    def sanitized = normalized.replaceAll(/[^a-z0-9_]/, '_')
+    sanitized = sanitized.replaceAll(/_+/, '_')
+    sanitized = sanitized.replaceAll(/^_+|_+$/, '')
+    if (!(sanitized ==~ /^[a-z].*/)) {
+        sanitized = "img_${sanitized}"
+    }
+    if (ext) {
+        sanitized = "${sanitized}_${ext}"
+    }
+    return sanitized
+}
+
+tasks.register('copyNotificationImagesToDrawable', Copy) {
+    from("${rootProject.projectDir}/../public") {
+        include 'images/**/*.png'
+        include 'images/**/*.jpg'
+        include 'images/**/*.jpeg'
+        include 'images/**/*.webp'
+        include 'icons/icon.png'
+        includeEmptyDirs = false
+        eachFile { fileCopyDetails ->
+            def path = fileCopyDetails.relativePath.pathString
+            def extension = ''
+            def dotIdx = path.lastIndexOf('.')
+            if (dotIdx >= 0) {
+                extension = path.substring(dotIdx)
+            }
+            def renamed = toDrawableResourceName(path)
+            fileCopyDetails.path = "${renamed}${extension}"
+        }
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    into("${project.projectDir}/src/main/res/drawable")
+}
+
 tasks.register('copyImageDisplayPreferencesToAssets', Copy) {
     from("${rootProject.projectDir}/../src/lib/image-display.ts")
     into("${project.projectDir}/src/main/assets")
@@ -77,6 +120,7 @@ tasks.register('copyImageDisplayPreferencesToAssets', Copy) {
 
 preBuild.dependsOn(tasks.named('copySaintsDataToAssets'))
 preBuild.dependsOn(tasks.named('copyNotificationIconsToDrawable'))
+preBuild.dependsOn(tasks.named('copyNotificationImagesToDrawable'))
 preBuild.dependsOn(tasks.named('copyImageDisplayPreferencesToAssets'))
 
 try {

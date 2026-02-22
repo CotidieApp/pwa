@@ -2157,6 +2157,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       await ensureAndroidNotificationChannel();
 
       const icon = theme === 'dark' ? 'small_icon_white' : 'small_icon_black';
+      const isAndroid = platform === 'android';
+      const isIOS = platform === 'ios';
 
       const pad2 = (n: number) => String(n).padStart(2, '0');
       const toDateKey = (d: Date) =>
@@ -2171,6 +2173,22 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         const normalized = hash >>> 0;
         const id = normalized % 2147483647;
         return id === 0 ? 1 : id;
+      };
+
+      const toAndroidDrawableResource = (path: string) => {
+        let normalized = path.replace(/\\/g, '/').toLowerCase();
+        normalized = normalized.replace(/^\.?\//, '');
+        let ext = '';
+        const dot = normalized.lastIndexOf('.');
+        const slash = normalized.lastIndexOf('/');
+        if (dot > slash) {
+          ext = normalized.slice(dot + 1);
+          normalized = normalized.slice(0, dot);
+        }
+        let resource = normalized.replace(/[^a-z0-9_]/g, '_').replace(/_+/g, '_').replace(/^_+|_+$/g, '');
+        if (!/^[a-z]/.test(resource)) resource = `img_${resource}`;
+        if (ext) resource = `${resource}_${ext}`;
+        return resource;
       };
 
       const notifications: Array<any> = [];
@@ -2223,14 +2241,15 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
                 console.warn('Invalid fixed notification image path (use ./...):', entry.image);
               }
             }
+            const imageDrawable = imagePath ? toAndroidDrawableResource(imagePath) : null;
             notifications.push({
               id,
               title: formatTemplate(entry.title, next),
               body: formatTemplate(entry.text, next),
               channelId: 'cotidie-reminders',
               smallIcon: icon,
-              largeIcon: imagePath ?? icon,
-              attachments: imagePath ? [imagePath] : undefined,
+              largeIcon: isAndroid ? (imageDrawable ?? icon) : (imagePath ?? icon),
+              attachments: isIOS && imagePath ? [imagePath] : undefined,
               schedule: {
                 at: next,
                 allowWhileIdle: true,
@@ -2240,6 +2259,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
                 date: entry.date,
                 dateKey,
                 image: imagePath,
+                imageDrawable,
                 devOnly: entry.devOnly ?? false,
                 route: entry.route ?? null,
               },
@@ -2251,6 +2271,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (devTestNotificationEnabled && isDeveloperMode) {
+        const devImagePath = '/icons/icon.png';
+        const devImageDrawable = toAndroidDrawableResource(devImagePath);
         // 12 recurring notifications per hour -> every 5 minutes (:00, :05, ... :55).
         for (let minute = 0; minute < 60; minute += 5) {
           const id = toNotificationId(`dev:test:5m:${minute}`);
@@ -2260,8 +2282,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
             body: 'Recordatorio automatico cada 5 minutos.',
             channelId: 'cotidie-reminders',
             smallIcon: icon,
-            largeIcon: '/icons/icon.png',
-            attachments: ['/icons/icon.png'],
+            largeIcon: isAndroid ? devImageDrawable : devImagePath,
+            attachments: isIOS ? [devImagePath] : undefined,
             schedule: {
               on: { minute },
               allowWhileIdle: true,
@@ -2270,6 +2292,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
               devTest: true,
               everyMinutes: 5,
               minute,
+              image: devImagePath,
+              imageDrawable: devImageDrawable,
             },
           });
         }
