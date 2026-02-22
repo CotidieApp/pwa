@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ePub, { type Book, type Rendition } from 'epubjs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Menu, Maximize2, Minimize2 } from 'lucide-react';
+import { useSettings } from '@/context/SettingsContext';
 
 const DEFAULT_FILE_NAME = 'nuevo-testamento.epub';
 
@@ -116,9 +118,11 @@ const detectNtBookId = (label: string): string | null => {
 };
 
 export default function NewTestamentEpubReader() {
+  const { theme } = useSettings();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const bookRef = useRef<Book | null>(null);
   const renditionRef = useRef<Rendition | null>(null);
+  const hideChromeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const activeFile = DEFAULT_FILE_NAME;
   const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
@@ -139,6 +143,8 @@ export default function NewTestamentEpubReader() {
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [panelTab, setPanelTab] = useState<'toc' | 'search' | 'bookmarks' | 'highlights'>('toc');
   const [tocBookFilter, setTocBookFilter] = useState<string>('all');
+  const [isReaderFullscreen, setIsReaderFullscreen] = useState(false);
+  const [showReaderChrome, setShowReaderChrome] = useState(true);
 
   const epubUrl = `/epub/${activeFile}`;
   const locationStorageKey = useMemo(() => toStorageKey(activeFile), [activeFile]);
@@ -158,6 +164,27 @@ export default function NewTestamentEpubReader() {
     if (tocBookFilter === 'all') return tocEntries;
     return tocEntries.filter((entry) => detectNtBookId(entry.label) === tocBookFilter);
   }, [tocBookFilter, tocEntries]);
+  const availablePanelTabs = useMemo<Array<'toc' | 'search' | 'bookmarks' | 'highlights'>>(() => {
+    const tabs: Array<'toc' | 'search' | 'bookmarks' | 'highlights'> = ['search'];
+    if (tocEntries.length > 0) tabs.unshift('toc');
+    if (bookmarks.length > 0) tabs.push('bookmarks');
+    if (highlights.length > 0) tabs.push('highlights');
+    return tabs;
+  }, [bookmarks.length, highlights.length, tocEntries.length]);
+
+  useEffect(() => {
+    if (availablePanelTabs.includes(panelTab)) return;
+    setPanelTab(availablePanelTabs[0] ?? 'search');
+  }, [availablePanelTabs, panelTab]);
+
+  useEffect(() => {
+    return () => {
+      if (hideChromeTimerRef.current) {
+        clearTimeout(hideChromeTimerRef.current);
+        hideChromeTimerRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -195,6 +222,16 @@ export default function NewTestamentEpubReader() {
           width: '100%',
           height: '100%',
           flow: 'paginated',
+        });
+
+        rendition.themes.default({
+          body: {
+            color: theme === 'dark' ? '#f8fafc' : '#0f172a',
+            background: theme === 'dark' ? '#0b1220' : '#ffffff',
+          },
+          '::selection': {
+            background: 'rgba(251,191,36,0.45)',
+          },
         });
 
         const applyHighlight = (item: HighlightItem) => {
@@ -267,10 +304,41 @@ export default function NewTestamentEpubReader() {
       cancelled = true;
       dispose();
     };
-  }, [bookmarksStorageKey, epubUrl, highlightsStorageKey, locationStorageKey]);
+  }, [bookmarksStorageKey, epubUrl, highlightsStorageKey, locationStorageKey, theme]);
 
   const goPrev = () => renditionRef.current?.prev();
   const goNext = () => renditionRef.current?.next();
+
+  const scheduleChromeHide = useCallback(() => {
+    if (hideChromeTimerRef.current) {
+      clearTimeout(hideChromeTimerRef.current);
+      hideChromeTimerRef.current = null;
+    }
+    if (!isReaderFullscreen || isPanelOpen) return;
+    hideChromeTimerRef.current = setTimeout(() => {
+      setShowReaderChrome(false);
+      hideChromeTimerRef.current = null;
+    }, 2200);
+  }, [isPanelOpen, isReaderFullscreen]);
+
+  const wakeReaderChrome = () => {
+    if (!isReaderFullscreen) return;
+    setShowReaderChrome(true);
+    scheduleChromeHide();
+  };
+
+  useEffect(() => {
+    if (!isReaderFullscreen) {
+      setShowReaderChrome(true);
+      if (hideChromeTimerRef.current) {
+        clearTimeout(hideChromeTimerRef.current);
+        hideChromeTimerRef.current = null;
+      }
+      return;
+    }
+    setShowReaderChrome(true);
+    scheduleChromeHide();
+  }, [isPanelOpen, isReaderFullscreen, scheduleChromeHide]);
 
   const jumpToToc = async (href: string) => {
     setSelectedToc(href);
@@ -393,7 +461,29 @@ export default function NewTestamentEpubReader() {
   };
 
   return (
-    <div className="p-4 space-y-3">
+    <div
+      className={isReaderFullscreen ? 'fixed inset-0 z-[80] bg-black flex flex-col gap-3' : 'p-4 space-y-3'}
+      onPointerDownCapture={wakeReaderChrome}
+      style={
+        isReaderFullscreen
+          ? {
+              paddingTop: 'max(0.5rem, env(safe-area-inset-top))',
+              paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))',
+              paddingLeft: 'max(0.5rem, env(safe-area-inset-left))',
+              paddingRight: 'max(0.5rem, env(safe-area-inset-right))',
+            }
+          : undefined
+      }
+    >
+      <div
+        className={
+          isReaderFullscreen
+            ? showReaderChrome
+              ? 'space-y-2 shrink-0 transition-all duration-200 opacity-100 max-h-[280px]'
+              : 'space-y-2 shrink-0 transition-all duration-200 opacity-0 max-h-0 overflow-hidden pointer-events-none'
+            : 'space-y-2 shrink-0'
+        }
+      >
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" onClick={goPrev} disabled={status !== 'ready'}>
           Anterior
@@ -401,8 +491,16 @@ export default function NewTestamentEpubReader() {
         <Button variant="outline" onClick={goNext} disabled={status !== 'ready'}>
           Siguiente
         </Button>
-        <Button variant="outline" onClick={() => setIsPanelOpen(true)}>
-          Panel lateral
+        <Button variant="outline" size="icon" onClick={() => setIsPanelOpen(true)} aria-label="Abrir menú">
+          <Menu className="h-5 w-5" />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setIsReaderFullscreen((prev) => !prev)}
+          aria-label={isReaderFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
+        >
+          {isReaderFullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
         </Button>
         <span className="text-xs text-muted-foreground self-center">{locationLabel ? `Página ${locationLabel}` : ''}</span>
       </div>
@@ -443,43 +541,77 @@ export default function NewTestamentEpubReader() {
           {errorMessage ?? 'No se pudo abrir el EPUB.'}
         </div>
       )}
+      </div>
 
-      <div className="rounded-lg border border-border bg-card/40 overflow-hidden" style={{ height: '78vh' }}>
+      <div
+        className="relative rounded-lg border border-border bg-card/40 overflow-hidden flex-1 min-h-0"
+        style={{ height: isReaderFullscreen ? undefined : '78vh' }}
+      >
         <div ref={containerRef} className="h-full w-full" />
+        {isReaderFullscreen ? <div className="pointer-events-none absolute inset-0 z-[5] bg-black/28" /> : null}
+        <button
+          type="button"
+          aria-label="Página anterior"
+          onClick={goPrev}
+          className="absolute bottom-0 left-0 h-[58%] w-1/3 z-[15]"
+        />
+        <button
+          type="button"
+          aria-label="Página siguiente"
+          onClick={goNext}
+          className="absolute bottom-0 right-0 h-[58%] w-2/3 z-[15]"
+        />
       </div>
 
       <Sheet open={isPanelOpen} onOpenChange={setIsPanelOpen}>
-        <SheetContent side="left" className="w-[92vw] sm:max-w-md p-4">
+        <SheetContent
+          side="left"
+          className="w-[92vw] sm:max-w-md p-4 overflow-y-auto"
+          style={{
+            paddingTop: 'max(1rem, env(safe-area-inset-top))',
+            paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
+            paddingLeft: 'max(1rem, env(safe-area-inset-left))',
+            paddingRight: 'max(1rem, env(safe-area-inset-right))',
+          }}
+        >
           <SheetHeader>
             <SheetTitle>Panel de lectura</SheetTitle>
             <SheetDescription>Índice, búsqueda, marcadores y subrayados.</SheetDescription>
           </SheetHeader>
 
           <div className="mt-4 flex gap-2">
-            <Button size="sm" variant={panelTab === 'toc' ? 'default' : 'outline'} onClick={() => setPanelTab('toc')}>
-              TOC
-            </Button>
-            <Button
-              size="sm"
-              variant={panelTab === 'search' ? 'default' : 'outline'}
-              onClick={() => setPanelTab('search')}
-            >
-              Buscar
-            </Button>
-            <Button
-              size="sm"
-              variant={panelTab === 'bookmarks' ? 'default' : 'outline'}
-              onClick={() => setPanelTab('bookmarks')}
-            >
-              Marcadores
-            </Button>
-            <Button
-              size="sm"
-              variant={panelTab === 'highlights' ? 'default' : 'outline'}
-              onClick={() => setPanelTab('highlights')}
-            >
-              Subrayados
-            </Button>
+            {availablePanelTabs.includes('toc') && (
+              <Button size="sm" variant={panelTab === 'toc' ? 'default' : 'outline'} onClick={() => setPanelTab('toc')}>
+                TOC
+              </Button>
+            )}
+            {availablePanelTabs.includes('search') && (
+              <Button
+                size="sm"
+                variant={panelTab === 'search' ? 'default' : 'outline'}
+                onClick={() => setPanelTab('search')}
+              >
+                Buscar
+              </Button>
+            )}
+            {availablePanelTabs.includes('bookmarks') && (
+              <Button
+                size="sm"
+                variant={panelTab === 'bookmarks' ? 'default' : 'outline'}
+                onClick={() => setPanelTab('bookmarks')}
+              >
+                Marcadores
+              </Button>
+            )}
+            {availablePanelTabs.includes('highlights') && (
+              <Button
+                size="sm"
+                variant={panelTab === 'highlights' ? 'default' : 'outline'}
+                onClick={() => setPanelTab('highlights')}
+              >
+                Subrayados
+              </Button>
+            )}
           </div>
 
           <div className="mt-4">
@@ -609,27 +741,28 @@ export default function NewTestamentEpubReader() {
               </div>
             )}
 
-            <div className="mt-5 space-y-2">
-              <div className="text-xs font-semibold">Índice Nuevo Testamento (al final del panel)</div>
-              <div className="max-h-40 overflow-auto rounded-md border border-border bg-background/60 p-2 grid grid-cols-1 gap-1">
-                {NT_BOOKS.map((book) => {
-                  const anchor = tocBookAnchors[book.id];
-                  const available = Boolean(anchor);
-                  return (
-                    <Button
-                      key={book.id}
-                      size="sm"
-                      variant={available ? 'outline' : 'ghost'}
-                      disabled={!available}
-                      className="justify-start text-left h-auto py-1.5"
-                      onClick={() => jumpToBook(book.id)}
-                    >
-                      {available ? book.label : `${book.label} (no detectado)`}
-                    </Button>
-                  );
-                })}
+            {Object.keys(tocBookAnchors).length > 0 && (
+              <div className="mt-5 space-y-2">
+                <div className="text-xs font-semibold">Índice Nuevo Testamento (al final del panel)</div>
+                <div className="max-h-40 overflow-auto rounded-md border border-border bg-background/60 p-2 grid grid-cols-1 gap-1">
+                  {NT_BOOKS.map((book) => {
+                    const anchor = tocBookAnchors[book.id];
+                    if (!anchor) return null;
+                    return (
+                      <Button
+                        key={book.id}
+                        size="sm"
+                        variant="outline"
+                        className="justify-start text-left h-auto py-1.5"
+                        onClick={() => jumpToBook(book.id)}
+                      >
+                        {book.label}
+                      </Button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </SheetContent>
       </Sheet>

@@ -1446,3 +1446,108 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `android/app/src/main/res/mipmap-anydpi-v26/*`
 - `android/app/src/main/res/mipmap-*/ic_launcher*.png`
 - `public/icons/*` (assets PWA generados)
+
+### [2026-02-22 18:06] 78. Forzar origen del ícono Android desde `public/icons/icon.png` (Planificación)
+**Planificación:**
+- Verificar existencia de `public/icons/icon.png` como fuente solicitada.
+- Si falta, generar `icon.png` desde `public/icons/icon.jpg` para respetar ruta pedida.
+- Copiar la fuente a `assets/icon.png` (origen que usa `capacitor-assets`) y regenerar íconos Android.
+
+**Ejecución:**
+- En progreso.
+
+### [2026-02-22 18:10] 78. Forzar origen del ícono Android desde `public/icons/icon.png` (Ejecución)
+**Ejecución:**
+- Se verificó que `public/icons/icon.png` no existía en ese momento (solo `public/icons/icon.jpg`).
+- Se generó `public/icons/icon.png` a partir del archivo actual `public/icons/icon.jpg`.
+- Se sincronizó `assets/icon.png` desde `public/icons/icon.png` (misma huella SHA256).
+- Se regeneraron los íconos Android con esa fuente y se dejaron únicamente los cambios de launcher (`mipmap-*`), revirtiendo salidas no solicitadas (splash/PWA).
+
+**Archivos Modificados:**
+- `public/icons/icon.png` (NUEVO)
+- `assets/icon.png`
+- `android/app/src/main/res/mipmap-*/ic_launcher*.png`
+
+### [2026-02-22 18:13] 79. Ajustes UX lector EPUB (Planificación)
+**Planificación:**
+- Aplicar tema de lectura oscuro/claro según tema actual de la app (texto blanco en modo oscuro).
+- Ocultar automáticamente secciones/pestañas del panel lateral sin contenido disponible.
+- Implementar zonas táctiles inferiores para navegación: derecha (2/3) avanzar, izquierda (1/3) retroceder.
+- Reemplazar botón textual del panel por botón de menú con ícono de tres líneas.
+
+**Ejecución:**
+- En progreso.
+
+**Archivo Objetivo:**
+- `src/components/NewTestamentEpubReader.tsx`
+
+### [2026-02-22 18:17] 79. Ajustes UX lector EPUB (Ejecución)
+**Ejecución:**
+- **Modo oscuro claro/oscuro**: Se aplicó tema de lectura en el EPUB según `theme` de la app; en modo oscuro, texto claro y fondo oscuro.
+- **Panel lateral dinámico**: Se ocultaron automáticamente pestañas/secciones sin contenido:
+  - `TOC` solo si hay índice,
+  - `Marcadores` solo si hay marcadores,
+  - `Subrayados` solo si hay subrayados,
+  - índice NT final solo si detecta libros en el EPUB.
+- **Navegación táctil inferior**:
+  - tercio inferior izquierdo: retrocede página,
+  - dos tercios inferiores derechos: avanza página.
+- **Botón menú**: Se reemplazó el botón textual por botón de tres líneas (`Menu`) para abrir el panel lateral.
+
+**Validación:**
+- `cmd /c npm run build` compila correctamente; persiste `spawn EPERM` al final por entorno.
+
+**Archivo Modificado:**
+- `src/components/NewTestamentEpubReader.tsx`
+
+### [2026-02-22 18:20] 80. Fullscreen lector EPUB + safe zone panel lateral (Planificación)
+**Planificación:**
+- Agregar botón de pantalla completa propio del lector EPUB para ocultar el encabezado detrás de una capa de lectura inmersiva.
+- Mantener navegación de páginas en fullscreen sin que controles queden detrás de barras del sistema.
+- Corregir panel lateral para respetar `safe-area-inset-top` y `safe-area-inset-bottom`.
+
+**Ejecución:**
+- En progreso.
+
+**Archivo Objetivo:**
+- `src/components/NewTestamentEpubReader.tsx`
+
+### [2026-02-22 18:23] 80. Fullscreen lector EPUB + safe zone panel lateral (Ejecución)
+**Ejecución:**
+- **Botón de pantalla completa**: Se agregó toggle dedicado en el lector EPUB para abrir modo inmersivo y cubrir el encabezado.
+- **Safe zone en fullscreen**: Se aplicaron paddings con `env(safe-area-inset-*)` para que controles y lectura no queden detrás de barras del sistema.
+- **Panel lateral safe zone**: Se ajustó `SheetContent` con `safe-area-inset-top/bottom/left/right` + `overflow-y-auto` para evitar que el contenido se esconda detrás de la barra de tareas.
+- **Botón menú**: Se mantiene botón de tres líneas para abrir el panel lateral.
+
+**Validación:**
+- `cmd /c npm run build` compila correctamente; persiste `spawn EPERM` al final por entorno.
+
+**Archivo Modificado:**
+- `src/components/NewTestamentEpubReader.tsx`
+
+### [2026-02-22 18:30] 81. Modo lectura inmersiva EPUB en fullscreen (Planificación)
+**Planificación:**
+- Activar modo lectura inmersiva automáticamente cuando el lector está en pantalla completa.
+- Añadir oscurecimiento adicional del área de lectura para reducir distracciones.
+- Ocultar controles de navegación tras inactividad y mostrarlos de nuevo al tocar la pantalla.
+- Mantener navegación por zonas táctiles y menú lateral sin romper `safe-area`.
+
+**Ejecución:**
+- En progreso.
+
+**Archivo Objetivo:**
+- `src/components/NewTestamentEpubReader.tsx`
+
+### [2026-02-22 18:33] 81. Modo lectura inmersiva EPUB en fullscreen (Ejecución)
+**Ejecución:**
+- **Modo lectura fullscreen**: Se activó fondo negro en pantalla completa para reducir distracciones visuales.
+- **Atenuación de lectura**: Se añadió una capa oscura sobre el contenido EPUB (`bg-black/28`) solo en fullscreen.
+- **Auto-ocultar controles**: Se implementó ocultamiento automático de la barra superior tras ~2.2s sin interacción en fullscreen.
+- **Reaparición por toque**: Cualquier toque en pantalla vuelve a mostrar controles y reinicia el temporizador.
+- **Navegación intacta**: Se conservaron zonas táctiles de avance/retroceso y el panel lateral, respetando `safe-area`.
+
+**Validación:**
+- `cmd /c npm run build`: TypeScript y compilación Next correctos; el proceso termina con `spawn EPERM` por entorno local.
+
+**Archivo Modificado:**
+- `src/components/NewTestamentEpubReader.tsx`
