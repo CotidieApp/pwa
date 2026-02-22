@@ -1360,3 +1360,71 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 
 **Archivos Modificados:**
 - `src/context/SettingsContext.tsx`
+
+### [2026-02-22 17:35] 74. Actualización de ícono Android con nuevo `icon.png`
+**Planificación:**
+- Regenerar recursos de launcher Android usando el nuevo `icon.png` fuente.
+- Mantener cambios acotados solo a íconos Android.
+
+**Ejecución:**
+- Se ejecutó `npx capacitor-assets generate` para regenerar recursos de icono.
+- Se conservaron únicamente los cambios de Android launcher en `mipmap-*` y `mipmap-anydpi-v26`.
+- Se revirtieron salidas no solicitadas (PWA/manifest y otros archivos fuera del alcance) para respetar el pedido de actualizar solo ícono Android.
+
+**Archivos Modificados:**
+- `android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml`
+- `android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml`
+- `android/app/src/main/res/mipmap-ldpi/*`
+- `android/app/src/main/res/mipmap-mdpi/*`
+- `android/app/src/main/res/mipmap-hdpi/*`
+- `android/app/src/main/res/mipmap-xhdpi/*`
+- `android/app/src/main/res/mipmap-xxhdpi/*`
+- `android/app/src/main/res/mipmap-xxxhdpi/*`
+
+### [2026-02-22 17:40] 75. Apertura directa de Lectura Nuevo Testamento (Planificación)
+**Planificación:**
+- Quitar el paso por el menú inicial del lector EPUB al abrir `Lectura Nuevo Testamento`.
+- Cargar automáticamente el EPUB por defecto y abrir siempre desde la primera página.
+- Mantener el panel lateral como acceso opcional, sin pantalla intermedia.
+
+**Ejecución:**
+- En progreso.
+
+**Archivo Objetivo:**
+- `src/components/NewTestamentEpubReader.tsx`
+
+### [2026-02-22 17:44] 75. Apertura directa de Lectura Nuevo Testamento (Ejecución)
+**Planificación:**
+- Abrir `Lectura Nuevo Testamento` sin pasar por el menú inicial y comenzar desde primera página.
+
+**Ejecución:**
+- Se eliminó el flujo de carga manual de archivo dentro de la vista (sin menú inicial).
+- La vista ahora abre directamente `nuevo-testamento.epub`.
+- Se cambió el arranque del lector para mostrar siempre la **primera página** (`rendition.display()` sin restaurar CFI inicial).
+- Se mantuvo el panel lateral como acceso opcional y controles básicos de navegación.
+- Se conservaron marcadores/subrayados/notas existentes.
+
+**Validación:**
+- `cmd /c npm run build` compila correctamente; persiste `spawn EPERM` al final por entorno.
+
+**Archivos Modificados:**
+- `src/components/NewTestamentEpubReader.tsx`
+
+### [2026-02-22 17:46] 76. Restaurar posición en Lectura Nuevo Testamento (Planificación)
+**Planificación:**
+- Mantener apertura directa sin menú inicial.
+- Restaurar automáticamente la última posición guardada del EPUB en vez de forzar primera página.
+
+**Ejecución:**
+- En progreso.
+
+**Archivo Objetivo:**
+- `src/components/NewTestamentEpubReader.tsx`
+
+### [2026-02-22 17:47] 76. Restaurar posición en Lectura Nuevo Testamento (Ejecución)
+**Ejecución:**
+- Se restauró la última posición guardada del EPUB al abrir `Lectura Nuevo Testamento`.
+- Se mantiene la apertura directa del archivo `nuevo-testamento.epub` sin menú inicial.
+
+**Archivo Modificado:**
+- `src/components/NewTestamentEpubReader.tsx`

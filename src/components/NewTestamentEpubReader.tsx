@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import ePub, { type Book, type Rendition } from 'epubjs';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
@@ -121,8 +120,7 @@ export default function NewTestamentEpubReader() {
   const bookRef = useRef<Book | null>(null);
   const renditionRef = useRef<Rendition | null>(null);
 
-  const [fileName, setFileName] = useState(DEFAULT_FILE_NAME);
-  const [activeFile, setActiveFile] = useState(DEFAULT_FILE_NAME);
+  const activeFile = DEFAULT_FILE_NAME;
   const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [locationLabel, setLocationLabel] = useState('');
@@ -142,7 +140,7 @@ export default function NewTestamentEpubReader() {
   const [panelTab, setPanelTab] = useState<'toc' | 'search' | 'bookmarks' | 'highlights'>('toc');
   const [tocBookFilter, setTocBookFilter] = useState<string>('all');
 
-  const epubUrl = useMemo(() => `/epub/${activeFile}`, [activeFile]);
+  const epubUrl = `/epub/${activeFile}`;
   const locationStorageKey = useMemo(() => toStorageKey(activeFile), [activeFile]);
   const bookmarksStorageKey = useMemo(() => toBookmarksKey(activeFile), [activeFile]);
   const highlightsStorageKey = useMemo(() => toHighlightsKey(activeFile), [activeFile]);
@@ -274,12 +272,6 @@ export default function NewTestamentEpubReader() {
   const goPrev = () => renditionRef.current?.prev();
   const goNext = () => renditionRef.current?.next();
 
-  const handleLoadRequestedFile = () => {
-    const normalized = fileName.trim();
-    if (!normalized) return;
-    setActiveFile(normalized);
-  };
-
   const jumpToToc = async (href: string) => {
     setSelectedToc(href);
     await renditionRef.current?.display(href);
@@ -401,26 +393,38 @@ export default function NewTestamentEpubReader() {
   };
 
   return (
-    <div className="p-4 space-y-4">
-      <Card className="bg-card/80 border-border/60">
-        <CardContent className="p-4 space-y-3">
-          <div className="text-sm font-semibold">Lectura Nuevo Testamento (EPUB Offline)</div>
+    <div className="p-4 space-y-3">
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" onClick={goPrev} disabled={status !== 'ready'}>
+          Anterior
+        </Button>
+        <Button variant="outline" onClick={goNext} disabled={status !== 'ready'}>
+          Siguiente
+        </Button>
+        <Button variant="outline" onClick={() => setIsPanelOpen(true)}>
+          Panel lateral
+        </Button>
+        <span className="text-xs text-muted-foreground self-center">{locationLabel ? `Página ${locationLabel}` : ''}</span>
+      </div>
+
+      {pendingSelectionCfi ? (
+        <div className="space-y-2 rounded-md border border-border p-2 bg-background/60">
           <div className="text-xs text-muted-foreground">
-            Archivo local en <code>public/epub/</code>. Se guarda automáticamente la posición por archivo.
-          </div>
-          <div className="flex gap-2">
-            <Input
-              value={fileName}
-              onChange={(e) => setFileName(e.target.value)}
-              placeholder="nuevo-testamento.epub"
-            />
-            <Button onClick={handleLoadRequestedFile}>Cargar</Button>
-          </div>
-          <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-            <span>Archivo activo: {activeFile}</span>
-            <span>{locationLabel ? `Página ${locationLabel}` : ''}</span>
+            Selección lista para subrayar: {pendingSelectionText || '(sin texto)'}
           </div>
           <div className="flex flex-wrap gap-2">
+            <Input
+              value={highlightNoteDraft}
+              onChange={(e) => setHighlightNoteDraft(e.target.value)}
+              placeholder="Nota opcional para este subrayado"
+            />
+            <Button
+              variant="outline"
+              onClick={addHighlightFromSelection}
+              disabled={!pendingSelectionCfi || status !== 'ready'}
+            >
+              Subrayar selección
+            </Button>
             <Input
               value={bookmarkLabel}
               onChange={(e) => setBookmarkLabel(e.target.value)}
@@ -429,47 +433,18 @@ export default function NewTestamentEpubReader() {
             <Button variant="outline" onClick={addBookmark} disabled={!currentCfi || status !== 'ready'}>
               Guardar marcador
             </Button>
-            <Button
-              variant="outline"
-              onClick={addHighlightFromSelection}
-              disabled={!pendingSelectionCfi || status !== 'ready'}
-            >
-              Subrayar selección
-            </Button>
-            <Button variant="outline" onClick={() => setIsPanelOpen(true)}>
-              Panel lateral
-            </Button>
           </div>
-          {pendingSelectionCfi ? (
-            <div className="space-y-2">
-              <div className="text-xs text-muted-foreground">
-                Selección lista para subrayar: {pendingSelectionText || '(sin texto)'}
-              </div>
-              <Input
-                value={highlightNoteDraft}
-                onChange={(e) => setHighlightNoteDraft(e.target.value)}
-                placeholder="Nota opcional para este subrayado"
-              />
-            </div>
-          ) : null}
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={goPrev} disabled={status !== 'ready'}>
-              Anterior
-            </Button>
-            <Button variant="outline" onClick={goNext} disabled={status !== 'ready'}>
-              Siguiente
-            </Button>
-          </div>
-          {status === 'loading' && <div className="text-xs text-muted-foreground">Cargando EPUB...</div>}
-          {status === 'error' && (
-            <div className="text-xs text-destructive">
-              {errorMessage ?? 'No se pudo abrir el EPUB.'}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        </div>
+      ) : null}
 
-      <div className="rounded-lg border border-border bg-card/40 overflow-hidden" style={{ height: '68vh' }}>
+      {status === 'loading' && <div className="text-xs text-muted-foreground">Cargando EPUB...</div>}
+      {status === 'error' && (
+        <div className="text-xs text-destructive">
+          {errorMessage ?? 'No se pudo abrir el EPUB.'}
+        </div>
+      )}
+
+      <div className="rounded-lg border border-border bg-card/40 overflow-hidden" style={{ height: '78vh' }}>
         <div ref={containerRef} className="h-full w-full" />
       </div>
 
