@@ -1428,3 +1428,21 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 
 **Archivo Modificado:**
 - `src/components/NewTestamentEpubReader.tsx`
+
+### [2026-02-22 17:54] 77. Regeneración de ícono actual de la app (Planificación)
+**Planificación:**
+- Regenerar los recursos de ícono usando el `icon.png` actual del proyecto para reflejar el estado vigente en la app.
+
+**Ejecución:**
+- En progreso.
+
+### [2026-02-22 17:56] 77. Regeneración de ícono actual de la app (Ejecución)
+**Ejecución:**
+- Se regeneraron los assets de ícono usando el `icon.png` actual mediante `npx capacitor-assets generate`.
+- Se actualizaron recursos de launcher Android (`ic_launcher`, `ic_launcher_round`, foreground/background en `mipmap-*` y `mipmap-anydpi-v26`).
+- También se regeneraron assets PWA derivados del mismo ícono base.
+
+**Archivos Modificados (principal):**
+- `android/app/src/main/res/mipmap-anydpi-v26/*`
+- `android/app/src/main/res/mipmap-*/ic_launcher*.png`
+- `public/icons/*` (assets PWA generados)
