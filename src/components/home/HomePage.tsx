@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useMemo, useCallback } from "react";
+import { useRef, useState, useMemo, useCallback, useEffect } from "react";
 import type { TouchEvent } from "react";
 import type { Category, Quote } from "@/lib/types";
 import { useSettings } from "@/context/SettingsContext";
@@ -38,6 +38,7 @@ export default function HomePage({ onSelectCategory, onOpenCustomPlan, onCreateC
     quoteOfTheDay: rawQuoteOfTheDay,
     shownEasterEggQuoteIds,
     registerEasterEggQuote,
+    incrementStat,
     customPlans,
     deleteCustomPlan,
   } = settings || {};
@@ -62,6 +63,16 @@ export default function HomePage({ onSelectCategory, onOpenCustomPlan, onCreateC
 
     return allQuotes.find((q) => q.id === simulatedQuoteId) || rawQuoteOfTheDay;
   }, [rawQuoteOfTheDay, simulatedQuoteId, userQuotes, settings]);
+
+  useEffect(() => {
+    if (!quoteOfTheDay || !incrementStat) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const key = `cotidie_quote_counted_${today}_${quoteOfTheDay.id ?? "unknown"}`;
+    if (typeof window === "undefined") return;
+    if (window.sessionStorage.getItem(key) === "1") return;
+    incrementStat("saintQuotesOpened");
+    window.sessionStorage.setItem(key, "1");
+  }, [incrementStat, quoteOfTheDay]);
 
   const triggerEasterEgg = useCallback(() => {
     if (!settings || !registerEasterEggQuote) return;

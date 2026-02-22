@@ -19,6 +19,7 @@ import RosaryImmersive from '../RosaryImmersive';
 import RosaryMeditated from '../RosaryMeditated';
 import PlanDeVidaCalendar from '../plans/PlanDeVidaCalendar';
 import ViaCrucisImmersive from '../ViaCrucisImmersive';
+import NewTestamentEpubReader from '@/components/NewTestamentEpubReader';
 import SearchCamino from '@/components/SearchCamino';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -696,6 +697,9 @@ export default function MainApp() {
               />
             </div>
           );
+        }
+        if (currentPrayer.id === 'lectura-nuevo-testamento') {
+          return <NewTestamentEpubReader />;
         }
         return <PrayerDetail prayer={currentPrayer} searchState={isCaminoActive ? searchState : undefined} />;
       case 'home':

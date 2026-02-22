@@ -29,25 +29,48 @@ export default function Settings({ onOpenDeveloperDashboard, onShowWrapped }: Se
 
   const activeIndex = tabs.findIndex(tab => tab.id === activeTab);
 
-  // Handle touch gestures for swipe
-  const touchStart = useRef<number | null>(null);
-  const touchEnd = useRef<number | null>(null);
+  // Gesture state with axis-lock to avoid accidental horizontal tab changes while scrolling vertically.
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const touchCurrent = useRef<{ x: number; y: number } | null>(null);
+  const lockAxis = useRef<'x' | 'y' | null>(null);
+  const AXIS_LOCK_THRESHOLD = 14;
+  const SWIPE_THRESHOLD = 100;
 
   const onTouchStart = (e: React.TouchEvent) => {
-    touchEnd.current = null;
-    touchStart.current = e.targetTouches[0].clientX;
+    const t = e.targetTouches[0];
+    if (!t) return;
+    touchStart.current = { x: t.clientX, y: t.clientY };
+    touchCurrent.current = { x: t.clientX, y: t.clientY };
+    lockAxis.current = null;
   };
 
   const onTouchMove = (e: React.TouchEvent) => {
-    touchEnd.current = e.targetTouches[0].clientX;
+    const start = touchStart.current;
+    const t = e.targetTouches[0];
+    if (!start || !t) return;
+
+    touchCurrent.current = { x: t.clientX, y: t.clientY };
+    if (lockAxis.current) return;
+
+    const dx = Math.abs(t.clientX - start.x);
+    const dy = Math.abs(t.clientY - start.y);
+    if (dx < AXIS_LOCK_THRESHOLD && dy < AXIS_LOCK_THRESHOLD) return;
+    lockAxis.current = dx > dy ? 'x' : 'y';
   };
 
   const onTouchEnd = () => {
-    if (!touchStart.current || !touchEnd.current) return;
-    
-    const distance = touchStart.current - touchEnd.current;
-    const isLeftSwipe = distance > 50;
-    const isRightSwipe = distance < -50;
+    const start = touchStart.current;
+    const end = touchCurrent.current;
+    if (!start || !end || lockAxis.current !== 'x') {
+      touchStart.current = null;
+      touchCurrent.current = null;
+      lockAxis.current = null;
+      return;
+    }
+
+    const distance = start.x - end.x;
+    const isLeftSwipe = distance > SWIPE_THRESHOLD;
+    const isRightSwipe = distance < -SWIPE_THRESHOLD;
 
     if (isLeftSwipe && activeIndex < tabs.length - 1) {
         setActiveTab(tabs[activeIndex + 1].id);
@@ -56,6 +79,10 @@ export default function Settings({ onOpenDeveloperDashboard, onShowWrapped }: Se
     if (isRightSwipe && activeIndex > 0) {
         setActiveTab(tabs[activeIndex - 1].id);
     }
+
+    touchStart.current = null;
+    touchCurrent.current = null;
+    lockAxis.current = null;
   };
 
   // Scroll to top when tab changes

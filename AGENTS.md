@@ -1107,3 +1107,256 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 
 
 
+
+### [2026-02-22 15:23] 65. Ajustes UX, importación .ctd, notificaciones y calendario (Planificación)
+**Planificación:**
+- Reducir sensibilidad del swipe horizontal en Ajustes con bloqueo de eje (horizontal/vertical) para no interferir con scroll vertical.
+- Corregir importación por apertura de archivos `.ctd` para detectar tipo (plan personalizado o respaldo) y mostrar mensaje de éxito específico.
+- Ajustar notificaciones para usar imagen grande adjunta (no miniatura lateral) y mantener compatibilidad Android/iOS.
+- Rediseñar calendario de Plan de Vida a formato tabla mensual (días en columnas, oraciones en filas).
+- Corregir conteo de `Ángelus/Regina Coeli` y de citas de santos.
+- Dejar activado por defecto “priorizar fiestas móviles” para todos los usuarios.
+
+**Ejecución:**
+- En progreso.
+
+**Archivos Objetivo:**
+- `src/components/Settings.tsx`
+- `src/context/SettingsContext.tsx`
+- `src/components/settings/ContentSettings.tsx`
+- `src/components/plans/PlanDeVidaCalendar.tsx`
+- `src/components/home/HomePage.tsx`
+
+### [2026-02-22 16:05] 66. Ajustes UX, importación .ctd, notificaciones y calendario (Ejecución)
+**Planificación:**
+- Ejecutar los 6 ajustes solicitados (gestos, importación `.ctd`, imagen grande de notificaciones, calendario mensual tipo tabla, contadores y default de fiestas móviles).
+
+**Ejecución:**
+- **Ajustes (gestos)**: Se redujo la sensibilidad de swipe horizontal y se agregó bloqueo por eje (`x`/`y`) para evitar cambios de pestaña mientras el usuario hace scroll vertical.
+- **Importación `.ctd`/respaldo**:
+  - En apertura por intent compartido (`cotidie_pending_import`), ahora se detecta si el payload corresponde a plan personalizado o respaldo completo/parcial.
+  - Si es plan, se importa en slot preferente o primer slot libre y se muestra toast: "Plan personalizado cargado con éxito.".
+  - Si es respaldo, se importa con toast: "Respaldo cargado con éxito.".
+  - En importación manual desde Ajustes > Datos se aplicó la misma detección y mensajes.
+- **Notificaciones (imagen grande)**:
+  - Se ajustó el scheduler para no forzar `largeIcon` en recordatorios normales.
+  - Para notificaciones con `image`, se usa `largeIcon` con drawable real y `attachments`.
+  - Se agregó soporte Android en el plugin local (`LocalNotificationManager`) para renderizar `BigPictureStyle` cuando la notificación incluye `extra.image`/`extra.imageDrawable`, mostrando imagen grande expandida bajo el texto.
+- **Calendario Plan de Vida**: Se reemplazó la vista anterior por tabla mensual tipo hoja de cálculo:
+  - mes/año en encabezado,
+  - días en columnas,
+  - secciones/oraciones de Plan de Vida en filas,
+  - celdas con check por registro diario.
+- **Contadores**:
+  - Se corrigió `angelusCount` para reconocer también el ID real `angelus-regina-coeli`.
+  - Se agregó incremento automático de `saintQuotesOpened` al mostrar la cita del día en Home (con guardado en `sessionStorage` para evitar incrementos repetidos en la misma sesión/día).
+- **Fiestas móviles por defecto**: Se mantuvo `true` por defecto y se reforzó el reset de configuración para volver a `true`.
+
+**Validación:**
+- `cmd /c npm run build`: TypeScript y compilación Next pasan; persiste el error conocido de entorno `spawn EPERM` al final de build.
+- `android\\gradlew.bat :app:compileDebugJavaWithJavac`: compilación Java OK (incluyendo cambio de notificaciones Android).
+
+**Archivos Modificados:**
+- `src/components/Settings.tsx`
+- `src/context/SettingsContext.tsx`
+- `src/components/settings/ContentSettings.tsx`
+- `src/components/plans/PlanDeVidaCalendar.tsx`
+- `src/components/home/HomePage.tsx`
+- `node_modules/@capacitor/local-notifications/android/src/main/java/com/capacitorjs/plugins/localnotifications/LocalNotificationManager.java`
+
+### [2026-02-22 15:58] 67. Lectura Nuevo Testamento con EPUB (Planificación)
+**Planificación:**
+- Agregar una nueva sección de Plan de Vida llamada `Lectura Nuevo Testamento` ubicada inmediatamente después de `Santa Misa`.
+- Crear una interfaz dedicada para lectura de archivo EPUB usando una carpeta nueva dentro de `public`.
+- Conectar la navegación para que al abrir esa sección se muestre el lector EPUB en lugar del detalle de oración estándar.
+- Registrar instrucciones mínimas para que el usuario sepa dónde dejar el archivo EPUB.
+
+**Ejecución:**
+- En progreso.
+
+**Archivos Objetivo:**
+- `src/lib/data.tsx`
+- `src/components/main/MainApp.tsx`
+- `src/components` (nuevo lector EPUB)
+- `public/epub/`
+
+### [2026-02-22 16:18] 67. Lectura Nuevo Testamento con EPUB (Ejecución)
+**Planificación:**
+- Integrar nueva sección en Plan de Vida y lector EPUB dedicado desde carpeta en `public`.
+
+**Ejecución:**
+- **Plan de Vida**: Se agregó la sección `Lectura Nuevo Testamento` inmediatamente después de `Santa Misa`.
+- **Nuevo contenido**: Se creó la oración/entrada `lectura-nuevo-testamento` para aparecer en la lista de Plan de Vida.
+- **Lector EPUB**: Se creó interfaz dedicada con:
+  - carga de archivo por nombre (default: `nuevo-testamento.epub`),
+  - render EPUB en pantalla,
+  - navegación `Anterior` / `Siguiente`,
+  - indicador de página cuando está disponible,
+  - estado de error/carga.
+- **Fuente del EPUB**: El lector toma el archivo desde `public/epub/{archivo}`.
+- **Carpeta pública**: Se creó `public/epub/` con `README.txt` y `.gitkeep` para que el usuario deje ahí su EPUB.
+- **Navegación**: Se conectó `MainApp` para que al abrir `lectura-nuevo-testamento` se muestre el lector EPUB y no el detalle de oración estándar.
+
+**Validación:**
+- `cmd /c npm run build`: compilación de TypeScript y build Next correctas; persiste el error de entorno `spawn EPERM` al final (ya conocido en este equipo).
+
+**Archivos Modificados:**
+- `src/lib/data.tsx`
+- `src/components/main/MainApp.tsx`
+- `src/lib/prayers/plan-de-vida/lectura-nuevo-testamento.ts` (NUEVO)
+- `src/components/NewTestamentEpubReader.tsx` (NUEVO)
+- `public/epub/.gitkeep` (NUEVO)
+- `public/epub/README.txt` (NUEVO)
+
+### [2026-02-22 16:18] 68. Lector EPUB 100% offline + guardado automático de posición
+**Planificación:**
+- Eliminar dependencia de CDN para `epub.js` y usar librería instalada localmente.
+- Mantener lectura del archivo desde `public/epub/`.
+- Guardar/restaurar automáticamente la posición de lectura por archivo EPUB.
+
+**Ejecución:**
+- **Dependencia local**: Se instaló `epubjs` en el proyecto para uso offline (sin carga remota de scripts).
+- **Lector EPUB** (`NewTestamentEpubReader`):
+  - Se migró a import local `import ePub from 'epubjs'`.
+  - Se eliminó toda carga por CDN.
+  - Se conserva lectura desde `/epub/{archivo}`.
+  - Se implementó guardado de posición automático usando `cfi` en `localStorage` por nombre de archivo.
+  - Se restaura la última posición al volver a abrir el mismo EPUB.
+- **Validación**: `cmd /c npm run build` compila correctamente (persistiendo el error de entorno `spawn EPERM` al final, ya conocido).
+
+**Archivos Modificados:**
+- `src/components/NewTestamentEpubReader.tsx`
+- `package.json`
+- `package-lock.json`
+
+### [2026-02-22 16:25] 69. Lector EPUB avanzado (TOC, buscador, marcadores y subrayados)
+**Planificación:**
+- Extender `NewTestamentEpubReader` con menú de navegación rápida por índice (TOC).
+- Agregar buscador de contenido dentro del EPUB con resultados clickeables.
+- Agregar marcadores persistentes por archivo EPUB.
+- Agregar subrayados persistentes por archivo EPUB (selección + guardado + restauración).
+
+**Ejecución:**
+- En progreso.
+
+**Archivo Objetivo:**
+- `src/components/NewTestamentEpubReader.tsx`
+
+### [2026-02-22 16:28] 69. Lector EPUB avanzado (Ejecución)
+**Planificación:**
+- Implementar índice, búsqueda, marcadores y subrayados persistentes en el lector EPUB offline.
+
+**Ejecución:**
+- **Índice/TOC**: Se cargó navegación del EPUB y se agregó selector de “viaje rápido” por secciones.
+- **Buscador**: Se implementó búsqueda de texto dentro del EPUB recorriendo secciones del spine, con resultados clickeables que abren en la coincidencia.
+- **Marcadores**: Se agregó creación, listado, apertura y eliminación de marcadores persistentes por archivo EPUB.
+- **Subrayados**: Se agregó flujo de selección -> subrayado, persistencia por archivo EPUB y restauración automática al abrir.
+- **Persistencia**: Se guardan/restituyen posición, marcadores y subrayados en `localStorage` con claves por nombre de archivo.
+
+**Validación:**
+- `cmd /c npm run build` compila correctamente (manteniendo el error de entorno `spawn EPERM` al final, ya conocido).
+
+**Archivos Modificados:**
+- `src/components/NewTestamentEpubReader.tsx`
+
+### [2026-02-22 16:35] 70. Panel lateral EPUB + notas en subrayados
+**Planificación:**
+- Reorganizar el lector EPUB para que TOC/búsqueda/marcadores/subrayados estén en un panel lateral más cómodo.
+- Añadir soporte de notas opcionales por cada subrayado, con persistencia.
+
+**Ejecución:**
+- **Panel lateral**: Se añadió un `Sheet` lateral con pestañas rápidas (`TOC`, `Buscar`, `Marcadores`, `Subrayados`) y botón `Panel lateral` desde el lector.
+- **TOC**: Se movió al panel y mantiene salto rápido por sección.
+- **Buscador**: Se movió al panel con resultados clickeables.
+- **Marcadores**: Se movieron al panel con apertura y eliminación.
+- **Subrayados + notas**:
+  - Se añadió `note?: string` al modelo de subrayado.
+  - Al crear subrayado, ahora acepta nota opcional.
+  - En el panel se puede editar la nota de cada subrayado y se guarda automáticamente.
+  - Se mantiene persistencia por archivo EPUB en `localStorage`.
+
+**Validación:**
+- `cmd /c npm run build` compila correctamente; permanece el error de entorno `spawn EPERM` al final (ya conocido).
+
+**Archivos Modificados:**
+- `src/components/NewTestamentEpubReader.tsx`
+
+### [2026-02-22 16:37] 71. Filtro por libro + índice NT lateral (Planificación)
+**Planificación:**
+- Agregar filtro por libro en el panel TOC del lector EPUB para navegar más rápido.
+- Añadir un bloque de `Índice Nuevo Testamento` al final del panel lateral (después de las opciones existentes), con acceso directo por libro.
+- Mostrar disponibilidad por libro según el contenido real del EPUB cargado.
+
+**Ejecución:**
+- En progreso.
+
+**Archivo Objetivo:**
+- `src/components/NewTestamentEpubReader.tsx`
+
+### [2026-02-22 16:42] 71. Filtro por libro + índice NT lateral (Ejecución)
+**Planificación:**
+- Añadir filtro por libro para TOC y un índice NT final en panel lateral.
+
+**Ejecución:**
+- **Filtro por libro (TOC)**:
+  - Se agregó detección de libros del NT por etiquetas del TOC.
+  - Se añadió selector `Todos los libros` + libros detectados para filtrar el TOC.
+  - El listado de secciones del TOC ahora respeta ese filtro.
+- **Índice NT al final del panel**:
+  - Se añadió bloque fijo al final del panel lateral con los 27 libros del Nuevo Testamento.
+  - Cada libro abre su primera sección detectada en el EPUB.
+  - Si un libro no existe en el EPUB, se muestra como `no detectado` y se desactiva.
+- **Comportamiento**:
+  - Al cargar un nuevo archivo EPUB, el filtro vuelve a `Todos los libros`.
+
+**Validación:**
+- `cmd /c npm run build` compila correctamente; persiste `spawn EPERM` al final por entorno.
+
+**Archivos Modificados:**
+- `src/components/NewTestamentEpubReader.tsx`
+
+### [2026-02-22 16:45] 72. Notificación por inicio de temporada Cotidie Annuum (Planificación)
+**Planificación:**
+- Agregar notificación automática que dependa del inicio real de la temporada Cotidie Annuum (no de una fecha hardcodeada).
+- Calcular el inicio anual según la misma lógica litúrgica usada por Wrapped Season (Cristo Rey).
+- Programar notificación con texto de invitación a explorar su año en Cotidie.
+
+**Ejecución:**
+- En progreso.
+
+**Archivo Objetivo:**
+- `src/context/SettingsContext.tsx`
+
+### [2026-02-22 16:48] 72. Notificación por inicio de temporada Cotidie Annuum (Ejecución)
+**Planificación:**
+- Programar recordatorio dependiente del inicio de temporada (Cristo Rey) sin fecha fija hardcodeada.
+
+**Ejecución:**
+- **Scheduler de notificaciones**:
+  - Se agregó cálculo del inicio de temporada Cotidie Annuum por año usando la lógica litúrgica (primer domingo de Adviento menos 7 días = Cristo Rey).
+  - Se añadió notificación automática para el inicio de temporada del año actual y del siguiente (si cae dentro del horizonte de programación).
+  - Mensaje añadido: invitación a explorar el resumen anual en Cotidie.
+- **Condición**: La notificación se agenda solo cuando la fecha calculada entra en el horizonte de notificaciones activo; no depende de una fecha fija escrita a mano.
+
+**Validación:**
+- `cmd /c npm run build` compila correctamente; se mantiene `spawn EPERM` al final por entorno.
+
+**Archivos Modificados:**
+- `src/context/SettingsContext.tsx`
+
+### [2026-02-22 16:53] 73. Notificación Cotidie Annuum recurrente anual
+**Planificación:**
+- Hacer que la notificación de inicio de temporada Cotidie Annuum no dependa solo del horizonte corto y quede prevista para múltiples años.
+
+**Ejecución:**
+- Se ajustó el scheduler para la notificación de inicio de Cotidie Annuum:
+  - ya no se limita al `horizonEnd` corto,
+  - se programa para el año actual + 10 años hacia adelante,
+  - cada fecha se calcula dinámicamente por inicio real de temporada (Cristo Rey), no por fecha fija manual.
+- Resultado: la notificación queda recurrente en la práctica anual, incluso si el inicio de temporada cambia de día según calendario litúrgico.
+
+**Validación:**
+- `cmd /c npm run build` compila correctamente; se mantiene `spawn EPERM` al final por entorno.
+
+**Archivos Modificados:**
+- `src/context/SettingsContext.tsx`

@@ -248,7 +248,7 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
         </CardHeader>
         <CardContent>
           <div className="text-sm text-foreground space-y-3">
-            <p className="font-semibold text-base">Benjamín Alcalde Gueneau de Mussy</p>
+            <p className="font-semibold text-base">Elstrella Co</p>
             <div className="flex items-center gap-3 text-muted-foreground">
               <button
                 type="button"
@@ -259,7 +259,7 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
               >
                 <Icon.Mail className="size-4" />
               </button>
-              <a href="mailto:balcaldegm@gmail.com" className="hover:underline">balcaldegm@gmail.com</a>
+              <a href="mailto:cotidieapp@gmail.com" className="hover:underline">cotidieapp@gmail.com</a>
             </div>
             <div className="flex items-center gap-3 text-muted-foreground">
               <button
@@ -271,7 +271,7 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
               >
                 <Icon.Phone className="size-4" />
               </button>
-              <span>+56 9 8189 9137</span>
+              <span>+56 9 2947 4804</span>
             </div>
             <div className="flex items-center gap-3 text-muted-foreground">
               <button
@@ -283,7 +283,7 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
               >
                 <Icon.Instagram className="size-4" />
               </button>
-              <a href="https://instagram.com/benja_alcalde" target="_blank" rel="noopener noreferrer" className="hover:underline">@benja_alcalde</a>
+              <a href="https://instagram.com/cotidieapp" target="_blank" rel="noopener noreferrer" className="hover:underline">@cotidieapp</a>
             </div>
           </div>
         </CardContent>

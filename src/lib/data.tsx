@@ -24,6 +24,7 @@ import { ofrecimientoDeObras } from './prayers/plan-de-vida/ofrecimiento-obras';
 import { oracionManana } from './prayers/plan-de-vida/oracion-manana';
 import { oracionTarde } from './prayers/plan-de-vida/oracion-tarde';
 import { santaMisa } from './prayers/plan-de-vida/santa-misa';
+import { lecturaNuevoTestamento } from './prayers/plan-de-vida/lectura-nuevo-testamento';
 import { visitaSantisimo } from './prayers/plan-de-vida/visita-santisimo';
 import { angelusReginaCoeli } from './prayers/plan-de-vida/angelus-regina-coeli';
 import { santoRosario } from './prayers/plan-de-vida/santo-rosario';
@@ -101,6 +102,7 @@ export const initialPrayers: Prayer[] = [
   ofrecimientoDeObras,
   oracionManana,
   santaMisa,
+  lecturaNuevoTestamento,
   visitaSantisimo,
   mesdeMaria,
   angelusReginaCoeli,

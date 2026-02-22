@@ -138,7 +138,7 @@ type Settings = {
   hiddenPrayerIds: string[];
   editedPrayerIds: string[];
 
-  importUserData: (data: any) => void;
+  importUserData: (data: any, options?: { silent?: boolean }) => void;
 
   timerEnabled: boolean;
   setTimerEnabled: (enabled: boolean) => void;
@@ -255,6 +255,28 @@ type Settings = {
 const SettingsContext = createContext<Settings | undefined>(undefined);
 const SAVED_STATE_KEY = 'cotidie_app_state';
 const PENDING_IMPORT_STORAGE_KEY = 'cotidie_pending_import';
+
+const isCustomPlanPayload = (data: any): data is Partial<CustomPlan> & { name: string; prayerIds: string[] } => {
+  return (
+    !!data &&
+    typeof data === 'object' &&
+    typeof data.name === 'string' &&
+    Array.isArray(data.prayerIds)
+  );
+};
+
+const isFullAppStatePayload = (data: any): boolean => {
+  return (
+    !!data &&
+    typeof data === 'object' &&
+    (typeof data.theme === 'string' ||
+      typeof data.fontSize === 'string' ||
+      typeof data.fontSize === 'number' ||
+      typeof data.fontFamily === 'string' ||
+      typeof data.timerDuration === 'number' ||
+      Array.isArray(data.customPlans))
+  );
+};
 
 const defaultThemeColors: CustomThemeColors = {
   primary: { h: 36, s: 88 },
@@ -1103,6 +1125,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setHomeBackgroundId(defaultHomeBackgroundId);
     setOverlayPositions(defaultOverlayPositions);
     setArrowBubbleSize('sm');
+    setMovableFeastsEnabled(true);
     // ... reset others as needed, but usually we keep user data
     toast({ title: 'Configuración restablecida.' });
   };
@@ -1149,19 +1172,16 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     toast({ title: 'Oraciones predeterminadas restauradas.' });
   };
 
-  const importUserData = (data: any) => {
+  const importUserData = (data: any, options?: { silent?: boolean }) => {
+    const silent = options?.silent === true;
     if (!data || typeof data !== 'object') {
-      toast({ variant: 'destructive', title: 'Error al importar', description: 'El archivo no es válido.' });
+      if (!silent) {
+        toast({ variant: 'destructive', title: 'Error al importar', description: 'El archivo no es válido.' });
+      }
       return;
     }
 
-    const isFullAppState =
-      typeof data.theme === 'string' ||
-      typeof data.fontSize === 'string' ||
-      typeof data.fontSize === 'number' ||
-      typeof data.fontFamily === 'string' ||
-      typeof data.timerDuration === 'number' ||
-      Array.isArray(data.customPlans);
+    const isFullAppState = isFullAppStatePayload(data);
 
     if (!isFullAppState) {
       if (data.userDevotions) setUserDevotions(data.userDevotions);
@@ -1175,7 +1195,9 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       if (typeof data.autoRotateBackground === 'boolean') {
         setAutoRotateBackground(data.autoRotateBackground);
       }
-      toast({ title: 'Datos importados.' });
+      if (!silent) {
+        toast({ title: 'Datos importados.' });
+      }
       return;
     }
 
@@ -1262,8 +1284,36 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     }
     setCustomPlans(normalizedPlans);
 
-    toast({ title: 'Datos importados.' });
+    if (!silent) {
+      toast({ title: 'Datos importados.' });
+    }
   };
+
+  const importCustomPlanPayload = useCallback((data: any) => {
+    if (!isCustomPlanPayload(data)) return false;
+    const normalizedPrayerIds = data.prayerIds.filter((x: unknown): x is string => typeof x === 'string');
+    if (normalizedPrayerIds.length === 0) return false;
+
+    const preferredSlot = data.slot === 1 || data.slot === 2 || data.slot === 3 || data.slot === 4 ? data.slot : null;
+    setCustomPlans((prev) => {
+      const next = [...prev];
+      const firstEmpty = next.findIndex((entry) => !entry);
+      const targetSlot =
+        (preferredSlot && !next[preferredSlot - 1] && preferredSlot) ||
+        (firstEmpty >= 0 ? ((firstEmpty + 1) as 1 | 2 | 3 | 4) : (preferredSlot ?? 1));
+      const trimmed = data.name.trim();
+      const name = trimmed.length > 0 && !/^Plan personalizado\b/i.test(trimmed) ? trimmed : `Plan ${targetSlot}`;
+      next[targetSlot - 1] = {
+        id: `custom-plan-${targetSlot}-${Date.now()}`,
+        slot: targetSlot,
+        name,
+        prayerIds: normalizedPrayerIds,
+        createdAt: Date.now(),
+      };
+      return next;
+    });
+    return true;
+  }, []);
 
   useEffect(() => {
     if (!isLoaded || typeof window === 'undefined') return;
@@ -1277,7 +1327,12 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         window.localStorage.removeItem(PENDING_IMPORT_STORAGE_KEY);
 
         const parsed = JSON.parse(raw);
-        importUserData(parsed);
+        if (importCustomPlanPayload(parsed)) {
+          toast({ title: 'Plan personalizado cargado con éxito.' });
+          return;
+        }
+        importUserData(parsed, { silent: true });
+        toast({ title: 'Respaldo cargado con éxito.' });
       } catch {
         toast({
           variant: 'destructive',
@@ -1292,7 +1347,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       window.removeEventListener('cotidie-pending-import', consumePendingImport);
     };
-  }, [isLoaded, importUserData, toast]);
+  }, [isLoaded, importCustomPlanPayload, importUserData, toast]);
 
   const setOverlayPosition = (key: keyof OverlayPositions, pos: OverlayPosition) => {
     setOverlayPositions((prev) => ({
@@ -1526,7 +1581,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
             const isMorning = hour >= 4 && hour < 12; // Expanded range for Morning (4AM - 12PM)
 
             const isRosary = subKey === 'rosario' || subKey === 'santo-rosario';
-            const isAngelus = subKey === 'angelus' || subKey === 'regina-caeli';
+            const isAngelus =
+              subKey === 'angelus' ||
+              subKey === 'regina-caeli' ||
+              subKey === 'angelus-regina-coeli';
             const isExamination = subKey === 'examen-conciencia' || subKey === 'examen-noche';
             
             const todayKey = getLocalDateKey(now);
@@ -1663,7 +1721,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
         // Specific prayer type checks
         const isRosary = subKey === 'rosario' || subKey === 'santo-rosario';
-        const isAngelus = subKey === 'angelus' || subKey === 'regina-caeli';
+        const isAngelus =
+          subKey === 'angelus' ||
+          subKey === 'regina-caeli' ||
+          subKey === 'angelus-regina-coeli';
         const isExamination = subKey === 'examen-conciencia' || subKey === 'examen-noche';
         
         // Track unique days for this prayer/devotion
@@ -2158,7 +2219,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
       const icon = theme === 'dark' ? 'small_icon_white' : 'small_icon_black';
       const isAndroid = platform === 'android';
-      const isIOS = platform === 'ios';
 
       const pad2 = (n: number) => String(n).padStart(2, '0');
       const toDateKey = (d: Date) =>
@@ -2211,7 +2271,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
             body: message,
             channelId: 'cotidie-reminders',
             smallIcon: icon,
-            largeIcon: icon,
             schedule: {
               at: fireAt,
               allowWhileIdle: true,
@@ -2248,8 +2307,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
               body: formatTemplate(entry.text, next),
               channelId: 'cotidie-reminders',
               smallIcon: icon,
-              largeIcon: isAndroid ? (imageDrawable ?? icon) : (imagePath ?? icon),
-              attachments: isIOS && imagePath ? [imagePath] : undefined,
+              largeIcon: imageDrawable ?? undefined,
+              attachments: imagePath ? [imagePath] : undefined,
               schedule: {
                 at: next,
                 allowWhileIdle: true,
@@ -2282,8 +2341,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
             body: 'Recordatorio automatico cada 5 minutos.',
             channelId: 'cotidie-reminders',
             smallIcon: icon,
-            largeIcon: isAndroid ? devImageDrawable : devImagePath,
-            attachments: isIOS ? [devImagePath] : undefined,
+            largeIcon: devImageDrawable,
+            attachments: [devImagePath],
             schedule: {
               on: { minute },
               allowWhileIdle: true,
@@ -2329,6 +2388,49 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           extra: {
             fixed: true,
             feast: key,
+            dateKey,
+          },
+        });
+      };
+
+      const getWrappedSeasonStartForYear = (year: number) => {
+        const startWindow = new Date(year, 10, 27); // Nov 27
+        const advent1 = new Date(startWindow);
+        while (advent1.getDay() !== 0) {
+          advent1.setDate(advent1.getDate() + 1);
+        }
+        const christTheKing = new Date(advent1);
+        christTheKing.setDate(advent1.getDate() - 7);
+        return christTheKing;
+      };
+
+      const scheduleCotidieAnnuumStart = (year: number) => {
+        const start = getWrappedSeasonStartForYear(year);
+        const fireAt = new Date(
+          start.getFullYear(),
+          start.getMonth(),
+          start.getDate(),
+          9,
+          0,
+          0,
+          0
+        );
+        if (fireAt.getTime() < now.getTime()) return;
+        const dateKey = toDateKey(fireAt);
+        const id = toNotificationId(`season:cotidie-annuum:${year}:${dateKey}`);
+        notifications.push({
+          id,
+          title: formatTemplate('Comienza Cotidie Annuum {year}', fireAt),
+          body: formatTemplate('Tu resumen anual ya está disponible. Descubre cómo fue tu camino de oración este año en Cotidie.', fireAt),
+          channelId: 'cotidie-reminders',
+          smallIcon: icon,
+          schedule: {
+            at: fireAt,
+            allowWhileIdle: true,
+          },
+          extra: {
+            fixed: true,
+            season: 'cotidie-annuum',
             dateKey,
           },
         });
@@ -2382,6 +2484,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       scheduleMovable(now.getFullYear() + 1, 60, 'Corpus Christi', 'Solemnidad del Cuerpo y la Sangre de Cristo. Adora la Eucaristia y renueva tu amor por ella.', 'corpus-christi', 9, 0);
       scheduleMovable(now.getFullYear(), 68, 'Sagrado Corazon de Jesus', 'Solemnidad. Consagra tu corazon al Corazon de Jesus y confia en su amor.', 'sacred-heart', 9, 0);
       scheduleMovable(now.getFullYear() + 1, 68, 'Sagrado Corazon de Jesus', 'Solemnidad. Consagra tu corazon al Corazon de Jesus y confia en su amor.', 'sacred-heart', 9, 0);
+      const annuumYearsAhead = 10;
+      for (let i = 0; i <= annuumYearsAhead; i++) {
+        scheduleCotidieAnnuumStart(now.getFullYear() + i);
+      }
 
       try {
         await LocalNotifications.schedule({ notifications });

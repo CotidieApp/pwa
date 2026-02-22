@@ -52,6 +52,7 @@ export default function ContentSettings({ onShowWrapped }: ContentSettingsProps)
     userDevotions,
     userPrayers,
     userLetters,
+    customPlans,
     importUserData,
     simulatedDate,
     setSimulatedDate,
@@ -260,6 +261,35 @@ export default function ContentSettings({ onShowWrapped }: ContentSettingsProps)
       try {
         const text = e.target?.result as string;
         const data = JSON.parse(text);
+        const isCustomPlanPayload =
+          data &&
+          typeof data === 'object' &&
+          typeof data.name === 'string' &&
+          Array.isArray(data.prayerIds);
+
+        if (isCustomPlanPayload) {
+          const normalizedPrayerIds = data.prayerIds.filter((x: unknown): x is string => typeof x === 'string');
+          if (normalizedPrayerIds.length === 0) throw new Error('Formato de plan inválido.');
+
+          const preferredSlot = data.slot === 1 || data.slot === 2 || data.slot === 3 || data.slot === 4 ? data.slot : null;
+          const firstEmpty = customPlans.findIndex((entry) => !entry);
+          const targetSlot =
+            (preferredSlot && !customPlans[preferredSlot - 1] && preferredSlot) ||
+            (firstEmpty >= 0 ? ((firstEmpty + 1) as 1 | 2 | 3 | 4) : (preferredSlot ?? 1));
+
+          const nextPlans = [...customPlans];
+          nextPlans[targetSlot - 1] = {
+            id: `custom-plan-${targetSlot}-${Date.now()}`,
+            slot: targetSlot,
+            name: data.name.trim() || `Plan ${targetSlot}`,
+            prayerIds: normalizedPrayerIds,
+            createdAt: Date.now(),
+          };
+          importUserData({ customPlans: nextPlans }, { silent: true });
+          toast({ title: 'Plan personalizado cargado con éxito.' });
+          return;
+        }
+
         const isFullAppState =
           data &&
           typeof data === 'object' &&
@@ -273,7 +303,7 @@ export default function ContentSettings({ onShowWrapped }: ContentSettingsProps)
         if (isFullAppState) {
           if (typeof window !== 'undefined' && window.localStorage && typeof window.localStorage.setItem === 'function') {
             window.localStorage.setItem('cotidie_app_state', JSON.stringify(data));
-            toast({ title: 'Datos importados correctamente.' });
+            toast({ title: 'Respaldo cargado con éxito.' });
             setTimeout(() => window.location.reload(), 50);
             return;
           }
@@ -289,8 +319,8 @@ export default function ContentSettings({ onShowWrapped }: ContentSettingsProps)
           typeof data.homeBackgroundId === 'string' ||
           typeof data.autoRotateBackground === 'boolean'
         ) {
-          importUserData(data);
-          toast({ title: 'Datos importados correctamente.' });
+          importUserData(data, { silent: true });
+          toast({ title: 'Respaldo cargado con éxito.' });
           return;
         }
 
