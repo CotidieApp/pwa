@@ -47,10 +47,8 @@ export default function RootLayout({
 
         <link rel="manifest" href="/manifest.json" />
         
-        {/* Íconos Adaptativos (Dark/Light) */}
         <link rel="icon" href="/icons/icon.png" />
-        <link rel="icon" href="/icons/black_icon.png" media="(prefers-color-scheme: light)" />
-        <link rel="icon" href="/icons/white_icon.png" media="(prefers-color-scheme: dark)" />
+        <link rel="apple-touch-icon" href="/icons/icon.png" />
 
         {/* Fuentes Locales */}
         <link rel="stylesheet" href="/fonts/fonts.css" />

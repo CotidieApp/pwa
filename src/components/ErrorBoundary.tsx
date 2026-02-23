@@ -39,9 +39,9 @@ class ErrorBoundary extends Component<Props, State> {
 function FallbackUI() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6 text-center">
-      <h1 className="text-xl font-semibold">OcurriÃ³ un error inesperado</h1>
+      <h1 className="text-xl font-semibold">Ocurrió un error inesperado</h1>
       <p className="text-sm text-muted-foreground max-w-sm">
-        La app no se reiniciarÃ¡ sin tu permiso. Puedes volver al inicio o recargar.
+        La app no se reiniciará sin tu permiso. Puedes volver al inicio o recargar.
       </p>
       <div className="flex gap-2">
         <Button variant="outline" onClick={() => (window.location.href = '/')}>

@@ -299,7 +299,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 ### [2026-02-20 12:45] 48. Notificaciones de fiestas y fallback de errores
 **Planificación:**
 - Agregar notificaciones para fiestas fijas principales en `fixed-notifications.ts`.
-- Evitar reinicios abruptos ante errores mostrando una pantalla de fallback con acciones explÃ­citas.
+- Evitar reinicios abruptos ante errores mostrando una pantalla de fallback con acciones explí­citas.
 
 **Ejecución:**
 - **Notificaciones**: Se añadieron fiestas fijas principales (fechas estables) con hora sugerida 09:00.
@@ -1548,6 +1548,259 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 
 **Validación:**
 - `cmd /c npm run build`: TypeScript y compilación Next correctos; el proceso termina con `spawn EPERM` por entorno local.
+
+**Archivo Modificado:**
+- `src/components/NewTestamentEpubReader.tsx`
+
+### [2026-02-23 11:16] 82. Zonas táctiles EPUB + colores texto/fondo (Planificación)
+**Planificación:**
+- Ajustar las zonas táctiles del lector EPUB a sextos inferiores: izquierda retroceder, centro/derecha avanzar.
+- Reservar la mitad superior para mostrar/ocultar encabezado y opciones de configuración.
+- Añadir configuración de color independiente para texto y fondo (blanco/negro) para evitar ilegibilidad en modo oscuro.
+- Limitar los cambios solo a `NewTestamentEpubReader.tsx`.
+
+**Ejecución:**
+- En progreso.
+
+**Archivo Objetivo:**
+- `src/components/NewTestamentEpubReader.tsx`
+
+### [2026-02-23 11:23] 82. Zonas táctiles EPUB + colores texto/fondo (Ejecución)
+**Ejecución:**
+- **Zonas táctiles**: Se configuró la mitad superior para alternar mostrar/ocultar encabezado y opciones.
+- **Zonas táctiles**: Se dividió la mitad inferior en tres sextos efectivos:
+  - izquierdo: retrocede página,
+  - central: avanza página,
+  - derecho: avanza página.
+- **Colores de lectura**: Se añadieron selectores independientes para `Texto` y `Fondo` (blanco/negro).
+- **Aplicación de tema EPUB**: El color de texto/fondo ahora se aplica de forma explícita sobre `rendition` para evitar texto negro sobre fondo oscuro.
+- **Alcance**: Solo se editó `src/components/NewTestamentEpubReader.tsx`.
+
+**Validación:**
+- `cmd /c npm run build` compila TypeScript + Next; persiste `spawn EPERM` al final por entorno local.
+
+**Archivo Modificado:**
+- `src/components/NewTestamentEpubReader.tsx`
+
+### [2026-02-23 11:30] 83. Fix navegación táctil EPUB en dev (Planificación)
+**Planificación:**
+- Corregir la captura táctil de cambio de página en el lector EPUB sin tocar otras funciones.
+- Reemplazar la superposición táctil por una capa única de alto `z-index` para evitar conflictos con el iframe del EPUB.
+- Mantener exactamente la distribución pedida: mitad superior toggle, tercio inferior izquierdo retrocede, tercios inferiores centro/derecha avanzan.
+
+**Ejecución:**
+- En progreso.
+
+**Archivo Objetivo:**
+- `src/components/NewTestamentEpubReader.tsx`
+
+### [2026-02-23 11:34] 83. Fix navegación táctil EPUB en dev (Ejecución)
+**Ejecución:**
+- Se reemplazó la superposición de botones por una única capa táctil (`absolute inset-0 z-[30]`) sobre el lector EPUB.
+- Se mantuvo la distribución solicitada:
+  - mitad superior: mostrar/ocultar encabezado,
+  - tercio inferior izquierdo: retroceder,
+  - tercios inferiores centro y derecho: avanzar.
+- Se evitó modificar otras funciones fuera del lector EPUB.
+
+**Validación:**
+- `npx tsc --noEmit` sin errores.
+- `npm run build` compila hasta fase final de Next/PWA; en este entorno sigue apareciendo cierre anómalo por tiempo/`EPERM` ya observado antes.
+
+**Archivo Modificado:**
+- `src/components/NewTestamentEpubReader.tsx`
+
+### [2026-02-23 11:40] 84. Ícono PWA unificado en `icon.png` (Planificación)
+**Planificación:**
+- Corregir el manifiesto PWA para que use únicamente el ícono principal (`/icons/icon.png`) en instalación.
+- Eliminar referencias de favicon condicional a íconos blanco/negro en el layout web.
+- Mantener cambios acotados solo a PWA/layout de iconos.
+
+**Ejecución:**
+- En progreso.
+
+**Archivos Objetivo:**
+- `public/manifest.json`
+- `src/app/layout.tsx`
+
+### [2026-02-23 11:44] 84. Ícono PWA unificado en `icon.png` (Ejecución)
+**Ejecución:**
+- Se actualizó `public/manifest.json` para usar exclusivamente `"/icons/icon.png"` como ícono PWA (192 y 512).
+- Se removieron del layout las referencias a `black_icon.png` y `white_icon.png`.
+- Se dejó `link rel="icon"` y `link rel="apple-touch-icon"` apuntando solo a `"/icons/icon.png"`.
+- No se tocaron otras funciones fuera de iconos PWA/layout.
+
+**Archivos Modificados:**
+- `public/manifest.json`
+- `src/app/layout.tsx`
+
+### [2026-02-23 11:52] 85. Fix color de texto blanco en lector EPUB (Planificación)
+**Planificación:**
+- Corregir el render del color de texto cuando se elige blanco en el lector EPUB.
+- Forzar estilos de lectura dentro de cada iframe del EPUB para que el color se aplique también en elementos internos (no solo `body`).
+- Mantener los cambios acotados exclusivamente a `NewTestamentEpubReader.tsx`.
+
+**Ejecución:**
+- En progreso.
+
+**Archivo Objetivo:**
+- `src/components/NewTestamentEpubReader.tsx`
+
+### [2026-02-23 11:55] 85. Fix color de texto blanco en lector EPUB (Ejecución)
+**Ejecución:**
+- Se añadió inyección de estilos por iframe del EPUB (`contents.document`) para forzar color y fondo de lectura con `!important`.
+- Se aplican estilos al cargar nuevas secciones (`rendition.hooks.content.register`) y también al contenido ya visible (`getContents()`).
+- Se mantiene la configuración independiente de color de texto/fondo y ahora el texto blanco sí se refleja en pantalla.
+- Alcance limitado solo a `src/components/NewTestamentEpubReader.tsx`.
+
+**Validación:**
+- `npx tsc --noEmit` sin errores.
+
+**Archivo Modificado:**
+- `src/components/NewTestamentEpubReader.tsx`
+
+### [2026-02-23 12:21] 86. Fix layout EPUB en fullscreen (Planificación)
+**Planificación:**
+- Corregir el desajuste de páginas y el espacio en blanco inferior al entrar a pantalla completa.
+- Forzar recalculo de tamaño de `rendition` cuando cambie fullscreen/visibilidad de encabezado.
+- Mantener cambios limitados al lector EPUB.
+
+**Ejecución:**
+- En progreso.
+
+**Archivo Objetivo:**
+- `src/components/NewTestamentEpubReader.tsx`
+
+### [2026-02-23 12:24] 86. Fix layout EPUB en fullscreen (Ejecución)
+**Ejecución:**
+- Se añadió `refreshRenditionLayout` para redimensionar explícitamente el `rendition` al tamaño real del contenedor.
+- Se dispara el recalculo al cambiar fullscreen/encabezado y en `resize` de ventana.
+- Con esto, el iframe del EPUB deja de conservar altura antigua y se elimina el bloque en blanco inferior al pasar a pantalla completa.
+- No se tocaron funciones fuera de `NewTestamentEpubReader.tsx`.
+
+**Validación:**
+- `npx tsc --noEmit` sin errores.
+
+**Archivo Modificado:**
+- `src/components/NewTestamentEpubReader.tsx`
+
+### [2026-02-23 12:29] 87. Ajuste de uso vertical en páginas EPUB (Planificación)
+**Planificación:**
+- Corregir el espacio vertical desaprovechado dentro de la página EPUB en fullscreen.
+- Ajustar render paginado para evitar spreads y mejorar aprovechamiento vertical.
+- Reducir márgenes/paddings internos del contenido EPUB para que el texto use más alto visible.
+
+**Ejecución:**
+- En progreso.
+
+**Archivo Objetivo:**
+- `src/components/NewTestamentEpubReader.tsx`
+
+### [2026-02-23 12:31] 87. Ajuste de uso vertical en páginas EPUB (Ejecución)
+**Ejecución:**
+- Se configuró el render paginado con `spread: 'none'` y `minSpreadWidth` alto para evitar distribuciones que dejen área desaprovechada.
+- Se ajustó el CSS inyectado del EPUB para eliminar márgenes/padding por defecto en `html/body` y usar padding interno compacto.
+- Se forzó `height/min-height: 100%` en el contenido para que la página ocupe mejor el alto disponible.
+- Cambios limitados a `src/components/NewTestamentEpubReader.tsx`.
+
+**Validación:**
+- `npx tsc --noEmit` sin errores.
+
+**Archivo Modificado:**
+- `src/components/NewTestamentEpubReader.tsx`
+
+### [2026-02-23 12:34] 88. Fix texto residual en margen inferior EPUB (Planificación)
+**Planificación:**
+- Corregir el texto residual fijo en el margen inferior del lector EPUB.
+- Ajustar el CSS inyectado para evitar desbordes visuales en paginación (overflow interno).
+- Mantener alcance solo en el lector EPUB.
+
+**Ejecución:**
+- En progreso.
+
+**Archivo Objetivo:**
+- `src/components/NewTestamentEpubReader.tsx`
+
+### [2026-02-23 12:36] 88. Fix texto residual en margen inferior EPUB (Ejecución)
+**Ejecución:**
+- Se retiró el forzado de `height/min-height: 100%` y el padding interno extra en `body`, que estaban provocando artefactos de paginación.
+- Se añadió `overflow: hidden !important` en `html/body` del contenido EPUB para impedir que texto de otra porción de página quede visible en el margen inferior.
+- Se mantuvo el esquema de color de texto/fondo y el resto de funcionalidades sin cambios.
+
+**Validación:**
+- `npx tsc --noEmit` sin errores.
+
+**Archivo Modificado:**
+- `src/components/NewTestamentEpubReader.tsx`
+
+### [2026-02-23 12:40] 89. Fix pantalla negra/blanca en lector EPUB (Planificación)
+**Planificación:**
+- Corregir la pantalla vacía del EPUB tras el último ajuste de estilos.
+- Retirar la regla de `overflow: hidden` dentro del contenido EPUB para evitar ocultar el flujo paginado.
+- Mantener intactas las demás funciones del lector.
+
+**Ejecución:**
+- En progreso.
+
+**Archivo Objetivo:**
+- `src/components/NewTestamentEpubReader.tsx`
+
+### [2026-02-23 12:41] 89. Fix pantalla negra/blanca en lector EPUB (Ejecución)
+**Ejecución:**
+- Se eliminó `overflow: hidden !important` de `html/body` en el CSS inyectado del EPUB.
+- Con esto se restablece el flujo paginado interno y el contenido vuelve a renderizarse.
+- No se modificó ninguna otra función fuera del lector EPUB.
+
+**Validación:**
+- `npx tsc --noEmit` sin errores.
+
+**Archivo Modificado:**
+- `src/components/NewTestamentEpubReader.tsx`
+
+### [2026-02-23 12:49] 90. Avance visual EPUB + limpieza botón fullscreen duplicado (Planificación)
+**Planificación:**
+- Corregir que el texto visible no cambie aunque el contador de página sí avance.
+- Forzar reflujo/redibujo del `rendition` después de `prev/next` para mantener sincronía visual.
+- Eliminar el botón de pantalla completa dentro del menú del lector EPUB (ya existe en encabezado).
+
+**Ejecución:**
+- En progreso.
+
+**Archivo Objetivo:**
+- `src/components/NewTestamentEpubReader.tsx`
+
+### [2026-02-23 12:54] 90. Avance visual EPUB + limpieza botón fullscreen duplicado (Ejecución)
+**Ejecución:**
+- Se reforzó `goPrev/goNext` para forzar sincronización visual tras el cambio de página (`syncAfterPageChange`), incluyendo `resize` y `display` del CFI actual.
+- Se eliminó del control del lector el botón de pantalla completa (icono de expandir/contraer), manteniendo el de encabezado como único punto.
+- Se limpió la barra de acciones para dejar solo navegación, menú lateral y contador de página.
+
+**Validación:**
+- `npx tsc --noEmit` sin errores.
+
+**Archivo Modificado:**
+- `src/components/NewTestamentEpubReader.tsx`
+
+### [2026-02-23 13:01] 91. Estabilización de navegación EPUB (Planificación)
+**Planificación:**
+- Revisar la regresión de paginación que impide avanzar página.
+- Simplificar la lógica de `goPrev/goNext` eliminando resincronización agresiva que pueda revertir la página actual.
+- Mantener únicamente el ajuste de layout post-cambio de página sin re-display forzado del CFI.
+
+**Ejecución:**
+- En progreso.
+
+**Archivo Objetivo:**
+- `src/components/NewTestamentEpubReader.tsx`
+
+### [2026-02-23 13:03] 91. Estabilización de navegación EPUB (Ejecución)
+**Ejecución:**
+- Se eliminó la resincronización forzada por `display(cfi)` tras `prev/next`, que estaba revirtiendo visualmente la página.
+- `goPrev/goNext` ahora ejecutan solo navegación + refresco de layout diferido (40ms), evitando ciclos que bloqueen el avance.
+- Se mantuvo el resto del lector sin cambios funcionales adicionales.
+
+**Validación:**
+- `npx tsc --noEmit` sin errores.
 
 **Archivo Modificado:**
 - `src/components/NewTestamentEpubReader.tsx`

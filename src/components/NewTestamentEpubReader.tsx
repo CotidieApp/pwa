@@ -5,7 +5,7 @@ import ePub, { type Book, type Rendition } from 'epubjs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { Menu, Maximize2, Minimize2 } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 
 const DEFAULT_FILE_NAME = 'nuevo-testamento.epub';
@@ -40,6 +40,30 @@ type HighlightItem = {
   text: string;
   note?: string;
   createdAt: number;
+};
+
+const READER_STYLE_TAG_ID = 'cotidie-reader-colors';
+
+const applyReaderColorsToContents = (contents: any, textColor: string, backgroundColor: string) => {
+  const doc = contents?.document as Document | undefined;
+  if (!doc) return;
+  let styleEl = doc.getElementById(READER_STYLE_TAG_ID) as HTMLStyleElement | null;
+  if (!styleEl) {
+    styleEl = doc.createElement('style');
+    styleEl.id = READER_STYLE_TAG_ID;
+    doc.head?.appendChild(styleEl);
+  }
+  styleEl.textContent = `
+    html, body {
+      color: ${textColor} !important;
+      background: ${backgroundColor} !important;
+      background-color: ${backgroundColor} !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    body * { color: ${textColor} !important; }
+    a { color: ${textColor} !important; }
+  `;
 };
 
 const safeParseList = <T,>(raw: string | null): T[] => {
@@ -145,11 +169,17 @@ export default function NewTestamentEpubReader() {
   const [tocBookFilter, setTocBookFilter] = useState<string>('all');
   const [isReaderFullscreen, setIsReaderFullscreen] = useState(false);
   const [showReaderChrome, setShowReaderChrome] = useState(true);
+  const [readerTextColor, setReaderTextColor] = useState<'white' | 'black'>(theme === 'dark' ? 'white' : 'black');
+  const [readerBackgroundColor, setReaderBackgroundColor] = useState<'white' | 'black'>(
+    theme === 'dark' ? 'black' : 'white'
+  );
 
   const epubUrl = `/epub/${activeFile}`;
   const locationStorageKey = useMemo(() => toStorageKey(activeFile), [activeFile]);
   const bookmarksStorageKey = useMemo(() => toBookmarksKey(activeFile), [activeFile]);
   const highlightsStorageKey = useMemo(() => toHighlightsKey(activeFile), [activeFile]);
+  const readerTextHex = readerTextColor === 'white' ? '#ffffff' : '#000000';
+  const readerBackgroundHex = readerBackgroundColor === 'white' ? '#ffffff' : '#000000';
   const tocBookAnchors = useMemo(() => {
     const map: Record<string, TocEntry> = {};
     for (const entry of tocEntries) {
@@ -222,16 +252,24 @@ export default function NewTestamentEpubReader() {
           width: '100%',
           height: '100%',
           flow: 'paginated',
+          spread: 'none',
+          minSpreadWidth: 9999,
         });
 
         rendition.themes.default({
           body: {
-            color: theme === 'dark' ? '#f8fafc' : '#0f172a',
-            background: theme === 'dark' ? '#0b1220' : '#ffffff',
+            color: readerTextHex,
+            background: readerBackgroundHex,
           },
           '::selection': {
             background: 'rgba(251,191,36,0.45)',
           },
+        });
+        rendition.themes.override('color', readerTextHex);
+        rendition.themes.override('background', readerBackgroundHex);
+        rendition.themes.override('background-color', readerBackgroundHex);
+        rendition.hooks.content.register((contents: any) => {
+          applyReaderColorsToContents(contents, readerTextHex, readerBackgroundHex);
         });
 
         const applyHighlight = (item: HighlightItem) => {
@@ -285,6 +323,11 @@ export default function NewTestamentEpubReader() {
         await rendition.display(savedCfi || undefined);
         if (cancelled) return;
 
+        const currentContents = (rendition as any).getContents?.() ?? [];
+        currentContents.forEach((contents: any) =>
+          applyReaderColorsToContents(contents, readerTextHex, readerBackgroundHex)
+        );
+
         storedHighlights.forEach(applyHighlight);
 
         bookRef.current = book;
@@ -304,10 +347,58 @@ export default function NewTestamentEpubReader() {
       cancelled = true;
       dispose();
     };
-  }, [bookmarksStorageKey, epubUrl, highlightsStorageKey, locationStorageKey, theme]);
+  }, [bookmarksStorageKey, epubUrl, highlightsStorageKey, locationStorageKey]);
 
-  const goPrev = () => renditionRef.current?.prev();
-  const goNext = () => renditionRef.current?.next();
+  useEffect(() => {
+    const rendition = renditionRef.current;
+    if (!rendition) return;
+    rendition.themes.override('color', readerTextHex);
+    rendition.themes.override('background', readerBackgroundHex);
+    rendition.themes.override('background-color', readerBackgroundHex);
+    const currentContents = (rendition as any).getContents?.() ?? [];
+    currentContents.forEach((contents: any) => applyReaderColorsToContents(contents, readerTextHex, readerBackgroundHex));
+  }, [readerBackgroundHex, readerTextHex]);
+
+  const refreshRenditionLayout = useCallback(() => {
+    const rendition = renditionRef.current as any;
+    const container = containerRef.current;
+    if (!rendition || !container) return;
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    if (width <= 0 || height <= 0) return;
+    rendition.resize?.(width, height);
+  }, []);
+
+  useEffect(() => {
+    const tick = window.setTimeout(() => refreshRenditionLayout(), 60);
+    return () => window.clearTimeout(tick);
+  }, [isReaderFullscreen, showReaderChrome, refreshRenditionLayout]);
+
+  useEffect(() => {
+    const onResize = () => refreshRenditionLayout();
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [refreshRenditionLayout]);
+
+  const goPrev = () => {
+    const rendition = renditionRef.current as any;
+    if (!rendition) return;
+    Promise.resolve(rendition.prev?.())
+      .catch(() => undefined)
+      .finally(() => {
+        window.setTimeout(() => refreshRenditionLayout(), 40);
+      });
+  };
+
+  const goNext = () => {
+    const rendition = renditionRef.current as any;
+    if (!rendition) return;
+    Promise.resolve(rendition.next?.())
+      .catch(() => undefined)
+      .finally(() => {
+        window.setTimeout(() => refreshRenditionLayout(), 40);
+      });
+  };
 
   const scheduleChromeHide = useCallback(() => {
     if (hideChromeTimerRef.current) {
@@ -325,6 +416,20 @@ export default function NewTestamentEpubReader() {
     if (!isReaderFullscreen) return;
     setShowReaderChrome(true);
     scheduleChromeHide();
+  };
+
+  const toggleReaderChrome = () => {
+    if (!isReaderFullscreen) return;
+    setShowReaderChrome((prev) => {
+      const next = !prev;
+      if (next) {
+        scheduleChromeHide();
+      } else if (hideChromeTimerRef.current) {
+        clearTimeout(hideChromeTimerRef.current);
+        hideChromeTimerRef.current = null;
+      }
+      return next;
+    });
   };
 
   useEffect(() => {
@@ -463,7 +568,6 @@ export default function NewTestamentEpubReader() {
   return (
     <div
       className={isReaderFullscreen ? 'fixed inset-0 z-[80] bg-black flex flex-col gap-3' : 'p-4 space-y-3'}
-      onPointerDownCapture={wakeReaderChrome}
       style={
         isReaderFullscreen
           ? {
@@ -485,24 +589,54 @@ export default function NewTestamentEpubReader() {
         }
       >
       <div className="flex flex-wrap gap-2">
-        <Button variant="outline" onClick={goPrev} disabled={status !== 'ready'}>
+        <Button
+          variant="outline"
+          onClick={() => {
+            wakeReaderChrome();
+            goPrev();
+          }}
+          disabled={status !== 'ready'}
+        >
           Anterior
-        </Button>
-        <Button variant="outline" onClick={goNext} disabled={status !== 'ready'}>
-          Siguiente
-        </Button>
-        <Button variant="outline" size="icon" onClick={() => setIsPanelOpen(true)} aria-label="Abrir menú">
-          <Menu className="h-5 w-5" />
         </Button>
         <Button
           variant="outline"
-          size="icon"
-          onClick={() => setIsReaderFullscreen((prev) => !prev)}
-          aria-label={isReaderFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
+          onClick={() => {
+            wakeReaderChrome();
+            goNext();
+          }}
+          disabled={status !== 'ready'}
         >
-          {isReaderFullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
+          Siguiente
+        </Button>
+        <Button variant="outline" size="icon" onClick={() => {
+            wakeReaderChrome();
+            setIsPanelOpen(true);
+          }} aria-label="Abrir menú">
+          <Menu className="h-5 w-5" />
         </Button>
         <span className="text-xs text-muted-foreground self-center">{locationLabel ? `Página ${locationLabel}` : ''}</span>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="text-xs text-muted-foreground">Texto</label>
+        <select
+          className="rounded-md border border-input bg-background px-2 py-1 text-xs"
+          value={readerTextColor}
+          onChange={(e) => setReaderTextColor(e.target.value === 'white' ? 'white' : 'black')}
+        >
+          <option value="black">Negro</option>
+          <option value="white">Blanco</option>
+        </select>
+        <label className="text-xs text-muted-foreground">Fondo</label>
+        <select
+          className="rounded-md border border-input bg-background px-2 py-1 text-xs"
+          value={readerBackgroundColor}
+          onChange={(e) => setReaderBackgroundColor(e.target.value === 'black' ? 'black' : 'white')}
+        >
+          <option value="white">Blanco</option>
+          <option value="black">Negro</option>
+        </select>
       </div>
 
       {pendingSelectionCfi ? (
@@ -549,18 +683,34 @@ export default function NewTestamentEpubReader() {
       >
         <div ref={containerRef} className="h-full w-full" />
         {isReaderFullscreen ? <div className="pointer-events-none absolute inset-0 z-[5] bg-black/28" /> : null}
-        <button
-          type="button"
-          aria-label="Página anterior"
-          onClick={goPrev}
-          className="absolute bottom-0 left-0 h-[58%] w-1/3 z-[15]"
-        />
-        <button
-          type="button"
-          aria-label="Página siguiente"
-          onClick={goNext}
-          className="absolute bottom-0 right-0 h-[58%] w-2/3 z-[15]"
-        />
+        <div className="absolute inset-0 z-[30]">
+          <button
+            type="button"
+            aria-label="Mostrar u ocultar encabezado"
+            onClick={toggleReaderChrome}
+            className="absolute top-0 left-0 h-1/2 w-full"
+          />
+          <div className="absolute bottom-0 left-0 h-1/2 w-full flex">
+            <button
+              type="button"
+              aria-label="Pagina anterior"
+              onClick={goPrev}
+              className="h-full w-1/3"
+            />
+            <button
+              type="button"
+              aria-label="Pagina siguiente"
+              onClick={goNext}
+              className="h-full w-1/3"
+            />
+            <button
+              type="button"
+              aria-label="Pagina siguiente"
+              onClick={goNext}
+              className="h-full w-1/3"
+            />
+          </div>
+        </div>
       </div>
 
       <Sheet open={isPanelOpen} onOpenChange={setIsPanelOpen}>
@@ -743,7 +893,7 @@ export default function NewTestamentEpubReader() {
 
             {Object.keys(tocBookAnchors).length > 0 && (
               <div className="mt-5 space-y-2">
-                <div className="text-xs font-semibold">Índice Nuevo Testamento (al final del panel)</div>
+                <div className="text-xs font-semibold">Índice Nuevo Testamento</div>
                 <div className="max-h-40 overflow-auto rounded-md border border-border bg-background/60 p-2 grid grid-cols-1 gap-1">
                   {NT_BOOKS.map((book) => {
                     const anchor = tocBookAnchors[book.id];
@@ -769,3 +919,8 @@ export default function NewTestamentEpubReader() {
     </div>
   );
 }
+
+
+
+
+
