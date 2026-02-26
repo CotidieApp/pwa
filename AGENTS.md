@@ -195,6 +195,22 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `android/app/src/main/assets/public/icons/icon.jpg`
 - `AGENTS.md`
 
+### [2026-02-26 02:30] 117. Reaplicar íconos APK desde Descargas
+**Planificación:**
+- Asegurar que los íconos Android salgan exactamente desde `Downloads/icon.png`.
+
+**Ejecución:**
+- **Android**: se regeneraron `ic_launcher`, `ic_launcher_round`, `ic_launcher_foreground` e `ic_launcher_background` en todos los `mipmap-*` desde el archivo de Descargas.
+- **PWA/Assets**: se re-sincronizó `public/icons/icon.png` y los assets Android.
+
+**Archivos Modificados:**
+- `public/icons/icon.png`
+- `public/icons/icon.jpg`
+- `android/app/src/main/res/mipmap-*/ic_launcher*.png`
+- `android/app/src/main/assets/public/icons/icon.png`
+- `android/app/src/main/assets/public/icons/icon.jpg`
+- `AGENTS.md`
+
 ### [2026-02-25 09:40] 94. Modo de trazas en vivo (solo desarrollador)
 **Planificación:**
 - Añadir un modo `devLiveTraceEnabled` en `SettingsContext` que solo se use en sesión de desarrollador, con buffer acotado en memoria para eventos en tiempo real.
