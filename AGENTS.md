@@ -211,6 +211,21 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `android/app/src/main/assets/public/icons/icon.jpg`
 - `AGENTS.md`
 
+### [2026-02-26 02:40] 118. Forzar reemplazo de iconos Android
+**Planificación:**
+- Forzar la sustitución de `ic_launcher*` en todas las densidades desde `Downloads/icon.png`.
+
+**Ejecución:**
+- **Android**: se reemplazaron `ic_launcher`, `ic_launcher_round`, `ic_launcher_foreground` e `ic_launcher_background` en todos los `mipmap-*` y se limpiaron archivos temporales.
+- **Assets Android**: re-sincronizados desde `public/icons`.
+
+**Archivos Modificados:**
+- `android/app/src/main/res/mipmap-*/ic_launcher*.png`
+- `android/app/src/main/assets/public/icons/icon.png`
+- `android/app/src/main/assets/public/icons/icon-maskable.png`
+- `android/app/src/main/assets/public/icons/icon.jpg`
+- `AGENTS.md`
+
 ### [2026-02-25 09:40] 94. Modo de trazas en vivo (solo desarrollador)
 **Planificación:**
 - Añadir un modo `devLiveTraceEnabled` en `SettingsContext` que solo se use en sesión de desarrollador, con buffer acotado en memoria para eventos en tiempo real.
