@@ -1007,6 +1007,8 @@ export default function RosaryImmersive({
                             placeholder="Nueva intención..."
                             className="flex-1 bg-background border rounded px-3 py-2 text-sm"
                             onKeyDown={(e) => e.key === 'Enter' && addIntention()}
+                            name="rosary-new-intention"
+                            aria-label="Nueva intención"
                         />
                         <Button size="sm" onClick={addIntention}><Plus className="size-4" /></Button>
                     </div>
@@ -1044,6 +1046,8 @@ export default function RosaryImmersive({
                             onChange={(e) => setNewJaculatoria((prev) => ({ ...prev, v: e.target.value }))}
                             placeholder="V. ..."
                             className="w-full bg-background border rounded px-3 py-2 text-sm"
+                            name="rosary-new-jaculatoria-v"
+                            aria-label="Nueva jaculatoria V"
                         />
                         <input 
                             value={newJaculatoria.r}
@@ -1051,6 +1055,8 @@ export default function RosaryImmersive({
                             placeholder="F. ..."
                             className="w-full bg-background border rounded px-3 py-2 text-sm"
                             onKeyDown={(e) => e.key === 'Enter' && addJaculatoria()}
+                            name="rosary-new-jaculatoria-r"
+                            aria-label="Nueva jaculatoria F"
                         />
                         <Button size="sm" onClick={addJaculatoria}><Plus className="size-4" /></Button>
                     </div>
@@ -1064,6 +1070,8 @@ export default function RosaryImmersive({
                                         onChange={(e) => updateJaculatoria(i, 'v', e.target.value)}
                                         placeholder="V. ..."
                                         className="flex-1 bg-background border rounded px-3 py-2 text-sm"
+                                        name={`rosary-jaculatoria-${i}-v`}
+                                        aria-label={`Jaculatoria ${i + 1} V`}
                                     />
                                     <button
                                         onClick={() => removeJaculatoria(i)}
@@ -1077,6 +1085,8 @@ export default function RosaryImmersive({
                                     onChange={(e) => updateJaculatoria(i, 'r', e.target.value)}
                                     placeholder="F. ..."
                                     className="w-full bg-background border rounded px-3 py-2 text-sm"
+                                    name={`rosary-jaculatoria-${i}-r`}
+                                    aria-label={`Jaculatoria ${i + 1} F`}
                                 />
                             </div>
                         ))}

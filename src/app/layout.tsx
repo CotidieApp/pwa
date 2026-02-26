@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { SettingsProvider } from '@/context/SettingsContext';
 import ThemeManager from "@/components/ThemeManager";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
+import ServiceWorkerCleanup from "@/components/ServiceWorkerCleanup";
 
 const HOME_BG_URL_KEY = "cotidie_home_bg_url";
 
@@ -23,6 +24,8 @@ const preloadHomeBackgroundScript = `(function(){try{var urlKey=${escapeJsonForI
   HOME_BG_URL_KEY
 )};var url=localStorage.getItem(urlKey)||${defaultHomeBackgroundUrl ? escapeJsonForInlineScript(defaultHomeBackgroundUrl) : "null"};if(!url){return;}var cleaned=String(url).replace(/[\\n\\r\\u2028\\u2029]/g,'');var escaped=cleaned.replace(/"/g,'\\\\\"');document.documentElement.style.setProperty('--home-bg-image','url(\"'+escaped+'\")');}catch(e){}})();`;
 
+const devServiceWorkerCleanupScript = `(function(){try{var host=location.hostname||'';var isLocal=host==='localhost'||host==='127.0.0.1'||host==='0.0.0.0';if(!isLocal){return;}if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(function(regs){regs.forEach(function(r){r.unregister();});});}if('caches' in window){caches.keys().then(function(keys){keys.forEach(function(k){caches.delete(k);});});}}catch(e){}})();`;
+
 export default function RootLayout({
   children,
 }: {
@@ -38,6 +41,7 @@ export default function RootLayout({
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: preloadHomeBackgroundScript }} />
+        <script dangerouslySetInnerHTML={{ __html: devServiceWorkerCleanupScript }} />
         <meta
           name="viewport"
           content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover"
@@ -57,6 +61,7 @@ export default function RootLayout({
       <body className="h-full font-body">
         <SettingsProvider>
           <ThemeManager>
+            <ServiceWorkerCleanup />
             {children}
             <Toaster />
           </ThemeManager>

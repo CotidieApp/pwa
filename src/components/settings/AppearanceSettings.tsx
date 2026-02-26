@@ -34,6 +34,15 @@ const ColorPicker = ({
   color: { h: number; s: number };
   onColorChange: (newColor: { h: number; s: number }) => void;
 }) => {
+  const inputId = useMemo(() => {
+    const slug = label
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+    return `color-picker-${slug || 'value'}`;
+  }, [label]);
   const hexColor = useMemo(() => {
     const hslToHex = (h: number, s: number, l: number) => {
       l /= 100;
@@ -81,9 +90,12 @@ const ColorPicker = ({
 
   return (
     <div className="flex items-center justify-between">
-      <Label>{label}</Label>
+      <Label htmlFor={inputId}>{label}</Label>
       <div className="relative">
         <Input
+          id={inputId}
+          name={inputId}
+          aria-label={label}
           type="color"
           value={hexColor}
           onChange={handleColorChange}

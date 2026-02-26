@@ -77,8 +77,21 @@ const lecturaEspiritual: Prayer = {
   title: 'Lectura Espiritual',
   categoryId: 'plan-de-vida',
   prayers: [
-    camino,
-    ...lecturaEspiritualTexts,
+    {
+      id: 'lectura-espiritual-predeterminadas',
+      title: 'Predeterminadas',
+      categoryId: 'plan-de-vida',
+      prayers: [
+        camino,
+        ...lecturaEspiritualTexts,
+      ],
+    },
+    {
+      id: 'lectura-espiritual-personales',
+      title: 'Personales',
+      categoryId: 'plan-de-vida',
+      content: 'EPUBs personales para lectura espiritual.',
+    },
   ]
 };
 

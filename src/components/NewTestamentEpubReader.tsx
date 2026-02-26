@@ -9,6 +9,10 @@ import { Menu } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 
 const DEFAULT_FILE_NAME = 'nuevo-testamento.epub';
+type NewTestamentEpubReaderProps = {
+  fileName?: string;
+  sourceBase64?: string | null;
+};
 
 const toStorageKey = (fileName: string) => `cotidie_epub_location_${fileName.trim().toLowerCase()}`;
 const toBookmarksKey = (fileName: string) => `cotidie_epub_bookmarks_${fileName.trim().toLowerCase()}`;
@@ -64,6 +68,16 @@ const applyReaderColorsToContents = (contents: any, textColor: string, backgroun
     body * { color: ${textColor} !important; }
     a { color: ${textColor} !important; }
   `;
+};
+
+const base64ToArrayBuffer = (input: string) => {
+  const base64 = input.includes(',') ? input.split(',')[1] : input;
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes.buffer;
 };
 
 const safeParseList = <T,>(raw: string | null): T[] => {
@@ -141,14 +155,16 @@ const detectNtBookId = (label: string): string | null => {
   return null;
 };
 
-export default function NewTestamentEpubReader() {
-  const { theme } = useSettings();
+
+export default function NewTestamentEpubReader({ fileName, sourceBase64 = null }: NewTestamentEpubReaderProps) {
+  const { theme, pushDevLiveTrace } = useSettings();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const bookRef = useRef<Book | null>(null);
   const renditionRef = useRef<Rendition | null>(null);
   const hideChromeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMountedRef = useRef(true);
 
-  const activeFile = DEFAULT_FILE_NAME;
+  const activeFile = typeof fileName === 'string' && fileName.trim().length > 0 ? fileName.trim() : DEFAULT_FILE_NAME;
   const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [locationLabel, setLocationLabel] = useState('');
@@ -173,6 +189,7 @@ export default function NewTestamentEpubReader() {
   const [readerBackgroundColor, setReaderBackgroundColor] = useState<'white' | 'black'>(
     theme === 'dark' ? 'black' : 'white'
   );
+  const [navigationError, setNavigationError] = useState<string | null>(null);
 
   const epubUrl = `/epub/${activeFile}`;
   const locationStorageKey = useMemo(() => toStorageKey(activeFile), [activeFile]);
@@ -208,7 +225,9 @@ export default function NewTestamentEpubReader() {
   }, [availablePanelTabs, panelTab]);
 
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
+      isMountedRef.current = false;
       if (hideChromeTimerRef.current) {
         clearTimeout(hideChromeTimerRef.current);
         hideChromeTimerRef.current = null;
@@ -220,8 +239,12 @@ export default function NewTestamentEpubReader() {
     let cancelled = false;
 
     const dispose = () => {
-      renditionRef.current?.destroy?.();
-      bookRef.current?.destroy?.();
+      try {
+        renditionRef.current?.destroy?.();
+      } catch {}
+      try {
+        bookRef.current?.destroy?.();
+      } catch {}
       renditionRef.current = null;
       bookRef.current = null;
     };
@@ -244,10 +267,13 @@ export default function NewTestamentEpubReader() {
       containerRef.current.innerHTML = '';
 
       try {
-        const response = await fetch(epubUrl, { method: 'HEAD' });
-        if (!response.ok) throw new Error(`No se encontró ${epubUrl}.`);
+        if (!sourceBase64) {
+          const response = await fetch(epubUrl, { method: 'HEAD' });
+          if (!response.ok) throw new Error(`No se encontró ${epubUrl}.`);
+        }
 
-        const book = ePub(epubUrl);
+        const source = sourceBase64 ? base64ToArrayBuffer(sourceBase64) : epubUrl;
+        const book = ePub(source as any);
         const rendition = book.renderTo(containerRef.current, {
           width: '100%',
           height: '100%',
@@ -287,24 +313,51 @@ export default function NewTestamentEpubReader() {
           );
         };
 
-        rendition.on('relocated', (location: any) => {
-          const displayed = location?.start?.displayed;
-          if (displayed) {
-            setLocationLabel(`${displayed.page}/${displayed.total}`);
+        const onRelocated = (location: any) => {
+          try {
+            if (cancelled || !isMountedRef.current) return;
+            const displayed = location?.start?.displayed;
+            if (displayed) {
+              setLocationLabel(`${displayed.page}/${displayed.total}`);
+            }
+            const cfi = location?.start?.cfi;
+            if (typeof cfi === 'string' && cfi.length > 0) {
+              try {
+                window.localStorage.setItem(locationStorageKey, cfi);
+              } catch {}
+              setCurrentCfi(cfi);
+            }
+          } catch (err) {
+            const message = err instanceof Error ? err.message : 'Fallo en callback relocated.';
+            pushDevLiveTrace({
+              level: 'warn',
+              source: 'epub-reader',
+              message: 'Error no fatal en relocated.',
+              data: message,
+            });
           }
-          const cfi = location?.start?.cfi;
-          if (typeof cfi === 'string' && cfi.length > 0) {
-            window.localStorage.setItem(locationStorageKey, cfi);
-            setCurrentCfi(cfi);
-          }
-        });
+        };
 
-        rendition.on('selected', (cfiRange: string, contents: any) => {
-          setPendingSelectionCfi(cfiRange);
-          const selectedText = contents?.window?.getSelection?.()?.toString?.() ?? '';
-          setPendingSelectionText(selectedText.trim());
-          contents?.window?.getSelection?.()?.removeAllRanges?.();
-        });
+        const onSelected = (cfiRange: string, contents: any) => {
+          try {
+            if (cancelled || !isMountedRef.current) return;
+            setPendingSelectionCfi(cfiRange);
+            const selectedText = contents?.window?.getSelection?.()?.toString?.() ?? '';
+            setPendingSelectionText(selectedText.trim());
+            contents?.window?.getSelection?.()?.removeAllRanges?.();
+          } catch (err) {
+            const message = err instanceof Error ? err.message : 'Fallo en callback selected.';
+            pushDevLiveTrace({
+              level: 'warn',
+              source: 'epub-reader',
+              message: 'Error no fatal en selected.',
+              data: message,
+            });
+          }
+        };
+
+        rendition.on('relocated', onRelocated);
+        rendition.on('selected', onSelected);
 
         const nav = await book.loaded.navigation;
         if (!cancelled) {
@@ -320,7 +373,13 @@ export default function NewTestamentEpubReader() {
         if (!cancelled) setHighlights(storedHighlights);
 
         const savedCfi = window.localStorage.getItem(locationStorageKey);
-        await rendition.display(savedCfi || undefined);
+        try {
+          await rendition.display(savedCfi || undefined);
+        } catch {
+          if (!cancelled) {
+            await rendition.display(undefined).catch(() => undefined);
+          }
+        }
         if (cancelled) return;
 
         const currentContents = (rendition as any).getContents?.() ?? [];
@@ -332,10 +391,18 @@ export default function NewTestamentEpubReader() {
 
         bookRef.current = book;
         renditionRef.current = rendition;
+        (renditionRef.current as any).__cotidieOnRelocated = onRelocated;
+        (renditionRef.current as any).__cotidieOnSelected = onSelected;
         setStatus('ready');
       } catch (err) {
         if (cancelled) return;
         const message = err instanceof Error ? err.message : 'No se pudo abrir el EPUB.';
+        pushDevLiveTrace({
+          level: 'error',
+          source: 'epub-reader',
+          message: 'Error al abrir EPUB.',
+          data: message,
+        });
         setErrorMessage(message);
         setStatus('error');
       }
@@ -345,9 +412,14 @@ export default function NewTestamentEpubReader() {
 
     return () => {
       cancelled = true;
+      const r: any = renditionRef.current as any;
+      try {
+        r?.off?.('relocated', r?.__cotidieOnRelocated);
+        r?.off?.('selected', r?.__cotidieOnSelected);
+      } catch {}
       dispose();
     };
-  }, [bookmarksStorageKey, epubUrl, highlightsStorageKey, locationStorageKey]);
+  }, [bookmarksStorageKey, epubUrl, highlightsStorageKey, locationStorageKey, sourceBase64]);
 
   useEffect(() => {
     const rendition = renditionRef.current;
@@ -380,11 +452,40 @@ export default function NewTestamentEpubReader() {
     return () => window.removeEventListener('resize', onResize);
   }, [refreshRenditionLayout]);
 
+  const moveBySpine = async (delta: -1 | 1) => {
+    const rendition = renditionRef.current as any;
+    const book = bookRef.current as any;
+    const loc = rendition?.currentLocation?.();
+    const start = Array.isArray(loc) ? loc[0]?.start : loc?.start;
+    const index = typeof start?.index === 'number' ? start.index : null;
+    const items = Array.isArray(book?.spine?.spineItems) ? book.spine.spineItems : null;
+    if (index === null || !items) throw new Error('Ubicacion de pagina no disponible.');
+    const nextItem = items[index + delta];
+    const href = nextItem?.href || nextItem?.url;
+    if (!href) throw new Error('No hay mas paginas disponibles.');
+    await rendition.display(href);
+  };
+
   const goPrev = () => {
     const rendition = renditionRef.current as any;
     if (!rendition) return;
     Promise.resolve(rendition.prev?.())
-      .catch(() => undefined)
+      .then(() => setNavigationError(null))
+      .catch(async () => {
+        try {
+          await moveBySpine(-1);
+          setNavigationError(null);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'No se pudo retroceder de pagina.';
+          setNavigationError(message);
+          pushDevLiveTrace({
+            level: 'error',
+            source: 'epub-reader',
+            message: 'Error al retroceder de pagina.',
+            data: message,
+          });
+        }
+      })
       .finally(() => {
         window.setTimeout(() => refreshRenditionLayout(), 40);
       });
@@ -394,7 +495,22 @@ export default function NewTestamentEpubReader() {
     const rendition = renditionRef.current as any;
     if (!rendition) return;
     Promise.resolve(rendition.next?.())
-      .catch(() => undefined)
+      .then(() => setNavigationError(null))
+      .catch(async () => {
+        try {
+          await moveBySpine(1);
+          setNavigationError(null);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'No se pudo avanzar de pagina.';
+          setNavigationError(message);
+          pushDevLiveTrace({
+            level: 'error',
+            source: 'epub-reader',
+            message: 'Error al avanzar de pagina.',
+            data: message,
+          });
+        }
+      })
       .finally(() => {
         window.setTimeout(() => refreshRenditionLayout(), 40);
       });
@@ -500,7 +616,9 @@ export default function NewTestamentEpubReader() {
 
   const persistBookmarks = (next: BookmarkItem[]) => {
     setBookmarks(next);
-    window.localStorage.setItem(bookmarksStorageKey, JSON.stringify(next));
+    try {
+      window.localStorage.setItem(bookmarksStorageKey, JSON.stringify(next));
+    } catch {}
   };
 
   const addBookmark = () => {
@@ -522,7 +640,9 @@ export default function NewTestamentEpubReader() {
 
   const persistHighlights = (next: HighlightItem[]) => {
     setHighlights(next);
-    window.localStorage.setItem(highlightsStorageKey, JSON.stringify(next));
+    try {
+      window.localStorage.setItem(highlightsStorageKey, JSON.stringify(next));
+    } catch {}
   };
 
   const addHighlightFromSelection = () => {
@@ -535,18 +655,20 @@ export default function NewTestamentEpubReader() {
       note: note.length > 0 ? note : undefined,
       createdAt: Date.now(),
     };
-    (renditionRef.current as any).annotations.add(
-      'highlight',
-      item.cfiRange,
-      { id: item.id },
-      undefined,
-      'cotidie-highlight',
-      {
-        fill: '#facc15',
-        'fill-opacity': '0.35',
-        'mix-blend-mode': 'multiply',
-      }
-    );
+    try {
+      (renditionRef.current as any).annotations.add(
+        'highlight',
+        item.cfiRange,
+        { id: item.id },
+        undefined,
+        'cotidie-highlight',
+        {
+          fill: '#facc15',
+          'fill-opacity': '0.35',
+          'mix-blend-mode': 'multiply',
+        }
+      );
+    } catch {}
     persistHighlights([item, ...highlights]);
     setPendingSelectionCfi('');
     setPendingSelectionText('');
@@ -554,7 +676,9 @@ export default function NewTestamentEpubReader() {
   };
 
   const removeHighlight = (item: HighlightItem) => {
-    (renditionRef.current as any)?.annotations?.remove(item.cfiRange, 'highlight');
+    try {
+      (renditionRef.current as any)?.annotations?.remove(item.cfiRange, 'highlight');
+    } catch {}
     persistHighlights(highlights.filter((h) => h.id !== item.id));
   };
 
@@ -571,12 +695,16 @@ export default function NewTestamentEpubReader() {
       style={
         isReaderFullscreen
           ? {
-              paddingTop: 'max(0.5rem, env(safe-area-inset-top))',
-              paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))',
-              paddingLeft: 'max(0.5rem, env(safe-area-inset-left))',
-              paddingRight: 'max(0.5rem, env(safe-area-inset-right))',
+              height: '100dvh',
+              maxHeight: '100dvh',
+              paddingTop: 'max(0.5rem, env(safe-area-inset-top, 0px))',
+              paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))',
+              paddingLeft: 'max(0.5rem, env(safe-area-inset-left, 0px))',
+              paddingRight: 'max(0.5rem, env(safe-area-inset-right, 0px))',
             }
-          : undefined
+          : {
+              paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 0px))',
+            }
       }
     >
       <div
@@ -619,8 +747,10 @@ export default function NewTestamentEpubReader() {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <label className="text-xs text-muted-foreground">Texto</label>
+        <label htmlFor="epub-reader-text-color" className="text-xs text-muted-foreground">Texto</label>
         <select
+          id="epub-reader-text-color"
+          name="epub-reader-text-color"
           className="rounded-md border border-input bg-background px-2 py-1 text-xs"
           value={readerTextColor}
           onChange={(e) => setReaderTextColor(e.target.value === 'white' ? 'white' : 'black')}
@@ -628,8 +758,10 @@ export default function NewTestamentEpubReader() {
           <option value="black">Negro</option>
           <option value="white">Blanco</option>
         </select>
-        <label className="text-xs text-muted-foreground">Fondo</label>
+        <label htmlFor="epub-reader-background-color" className="text-xs text-muted-foreground">Fondo</label>
         <select
+          id="epub-reader-background-color"
+          name="epub-reader-background-color"
           className="rounded-md border border-input bg-background px-2 py-1 text-xs"
           value={readerBackgroundColor}
           onChange={(e) => setReaderBackgroundColor(e.target.value === 'black' ? 'black' : 'white')}
@@ -674,6 +806,9 @@ export default function NewTestamentEpubReader() {
         <div className="text-xs text-destructive">
           {errorMessage ?? 'No se pudo abrir el EPUB.'}
         </div>
+      )}
+      {navigationError && status === 'ready' && (
+        <div className="text-xs text-destructive">{navigationError}</div>
       )}
       </div>
 
@@ -769,10 +904,13 @@ export default function NewTestamentEpubReader() {
               <div className="space-y-2">
                 <div className="text-xs font-semibold">Viaje rápido (índice)</div>
                 <select
+                  id="epub-reader-toc-book"
+                  name="epub-reader-toc-book"
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={tocBookFilter}
                   onChange={(e) => setTocBookFilter(e.target.value)}
                   disabled={status !== 'ready'}
+                  aria-label="Libro del índice"
                 >
                   <option value="all">Todos los libros</option>
                   {NT_BOOKS.filter((book) => Boolean(tocBookAnchors[book.id])).map((book) => (
@@ -782,10 +920,13 @@ export default function NewTestamentEpubReader() {
                   ))}
                 </select>
                 <select
+                  id="epub-reader-toc-entry"
+                  name="epub-reader-toc-entry"
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={selectedToc}
                   onChange={(e) => jumpToToc(e.target.value)}
                   disabled={status !== 'ready' || filteredTocEntries.length === 0}
+                  aria-label="Sección del índice"
                 >
                   <option value="">Selecciona una sección</option>
                   {filteredTocEntries.map((entry) => (
@@ -919,6 +1060,7 @@ export default function NewTestamentEpubReader() {
     </div>
   );
 }
+
 
 
 

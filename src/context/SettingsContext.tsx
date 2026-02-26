@@ -36,6 +36,15 @@ type FontSize = number;
 type ArrowBubbleSize = 'sm' | 'md' | 'lg';
 type OverlayPosition = { x: number; y: number };
 type OverlayPositions = { timer: OverlayPosition; planNav: OverlayPosition; wrappedBubble: OverlayPosition };
+export type DevTraceLevel = 'info' | 'warn' | 'error';
+export type DevTraceEvent = {
+  id: string;
+  ts: number;
+  level: DevTraceLevel;
+  source: string;
+  message: string;
+  data?: string;
+};
 
 export type DailyReminder = {
   id: string;
@@ -160,6 +169,11 @@ type Settings = {
   removeDailyReminder: (id: string) => void;
   devTestNotificationEnabled: boolean;
   setDevTestNotificationEnabled: (enabled: boolean) => void;
+  devLiveTraceEnabled: boolean;
+  setDevLiveTraceEnabled: (enabled: boolean) => void;
+  devLiveTraceEvents: DevTraceEvent[];
+  clearDevLiveTraceEvents: () => void;
+  pushDevLiveTrace: (event: Omit<DevTraceEvent, 'id' | 'ts'>) => void;
 
   simulatedDate: string | null;
   setSimulatedDate: (date: string | null) => void;
@@ -403,8 +417,11 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [notificationsEnabled, setNotificationsEnabledState] = useState(true);
   const [dailyReminders, setDailyReminders] = useState<DailyReminder[]>([]);
   const [devTestNotificationEnabled, setDevTestNotificationEnabledState] = useState(false);
+  const [devLiveTraceEnabled, setDevLiveTraceEnabledState] = useState(false);
+  const [devLiveTraceEvents, setDevLiveTraceEvents] = useState<DevTraceEvent[]>([]);
   const [userStats, setUserStats] = useState<UserStats>(defaultUserStats);
   const [globalUserStats, setGlobalUserStats] = useState<UserStats>(defaultUserStats);
+  const isIncrementSyncingPlanRef = useRef(false);
   const [statsYear, setStatsYear] = useState<number>(new Date().getFullYear());
   const [simulatedStats, setSimulatedStats] = useState<UserStats | null>(null);
 
@@ -629,6 +646,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           setNotificationsEnabledState(s.notificationsEnabled ?? true);
           setDailyReminders(normalizeDailyReminders(s.dailyReminders));
           setDevTestNotificationEnabledState(Boolean(s.devTestNotificationEnabled));
+          setDevLiveTraceEnabledState(Boolean(s.devLiveTraceEnabled));
           
           const currentYear = new Date().getFullYear();
           const savedStatsYear = typeof s.statsYear === 'number' ? s.statsYear : currentYear;
@@ -736,6 +754,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       notificationsEnabled,
       dailyReminders,
       devTestNotificationEnabled,
+      devLiveTraceEnabled,
       planDeVidaTrackerEnabled,
       planDeVidaProgress,
       planDeVidaCalendar,
@@ -784,6 +803,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     notificationsEnabled,
     dailyReminders,
     devTestNotificationEnabled,
+    devLiveTraceEnabled,
     planDeVidaTrackerEnabled,
     planDeVidaProgress,
     planDeVidaCalendar,
@@ -880,6 +900,68 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   // Funciones auxiliares
   const generateId = () => Math.random().toString(36).substr(2, 9);
+  const DEV_TRACE_MAX_EVENTS = 400;
+
+  const pushDevLiveTrace = useCallback((event: Omit<DevTraceEvent, 'id' | 'ts'>) => {
+    if (!isDeveloperMode || !devLiveTraceEnabled) return;
+    const normalizedLevel: DevTraceLevel =
+      event.level === 'error' || event.level === 'warn' ? event.level : 'info';
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const nextEvent: DevTraceEvent = {
+      id,
+      ts: Date.now(),
+      level: normalizedLevel,
+      source: String(event.source || 'app'),
+      message: String(event.message || ''),
+      data: typeof event.data === 'string' && event.data.trim().length > 0 ? event.data : undefined,
+    };
+    setDevLiveTraceEvents((prev) => {
+      const next = [...prev, nextEvent];
+      return next.length > DEV_TRACE_MAX_EVENTS ? next.slice(next.length - DEV_TRACE_MAX_EVENTS) : next;
+    });
+  }, [devLiveTraceEnabled, isDeveloperMode]);
+
+  const clearDevLiveTraceEvents = useCallback(() => {
+    setDevLiveTraceEvents([]);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!isDeveloperMode || !devLiveTraceEnabled) return;
+
+    const onError = (event: ErrorEvent) => {
+      pushDevLiveTrace({
+        level: 'error',
+        source: 'window.error',
+        message: event.message || 'Error no controlado.',
+        data:
+          typeof event.filename === 'string' && event.filename
+            ? `${event.filename}:${event.lineno}:${event.colno}`
+            : undefined,
+      });
+    };
+
+    const onUnhandledRejection = (event: PromiseRejectionEvent) => {
+      const reason =
+        typeof event.reason === 'string'
+          ? event.reason
+          : event.reason instanceof Error
+            ? event.reason.message
+            : 'Promise rechazada sin detalle';
+      pushDevLiveTrace({
+        level: 'error',
+        source: 'window.unhandledrejection',
+        message: reason,
+      });
+    };
+
+    window.addEventListener('error', onError);
+    window.addEventListener('unhandledrejection', onUnhandledRejection);
+    return () => {
+      window.removeEventListener('error', onError);
+      window.removeEventListener('unhandledrejection', onUnhandledRejection);
+    };
+  }, [devLiveTraceEnabled, isDeveloperMode, pushDevLiveTrace]);
   
   // incrementStat moved down to access getPrayerById
 
@@ -895,6 +977,11 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   const setNotificationsEnabled = (enabled: boolean) => {
     setNotificationsEnabledState(enabled);
+    pushDevLiveTrace({
+      level: 'info',
+      source: 'notifications',
+      message: enabled ? 'Notificaciones activadas.' : 'Notificaciones desactivadas.',
+    });
     if (enabled && Capacitor.isNativePlatform()) {
       void (async () => {
         const currentPerms = await LocalNotifications.checkPermissions().catch(() => null);
@@ -935,11 +1022,32 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   const setDevTestNotificationEnabled = (enabled: boolean) => {
     setDevTestNotificationEnabledState(enabled);
+    pushDevLiveTrace({
+      level: 'info',
+      source: 'notifications',
+      message: enabled
+        ? 'Notificacion de prueba (5 min) activada.'
+        : 'Notificacion de prueba (5 min) desactivada.',
+    });
     toast({
       title: enabled
         ? 'Notificacion de prueba activada (cada 5 minutos).'
         : 'Notificacion de prueba desactivada.',
     });
+  };
+
+  const setDevLiveTraceEnabled = (enabled: boolean) => {
+    if (!isDeveloperMode && enabled) return;
+    setDevLiveTraceEnabledState(enabled);
+    if (!enabled) {
+      setDevLiveTraceEvents([]);
+    } else {
+      pushDevLiveTrace({
+        level: 'info',
+        source: 'dev-trace',
+        message: 'Modo de trazas en vivo activado.',
+      });
+    }
   };
 
   const addDailyReminder = () => {
@@ -953,6 +1061,12 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       createdAt: Date.now(),
     };
     setDailyReminders((prev) => [...prev, newReminder]);
+    pushDevLiveTrace({
+      level: 'info',
+      source: 'notifications',
+      message: 'Recordatorio diario agregado.',
+      data: `id=${newReminder.id}`,
+    });
     toast({ title: 'Recordatorio agregado.' });
   };
 
@@ -973,6 +1087,12 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   const removeDailyReminder = (id: string) => {
     setDailyReminders((prev) => prev.filter((r) => r.id !== id));
+    pushDevLiveTrace({
+      level: 'info',
+      source: 'notifications',
+      message: 'Recordatorio diario eliminado.',
+      data: `id=${id}`,
+    });
     if (Capacitor.isNativePlatform()) {
       void (async () => {
         const pending = await LocalNotifications.getPending().catch(() => null);
@@ -1147,6 +1267,11 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     const ok = allowedDevCredentials.some(c => c.user === user && c.pass === pass);
     if (ok) {
       setIsDeveloperMode(true);
+      pushDevLiveTrace({
+        level: 'info',
+        source: 'auth',
+        message: 'Sesion de desarrollador iniciada.',
+      });
       return true;
     }
     return false;
@@ -1156,6 +1281,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setIsDeveloperMode(false);
     setIsEditModeEnabled(false);
     setDevTestNotificationEnabledState(false);
+    setDevLiveTraceEnabledState(false);
+    setDevLiveTraceEvents([]);
   };
 
   const removePredefinedPrayer = (id: string) => {
@@ -1175,6 +1302,11 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const importUserData = (data: any, options?: { silent?: boolean }) => {
     const silent = options?.silent === true;
     if (!data || typeof data !== 'object') {
+      pushDevLiveTrace({
+        level: 'warn',
+        source: 'import',
+        message: 'Importacion rechazada: payload invalido.',
+      });
       if (!silent) {
         toast({ variant: 'destructive', title: 'Error al importar', description: 'El archivo no es válido.' });
       }
@@ -1195,6 +1327,11 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       if (typeof data.autoRotateBackground === 'boolean') {
         setAutoRotateBackground(data.autoRotateBackground);
       }
+      pushDevLiveTrace({
+        level: 'info',
+        source: 'import',
+        message: 'Importacion parcial aplicada.',
+      });
       if (!silent) {
         toast({ title: 'Datos importados.' });
       }
@@ -1287,6 +1424,11 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     if (!silent) {
       toast({ title: 'Datos importados.' });
     }
+    pushDevLiveTrace({
+      level: 'info',
+      source: 'import',
+      message: 'Importacion completa aplicada.',
+    });
   };
 
   const importCustomPlanPayload = useCallback((data: any) => {
@@ -1328,12 +1470,27 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
         const parsed = JSON.parse(raw);
         if (importCustomPlanPayload(parsed)) {
+          pushDevLiveTrace({
+            level: 'info',
+            source: 'import',
+            message: 'Plan personalizado importado desde archivo compartido.',
+          });
           toast({ title: 'Plan personalizado cargado con éxito.' });
           return;
         }
         importUserData(parsed, { silent: true });
+        pushDevLiveTrace({
+          level: 'info',
+          source: 'import',
+          message: 'Respaldo importado desde archivo compartido.',
+        });
         toast({ title: 'Respaldo cargado con éxito.' });
       } catch {
+        pushDevLiveTrace({
+          level: 'error',
+          source: 'import',
+          message: 'Fallo al procesar archivo compartido.',
+        });
         toast({
           variant: 'destructive',
           title: 'Error al importar',
@@ -1394,10 +1551,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   const togglePlanDeVidaItem = (id: string, force?: boolean) => {
      const now = simulatedDate ? new Date(simulatedDate) : new Date();
-     const yyyy = now.getFullYear();
-     const mm = String(now.getMonth() + 1).padStart(2, '0');
-     const dd = String(now.getDate()).padStart(2, '0');
-     const dateKey = `${yyyy}-${mm}-${dd}`;
+     const dateKey = getPastoralDayKey(now);
 
      setPlanDeVidaProgress(prev => {
         const isChecked = prev.includes(id);
@@ -1418,6 +1572,19 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           return { ...prevCalendar, [dateKey]: nextList };
         });
 
+        if (nextChecked && !isChecked && !isIncrementSyncingPlanRef.current) {
+          incrementStat('prayersOpenedHistory', id);
+        }
+
+        if (nextChecked !== isChecked) {
+          pushDevLiveTrace({
+            level: 'info',
+            source: 'plan-de-vida',
+            message: nextChecked ? 'Check marcado.' : 'Check desmarcado.',
+            data: `id=${id}; date=${dateKey}`,
+          });
+        }
+
         if (nextChecked) {
           return isChecked ? prev : [...prev, id];
         }
@@ -1430,13 +1597,19 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setLastResetTimestamp(Date.now());
   };
 
-  // Plan de Vida daily reset
+  // Plan de Vida: reinicio diario a las 05:00 (día pastoral)
   useEffect(() => {
-    const now = new Date();
-    const last = new Date(lastResetTimestamp);
-    if (now.getDate() !== last.getDate()) {
+    const checkReset = () => {
+      const now = new Date();
+      const last = new Date(lastResetTimestamp);
+      if (getPastoralDayKey(now) !== getPastoralDayKey(last)) {
         resetPlanDeVidaProgress();
-    }
+      }
+    };
+
+    checkReset();
+    const interval = window.setInterval(checkReset, 60 * 1000);
+    return () => window.clearInterval(interval);
   }, [lastResetTimestamp]);
 
   useEffect(() => {
@@ -1566,6 +1739,17 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     return `${yyyy}-${mm}-${dd}`;
   };
 
+  // Día pastoral para stats/checks: 05:00 -> 04:59
+  const getPastoralDayDate = (date: Date) => {
+    const adjusted = new Date(date);
+    if (adjusted.getHours() < 5) {
+      adjusted.setDate(adjusted.getDate() - 1);
+    }
+    return adjusted;
+  };
+
+  const getPastoralDayKey = (date: Date) => getLocalDateKey(getPastoralDayDate(date));
+
   const incrementGlobalStat = (key: keyof UserStats, subKey?: string) => {
     setGlobalUserStats(prev => {
         // Reuse logic? Or copy-paste for safety.
@@ -1587,7 +1771,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
               subKey === 'angelus-regina-coeli';
             const isExamination = subKey === 'examen-conciencia' || subKey === 'examen-noche';
             
-            const todayKey = getLocalDateKey(now);
+            const todayKey = getPastoralDayKey(now);
             const lastOpened = prev.prayerLastOpened?.[subKey];
             
             const newPrayerLastOpened = { ...(prev.prayerLastOpened || {}) };
@@ -1623,7 +1807,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
             if (isMassPrayer) {
                  if (newLastMassDate !== todayKey) {
-                     const yesterday = new Date(now);
+                     const yesterday = getPastoralDayDate(now);
                      yesterday.setDate(yesterday.getDate() - 1);
                      const yesterdayKey = getLocalDateKey(yesterday);
                      
@@ -1689,18 +1873,41 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         const now = Date.now();
         const lastIncrement = userStats.prayerLastIncrementTimestamp?.[subKey] || 0;
         if (now - lastIncrement < 3600000) { // 1 hour = 3600000 ms
+            // Even when the counter is throttled, keep Plan de Vida check sync in UI.
+            const rootId = getRootPlanDeVidaId(subKey);
+            const targetId = rootId || subKey;
+            if (targetId) {
+              isIncrementSyncingPlanRef.current = true;
+              togglePlanDeVidaItem(targetId, true);
+              isIncrementSyncingPlanRef.current = false;
+            }
+            pushDevLiveTrace({
+              level: 'info',
+              source: 'stats',
+              message: 'Incremento bloqueado por ventana de 1 hora.',
+              data: `key=${String(key)}; subKey=${subKey}`,
+            });
             return;
         }
     }
 
     // Always increment global stats too
     incrementGlobalStat(key, subKey);
+    pushDevLiveTrace({
+      level: 'info',
+      source: 'stats',
+      message: 'Estadistica incrementada.',
+      data: `key=${String(key)}${subKey ? `; subKey=${subKey}` : ''}`,
+    });
 
     if (key === 'prayersOpenedHistory' && subKey) {
-        // Side effect: Mark Plan de Vida item as checked
+        // Side effect: Mark Plan de Vida item as checked (root or same item).
         const rootId = getRootPlanDeVidaId(subKey);
-        if (rootId) {
-            togglePlanDeVidaItem(rootId, true);
+        const targetId = rootId || subKey;
+        if (targetId) {
+            isIncrementSyncingPlanRef.current = true;
+            togglePlanDeVidaItem(targetId, true);
+            isIncrementSyncingPlanRef.current = false;
         }
     }
 
@@ -1728,7 +1935,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         const isExamination = subKey === 'examen-conciencia' || subKey === 'examen-noche';
         
         // Track unique days for this prayer/devotion
-        const todayKey = getLocalDateKey(now);
+        const todayKey = getPastoralDayKey(now);
         const lastOpened = prev.prayerLastOpened?.[subKey];
         
         const newPrayerLastOpened = { ...(prev.prayerLastOpened || {}) };
@@ -1755,7 +1962,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
         if (isMassPrayer) {
              if (newLastMassDate !== todayKey) {
-                 const yesterday = new Date(now);
+                 const yesterday = getPastoralDayDate(now);
                  yesterday.setDate(yesterday.getDate() - 1);
                  const yesterdayKey = getLocalDateKey(yesterday);
                  
@@ -2785,6 +2992,11 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         removeDailyReminder,
         devTestNotificationEnabled,
         setDevTestNotificationEnabled,
+        devLiveTraceEnabled,
+        setDevLiveTraceEnabled,
+        devLiveTraceEvents,
+        clearDevLiveTraceEvents,
+        pushDevLiveTrace,
         simulatedDate,
         setSimulatedDate,
         planDeVidaTrackerEnabled,

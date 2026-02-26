@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Image from 'next/image';
-import { useSettings, type UserStats } from '@/context/SettingsContext';
+import { useSettings, type DevTraceEvent, type UserStats } from '@/context/SettingsContext';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -142,6 +142,10 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
     setMovableFeastsEnabled,
     devTestNotificationEnabled,
     setDevTestNotificationEnabled,
+    devLiveTraceEnabled,
+    setDevLiveTraceEnabled,
+    devLiveTraceEvents,
+    clearDevLiveTraceEvents,
     allPrayers,
     userHomeBackgrounds,
     isCustomThemeActive,
@@ -155,6 +159,7 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
   const [activeTab, setActiveTab] = useState('overview');
   const [showWrappedPreview, setShowWrappedPreview] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const traceEndRef = useRef<HTMLDivElement | null>(null);
 
   // Stats Editor State
   const [isEditingStats, setIsEditingStats] = useState(false);
@@ -175,6 +180,21 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
       setTempStats(simulatedStats ?? realUserStats);
     }
   }, [isEditingStats, simulatedStats, realUserStats]);
+
+  useEffect(() => {
+    if (!devLiveTraceEnabled) return;
+    traceEndRef.current?.scrollIntoView({ block: 'end' });
+  }, [devLiveTraceEnabled, devLiveTraceEvents]);
+
+  const traceRows = useMemo(() => {
+    return devLiveTraceEvents.map((event: DevTraceEvent) => {
+      const date = new Date(event.ts);
+      const hh = String(date.getHours()).padStart(2, '0');
+      const mm = String(date.getMinutes()).padStart(2, '0');
+      const ss = String(date.getSeconds()).padStart(2, '0');
+      return { ...event, time: `${hh}:${mm}:${ss}` };
+    });
+  }, [devLiveTraceEvents]);
 
   const handleStatChange = (key: keyof UserStats, value: string) => {
     if (value === '') {
@@ -344,6 +364,12 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
             icon={Icon.Wrench} 
             label="Herramientas" 
           />
+          <NavButton
+            active={activeTab === 'trace'}
+            onClick={() => { setActiveTab('trace'); setIsSidebarOpen(false); }}
+            icon={Icon.ActivitySquare}
+            label="Trazas"
+          />
            <NavButton 
             active={activeTab === 'global'} 
             onClick={() => { setActiveTab('global'); setIsSidebarOpen(false); }} 
@@ -429,6 +455,14 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
                         <p className="text-xs text-slate-400">Solo modo desarrollador. Envía una notificación cada 5 minutos.</p>
                       </div>
                       <Switch checked={devTestNotificationEnabled} onCheckedChange={setDevTestNotificationEnabled} />
+                    </div>
+                    <Separator className="bg-slate-800" />
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">Trazas en Vivo</Label>
+                        <p className="text-xs text-slate-400">Registra errores y acciones de la app en tiempo real.</p>
+                      </div>
+                      <Switch checked={devLiveTraceEnabled} onCheckedChange={setDevLiveTraceEnabled} />
                     </div>
                   </CardContent>
                 </Card>
@@ -797,6 +831,73 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
                         </CardContent>
                     </Card>
                 </div>
+            )}
+
+            {activeTab === 'trace' && (
+              <Card className="bg-slate-900 border-slate-800 text-slate-200">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Icon.ActivitySquare className="size-5" /> Trazas en Vivo
+                  </CardTitle>
+                  <CardDescription className="text-slate-400">
+                    Registro en tiempo real de errores y acciones relevantes de la app.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="space-y-1">
+                      <Label>Activar trazas</Label>
+                      <p className="text-xs text-slate-500">Solo disponible durante sesión de desarrollador.</p>
+                    </div>
+                    <Switch checked={devLiveTraceEnabled} onCheckedChange={setDevLiveTraceEnabled} />
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs text-slate-500">
+                      Eventos: {traceRows.length}
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-slate-700 bg-transparent text-slate-200 hover:bg-slate-800 hover:text-white"
+                      onClick={clearDevLiveTraceEvents}
+                      disabled={traceRows.length === 0}
+                    >
+                      Limpiar
+                    </Button>
+                  </div>
+                  <div className="h-[52vh] overflow-y-auto rounded-md border border-slate-800 bg-slate-950">
+                    {traceRows.length === 0 ? (
+                      <p className="p-4 text-xs text-slate-500">Sin eventos aún.</p>
+                    ) : (
+                      <div className="divide-y divide-slate-800">
+                        {traceRows.map((event) => (
+                          <div key={event.id} className="px-3 py-2 text-xs">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-slate-400">{event.time}</span>
+                              <span
+                                className={cn(
+                                  'rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wide',
+                                  event.level === 'error'
+                                    ? 'bg-red-900/40 text-red-300'
+                                    : event.level === 'warn'
+                                      ? 'bg-yellow-900/40 text-yellow-300'
+                                      : 'bg-slate-800 text-slate-300'
+                                )}
+                              >
+                                {event.level}
+                              </span>
+                              <span className="text-slate-300">{event.source}</span>
+                            </div>
+                            <p className="mt-1 text-slate-200">{event.message}</p>
+                            {event.data && <p className="mt-1 font-mono text-[11px] text-slate-400 break-all">{event.data}</p>}
+                          </div>
+                        ))}
+                        <div ref={traceEndRef} />
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             )}
 
             {activeTab === 'global' && (

@@ -481,7 +481,16 @@ export default function ContentSettings({ onShowWrapped }: ContentSettingsProps)
                     <Icon.Upload className="mr-2 h-4 w-4" />
                     Importar Copia de Seguridad
                 </Button>
-                <input type="file" ref={importFileRef} onChange={handleFileImport} accept=".json,.ctd" className="hidden" />
+                <input
+                  id="import-data-file"
+                  name="import-data-file"
+                  type="file"
+                  ref={importFileRef}
+                  onChange={handleFileImport}
+                  accept=".json,.ctd"
+                  className="hidden"
+                  aria-label="Importar archivo de respaldo"
+                />
                  <p className="text-xs text-muted-foreground ml-2">Restaura datos desde un archivo .ctd o .json previamente exportado.</p>
              </div>
 

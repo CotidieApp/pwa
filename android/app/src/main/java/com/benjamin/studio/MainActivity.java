@@ -2,8 +2,14 @@ package com.benjamin.studio;
 
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.webkit.RenderProcessGoneDetail;
+import android.webkit.WebView;
 import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.BridgeWebViewClient;
 import androidx.core.view.WindowCompat;
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -13,12 +19,16 @@ import org.json.JSONObject;
 
 public class MainActivity extends BridgeActivity {
     private static final String PENDING_IMPORT_KEY = "cotidie_pending_import";
+    private static final int MAX_FLUSH_RETRIES = 12;
+    private static final int MAX_IMPORT_BYTES = 15 * 1024 * 1024;
     private String pendingImportPayload = null;
+    private int pendingFlushRetries = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        configureWebViewStability();
         handleImportIntent(getIntent());
     }
 
@@ -74,6 +84,9 @@ public class MainActivity extends BridgeActivity {
             String line;
             while ((line = reader.readLine()) != null) {
                 builder.append(line).append('\n');
+                if (builder.length() > MAX_IMPORT_BYTES) {
+                    return null;
+                }
             }
             return builder.toString();
         } catch (Exception ignored) {
@@ -83,7 +96,10 @@ public class MainActivity extends BridgeActivity {
 
     private void flushPendingImportToWebView() {
         if (pendingImportPayload == null || pendingImportPayload.trim().isEmpty()) return;
-        if (bridge == null || bridge.getWebView() == null) return;
+        if (bridge == null || bridge.getWebView() == null) {
+            scheduleFlushRetry();
+            return;
+        }
 
         final String payload = pendingImportPayload;
         pendingImportPayload = null;
@@ -92,6 +108,32 @@ public class MainActivity extends BridgeActivity {
                 + JSONObject.quote(payload)
                 + ");window.dispatchEvent(new Event('cotidie-pending-import'));}catch(e){}";
 
+        pendingFlushRetries = 0;
         runOnUiThread(() -> bridge.getWebView().evaluateJavascript(js, null));
+    }
+
+    private void scheduleFlushRetry() {
+        if (pendingFlushRetries >= MAX_FLUSH_RETRIES) return;
+        pendingFlushRetries += 1;
+        new Handler(Looper.getMainLooper()).postDelayed(this::flushPendingImportToWebView, 350);
+    }
+
+    private void configureWebViewStability() {
+        if (bridge == null || bridge.getWebView() == null) return;
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return;
+
+        WebView webView = bridge.getWebView();
+        webView.setWebViewClient(new BridgeWebViewClient(bridge) {
+            @Override
+            public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
+                try {
+                    Intent restart = getIntent();
+                    finish();
+                    startActivity(restart);
+                } catch (Exception ignored) {
+                }
+                return true;
+            }
+        });
     }
 }

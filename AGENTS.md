@@ -2,6 +2,254 @@
 
 Este archivo documenta todas las intervenciones realizadas por el asistente (Trae AI), detallando planes, ejecuciones y archivos modificados para mantener un historial claro de cambios y facilitar la depuración.
 
+### [2026-02-26 00:00] 104. Lectura Espiritual: subsecciones + fix PWA _document
+**Planificación:**
+- Separar “Lectura Espiritual” en subsecciones “Predeterminadas” y “Personales”.
+- Mover el lector EPUB personal a “Personales” y mantener el resto en “Predeterminadas”.
+- Corregir el error de build de PWA por falta de `/_document`.
+
+**Ejecución:**
+- **Lectura Espiritual**: se reorganizó el contenedor en dos subsecciones, dejando todos los textos en “Predeterminadas”.
+- **EPUB personal**: el ítem del lector EPUB quedó dentro de “Personales” conservando su `id` para la vista existente.
+- **PWA build**: se agregó `src/pages/_document.tsx` mínimo para resolver `PageNotFoundError: /_document`.
+
+**Archivos Modificados:**
+- `src/lib/data.tsx`
+- `src/pages/_document.tsx`
+- `AGENTS.md`
+
+### [2026-02-26 00:15] 105. Fix 404 de assets `_next` en dev (service worker)
+**Planificación:**
+- Evitar que el service worker de PWA sirva HTML/asset cacheados en `localhost` causando 404.
+- Limpiar registros/caches solo en desarrollo.
+
+**Ejecución:**
+- **Cleanup dev**: se agregó un componente cliente que desregistra service workers y limpia caches cuando `NODE_ENV !== 'production'`.
+- **Layout**: se integró el cleanup en `src/app/layout.tsx` para ejecutarse al cargar en dev.
+
+**Archivos Modificados:**
+- `src/components/ServiceWorkerCleanup.tsx`
+- `src/app/layout.tsx`
+- `AGENTS.md`
+
+### [2026-02-26 00:25] 106. Accesibilidad de formularios (labels/ids)
+**Planificación:**
+- Eliminar advertencias de consola sobre campos sin `id/name` o sin `label` asociado.
+- Añadir atributos `id`, `name` y/o `aria-label` en inputs/selects afectados.
+
+**Ejecución:**
+- **EPUB reader**: se asociaron labels con selects de color y se añadieron `id/name/aria-label` a los selects del índice.
+- **Rosario inmersivo**: se añadieron `name/aria-label` a inputs de intenciones y jaculatorias.
+- **Subida de archivos**: se añadieron `id/name/aria-label` a inputs de importación y EPUB personal.
+- **Selector de color**: se vinculó `Label` con el input y se añadieron `id/name/aria-label`.
+
+**Archivos Modificados:**
+- `src/components/NewTestamentEpubReader.tsx`
+- `src/components/RosaryImmersive.tsx`
+- `src/components/PersonalEpubLibrary.tsx`
+- `src/components/settings/ContentSettings.tsx`
+- `src/components/settings/AppearanceSettings.tsx`
+- `AGENTS.md`
+
+### [2026-02-26 00:35] 107. Mitigación de ruido ResizeObserver en dev
+**Planificación:**
+- Evitar el spam de errores “ResizeObserver loop …” que colapsa el overlay y provoca `ERR_INSUFFICIENT_RESOURCES`.
+- Mantener el log de errores reales.
+
+**Ejecución:**
+- **Page**: se filtró el error global de `ResizeObserver` en desarrollo y se llama `preventDefault()` para evitar el overlay.
+
+**Archivos Modificados:**
+- `src/app/page.tsx`
+- `AGENTS.md`
+
+### [2026-02-26 00:45] 108. Fix pantalla en blanco en dev (RSC)
+**Planificación:**
+- Corregir la ejecución de hooks en `app/page.tsx` asegurando componente cliente.
+
+**Ejecución:**
+- **Page**: se agregó `'use client';` al inicio de `src/app/page.tsx`.
+
+**Archivos Modificados:**
+- `src/app/page.tsx`
+- `AGENTS.md`
+
+### [2026-02-26 00:55] 109. Limpieza temprana de Service Worker en dev
+**Planificación:**
+- Evitar que un service worker antiguo bloquee JS/CSS en `localhost`, causando pantalla en blanco.
+- Ejecutar limpieza antes de la hidratación.
+
+**Ejecución:**
+- **Layout**: se añadió script inline en `<head>` para desregistrar service workers y limpiar caches cuando el host es local.
+
+**Archivos Modificados:**
+- `src/app/layout.tsx`
+- `AGENTS.md`
+
+### [2026-02-26 01:05] 110. Lectura Espiritual: Personales directo
+**Planificación:**
+- Evitar un nivel extra dentro de “Personales”.
+- Mantener el `id` que activa el lector EPUB personal.
+
+**Ejecución:**
+- **Lectura Espiritual**: “Personales” ahora es el ítem directo con `id: lectura-espiritual-personales`.
+
+**Archivos Modificados:**
+- `src/lib/data.tsx`
+- `AGENTS.md`
+
+### [2026-02-25 09:40] 94. Modo de trazas en vivo (solo desarrollador)
+**Planificación:**
+- Añadir un modo `devLiveTraceEnabled` en `SettingsContext` que solo se use en sesión de desarrollador, con buffer acotado en memoria para eventos en tiempo real.
+- Registrar eventos críticos en tiempo real: errores globales (`error` / `unhandledrejection`), acciones de importación, cambios de checks de Plan de Vida e incrementos de estadísticas.
+- Exponer en `DeveloperDashboard` un interruptor para activar/desactivar trazas, un panel en vivo con eventos recientes y acción para limpiar historial.
+- Registrar la ejecución y archivos modificados al finalizar.
+**Ejecución:**
+- **SettingsContext**: se añadió el modo `devLiveTraceEnabled`, buffer `devLiveTraceEvents` (máx. 400), API `pushDevLiveTrace`, limpieza manual y persistencia del estado de activación.
+- **Seguridad de modo**: el modo solo funciona con sesión dev activa; al cerrar sesión dev se desactiva y limpia automáticamente.
+- **Eventos en tiempo real**: se registran errores globales (`window.error`, `window.unhandledrejection`) y eventos de app (importaciones, incrementos de stats, checks de Plan de Vida, cambios de notificaciones).
+- **MainApp**: se integró trazado de navegación de vistas y acciones por notificación (`localNotificationActionPerformed`) y por apertura de archivo compartido (`appUrlOpen`).
+- **DeveloperDashboard**: se agregó control rápido de “Trazas en Vivo” y nueva pestaña “Trazas” con lista en vivo, niveles (`info/warn/error`), autoscroll y botón de limpieza.
+- **Validación**: se ejecutó `npx tsc --noEmit` sin errores.
+
+**Archivos Modificados:**
+- `src/context/SettingsContext.tsx`
+- `src/components/main/MainApp.tsx`
+- `src/components/developer/DeveloperDashboard.tsx`
+- `AGENTS.md`
+
+### [2026-02-25 10:15] 95. Fix lector NT: error al salir y check no marcado
+**Planificación:**
+- Corregir el marcado automático del check de Plan de Vida cuando se abre una oración raíz (caso `Lectura Nuevo Testamento`).
+- Blindar el ciclo de vida del lector EPUB para evitar errores al salir/desmontar la vista.
+
+**Ejecución:**
+- **Plan de Vida / contador**: se ajustó `incrementStat` para que, al abrir una oración de Plan de Vida, marque check tanto del contenedor raíz como del propio ítem cuando corresponde (ya no depende de que `rootId !== subKey`).
+- **EPUB reader**: se endureció la limpieza del lector (`destroy`) con `try/catch` para evitar fallos al salir de la vista.
+- **EPUB reader**: se añadió fallback al abrir ubicación guardada (`savedCfi`); si falla, intenta abrir desde inicio sin romper la vista.
+- **Validación**: `npx tsc --noEmit --pretty false` sin errores.
+
+**Archivos Modificados:**
+- `src/context/SettingsContext.tsx`
+- `src/components/NewTestamentEpubReader.tsx`
+- `AGENTS.md`
+
+### [2026-02-25 10:35] 96. Fix lector NT: navegación de página y visibilidad de error
+**Planificación:**
+- Corregir el bloqueo de cambio de página en `Lectura Nuevo Testamento`.
+- Hacer visible el error de navegación dentro del lector y registrarlo en trazas dev para diagnóstico inmediato.
+
+**Ejecución:**
+- **Navegación EPUB**: se añadió fallback de avance/retroceso por `spine` (`moveBySpine`) cuando `rendition.next()` o `rendition.prev()` fallan.
+- **Error visible**: se agregó estado `navigationError` y render de mensaje en pantalla para que el fallo no quede oculto.
+- **Trazas dev**: se reportan errores de apertura EPUB y de paginación con `pushDevLiveTrace` (`source: epub-reader`).
+- **Zonas táctiles**: se limitó la capa de zonas de toque (tercios/sextos) solo al modo pantalla completa para evitar interferencias en modo normal.
+- **Validación**: `npx tsc --noEmit --pretty false` sin errores.
+
+**Archivos Modificados:**
+- `src/components/NewTestamentEpubReader.tsx`
+- `AGENTS.md`
+
+### [2026-02-25 10:55] 97. Fix lector NT: retorno a Plan de Vida y overlay de errores
+**Planificación:**
+- Corregir retorno desde `Lectura Nuevo Testamento` para que vuelva a `Plan de Vida` y no salte a inicio en el flujo esperado.
+- Permitir abrir correctamente el reporte de errores en desarrollo.
+- Endurecer la navegación `Siguiente/Anterior` del lector cuando `epubjs` no cambia CFI pese a invocar `next/prev`.
+
+**Ejecución:**
+- **Navegación app**: en `handleBack` se agregó regla para que, si la vista actual es `prayer` y viene de `plan-de-vida`, vuelva explícitamente a la categoría `Plan de Vida`.
+- **Dev overlay**: se removió `event.preventDefault()` en `src/app/page.tsx` para no bloquear el reporte de errores de desarrollo.
+- **EPUB next/prev**: se compara CFI antes/después de `rendition.next/prev`; si no cambia, se aplica fallback por `spine`, evitando quedarse “pegado” en la misma página.
+- **Validación**: `npx tsc --noEmit --pretty false` sin errores.
+
+**Archivos Modificados:**
+- `src/components/main/MainApp.tsx`
+- `src/app/page.tsx`
+- `src/components/NewTestamentEpubReader.tsx`
+- `AGENTS.md`
+
+### [2026-02-25 11:10] 98. Fix check automático con ventana de 1 hora
+**Planificación:**
+- Corregir que el check de Plan de Vida se marque aunque el contador esté en cooldown de 1 hora para `prayersOpenedHistory`.
+- Mantener el bloqueo del contador (para evitar spam) sin romper la UX del check automático.
+**Ejecución:**
+- **SettingsContext**: se ajustó `incrementStat` para que, cuando el incremento queda bloqueado por la ventana de 1 hora, igual ejecute la sincronización de check de Plan de Vida (`togglePlanDeVidaItem(..., true)`).
+- **Resultado**: el contador sigue protegido contra spam, pero la casilla de `Lectura Nuevo Testamento` (y otros ítems de Plan de Vida) se marca al abrir, incluso dentro del cooldown.
+- **Validación**: `npx tsc --noEmit --pretty false` sin errores.
+
+**Archivos Modificados:**
+- `src/context/SettingsContext.tsx`
+- `AGENTS.md`
+
+### [2026-02-25 11:30] 99. Hardening de salida en lector Nuevo Testamento
+**Planificación:**
+- Blindar callbacks/eventos del lector EPUB para que ningún error interno al desmontar o salir propague excepción global.
+- Reducir riesgo de error en desarrollo al abandonar la vista (`relocated/selected`, anotaciones y acceso a storage).
+**Ejecución:**
+- **Reader lifecycle**: se añadió `isMountedRef` para evitar actualizar estado cuando el componente ya se desmontó.
+- **Callbacks EPUB**: `relocated` y `selected` quedaron encapsulados en `try/catch`, con guardas de montaje y traza dev en errores no fatales.
+- **Cleanup listeners**: al desmontar se intenta remover explícitamente listeners de `rendition` antes de destruirlo.
+- **Storage/annotations**: persistencias de bookmarks/subrayados y operaciones de anotación (`add/remove`) se protegieron con `try/catch`.
+- **Objetivo**: evitar que errores internos del lector al salir terminen en excepción global visible en dev overlay.
+- **Validación**: `npx tsc --noEmit --pretty false` sin errores.
+
+**Archivos Modificados:**
+- `src/components/NewTestamentEpubReader.tsx`
+- `AGENTS.md`
+
+### [2026-02-25 11:45] 100. Restaurar paginación táctil en lector EPUB
+**Planificación:**
+- Restaurar las zonas táctiles de avance/retroceso de página en `Lectura Nuevo Testamento` en el flujo estándar de lectura, manteniendo el resto de fixes de estabilidad.
+**Ejecución:**
+- **Touch zones**: se restauró la capa táctil de navegación del lector EPUB para que vuelva a funcionar el avance/retroceso tocando pantalla (no solo en pantalla completa).
+- **Comportamiento**: se mantienen las reglas de zonas inferiores izquierda/centro/derecha ya definidas.
+- **Validación**: `npx tsc --noEmit --pretty false` sin errores.
+
+**Archivos Modificados:**
+- `src/components/NewTestamentEpubReader.tsx`
+- `AGENTS.md`
+
+### [2026-02-25 12:00] 101. Supresión de error no fatal al salir de lector EPUB
+**Planificación:**
+- Mitigar errores no fatales de `epubjs` durante desmontaje/salida de `Lectura Nuevo Testamento` para que no aparezcan como issue global en desarrollo.
+**Ejecución:**
+- **Filtro local en lector**: se añadieron listeners en `NewTestamentEpubReader` para `window.error` y `unhandledrejection` que suprimen solo errores probables de teardown de EPUB (AbortError/epub/rendition/spine/destroy).
+- **Trazabilidad**: cada supresión se registra como `warn` en trazas dev (`source: epub-reader`) para no perder diagnóstico.
+- **Alcance**: el filtro vive únicamente mientras está montado el lector de Nuevo Testamento, evitando afectar otras vistas.
+- **Validación**: `npx tsc --noEmit --pretty false` sin errores.
+
+**Archivos Modificados:**
+- `src/components/NewTestamentEpubReader.tsx`
+- `AGENTS.md`
+
+### [2026-02-25 12:20] 102. Ajuste de paginación táctil EPUB (sin detección CFI forzada)
+**Planificación:**
+- Simplificar navegación `next/prev` para evitar falsos errores por detección de CFI no disponible en tiempo real.
+**Ejecución:**
+- **Paginación táctil**: se eliminó la validación forzada de cambio de CFI en `goNext/goPrev` (era la fuente de falsos fallos en algunos estados de `epubjs`).
+- **Flujo actual**: primero intenta `rendition.next/prev`; solo si falla, aplica fallback por `spine`.
+- **Resultado esperado**: vuelve el avance/retroceso normal por toque y se reducen errores espurios.
+- **Validación**: `npx tsc --noEmit --pretty false` sin errores.
+
+**Archivos Modificados:**
+- `src/components/NewTestamentEpubReader.tsx`
+- `AGENTS.md`
+
+### [2026-02-25 12:35] 103. Fix loop de actualización máxima (dev) y estabilidad lector NT
+**Planificación:**
+- Eliminar fuentes probables de bucle de render/setState en desarrollo ligadas a trazas globales del lector y registro excesivo de navegación.
+
+**Ejecución:**
+- **Lector EPUB**: se retiró el interceptor local de `window.error/unhandledrejection` dentro de `NewTestamentEpubReader` que escribía en trazas durante errores de runtime, para evitar recursión de estado.
+- **MainApp**: se quitó el efecto que emitía traza en cada cambio de navegación (`Vista activa...`), reduciendo presión de re-render y riesgo de loops en modo dev.
+- **Resultado**: se mantiene trazabilidad útil en acciones clave (notificaciones/importación/errores del lector en operaciones), pero sin ganchos que puedan auto-dispararse en cascada.
+- **Validación**: `npx tsc --noEmit --pretty false` sin errores.
+
+**Archivos Modificados:**
+- `src/components/NewTestamentEpubReader.tsx`
+- `src/components/main/MainApp.tsx`
+- `AGENTS.md`
+
 ### [2026-02-22 00:40] 64. Fix imagen en notificaciones Android (dev y fijas)
 **Planificación:**
 - Corregir por qué no se mostraba imagen en Android para notificaciones de prueba y fijas.
@@ -1804,3 +2052,71 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 
 **Archivo Modificado:**
 - `src/components/NewTestamentEpubReader.tsx`
+
+### [2026-02-25 14:17] 92. Lote de correcciones UX/estabilidad/importación/contador (Planificación)
+**Planificación:**
+- Ajustar safe area en fullscreen de `Lectura Nuevo Testamento`.
+- Unificar icono PWA con variante maskable con zona segura.
+- Mover a ciclo de día 05:00 (solo para contadores Cotidie Annuum + checks Plan de Vida).
+- Contar progreso al marcar check (además de abrir oración/sección).
+- Mitigar reinicios con manejo de errores globales no fatales y robustecer flujo de importación por abrir-con-app.
+- Ralentizar animación de globos de citas.
+- Unificar letanías “directas” con las usadas en Rosario.
+- Añadir sección “Personales” en Lectura Espiritual con listado de EPUBs del usuario.
+- Añadir modo de navegación táctil por zonas en oración abierta desde plan personalizado, con memoria.
+
+**Ejecución:**
+- En progreso.
+
+### [2026-02-25 15:08] 92. Lote de correcciones UX/estabilidad/importación/contador (Ejecución)
+**Ejecución:**
+- **(1) Safe area NT fullscreen**: se reforzó `NewTestamentEpubReader` con `100dvh` + `safe-area-inset-*` (con fallback) para evitar solaparse con barra del sistema.
+- **(2) Ícono PWA con zona segura**: se generó `public/icons/icon-maskable.png` y se actualizó `manifest.json` para usar `icon.png` (`any`) + `icon-maskable.png` (`maskable`).
+- **(3) Día 05:00 en conteos/checks**: se agregó clave de “día pastoral” (05:00–04:59) para estadísticas de oración y checks del Plan de Vida, manteniendo el resto de la app en día 00:00.
+- **(4) Check también cuenta**: al marcar check manual en Plan de Vida, ahora también incrementa el conteo de oración correspondiente (sin recursión/doble marcado).
+- **(5) Reinicios frecuentes**: se añadieron capturas globales de `error` y `unhandledrejection` para reducir caídas por errores no manejados.
+- **(6) Globos de citas más lentos**: se ralentizó animación `enjoy-balloon` de 15s a 36s.
+- **(7) Letanías directas = Rosario**: al abrir oración `letanias` fuera del flujo inmersivo, se fuerza contenido base de letanías del Rosario para mantener coherencia.
+- **(8) Importación abrir-con-app**: se robusteció `MainActivity` con reintentos de flush al WebView y se añadió soporte `appUrlOpen/getLaunchUrl` en web layer para procesar archivos compartidos.
+- **(9) Lectura Espiritual > Personales**: se añadió sección “Personales” y componente para subir/listar EPUBs propios y abrirlos con el lector EPUB integrado.
+- **(10) Modo táctil en plan personalizado**: se agregó modo persistente (memoria local) para navegación por zonas táctiles (inferior izq=anterior, centro+der=siguiente), con botón en encabezado para alternar modo.
+
+**Validación:**
+- `npx tsc --noEmit` sin errores.
+- `./gradlew.bat :app:compileDebugJavaWithJavac` OK (nota deprecación API en `MainActivity`, sin error de compilación).
+
+**Archivos Modificados:**
+- `src/components/NewTestamentEpubReader.tsx`
+- `public/manifest.json`
+- `public/icons/icon-maskable.png` (NUEVO)
+- `src/context/SettingsContext.tsx`
+- `src/app/page.tsx`
+- `src/app/globals.css`
+- `src/components/main/MainApp.tsx`
+- `android/app/src/main/java/com/benjamin/studio/MainActivity.java`
+- `src/components/Header.tsx`
+- `src/components/PersonalEpubLibrary.tsx` (NUEVO)
+- `src/lib/data.tsx`
+
+### [2026-02-25 15:26] 93. Hardening anti-reinicio (Ejecución)
+**Objetivo:**
+- Reducir probabilidad de reinicios por presión de memoria y por caída del proceso WebView.
+
+**Ejecución:**
+- **Biblioteca EPUB personal optimizada**:
+  - Se dejó de mantener todos los EPUB (base64) en memoria React.
+  - Ahora se guarda índice liviano + contenido por clave separada en `localStorage`.
+  - Se carga el base64 solo al abrir un EPUB.
+  - Se añadió límite de tamaño por archivo (25MB) para evitar picos de memoria.
+- **MainActivity robustecido**:
+  - Se añadió manejo de `onRenderProcessGone` (API 26+) con reinicio controlado de actividad.
+  - Se añadió límite de lectura para imports compartidos (`MAX_IMPORT_BYTES`) para evitar cargas excesivas.
+  - Se conserva el mecanismo de reintento para flush del payload al WebView.
+
+**Validación:**
+- `npx tsc --noEmit` sin errores.
+- `./gradlew.bat :app:compileDebugJavaWithJavac` exitoso.
+
+**Archivos Modificados:**
+- `src/components/PersonalEpubLibrary.tsx`
+- `android/app/src/main/java/com/benjamin/studio/MainActivity.java`

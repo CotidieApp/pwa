@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
-import { ArrowLeft, ChevronLeft, ChevronRight, RotateCcw, Expand, Minimize, Search, Pencil, Calendar } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, RotateCcw, Expand, Minimize, Search, Pencil, Calendar, Hand } from 'lucide-react';
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
 import { useSettings } from '@/context/SettingsContext';
@@ -38,6 +38,9 @@ type HeaderProps = {
   showEditButton?: boolean;
   onEdit?: () => void;
   editDisabled?: boolean;
+  showNavModeToggle?: boolean;
+  isTouchNavMode?: boolean;
+  onToggleNavMode?: () => void;
 };
 
 const DragHandle = () => {
@@ -77,6 +80,9 @@ export default function Header({
   showEditButton = false,
   onEdit,
   editDisabled = false,
+  showNavModeToggle = false,
+  isTouchNavMode = false,
+  onToggleNavMode,
 }: HeaderProps) {
 
   const { isDistractionFree: isGlobalDistractionFree, timerEnabled, overlayPositions, setOverlayPosition } =
@@ -269,7 +275,7 @@ export default function Header({
         </h1>
 
         <div className="flex items-center gap-2 min-w-0 max-w-[45%] z-10">
-          <div className="w-10 flex justify-start shrink-0">
+          <div className="flex justify-start shrink-0 gap-1">
             {showBackButton && !shouldFloatNavControls && (
               <Button
                 variant="ghost"
@@ -279,6 +285,17 @@ export default function Header({
                 title="Volver"
               >
                 <ArrowLeft />
+              </Button>
+            )}
+            {showNavModeToggle && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-primary-foreground hover:bg-primary-foreground/10"
+                onClick={onToggleNavMode}
+                title={isTouchNavMode ? 'Usar botones de navegación' : 'Usar zonas táctiles'}
+              >
+                <Hand />
               </Button>
             )}
           </div>

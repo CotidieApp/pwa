@@ -6,6 +6,7 @@ import { useSettings } from '@/context/SettingsContext';
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications, type ActionPerformed } from '@capacitor/local-notifications';
 import { App } from '@capacitor/app';
+import { Filesystem } from '@capacitor/filesystem';
 
 import Header from '@/components/Header';
 import PrayerList from '@/components/PrayerList';
@@ -20,7 +21,9 @@ import RosaryMeditated from '../RosaryMeditated';
 import PlanDeVidaCalendar from '../plans/PlanDeVidaCalendar';
 import ViaCrucisImmersive from '../ViaCrucisImmersive';
 import NewTestamentEpubReader from '@/components/NewTestamentEpubReader';
+import PersonalEpubLibrary from '@/components/PersonalEpubLibrary';
 import SearchCamino from '@/components/SearchCamino';
+import { letanias as letaniasRosarioBase } from '@/lib/prayers/plan-de-vida/santo-rosario/letanias';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { isWrappedSeason } from '@/lib/movable-feasts';
@@ -153,6 +156,8 @@ const getInitialNavState = (): NavigationState => {
 };
 
 const ORACION_DEL_DIA_ID = '__oracion_del_dia__';
+const PENDING_IMPORT_STORAGE_KEY = 'cotidie_pending_import';
+const CUSTOM_PLAN_NAV_MODE_KEY = 'cotidie_custom_plan_touch_nav';
 
 const resolveOracionDelDiaPrayerId = () => {
   const day = new Date().getDay();
@@ -172,6 +177,10 @@ export default function MainApp() {
     term: '',
     activeIndex: -1,
     resultsCount: 0,
+  });
+  const [customPlanTouchNavEnabled, setCustomPlanTouchNavEnabled] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem(CUSTOM_PLAN_NAV_MODE_KEY) === '1';
   });
 
   const {
@@ -206,6 +215,7 @@ export default function MainApp() {
     setOverlayPosition,
     hasViewedWrapped,
     setHasViewedWrapped,
+    pushDevLiveTrace,
   } = useSettings();
 
   const [isDraggingWrapped, setIsDraggingWrapped] = useState(false);
@@ -247,6 +257,11 @@ export default function MainApp() {
   useEffect(() => {
     navStateRef.current = navState;
   }, [navState]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(CUSTOM_PLAN_NAV_MODE_KEY, customPlanTouchNavEnabled ? '1' : '0');
+  }, [customPlanTouchNavEnabled]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -350,6 +365,15 @@ export default function MainApp() {
     if (navState.activeView === 'prayer' && navState.customPlanPrayerSlot !== null) {
       window.history.replaceState(navStateRef.current ?? initialState, '');
       setNavState(initialState);
+      return;
+    }
+
+    if (navState.activeView === 'prayer' && navState.selectedCategoryId === 'plan-de-vida') {
+      setNavState({
+        ...initialState,
+        activeView: 'category',
+        selectedCategoryId: 'plan-de-vida',
+      });
       return;
     }
     
@@ -701,6 +725,17 @@ export default function MainApp() {
         if (currentPrayer.id === 'lectura-nuevo-testamento') {
           return <NewTestamentEpubReader />;
         }
+        if (currentPrayer.id === 'lectura-espiritual-personales') {
+          return <PersonalEpubLibrary />;
+        }
+        if (currentPrayer.id === 'letanias') {
+          return (
+            <PrayerDetail
+              prayer={{ ...currentPrayer, content: letaniasRosarioBase.content }}
+              searchState={isCaminoActive ? searchState : undefined}
+            />
+          );
+        }
         return <PrayerDetail prayer={currentPrayer} searchState={isCaminoActive ? searchState : undefined} />;
       case 'home':
       default:
@@ -774,17 +809,41 @@ export default function MainApp() {
 
     const sub = LocalNotifications.addListener('localNotificationActionPerformed', (action: ActionPerformed) => {
       const extra = action.notification.extra as any;
+      pushDevLiveTrace({
+        level: 'info',
+        source: 'notifications',
+        message: 'Notificacion tocada por usuario.',
+        data: `id=${action.notification.id}`,
+      });
       const route = typeof extra?.route === 'string' ? extra.route : null;
       if (route) {
+        pushDevLiveTrace({
+          level: 'info',
+          source: 'notifications',
+          message: 'Navegacion por ruta de notificacion.',
+          data: route,
+        });
         handleRouteNavigation(route);
         return;
       }
       const target = extra?.target as { type?: string; id?: string } | undefined;
       if (target?.type === 'prayer' && typeof target.id === 'string') {
+        pushDevLiveTrace({
+          level: 'info',
+          source: 'notifications',
+          message: 'Navegacion a oracion por notificacion.',
+          data: target.id,
+        });
         handleOpenPrayerById(target.id);
         return;
       }
       if (target?.type === 'category' && typeof target.id === 'string') {
+        pushDevLiveTrace({
+          level: 'info',
+          source: 'notifications',
+          message: 'Navegacion a categoria por notificacion.',
+          data: target.id,
+        });
         handleOpenCategoryById(target.id);
       }
     });
@@ -792,7 +851,83 @@ export default function MainApp() {
     return () => {
       sub.then((handle) => handle.remove()).catch(() => {});
     };
-  }, [handleOpenCategoryById, handleOpenPrayerById, handleRouteNavigation]);
+  }, [handleOpenCategoryById, handleOpenPrayerById, handleRouteNavigation, pushDevLiveTrace]);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    const extractImportUri = (rawUrl: string): string | null => {
+      const trimmed = rawUrl.trim();
+      if (!trimmed) return null;
+      if (trimmed.startsWith('content://') || trimmed.startsWith('file://')) return trimmed;
+      try {
+        const parsed = new URL(trimmed);
+        const uriParam = parsed.searchParams.get('uri') || parsed.searchParams.get('file');
+        if (uriParam && (uriParam.startsWith('content://') || uriParam.startsWith('file://'))) {
+          return decodeURIComponent(uriParam);
+        }
+        if (/\.(ctd|json)$/i.test(parsed.pathname)) return trimmed;
+      } catch {
+        if (/\.(ctd|json)$/i.test(trimmed)) return trimmed;
+      }
+      return null;
+    };
+
+    const decodeFileData = (data: string) => {
+      const trimmed = data.trim();
+      if (trimmed.startsWith('{') || trimmed.startsWith('[')) return data;
+      try {
+        return atob(data);
+      } catch {
+        return data;
+      }
+    };
+
+    const processImportUrl = async (rawUrl: string) => {
+      const importUri = extractImportUri(rawUrl);
+      if (!importUri) return;
+      try {
+        const result = await Filesystem.readFile({ path: importUri });
+        const payload = decodeFileData(String(result.data ?? ''));
+        if (!payload.trim()) return;
+        window.localStorage.setItem(PENDING_IMPORT_STORAGE_KEY, payload);
+        window.dispatchEvent(new Event('cotidie-pending-import'));
+        pushDevLiveTrace({
+          level: 'info',
+          source: 'import',
+          message: 'Archivo recibido por appUrlOpen.',
+          data: importUri,
+        });
+      } catch (error) {
+        console.error('No se pudo procesar importación por appUrlOpen:', error);
+        pushDevLiveTrace({
+          level: 'error',
+          source: 'import',
+          message: 'Fallo leyendo archivo compartido (appUrlOpen).',
+          data: importUri,
+        });
+      }
+    };
+
+    let listener: { remove: () => Promise<void> } | null = null;
+    App.addListener('appUrlOpen', ({ url }) => {
+      if (typeof url === 'string' && url.length > 0) {
+        processImportUrl(url);
+      }
+    }).then((handle) => {
+      listener = handle;
+    });
+
+    App.getLaunchUrl().then((launch) => {
+      if (launch?.url) {
+        processImportUrl(launch.url);
+      }
+    }).catch(() => {});
+
+    return () => {
+      listener?.remove().catch(() => {});
+    };
+  }, [pushDevLiveTrace]);
 
   const handleOpenCustomPlanPrayerAt = useCallback((slot: 1 | 2 | 3 | 4, index: number): boolean => {
     const plan = customPlans[slot - 1];
@@ -885,6 +1020,16 @@ export default function MainApp() {
     customPlanValidIndices.length > 0 &&
     customPlanValidPosition !== -1;
 
+  const goToCustomPlanPrev = useCallback(() => {
+    if (!hasCustomPlanPrayerNav || customPlanPrevIndex === null || navState.customPlanPrayerSlot === null) return;
+    handleOpenCustomPlanPrayerAt(navState.customPlanPrayerSlot as 1 | 2 | 3 | 4, customPlanPrevIndex);
+  }, [customPlanPrevIndex, handleOpenCustomPlanPrayerAt, hasCustomPlanPrayerNav, navState.customPlanPrayerSlot]);
+
+  const goToCustomPlanNext = useCallback(() => {
+    if (!hasCustomPlanPrayerNav || customPlanNextIndex === null || navState.customPlanPrayerSlot === null) return;
+    handleOpenCustomPlanPrayerAt(navState.customPlanPrayerSlot as 1 | 2 | 3 | 4, customPlanNextIndex);
+  }, [customPlanNextIndex, handleOpenCustomPlanPrayerAt, hasCustomPlanPrayerNav, navState.customPlanPrayerSlot]);
+
   const canEditCurrentPrayer =
     navState.activeView === 'prayer' &&
     Boolean(currentPrayer?.id) &&
@@ -960,29 +1105,17 @@ export default function MainApp() {
           <Header
             title={headerTitle}
             showBackButton={true}
-            floatBackButton={navState.activeView === 'customPlan'}
+            floatBackButton={navState.activeView === 'customPlan' && !customPlanTouchNavEnabled}
             onBack={handleBack}
-            showPrevNext={hasCustomPlanPrayerNav}
+            showPrevNext={hasCustomPlanPrayerNav && !customPlanTouchNavEnabled}
             onPrev={
-              hasCustomPlanPrayerNav
-                ? () => {
-                    if (customPlanPrevIndex === null) return;
-                    handleOpenCustomPlanPrayerAt(
-                      navState.customPlanPrayerSlot as 1 | 2 | 3 | 4,
-                      customPlanPrevIndex
-                    );
-                  }
+              hasCustomPlanPrayerNav && !customPlanTouchNavEnabled
+                ? goToCustomPlanPrev
                 : undefined
             }
             onNext={
-              hasCustomPlanPrayerNav
-                ? () => {
-                    if (customPlanNextIndex === null) return;
-                    handleOpenCustomPlanPrayerAt(
-                      navState.customPlanPrayerSlot as 1 | 2 | 3 | 4,
-                      customPlanNextIndex
-                    );
-                  }
+              hasCustomPlanPrayerNav && !customPlanTouchNavEnabled
+                ? goToCustomPlanNext
                 : undefined
             }
             prevDisabled={
@@ -1002,17 +1135,44 @@ export default function MainApp() {
             onEdit={
               currentPrayerEditAction
             }
+            showNavModeToggle={navState.activeView === 'customPlan' || hasCustomPlanPrayerNav}
+            isTouchNavMode={customPlanTouchNavEnabled}
+            onToggleNavMode={() => setCustomPlanTouchNavEnabled((prev) => !prev)}
           />
         )}
         <div
           className={cn(
-            'flex-1 overflow-x-hidden',
+            'flex-1 overflow-x-hidden pb-[max(0px,env(safe-area-inset-bottom))]',
             navState.activeView === 'home' ? 'overflow-y-hidden' : 'overflow-y-auto'
           )}
           data-app-scroll-container="true"
         >
           {renderContent()}
         </div>
+        {customPlanTouchNavEnabled && hasCustomPlanPrayerNav && (
+          <div className="pointer-events-none absolute inset-0 z-20">
+            <div className="pointer-events-auto absolute bottom-0 left-0 h-1/2 w-full flex">
+              <button
+                type="button"
+                aria-label="Anterior"
+                className="h-full w-1/3"
+                onClick={goToCustomPlanPrev}
+              />
+              <button
+                type="button"
+                aria-label="Siguiente"
+                className="h-full w-1/3"
+                onClick={goToCustomPlanNext}
+              />
+              <button
+                type="button"
+                aria-label="Siguiente"
+                className="h-full w-1/3"
+                onClick={goToCustomPlanNext}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {isCaminoActive && isSearchVisible && currentPrayer?.content && (
