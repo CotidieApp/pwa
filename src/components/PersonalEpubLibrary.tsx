@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import NewTestamentEpubReader from '@/components/NewTestamentEpubReader';
+import EpubReader from '@/components/EpubReader';
 
 type StoredPersonalEpubMeta = {
   id: string;
@@ -115,7 +115,11 @@ export default function PersonalEpubLibrary() {
           </Button>
           <span className="text-xs text-muted-foreground truncate">{selected.name}</span>
         </div>
-        <NewTestamentEpubReader fileName={`personal-${selected.id}.epub`} sourceBase64={selectedSource} />
+        <EpubReader
+          fileName={`personal-${selected.id}.epub`}
+          sourceBase64={selectedSource}
+          context="general"
+        />
       </div>
     );
   }

@@ -20,7 +20,7 @@ import RosaryImmersive from '../RosaryImmersive';
 import RosaryMeditated from '../RosaryMeditated';
 import PlanDeVidaCalendar from '../plans/PlanDeVidaCalendar';
 import ViaCrucisImmersive from '../ViaCrucisImmersive';
-import NewTestamentEpubReader from '@/components/NewTestamentEpubReader';
+import EpubReader from '@/components/EpubReader';
 import PersonalEpubLibrary from '@/components/PersonalEpubLibrary';
 import SearchCamino from '@/components/SearchCamino';
 import { letanias as letaniasRosarioBase } from '@/lib/prayers/plan-de-vida/santo-rosario/letanias';
@@ -723,7 +723,7 @@ export default function MainApp() {
           );
         }
         if (currentPrayer.id === 'lectura-nuevo-testamento') {
-          return <NewTestamentEpubReader />;
+          return <EpubReader />;
         }
         if (currentPrayer.id === 'lectura-espiritual-personales') {
           return <PersonalEpubLibrary />;
@@ -1088,7 +1088,7 @@ export default function MainApp() {
           >
              <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-yellow-500 shadow-lg shadow-yellow-500/50 bg-black">
                 <Image 
-                    src="/icons/icon-192x192.png" 
+                    src="/icons/icon.png" 
                     alt="Annuum" 
                     fill 
                     className="object-cover"

@@ -181,7 +181,7 @@ type Settings = {
   planDeVidaTrackerEnabled: boolean;
   setPlanDeVidaTrackerEnabled: (enabled: boolean) => void;
   planDeVidaProgress: string[];
-  togglePlanDeVidaItem: (id: string, force?: boolean) => void;
+  togglePlanDeVidaItem: (id: string, force?: boolean, skipStatIncrement?: boolean) => void;
   resetPlanDeVidaProgress: () => void;
   planDeVidaCalendar: Record<string, string[]>;
 
@@ -1549,7 +1549,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [timerDuration]);
 
-  const togglePlanDeVidaItem = (id: string, force?: boolean) => {
+  const togglePlanDeVidaItem = (id: string, force?: boolean, skipStatIncrement?: boolean) => {
      const now = simulatedDate ? new Date(simulatedDate) : new Date();
      const dateKey = getPastoralDayKey(now);
 
@@ -1572,7 +1572,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           return { ...prevCalendar, [dateKey]: nextList };
         });
 
-        if (nextChecked && !isChecked && !isIncrementSyncingPlanRef.current) {
+        if (nextChecked && !isChecked && !isIncrementSyncingPlanRef.current && !skipStatIncrement) {
           incrementStat('prayersOpenedHistory', id);
         }
 
@@ -1749,6 +1749,19 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const getPastoralDayKey = (date: Date) => getLocalDateKey(getPastoralDayDate(date));
+  const isAngelusStatKey = (value?: string) =>
+    value === 'angelus' ||
+    value === 'regina-caeli' ||
+    value === 'regina-coeli' ||
+    value === 'reginaCoeli' ||
+    value === 'angelus-regina-coeli';
+
+  const getAngelusStatKeys = (subKey?: string) => {
+    if (!subKey) return [];
+    if (!isAngelusStatKey(subKey)) return [subKey];
+    const keys = ['angelus', subKey];
+    return Array.from(new Set(keys));
+  };
 
   const incrementGlobalStat = (key: keyof UserStats, subKey?: string) => {
     setGlobalUserStats(prev => {
@@ -1757,7 +1770,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         // but without side effects (like plan de vida toggling)
         if (key === 'prayersOpenedHistory' && subKey) {
             const history = { ...prev.prayersOpenedHistory };
-            history[subKey] = (history[subKey] || 0) + 1;
+            const statKeys = getAngelusStatKeys(subKey);
+            for (const statKey of statKeys) {
+              history[statKey] = (history[statKey] || 0) + 1;
+            }
             
             const now = new Date();
             const hour = now.getHours();
@@ -1765,10 +1781,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
             const isMorning = hour >= 4 && hour < 12; // Expanded range for Morning (4AM - 12PM)
 
             const isRosary = subKey === 'rosario' || subKey === 'santo-rosario';
-            const isAngelus =
-              subKey === 'angelus' ||
-              subKey === 'regina-caeli' ||
-              subKey === 'angelus-regina-coeli';
+            const isAngelus = isAngelusStatKey(subKey);
             const isExamination = subKey === 'examen-conciencia' || subKey === 'examen-noche';
             
             const todayKey = getPastoralDayKey(now);
@@ -1778,8 +1791,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
             const newPrayerDaysCount = { ...(prev.prayerDaysCount || {}) };
             
             if (lastOpened !== todayKey) {
-                 newPrayerLastOpened[subKey] = todayKey;
-                 newPrayerDaysCount[subKey] = (newPrayerDaysCount[subKey] || 0) + 1;
+                 for (const statKey of statKeys) {
+                   newPrayerLastOpened[statKey] = todayKey;
+                   newPrayerDaysCount[statKey] = (newPrayerDaysCount[statKey] || 0) + 1;
+                 }
             }
 
             let newMassStreak = prev.massStreak || 0;
@@ -1871,14 +1886,15 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     // Check freeze time (1 hour)
     if (key === 'prayersOpenedHistory' && subKey) {
         const now = Date.now();
-        const lastIncrement = userStats.prayerLastIncrementTimestamp?.[subKey] || 0;
+        const cooldownKey = isAngelusStatKey(subKey) ? 'angelus' : subKey;
+        const lastIncrement = userStats.prayerLastIncrementTimestamp?.[cooldownKey] || 0;
         if (now - lastIncrement < 3600000) { // 1 hour = 3600000 ms
             // Even when the counter is throttled, keep Plan de Vida check sync in UI.
             const rootId = getRootPlanDeVidaId(subKey);
             const targetId = rootId || subKey;
             if (targetId) {
               isIncrementSyncingPlanRef.current = true;
-              togglePlanDeVidaItem(targetId, true);
+              togglePlanDeVidaItem(targetId, true, true);
               isIncrementSyncingPlanRef.current = false;
             }
             pushDevLiveTrace({
@@ -1906,7 +1922,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         const targetId = rootId || subKey;
         if (targetId) {
             isIncrementSyncingPlanRef.current = true;
-            togglePlanDeVidaItem(targetId, true);
+            togglePlanDeVidaItem(targetId, true, true);
             isIncrementSyncingPlanRef.current = false;
         }
     }
@@ -1914,11 +1930,17 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setUserStats(prev => {
       if (key === 'prayersOpenedHistory' && subKey) {
         const history = { ...prev.prayersOpenedHistory };
-        history[subKey] = (history[subKey] || 0) + 1;
+        const statKeys = getAngelusStatKeys(subKey);
+        for (const statKey of statKeys) {
+          history[statKey] = (history[statKey] || 0) + 1;
+        }
         
         // Update timestamp
         const timestamps = { ...(prev.prayerLastIncrementTimestamp || {}) };
-        timestamps[subKey] = Date.now();
+        const nowTs = Date.now();
+        for (const statKey of statKeys) {
+          timestamps[statKey] = nowTs;
+        }
 
         // Check for time-based stats
         const now = new Date();
@@ -1928,10 +1950,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
         // Specific prayer type checks
         const isRosary = subKey === 'rosario' || subKey === 'santo-rosario';
-        const isAngelus =
-          subKey === 'angelus' ||
-          subKey === 'regina-caeli' ||
-          subKey === 'angelus-regina-coeli';
+        const isAngelus = isAngelusStatKey(subKey);
         const isExamination = subKey === 'examen-conciencia' || subKey === 'examen-noche';
         
         // Track unique days for this prayer/devotion
@@ -1942,8 +1961,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         const newPrayerDaysCount = { ...(prev.prayerDaysCount || {}) };
         
         if (lastOpened !== todayKey) {
-             newPrayerLastOpened[subKey] = todayKey;
-             newPrayerDaysCount[subKey] = (newPrayerDaysCount[subKey] || 0) + 1;
+             for (const statKey of statKeys) {
+               newPrayerLastOpened[statKey] = todayKey;
+               newPrayerDaysCount[statKey] = (newPrayerDaysCount[statKey] || 0) + 1;
+             }
         }
 
         // Mass Stats

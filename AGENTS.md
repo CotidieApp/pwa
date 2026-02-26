@@ -98,6 +98,103 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `src/lib/data.tsx`
 - `AGENTS.md`
 
+### [2026-02-26 01:20] 111. Panel lateral EPUB personal (índice y búsqueda genéricos)
+**Planificación:**
+- Hacer que el panel lateral del lector de EPUB personal use el índice real del libro, sin filtros del Nuevo Testamento.
+- Ajustar textos de búsqueda para contenido no bíblico.
+
+**Ejecución:**
+- **Reader**: se agregó `context` para alternar entre modo NT y modo general.
+- **TOC**: en modo general se ocultan filtros por libro NT y el índice NT.
+- **Búsqueda**: se ajustaron textos y placeholder para no mencionar capítulos/versículos ni “Juan 3:16”.
+- **Library**: se pasa `context="general"` al lector personal.
+
+**Archivos Modificados:**
+- `src/components/NewTestamentEpubReader.tsx`
+- `src/components/PersonalEpubLibrary.tsx`
+- `AGENTS.md`
+
+### [2026-02-26 01:30] 112. Renombre lector EPUB + iconos Annuum
+**Planificación:**
+- Renombrar el componente del lector a un nombre genérico.
+- Unificar los íconos de Cotidie Annuum al `icons/icon.png`.
+
+**Ejecución:**
+- **Reader**: `NewTestamentEpubReader` pasó a `EpubReader` y se actualizaron imports/uso.
+- **Annuum**: se apuntaron íconos del globo y del resumen a `/icons/icon.png`.
+
+**Archivos Modificados:**
+- `src/components/EpubReader.tsx`
+- `src/components/PersonalEpubLibrary.tsx`
+- `src/components/main/MainApp.tsx`
+- `src/components/WrappedStory.tsx`
+- `AGENTS.md`
+
+### [2026-02-26 01:40] 113. Sync contador Angelus con “Angelus y Regina Coeli”
+**Planificación:**
+- Alinear el contador de Angelus con la oración de Plan de Vida “Angelus y Regina Coeli”.
+- Respetar la ventana de enfriamiento de 1 hora.
+
+**Ejecución:**
+- **Stats**: se normalizó el conteo de Angelus para claves `angelus-regina-coeli` y variantes (`regina-coeli`, `regina-caeli`, `reginaCoeli`).
+- **Cooldown**: el bloqueo de 1 hora ahora se aplica sobre la clave canónica `angelus`.
+
+**Archivos Modificados:**
+- `src/context/SettingsContext.tsx`
+- `AGENTS.md`
+
+### [2026-02-26 02:00] 114. Reemplazo global de iconos (PWA + Android)
+**Planificación:**
+- Reemplazar íconos principales por `Downloads/icon.png`.
+- Generar variantes con zona segura para recortes del sistema.
+
+**Ejecución:**
+- **PWA**: `public/icons/icon.png`, `icon-maskable.png` e `icon.jpg` regenerados con padding (safe zone).
+- **Android**: `ic_launcher*.png` en `mipmap-*` regenerados con padding.
+- **Assets Android**: `android/app/src/main/assets/public/icons` sincronizado con `public/icons`.
+- **Exclusión**: no se tocaron `black_icon.png` y `white_icon.png`.
+
+**Archivos Modificados:**
+- `public/icons/icon.png`
+- `public/icons/icon-maskable.png`
+- `public/icons/icon.jpg`
+- `android/app/src/main/res/mipmap-*/ic_launcher*.png`
+- `android/app/src/main/assets/public/icons/icon.png`
+- `android/app/src/main/assets/public/icons/icon-maskable.png`
+- `android/app/src/main/assets/public/icons/icon.jpg`
+- `AGENTS.md`
+
+### [2026-02-26 02:10] 115. Evitar doble conteo al abrir oraciones
+**Planificación:**
+- Evitar incrementos duplicados causados por la sincronización de checks de Plan de Vida.
+
+**Ejecución:**
+- **Plan de Vida**: se añadió un flag `skipStatIncrement` a `togglePlanDeVidaItem` para que la sincronización desde `incrementStat` no dispare un segundo conteo.
+
+**Archivos Modificados:**
+- `src/context/SettingsContext.tsx`
+- `AGENTS.md`
+
+### [2026-02-26 02:20] 116. Íconos sin contorno visible + safe zone
+**Planificación:**
+- Quitar el contorno visible en el ícono principal.
+- Mantener zona segura para recortes (maskable/adaptive).
+
+**Ejecución:**
+- **PWA**: `icon.png` y `icon.jpg` regenerados sin padding (full-bleed). `icon-maskable.png` mantiene padding.
+- **Android**: `ic_launcher*.png` regenerados sin padding; la safe zone se mantiene por el inset del adaptive icon.
+- **Assets Android**: sincronizados desde `public/icons`.
+
+**Archivos Modificados:**
+- `public/icons/icon.png`
+- `public/icons/icon-maskable.png`
+- `public/icons/icon.jpg`
+- `android/app/src/main/res/mipmap-*/ic_launcher*.png`
+- `android/app/src/main/assets/public/icons/icon.png`
+- `android/app/src/main/assets/public/icons/icon-maskable.png`
+- `android/app/src/main/assets/public/icons/icon.jpg`
+- `AGENTS.md`
+
 ### [2026-02-25 09:40] 94. Modo de trazas en vivo (solo desarrollador)
 **Planificación:**
 - Añadir un modo `devLiveTraceEnabled` en `SettingsContext` que solo se use en sesión de desarrollador, con buffer acotado en memoria para eventos en tiempo real.

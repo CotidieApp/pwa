@@ -9,9 +9,10 @@ import { Menu } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 
 const DEFAULT_FILE_NAME = 'nuevo-testamento.epub';
-type NewTestamentEpubReaderProps = {
+type EpubReaderProps = {
   fileName?: string;
   sourceBase64?: string | null;
+  context?: 'nt' | 'general';
 };
 
 const toStorageKey = (fileName: string) => `cotidie_epub_location_${fileName.trim().toLowerCase()}`;
@@ -156,8 +157,13 @@ const detectNtBookId = (label: string): string | null => {
 };
 
 
-export default function NewTestamentEpubReader({ fileName, sourceBase64 = null }: NewTestamentEpubReaderProps) {
+export default function EpubReader({
+  fileName,
+  sourceBase64 = null,
+  context = 'nt',
+}: EpubReaderProps) {
   const { theme, pushDevLiveTrace } = useSettings();
+  const isNtContext = context === 'nt';
   const containerRef = useRef<HTMLDivElement | null>(null);
   const bookRef = useRef<Book | null>(null);
   const renditionRef = useRef<Rendition | null>(null);
@@ -198,6 +204,7 @@ export default function NewTestamentEpubReader({ fileName, sourceBase64 = null }
   const readerTextHex = readerTextColor === 'white' ? '#ffffff' : '#000000';
   const readerBackgroundHex = readerBackgroundColor === 'white' ? '#ffffff' : '#000000';
   const tocBookAnchors = useMemo(() => {
+    if (!isNtContext) return {};
     const map: Record<string, TocEntry> = {};
     for (const entry of tocEntries) {
       const bookId = detectNtBookId(entry.label);
@@ -206,11 +213,11 @@ export default function NewTestamentEpubReader({ fileName, sourceBase64 = null }
       }
     }
     return map;
-  }, [tocEntries]);
+  }, [isNtContext, tocEntries]);
   const filteredTocEntries = useMemo(() => {
-    if (tocBookFilter === 'all') return tocEntries;
+    if (!isNtContext || tocBookFilter === 'all') return tocEntries;
     return tocEntries.filter((entry) => detectNtBookId(entry.label) === tocBookFilter);
-  }, [tocBookFilter, tocEntries]);
+  }, [isNtContext, tocBookFilter, tocEntries]);
   const availablePanelTabs = useMemo<Array<'toc' | 'search' | 'bookmarks' | 'highlights'>>(() => {
     const tabs: Array<'toc' | 'search' | 'bookmarks' | 'highlights'> = ['search'];
     if (tocEntries.length > 0) tabs.unshift('toc');
@@ -903,22 +910,24 @@ export default function NewTestamentEpubReader({ fileName, sourceBase64 = null }
             {panelTab === 'toc' && (
               <div className="space-y-2">
                 <div className="text-xs font-semibold">Viaje rápido (índice)</div>
-                <select
-                  id="epub-reader-toc-book"
-                  name="epub-reader-toc-book"
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  value={tocBookFilter}
-                  onChange={(e) => setTocBookFilter(e.target.value)}
-                  disabled={status !== 'ready'}
-                  aria-label="Libro del índice"
-                >
-                  <option value="all">Todos los libros</option>
-                  {NT_BOOKS.filter((book) => Boolean(tocBookAnchors[book.id])).map((book) => (
-                    <option key={book.id} value={book.id}>
-                      {book.label}
-                    </option>
-                  ))}
-                </select>
+                {isNtContext && Object.keys(tocBookAnchors).length > 0 ? (
+                  <select
+                    id="epub-reader-toc-book"
+                    name="epub-reader-toc-book"
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={tocBookFilter}
+                    onChange={(e) => setTocBookFilter(e.target.value)}
+                    disabled={status !== 'ready'}
+                    aria-label="Libro del índice"
+                  >
+                    <option value="all">Todos los libros</option>
+                    {NT_BOOKS.filter((book) => Boolean(tocBookAnchors[book.id])).map((book) => (
+                      <option key={book.id} value={book.id}>
+                        {book.label}
+                      </option>
+                    ))}
+                  </select>
+                ) : null}
                 <select
                   id="epub-reader-toc-entry"
                   name="epub-reader-toc-entry"
@@ -928,7 +937,7 @@ export default function NewTestamentEpubReader({ fileName, sourceBase64 = null }
                   disabled={status !== 'ready' || filteredTocEntries.length === 0}
                   aria-label="Sección del índice"
                 >
-                  <option value="">Selecciona una sección</option>
+                  <option value="">{filteredTocEntries.length === 0 ? 'Sin secciones' : 'Selecciona una sección'}</option>
                   {filteredTocEntries.map((entry) => (
                     <option key={entry.id} value={entry.href}>
                       {`${'  '.repeat(entry.depth)}${entry.label}`}
@@ -940,12 +949,12 @@ export default function NewTestamentEpubReader({ fileName, sourceBase64 = null }
 
             {panelTab === 'search' && (
               <div className="space-y-2">
-                <div className="text-xs font-semibold">Buscar texto (capítulo/versículo según EPUB)</div>
+                <div className="text-xs font-semibold">{isNtContext ? 'Buscar texto (capítulo/versículo según EPUB)' : 'Buscar texto'}</div>
                 <div className="flex gap-2">
                   <Input
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Ej: Juan 3:16 o palabra clave"
+                    placeholder={isNtContext ? 'Ej: Juan 3:16 o palabra clave' : 'Escribe una palabra o frase'}
                   />
                   <Button variant="outline" onClick={searchInBook} disabled={status !== 'ready' || isSearching}>
                     {isSearching ? 'Buscando...' : 'Buscar'}
@@ -1032,7 +1041,7 @@ export default function NewTestamentEpubReader({ fileName, sourceBase64 = null }
               </div>
             )}
 
-            {Object.keys(tocBookAnchors).length > 0 && (
+            {isNtContext && Object.keys(tocBookAnchors).length > 0 && (
               <div className="mt-5 space-y-2">
                 <div className="text-xs font-semibold">Índice Nuevo Testamento</div>
                 <div className="max-h-40 overflow-auto rounded-md border border-border bg-background/60 p-2 grid grid-cols-1 gap-1">
