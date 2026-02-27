@@ -61,23 +61,26 @@ ${PRAYERS_TEXT.ave_maria}
 
 ${PRAYERS_TEXT.gloria}`;
 
+const ADORACION_SANTISIMO_TEXT_4 = 'Bendito sea Jesús en el Santísimo Sacramento.';
+
 const COMUNION_ESPIRITUAL_TEXT = `Yo quisiera, Señor, recibiros con aquella pureza, humildad y devoción con que os recibió vuestra Santísima Madre, con el espíritu y fervor de los santos.`;
 
 const SENAL_DE_LA_CRUZ_TEXT = `Por la señal † de la Santa Cruz, de nuestros † enemigos, líbranos, Señor, † Dios nuestro. En el nombre del Padre, y del Hijo, † y del Espíritu Santo. Amén.`;
 
-const ACTO_CONTRICION_TEXT = `Señor mío Jesucristo, Dios y hombre verdadero, Creador, Padre y Redentor mío; por ser Tú quien eres, bondad infinita, y porque te amo sobre todas las cosas, me pesa de todo corazón haberte ofendido. También me pesa porque puedes castigarme con las penas del infierno. Ayudado de tu divina gracia, propongo firmemente nunca más pecar, confesarme y cumplir la penitencia que me fuere impuesta. Amén.`;
+const ACTO_CONTRICION_TEXT = `Señor mío Jesucristo, Dios y hombre verdadero, Creador, Padre y Redentor mío; por ser Tú quien eres y porque te amo sobre todas las cosas, me pesa de todo corazón haberte ofendido. Propongo firmemente enmendarme y nunca más pecar; confesarme a su tiempo y cumplir la penitencia que me fuera impuesta.
+
+Te ofrezcom Señor, mi vida, obras y trabajos en satisfacción de mis pecados. Así como te lo suplico, así confío en tu bondad y misericordia infinitas, que me los perdonarás y me darás gracia para perseverar en tu santo servicio hasta el fin de mi vida.
+Amén.
+
+Abre + Señor mis labios.
+Y mi boca proclamará tus alabanzas.
+
+Ven + oh Dios, en mi ayuda.
+Apresúrate, Señor, a socorrerme.
+
+${PRAYERS_TEXT.gloria}`;
 
 const SALVE_TEXT = `Dios te salve, Reina y Madre de misericordia, vida, dulzura y esperanza nuestra; Dios te salve. A Ti llamamos los desterrados hijos de Eva; a Ti suspiramos, gimiendo y llorando, en este valle de lágrimas. Ea, pues, Señora, abogada nuestra, vuelve a nosotros esos tus ojos misericordiosos; y después de este destierro muéstranos a Jesús, fruto bendito de tu vientre. Â¡Oh clementísima, oh piadosa, oh dulce Virgen María! Ruega por nosotros, Santa Madre de Dios, para que seamos dignos de alcanzar las promesas de Nuestro Señor Jesucristo. Amén.`;
-
-const INVOCACIONES_INICIALES_TEXT = `**V.** Abre, Señor, mis labios.
-**R.** Y mi boca proclamará tu alabanza.
-
-**V.** Dios mío, ven en mi auxilio.
-**R.** Señor, date prisa en socorrerme.
-
-Gloria al Padre, y al Hijo, y al Espíritu Santo.
-Como era en el principio, ahora y siempre,
-por los siglos de los siglos. Amén.`;
 
 const PRE_ROSARY_STEPS = [
   { type: 'adoracion', label: 'Adoración', content: ADORACION_SANTISIMO_TEXT_1 },
@@ -86,7 +89,6 @@ const PRE_ROSARY_STEPS = [
   { type: 'comunion', label: 'Comunión Espiritual', content: COMUNION_ESPIRITUAL_TEXT },
   { type: 'senal_cruz', label: 'Señal de la Cruz', content: SENAL_DE_LA_CRUZ_TEXT },
   { type: 'acto_contricion', label: 'Acto de contrición', content: ACTO_CONTRICION_TEXT },
-  { type: 'invocaciones', label: 'Invocaciones', content: INVOCACIONES_INICIALES_TEXT },
 ];
 
 const renderRosaryText = (text: string) => {
@@ -144,8 +146,6 @@ const renderCenterIcon = (
         return <Crown className="h-20 w-20" />;
       case 'senal_cruz':
         return <Cross className="h-20 w-20" />;
-      case 'invocaciones':
-        return <Sparkles className="h-20 w-20" />;
       case 'comunion':
       case 'acto_contricion':
       default:
