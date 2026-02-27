@@ -84,6 +84,7 @@ const PRE_ROSARY_STEPS = [
   { type: 'adoracion', label: 'Adoración', content: ADORACION_SANTISIMO_TEXT_1 },
   { type: 'adoracion', label: 'Adoración', content: ADORACION_SANTISIMO_TEXT_2 },
   { type: 'adoracion', label: 'Adoración', content: ADORACION_SANTISIMO_TEXT_3 },
+  { type: 'adoracion', label: 'Adoración', content: ADORACION_SANTISIMO_TEXT_4 },
   { type: 'comunion', label: 'Comunión Espiritual', content: COMUNION_ESPIRITUAL_TEXT },
   { type: 'senal_cruz', label: 'Señal de la Cruz', content: SENAL_DE_LA_CRUZ_TEXT },
   { type: 'acto_contricion', label: 'Acto de contrición', content: ACTO_CONTRICION_TEXT },
@@ -316,10 +317,7 @@ export default function RosaryImmersive({
 
   const [isPreRosary, setIsPreRosary] = useState(true);
   const [preStepIndex, setPreStepIndex] = useState(0);
-  const [selectedMysteryType, setSelectedMysteryType] = useState<MysteryType>(() => {
-    if (initialTitle) return 'gozosos';
-    return getMysteryByDay();
-  });
+  const [selectedMysteryType, setSelectedMysteryType] = useState<MysteryType>('gozosos');
   const [currentMysteryIndex, setCurrentMysteryIndex] = useState(0); // 0-4
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isPostRosary, setIsPostRosary] = useState(false);
