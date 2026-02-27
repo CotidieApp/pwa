@@ -226,6 +226,44 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `android/app/src/main/assets/public/icons/icon.jpg`
 - `AGENTS.md`
 
+### [2026-02-26 02:50] 119. Fix imagen Santo del día (viernes)
+**Planificación:**
+- Corregir la ruta de la imagen predeterminada de viernes.
+
+**Ejecución:**
+- **Placeholder**: se actualizó `saintoftheday-5` para apuntar a `/images/crucifixion.jpeg` (archivo existente).
+
+**Archivos Modificados:**
+- `src/lib/placeholder-images.json`
+- `AGENTS.md`
+
+### [2026-02-26 03:10] 120. Zonas táctiles + acciones en notificaciones
+**Planificación:**
+- Ajustar zonas táctiles en Plan Personalizado y agregar modo similar en Rosario Inmersivo.
+- Añadir acciones en notificaciones para marcar como rezado o descartar.
+
+**Ejecución:**
+- **Plan Personalizado**: zonas táctiles con 2/8 izquierda (retroceder), 3/8 centro sin acción, 3/8 derecha (avanzar), con altura completa menos header.
+- **Rosario Inmersivo**: se agregó toggle para zonas táctiles y overlay con mismas proporciones; el globo se oculta cuando está activo.
+- **Notificaciones**: se registraron action types y se añadieron botones; al marcar como rezado se hace check de la oración y se descarta la notificación.
+
+**Archivos Modificados:**
+- `src/components/main/MainApp.tsx`
+- `src/components/RosaryImmersive.tsx`
+- `src/context/SettingsContext.tsx`
+- `AGENTS.md`
+
+### [2026-02-26 03:20] 121. Acción “Descartar” sin cancelar futuros
+**Planificación:**
+- Evitar que “Descartar” cancele notificaciones futuras.
+
+**Ejecución:**
+- **Notificaciones**: la acción `dismiss` ya no cancela la notificación programada; solo cierra la actual.
+
+**Archivos Modificados:**
+- `src/components/main/MainApp.tsx`
+- `AGENTS.md`
+
 ### [2026-02-25 09:40] 94. Modo de trazas en vivo (solo desarrollador)
 **Planificación:**
 - Añadir un modo `devLiveTraceEnabled` en `SettingsContext` que solo se use en sesión de desarrollador, con buffer acotado en memoria para eventos en tiempo real.

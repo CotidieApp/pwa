@@ -30,6 +30,7 @@ import { persistence } from '@/lib/persistence';
 import { fixedNotifications, type FixedNotificationEntry } from '@/lib/fixed-notifications';
 
 const saintsData = saintsDataRaw as { saints: SaintOfTheDay[] };
+const NOTIFICATION_ACTION_TYPE_ID = 'cotidie-prayer-actions';
 
 type Theme = 'light' | 'dark';
 type FontSize = number;
@@ -998,6 +999,20 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           });
           return;
         }
+
+        try {
+          await LocalNotifications.registerActionTypes({
+            types: [
+              {
+                id: NOTIFICATION_ACTION_TYPE_ID,
+                actions: [
+                  { id: 'mark_prayed', title: 'Marcar como rezado' },
+                  { id: 'dismiss', title: 'Descartar', destructive: true },
+                ],
+              },
+            ],
+          });
+        } catch {}
 
         if (Capacitor.getPlatform() === 'android') {
           const anyLN = LocalNotifications as any;
@@ -2430,6 +2445,20 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
+      try {
+        await LocalNotifications.registerActionTypes({
+          types: [
+            {
+              id: NOTIFICATION_ACTION_TYPE_ID,
+              actions: [
+                { id: 'mark_prayed', title: 'Marcar como rezado' },
+                { id: 'dismiss', title: 'Descartar', destructive: true },
+              ],
+            },
+          ],
+        });
+      } catch {}
+
       // Check for exact alarm permission on Android
       if (Capacitor.getPlatform() === 'android') {
         const anyLN = LocalNotifications as any;
@@ -2499,6 +2528,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
             body: message,
             channelId: 'cotidie-reminders',
             smallIcon: icon,
+            actionTypeId: NOTIFICATION_ACTION_TYPE_ID,
             schedule: {
               at: fireAt,
               allowWhileIdle: true,
@@ -2537,6 +2567,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
               smallIcon: icon,
               largeIcon: imageDrawable ?? undefined,
               attachments: imagePath ? [imagePath] : undefined,
+              actionTypeId: NOTIFICATION_ACTION_TYPE_ID,
               schedule: {
                 at: next,
                 allowWhileIdle: true,
@@ -2571,6 +2602,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
             smallIcon: icon,
             largeIcon: devImageDrawable,
             attachments: [devImagePath],
+            actionTypeId: NOTIFICATION_ACTION_TYPE_ID,
             schedule: {
               on: { minute },
               allowWhileIdle: true,
@@ -2609,6 +2641,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           channelId: 'cotidie-reminders',
           smallIcon: icon,
           largeIcon: icon,
+          actionTypeId: NOTIFICATION_ACTION_TYPE_ID,
           schedule: {
             at: fireAt,
             allowWhileIdle: true,
@@ -2652,6 +2685,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           body: formatTemplate('Tu resumen anual ya está disponible. Descubre cómo fue tu camino de oración este año en Cotidie.', fireAt),
           channelId: 'cotidie-reminders',
           smallIcon: icon,
+          actionTypeId: NOTIFICATION_ACTION_TYPE_ID,
           schedule: {
             at: fireAt,
             allowWhileIdle: true,
@@ -2686,6 +2720,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           channelId: 'cotidie-reminders',
           smallIcon: icon,
           largeIcon: icon,
+          actionTypeId: NOTIFICATION_ACTION_TYPE_ID,
           schedule: {
             at: fireAt,
             allowWhileIdle: true,
@@ -3094,3 +3129,8 @@ export const useSettings = () => {
   if (!ctx) throw new Error('useSettings must be used within SettingsProvider');
   return ctx;
 };
+
+
+
+
+

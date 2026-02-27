@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, X, Plus, Trash2, Settings2, Image as ImageIcon, Calendar, Pencil, BookOpen, Crown, Cross, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Plus, Trash2, Settings2, Image as ImageIcon, Calendar, Pencil, BookOpen, Crown, Cross, Sparkles, Hand } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useSettings } from '@/context/SettingsContext';
@@ -130,6 +130,8 @@ const renderRosaryText = (text: string) => {
     </div>
   );
 };
+
+const ROSARY_TOUCH_NAV_MODE_KEY = 'cotidie_rosary_touch_nav';
 
 const renderCenterIcon = (
   isPreRosaryActive: boolean,
@@ -334,6 +336,10 @@ export default function RosaryImmersive({
   const [showBackground, setShowBackground] = useState(true);
   const [navPos, setNavPos] = useState<{ x: number; y: number } | null>(null);
   const [isDraggingNav, setIsDraggingNav] = useState(false);
+  const [touchNavEnabled, setTouchNavEnabled] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem(ROSARY_TOUCH_NAV_MODE_KEY) === '1';
+  });
   const navRef = useRef<HTMLDivElement | null>(null);
   const navDragStart = useRef<{ x: number; y: number; startX: number; startY: number }>({
     x: 0,
@@ -398,6 +404,12 @@ export default function RosaryImmersive({
       localStorage.setItem('rosary_nav_position', JSON.stringify(navPos));
     } catch (e) { console.error(e); }
   }, [navPos]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(ROSARY_TOUCH_NAV_MODE_KEY, touchNavEnabled ? '1' : '0');
+    } catch (e) { console.error(e); }
+  }, [touchNavEnabled]);
 
   // Determine current mystery data
   const currentMysteryData = useMemo(() => {
@@ -896,6 +908,15 @@ export default function RosaryImmersive({
                 >
                     {intentions.length > 0 ? <Settings2 className="size-5" /> : <Plus className="size-5" />}
                 </Button>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setTouchNavEnabled((prev) => !prev)}
+                  title={touchNavEnabled ? 'Usar globo de flechas' : 'Usar zonas táctiles'}
+                >
+                  <Hand className="size-5" />
+                </Button>
                 
                 {/* Edit Jaculatorias - Only when visible */}
                 {showEditJaculatorias && (
@@ -1179,16 +1200,45 @@ export default function RosaryImmersive({
              </AnimatePresence>
         </div>
 
+        {touchNavEnabled && (
+          <div className="pointer-events-none absolute inset-0 z-20">
+            <div
+              className="pointer-events-auto absolute left-0 w-full flex"
+              style={{
+                top: 'calc(4rem + env(safe-area-inset-top))',
+                height: 'calc(100% - (4rem + env(safe-area-inset-top)))',
+              }}
+            >
+              <button
+                type="button"
+                aria-label="Anterior"
+                className="h-full"
+                style={{ width: '25%' }}
+                onClick={handlePrev}
+              />
+              <div className="h-full pointer-events-none" style={{ width: '37.5%' }} />
+              <button
+                type="button"
+                aria-label="Siguiente"
+                className="h-full"
+                style={{ width: '37.5%' }}
+                onClick={handleNext}
+              />
+            </div>
+          </div>
+        )}
+
         {/* Navigation Globe (Bottom) */}
-        <div
-          ref={navRef}
-          className={cn(
-            "fixed z-50 flex items-center bg-background/80 shadow-lg border border-border/20 backdrop-blur-md",
-            navBubbleClass,
-            navPos ? "" : "bottom-[calc(2rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2"
-          )}
-          style={navPos ? { left: navPos.x, top: navPos.y } : undefined}
-        >
+        {!touchNavEnabled && (
+          <div
+            ref={navRef}
+            className={cn(
+              "fixed z-50 flex items-center bg-background/80 shadow-lg border border-border/20 backdrop-blur-md",
+              navBubbleClass,
+              navPos ? "" : "bottom-[calc(2rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2"
+            )}
+            style={navPos ? { left: navPos.x, top: navPos.y } : undefined}
+          >
              {/* Drag Handle */}
              <div
                className="flex items-center px-1.5 select-none opacity-30 cursor-grab active:cursor-grabbing"
@@ -1239,7 +1289,8 @@ export default function RosaryImmersive({
              >
                 <ChevronRight className={navIconClass} />
              </Button>
-        </div>
+          </div>
+        )}
 
         {/* Progress Bar */}
         <div className="absolute bottom-0 left-0 w-full h-1 bg-muted/20">

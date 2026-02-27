@@ -809,6 +809,18 @@ export default function MainApp() {
 
     const sub = LocalNotifications.addListener('localNotificationActionPerformed', (action: ActionPerformed) => {
       const extra = action.notification.extra as any;
+      const actionId = action.actionId;
+      if (actionId === 'dismiss') {
+        return;
+      }
+      if (actionId === 'mark_prayed') {
+        const target = extra?.target as { type?: string; id?: string } | undefined;
+        if (target?.type === 'prayer' && typeof target.id === 'string') {
+          togglePlanDeVidaItem(target.id, true);
+        }
+        void LocalNotifications.cancel({ notifications: [{ id: action.notification.id }] }).catch(() => {});
+        return;
+      }
       pushDevLiveTrace({
         level: 'info',
         source: 'notifications',
@@ -1151,23 +1163,26 @@ export default function MainApp() {
         </div>
         {customPlanTouchNavEnabled && hasCustomPlanPrayerNav && (
           <div className="pointer-events-none absolute inset-0 z-20">
-            <div className="pointer-events-auto absolute bottom-0 left-0 h-1/2 w-full flex">
+            <div
+              className="pointer-events-auto absolute left-0 w-full flex"
+              style={{
+                top: 'calc(4rem + env(safe-area-inset-top))',
+                height: 'calc(100% - (4rem + env(safe-area-inset-top)))',
+              }}
+            >
               <button
                 type="button"
                 aria-label="Anterior"
-                className="h-full w-1/3"
+                className="h-full"
+                style={{ width: '25%' }}
                 onClick={goToCustomPlanPrev}
               />
+              <div className="h-full pointer-events-none" style={{ width: '37.5%' }} />
               <button
                 type="button"
                 aria-label="Siguiente"
-                className="h-full w-1/3"
-                onClick={goToCustomPlanNext}
-              />
-              <button
-                type="button"
-                aria-label="Siguiente"
-                className="h-full w-1/3"
+                className="h-full"
+                style={{ width: '37.5%' }}
                 onClick={goToCustomPlanNext}
               />
             </div>
