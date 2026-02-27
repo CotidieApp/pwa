@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, X, Plus, Trash2, Settings2, Image as ImageIcon, Calendar, Pencil, BookOpen, Crown, Cross, Sparkles, Hand } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Plus, Trash2, Settings2, Image as ImageIcon, Calendar, Pencil, BookOpen, Crown, Cross, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useSettings } from '@/context/SettingsContext';
@@ -130,8 +130,6 @@ const renderRosaryText = (text: string) => {
     </div>
   );
 };
-
-const ROSARY_TOUCH_NAV_MODE_KEY = 'cotidie_rosary_touch_nav';
 
 const renderCenterIcon = (
   isPreRosaryActive: boolean,
@@ -291,7 +289,8 @@ export default function RosaryImmersive({
   mysteryGroup: initialGroup,
   mysteryContent: initialContent,
 }: ImmersiveRosaryProps) {
-  const { isDistractionFree, theme, arrowBubbleSize } = useSettings();
+  const { isDistractionFree, theme, arrowBubbleSize, navMode } = useSettings();
+  const touchNavEnabled = navMode === 'touch';
 
   const navBubbleClass = {
     sm: "gap-1 p-1 pl-2 rounded-xl",
@@ -336,10 +335,6 @@ export default function RosaryImmersive({
   const [showBackground, setShowBackground] = useState(true);
   const [navPos, setNavPos] = useState<{ x: number; y: number } | null>(null);
   const [isDraggingNav, setIsDraggingNav] = useState(false);
-  const [touchNavEnabled, setTouchNavEnabled] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    return window.localStorage.getItem(ROSARY_TOUCH_NAV_MODE_KEY) === '1';
-  });
   const navRef = useRef<HTMLDivElement | null>(null);
   const navDragStart = useRef<{ x: number; y: number; startX: number; startY: number }>({
     x: 0,
@@ -405,11 +400,6 @@ export default function RosaryImmersive({
     } catch (e) { console.error(e); }
   }, [navPos]);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(ROSARY_TOUCH_NAV_MODE_KEY, touchNavEnabled ? '1' : '0');
-    } catch (e) { console.error(e); }
-  }, [touchNavEnabled]);
 
   // Determine current mystery data
   const currentMysteryData = useMemo(() => {
@@ -909,15 +899,6 @@ export default function RosaryImmersive({
                     {intentions.length > 0 ? <Settings2 className="size-5" /> : <Plus className="size-5" />}
                 </Button>
 
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setTouchNavEnabled((prev) => !prev)}
-                  title={touchNavEnabled ? 'Usar globo de flechas' : 'Usar zonas táctiles'}
-                >
-                  <Hand className="size-5" />
-                </Button>
-                
                 {/* Edit Jaculatorias - Only when visible */}
                 {showEditJaculatorias && (
                     <Button

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
-import { ArrowLeft, ChevronLeft, ChevronRight, RotateCcw, Expand, Minimize, Search, Pencil, Calendar, Hand } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, RotateCcw, Expand, Minimize, Search, Pencil, Calendar } from 'lucide-react';
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
 import { useSettings } from '@/context/SettingsContext';
@@ -38,9 +38,6 @@ type HeaderProps = {
   showEditButton?: boolean;
   onEdit?: () => void;
   editDisabled?: boolean;
-  showNavModeToggle?: boolean;
-  isTouchNavMode?: boolean;
-  onToggleNavMode?: () => void;
 };
 
 const DragHandle = () => {
@@ -80,16 +77,24 @@ export default function Header({
   showEditButton = false,
   onEdit,
   editDisabled = false,
-  showNavModeToggle = false,
-  isTouchNavMode = false,
-  onToggleNavMode,
 }: HeaderProps) {
 
-  const { isDistractionFree: isGlobalDistractionFree, timerEnabled, overlayPositions, setOverlayPosition } =
+  const { isDistractionFree: isGlobalDistractionFree, timerEnabled, overlayPositions, setOverlayPosition, arrowBubbleSize } =
     useSettings();
 
   const shouldFloatTimer = timerEnabled;
   const shouldFloatNavControls = showPrevNext || floatBackButton;
+  const navBubbleClass = {
+    sm: "gap-1 p-1 pl-2 rounded-xl",
+    md: "gap-2 p-2 pl-3 rounded-2xl",
+    lg: "gap-2.5 p-2.5 pl-4 rounded-2xl",
+  }[arrowBubbleSize];
+  const navButtonSize = arrowBubbleSize === 'sm' ? 'icon' : arrowBubbleSize === 'md' ? 'iconMd' : 'iconLg';
+  const navIconClass = {
+    sm: "size-5",
+    md: "size-6",
+    lg: "size-7",
+  }[arrowBubbleSize];
 
   const useDraggableOverlay = (
     initialPosition: { x: number; y: number },
@@ -213,7 +218,10 @@ export default function Header({
       {shouldFloatNavControls && (
         <div
           ref={planNavOverlay.ref}
-          className="fixed z-40 rounded-xl bg-primary text-primary-foreground shadow-lg border border-primary-foreground/10 p-1 pl-2 flex items-center gap-1 touch-none"
+          className={cn(
+            "fixed z-40 bg-primary text-primary-foreground shadow-lg border border-primary-foreground/10 flex items-center touch-none",
+            navBubbleClass
+          )}
           style={{ left: planNavOverlay.pos.x, top: planNavOverlay.pos.y }}
           onPointerDown={planNavOverlay.onPointerDown}
         >
@@ -221,35 +229,35 @@ export default function Header({
           {showBackButton && (
             <Button
               variant="ghost"
-              size="icon"
+              size={navButtonSize}
               className="text-primary-foreground hover:bg-primary-foreground/10"
               onClick={onBack}
               title="Salir"
             >
-              <ArrowLeft />
+              <ArrowLeft className={navIconClass} />
             </Button>
           )}
           {showPrevNext && (
             <>
               <Button
                 variant="ghost"
-                size="icon"
+                size={navButtonSize}
                 className="text-primary-foreground hover:bg-primary-foreground/10"
                 onClick={onPrev}
                 disabled={prevDisabled}
                 title="Anterior"
               >
-                <ChevronLeft />
+                <ChevronLeft className={navIconClass} />
               </Button>
               <Button
                 variant="ghost"
-                size="icon"
+                size={navButtonSize}
                 className="text-primary-foreground hover:bg-primary-foreground/10"
                 onClick={onNext}
                 disabled={nextDisabled}
                 title="Siguiente"
               >
-                <ChevronRight />
+                <ChevronRight className={navIconClass} />
               </Button>
             </>
           )}
@@ -285,17 +293,6 @@ export default function Header({
                 title="Volver"
               >
                 <ArrowLeft />
-              </Button>
-            )}
-            {showNavModeToggle && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-primary-foreground hover:bg-primary-foreground/10"
-                onClick={onToggleNavMode}
-                title={isTouchNavMode ? 'Usar botones de navegación' : 'Usar zonas táctiles'}
-              >
-                <Hand />
               </Button>
             )}
           </div>

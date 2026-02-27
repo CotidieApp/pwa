@@ -157,7 +157,6 @@ const getInitialNavState = (): NavigationState => {
 
 const ORACION_DEL_DIA_ID = '__oracion_del_dia__';
 const PENDING_IMPORT_STORAGE_KEY = 'cotidie_pending_import';
-const CUSTOM_PLAN_NAV_MODE_KEY = 'cotidie_custom_plan_touch_nav';
 
 const resolveOracionDelDiaPrayerId = () => {
   const day = new Date().getDay();
@@ -178,11 +177,6 @@ export default function MainApp() {
     activeIndex: -1,
     resultsCount: 0,
   });
-  const [customPlanTouchNavEnabled, setCustomPlanTouchNavEnabled] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    return window.localStorage.getItem(CUSTOM_PLAN_NAV_MODE_KEY) === '1';
-  });
-
   const {
     allPrayers,
     userDevotions,
@@ -216,7 +210,9 @@ export default function MainApp() {
     hasViewedWrapped,
     setHasViewedWrapped,
     pushDevLiveTrace,
+    navMode,
   } = useSettings();
+  const customPlanTouchNavEnabled = navMode === 'touch';
 
   const [isDraggingWrapped, setIsDraggingWrapped] = useState(false);
   const wrappedDragStart = useRef({ x: 0, y: 0 });
@@ -258,10 +254,6 @@ export default function MainApp() {
     navStateRef.current = navState;
   }, [navState]);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem(CUSTOM_PLAN_NAV_MODE_KEY, customPlanTouchNavEnabled ? '1' : '0');
-  }, [customPlanTouchNavEnabled]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -1147,9 +1139,6 @@ export default function MainApp() {
             onEdit={
               currentPrayerEditAction
             }
-            showNavModeToggle={navState.activeView === 'customPlan' || hasCustomPlanPrayerNav}
-            isTouchNavMode={customPlanTouchNavEnabled}
-            onToggleNavMode={() => setCustomPlanTouchNavEnabled((prev) => !prev)}
           />
         )}
         <div

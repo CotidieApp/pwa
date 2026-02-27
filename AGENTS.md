@@ -264,6 +264,42 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `src/components/main/MainApp.tsx`
 - `AGENTS.md`
 
+### [2026-02-26 03:35] 122. Modo de navegación global + tamaño de globo
+**Planificación:**
+- Mover el cambio entre “Zonas de toque” y “Globo de flechas” a Ajustes.
+- Aplicar el tamaño del globo al control flotante del Plan Personalizado.
+
+**Ejecución:**
+- **Ajustes**: se agregó selector de modo de navegación en Apariencia, antes del tamaño del globo.
+- **Header**: el globo flotante ahora respeta `arrowBubbleSize`.
+- **Plan/Rosario**: se eliminó el botón de cambio (mano) y se usa el modo global.
+
+**Archivos Modificados:**
+- `src/context/SettingsContext.tsx`
+- `src/components/settings/AppearanceSettings.tsx`
+- `src/components/Header.tsx`
+- `src/components/main/MainApp.tsx`
+- `src/components/RosaryImmersive.tsx`
+- `AGENTS.md`
+
+### [2026-02-26 03:45] 123. Revisión y ajuste tamaño globo (Rosario)
+**Planificación:**
+- Verificar coherencia de imports/exports y que el tamaño de globo afecte Rosario.
+
+**Ejecución:**
+- **Rosario**: el tamaño del globo usa `arrowBubbleSize` del contexto global.
+- **Header/Plan**: el globo flotante respeta el tamaño configurado.
+- **UI**: selector de modo de navegación añadido antes del tamaño del globo.
+- **Limpieza**: removidos toggles locales de navegación.
+
+**Archivos Modificados:**
+- `src/components/RosaryImmersive.tsx`
+- `src/components/Header.tsx`
+- `src/components/main/MainApp.tsx`
+- `src/context/SettingsContext.tsx`
+- `src/components/settings/AppearanceSettings.tsx`
+- `AGENTS.md`
+
 ### [2026-02-25 09:40] 94. Modo de trazas en vivo (solo desarrollador)
 **Planificación:**
 - Añadir un modo `devLiveTraceEnabled` en `SettingsContext` que solo se use en sesión de desarrollador, con buffer acotado en memoria para eventos en tiempo real.

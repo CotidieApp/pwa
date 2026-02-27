@@ -35,6 +35,7 @@ const NOTIFICATION_ACTION_TYPE_ID = 'cotidie-prayer-actions';
 type Theme = 'light' | 'dark';
 type FontSize = number;
 type ArrowBubbleSize = 'sm' | 'md' | 'lg';
+type NavMode = 'bubble' | 'touch';
 type OverlayPosition = { x: number; y: number };
 type OverlayPositions = { timer: OverlayPosition; planNav: OverlayPosition; wrappedBubble: OverlayPosition };
 export type DevTraceLevel = 'info' | 'warn' | 'error';
@@ -209,6 +210,9 @@ type Settings = {
 
   pinchToZoomEnabled: boolean;
   setPinchToZoomEnabled: (enabled: boolean) => void;
+
+  navMode: NavMode;
+  setNavMode: (mode: NavMode) => void;
 
   arrowBubbleSize: ArrowBubbleSize;
   setArrowBubbleSize: (size: ArrowBubbleSize) => void;
@@ -388,6 +392,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [isCustomThemeActive, setIsCustomThemeActive] = useState(false);
 
   const [pinchToZoomEnabled, setPinchToZoomEnabled] = useState(true);
+  const [navMode, setNavMode] = useState<NavMode>('bubble');
   const [arrowBubbleSize, setArrowBubbleSize] = useState<ArrowBubbleSize>('sm');
 
   const [userHomeBackgrounds, setUserHomeBackgrounds] = useState<ImagePlaceholder[]>([]);
@@ -608,6 +613,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           setIsCustomThemeActive(s.isCustomThemeActive ?? false);
 
           setPinchToZoomEnabled(s.pinchToZoomEnabled ?? true);
+          setNavMode(s.navMode === 'touch' ? 'touch' : 'bubble');
           setArrowBubbleSize(s.arrowBubbleSize === 'md' || s.arrowBubbleSize === 'lg' ? s.arrowBubbleSize : 'sm');
 
           const resolvedUserHomeBackgrounds = Array.isArray(s.userHomeBackgrounds) ? s.userHomeBackgrounds : [];
@@ -765,6 +771,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       customThemeColors,
       isCustomThemeActive,
       pinchToZoomEnabled,
+      navMode,
       arrowBubbleSize,
       userHomeBackgrounds,
       scrollPositions,
@@ -814,6 +821,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     customThemeColors,
     isCustomThemeActive,
     pinchToZoomEnabled,
+    navMode,
     arrowBubbleSize,
     userHomeBackgrounds,
     scrollPositions,
@@ -1259,6 +1267,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setFontSize(15);
     setHomeBackgroundId(defaultHomeBackgroundId);
     setOverlayPositions(defaultOverlayPositions);
+    setNavMode('bubble');
     setArrowBubbleSize('sm');
     setMovableFeastsEnabled(true);
     // ... reset others as needed, but usually we keep user data
@@ -1402,6 +1411,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setCustomThemeColors(data.customThemeColors ?? defaultThemeColors);
     setIsCustomThemeActive(data.isCustomThemeActive ?? false);
     setPinchToZoomEnabled(data.pinchToZoomEnabled ?? true);
+    setNavMode(data.navMode === 'touch' ? 'touch' : 'bubble');
     setArrowBubbleSize(data.arrowBubbleSize === 'md' || data.arrowBubbleSize === 'lg' ? data.arrowBubbleSize : 'sm');
 
     setUserHomeBackgrounds(Array.isArray(data.userHomeBackgrounds) ? data.userHomeBackgrounds : []);
@@ -3078,6 +3088,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         resetCustomTheme,
         pinchToZoomEnabled,
         setPinchToZoomEnabled,
+        navMode,
+        setNavMode,
         arrowBubbleSize,
         setArrowBubbleSize,
         userHomeBackgrounds,

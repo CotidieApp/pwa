@@ -130,6 +130,8 @@ export default function AppearanceSettings() {
     resetCustomTheme,
     pinchToZoomEnabled,
     setPinchToZoomEnabled,
+    navMode,
+    setNavMode,
     arrowBubbleSize,
     setArrowBubbleSize,
     userHomeBackgrounds,
@@ -226,6 +228,20 @@ export default function AppearanceSettings() {
           <CardTitle className="font-headline text-base">Apariencia General</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="nav-mode-select" className="text-sm">
+              Modo de navegación
+            </Label>
+            <Select value={navMode} onValueChange={(value) => setNavMode(value as any)}>
+              <SelectTrigger id="nav-mode-select">
+                <SelectValue placeholder="Seleccionar modo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="touch">Zonas de toque</SelectItem>
+                <SelectItem value="bubble">Globo de flechas</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div className="space-y-2">
             <Label className="flex flex-col gap-1 text-sm">
               <span>Tamaño de globos de flechas</span>
