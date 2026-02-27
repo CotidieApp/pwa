@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, X, Image as ImageIcon, Settings2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Image as ImageIcon, Cross, BookOpen, Sparkles, Heart, Hand } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useSettings } from '@/context/SettingsContext';
@@ -32,7 +32,26 @@ type ImmersiveViaCrucisProps = {
 };
 
 export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps) {
-  const { isDistractionFree, theme } = useSettings();
+  const { isDistractionFree, theme, arrowBubbleSize, navMode } = useSettings();
+  const touchNavEnabled = navMode === 'touch';
+
+  const navBubbleClass = {
+    sm: "gap-1 p-1 pl-2 rounded-xl",
+    md: "gap-2 p-2 pl-3 rounded-2xl",
+    lg: "gap-2.5 p-2.5 pl-4 rounded-2xl",
+  }[arrowBubbleSize];
+
+  const navButtonClass = {
+    sm: "h-10 w-10",
+    md: "h-12 w-12",
+    lg: "h-14 w-14",
+  }[arrowBubbleSize];
+
+  const navIconClass = {
+    sm: "size-5",
+    md: "size-6",
+    lg: "size-7",
+  }[arrowBubbleSize];
   
   // State
   const [currentStationIndex, setCurrentStationIndex] = useState(0); // 0-13 for stations
