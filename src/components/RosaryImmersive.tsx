@@ -69,16 +69,14 @@ const SENAL_DE_LA_CRUZ_TEXT = `Por la señal † de la Santa Cruz, de nuestros �
 
 const ACTO_CONTRICION_TEXT = `Señor mío Jesucristo, Dios y hombre verdadero, Creador, Padre y Redentor mío; por ser Tú quien eres y porque te amo sobre todas las cosas, me pesa de todo corazón haberte ofendido. Propongo firmemente enmendarme y nunca más pecar; confesarme a su tiempo y cumplir la penitencia que me fuera impuesta.
 
-Te ofrezcom Señor, mi vida, obras y trabajos en satisfacción de mis pecados. Así como te lo suplico, así confío en tu bondad y misericordia infinitas, que me los perdonarás y me darás gracia para perseverar en tu santo servicio hasta el fin de mi vida.
+Te ofrezco, Señor, mi vida, obras y trabajos en satisfacción de mis pecados. Así como te lo suplico, así confío en tu bondad y misericordia infinitas, que me los perdonarás y me darás gracia para perseverar en tu santo servicio hasta el fin de mi vida.
 Amén.
 
 Abre + Señor mis labios.
 Y mi boca proclamará tus alabanzas.
 
 Ven + oh Dios, en mi ayuda.
-Apresúrate, Señor, a socorrerme.
-
-${PRAYERS_TEXT.gloria}`;
+Apresúrate, Señor, a socorrerme.`;
 
 const SALVE_TEXT = `Dios te salve, Reina y Madre de misericordia, vida, dulzura y esperanza nuestra; Dios te salve. A Ti llamamos los desterrados hijos de Eva; a Ti suspiramos, gimiendo y llorando, en este valle de lágrimas. Ea, pues, Señora, abogada nuestra, vuelve a nosotros esos tus ojos misericordiosos; y después de este destierro muéstranos a Jesús, fruto bendito de tu vientre. Â¡Oh clementísima, oh piadosa, oh dulce Virgen María! Ruega por nosotros, Santa Madre de Dios, para que seamos dignos de alcanzar las promesas de Nuestro Señor Jesucristo. Amén.`;
 
@@ -89,6 +87,7 @@ const PRE_ROSARY_STEPS = [
   { type: 'comunion', label: 'Comunión Espiritual', content: COMUNION_ESPIRITUAL_TEXT },
   { type: 'senal_cruz', label: 'Señal de la Cruz', content: SENAL_DE_LA_CRUZ_TEXT },
   { type: 'acto_contricion', label: 'Acto de contrición', content: ACTO_CONTRICION_TEXT },
+  { type: 'gloria', label: 'Gloria', content: PRAYERS_TEXT.gloria },
 ];
 
 const renderRosaryText = (text: string) => {
@@ -317,7 +316,10 @@ export default function RosaryImmersive({
 
   const [isPreRosary, setIsPreRosary] = useState(true);
   const [preStepIndex, setPreStepIndex] = useState(0);
-  const [selectedMysteryType, setSelectedMysteryType] = useState<MysteryType>('gozosos');
+  const [selectedMysteryType, setSelectedMysteryType] = useState<MysteryType>(() => {
+    if (initialTitle) return 'gozosos';
+    return getMysteryByDay();
+  });
   const [currentMysteryIndex, setCurrentMysteryIndex] = useState(0); // 0-4
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isPostRosary, setIsPostRosary] = useState(false);
