@@ -28,7 +28,7 @@ const STATION_SEQUENCE = [
 ];
 
 const VIA_CRUCIS_BACKGROUND_IMAGES = [
-  '/images/inmaculate-heart.jpeg',
+  '/images/immaculate-heart.jpeg',
 ];
 
 type ImmersiveViaCrucisProps = {
@@ -336,20 +336,20 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
       isDark ? "bg-black text-white" : "bg-zinc-50 text-zinc-900"
     )}>
        {/* Background */}
-       {showBackground && (
-        <>
-          <div
-            className="absolute inset-0 z-0 transition-opacity duration-700 bg-cover bg-center"
-            style={{ backgroundImage: `url(${currentBackgroundUrl})` }}
-          />
-          <div
-            className={cn(
-              "absolute inset-0 z-0 transition-colors duration-700",
-              isDark ? "bg-black/72" : "bg-black/58"
-            )}
-          />
-        </>
-       )}
+{showBackground && (
+  <>
+    <div
+      className="absolute inset-0 z-0 transition-opacity duration-700 bg-cover bg-center"
+      style={{ backgroundImage: `url(${currentBackgroundUrl})` }}
+    />
+    <div
+      className={cn(
+        "absolute inset-0 z-0 transition-all duration-700",
+        isDark ? "bg-black/70" : "bg-black/45"  // más oscuro en dark, más suave en light
+      )}
+    />
+  </>
+)}
 
        {/* Top Bar */}
        <div className="w-full flex justify-between items-start p-4 relative z-20">
