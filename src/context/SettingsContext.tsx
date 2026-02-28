@@ -11,7 +11,9 @@ import React, {
   useMemo,
 } from 'react';
 import { Capacitor } from '@capacitor/core';
+import { App } from '@capacitor/app';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import BackgroundActions from '@/plugins/BackgroundActions';
 import { initialPrayers, categories } from '@/lib/data';
 import type {
   Prayer,
@@ -1616,6 +1618,32 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         return prev.filter(p => p !== id);
      });
   };
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (!Capacitor.isNativePlatform()) return;
+
+    const applyPending = async () => {
+      const result = await BackgroundActions.getPendingMarkPrayed().catch(() => null);
+      const ids = result?.ids ?? [];
+      if (ids.length === 0) return;
+      ids.forEach((id) => {
+        if (typeof id === 'string' && id.length > 0) {
+          togglePlanDeVidaItem(id, true);
+        }
+      });
+    };
+
+    void applyPending();
+    const subPromise = App.addListener('appStateChange', (state) => {
+      if (!state.isActive) return;
+      void applyPending();
+    });
+
+    return () => {
+      void subPromise.then((sub) => sub.remove()).catch(() => {});
+    };
+  }, [isLoaded, togglePlanDeVidaItem]);
 
   const resetPlanDeVidaProgress = () => {
     setPlanDeVidaProgress([]);

@@ -99,12 +99,12 @@ export const initialPrayers: Prayer[] = [
   // Devociones
   sanJosemariaPrayer,
   sanJuanPabloIIPrayer,
-  sanBenjaminPrayer,
   sanJuanBautistaPrayer,
   sanPedroPrayer,
   sanCarloAcutisPrayer,
   santaTeresaDeLosAndesPrayer,
   sanAlbertoHurtadoPrayer,
+  sanBenjaminPrayer,
   beatoAlvaroPrayer,
   sanFranciscoDeSalesPrayer,
   sanAgustinDeHiponaPrayer,

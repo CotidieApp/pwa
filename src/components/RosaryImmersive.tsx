@@ -317,7 +317,9 @@ export default function RosaryImmersive({
 
   const [isPreRosary, setIsPreRosary] = useState(true);
   const [preStepIndex, setPreStepIndex] = useState(0);
-  const [selectedMysteryType, setSelectedMysteryType] = useState<MysteryType>('gozosos');
+  const [selectedMysteryType, setSelectedMysteryType] = useState<MysteryType>(
+    initialTitle ? 'gozosos' : getMysteryByDay()
+  );
   const [currentMysteryIndex, setCurrentMysteryIndex] = useState(0); // 0-4
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isPostRosary, setIsPostRosary] = useState(false);

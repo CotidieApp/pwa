@@ -21,11 +21,13 @@ public class MainActivity extends BridgeActivity {
     private static final String PENDING_IMPORT_KEY = "cotidie_pending_import";
     private static final int MAX_FLUSH_RETRIES = 12;
     private static final int MAX_IMPORT_BYTES = 15 * 1024 * 1024;
+    private boolean isInForeground = false;
     private String pendingImportPayload = null;
     private int pendingFlushRetries = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        registerPlugin(BackgroundActionsPlugin.class);
         super.onCreate(savedInstanceState);
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         configureWebViewStability();
@@ -42,7 +44,14 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onResume() {
         super.onResume();
+        isInForeground = true;
         flushPendingImportToWebView();
+    }
+
+    @Override
+    protected void onPause() {
+        isInForeground = false;
+        super.onPause();
     }
 
     private void handleImportIntent(Intent intent) {
@@ -126,6 +135,9 @@ public class MainActivity extends BridgeActivity {
         webView.setWebViewClient(new BridgeWebViewClient(bridge) {
             @Override
             public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
+                if (!isInForeground) {
+                    return true;
+                }
                 try {
                     Intent restart = getIntent();
                     finish();

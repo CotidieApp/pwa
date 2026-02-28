@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "tsc --noEmit && next build --no-lint",
     "android:apk": "node scripts/android-apk.mjs",
+    "postinstall": "node scripts/patch-local-notifications.js",
     "start": "node server.js"
   },
   "dependencies": {

@@ -2322,3 +2322,29 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 **Archivos Modificados:**
 - `src/components/PersonalEpubLibrary.tsx`
 - `android/app/src/main/java/com/benjamin/studio/MainActivity.java`
+
+### [2026-02-27 15:19] 94. Fondos por estación en Via Crucis + fix apertura invasiva Android
+**Objetivo:**
+- Integrar fondos visuales por estación (14) en `ViaCrucisImmersive`.
+- Corregir apertura inesperada de la app cuando está en segundo plano.
+- Mantener acción de notificación `mark_prayed` sin abrir Activity en Android.
+
+**Ejecución:**
+- **Via Crucis inmersivo**:
+  - Se agregó arreglo de 14 imágenes de dominio público (Wikimedia) para cada estación.
+  - Se incorporó selección de imagen por fase/estación (`intro`, `stations`, `outro`).
+  - Se reemplazó fondo de gradiente plano por capa de imagen + overlay oscuro para conservar legibilidad.
+- **Android anti-apertura invasiva**:
+  - En `MainActivity`, `onRenderProcessGone` ahora solo reinicia actividad si la app está en foreground.
+  - Se añadió flag `isInForeground` actualizado en `onResume/onPause`.
+- **Integración background mark-prayed**:
+  - Se corrige tipado de listener `App.addListener` en `SettingsContext` (manejo correcto de promesa y cleanup).
+
+**Validación:**
+- `npx tsc --noEmit --pretty false` sin errores.
+
+**Archivos Modificados:**
+- `src/components/ViaCrucisImmersive.tsx`
+- `android/app/src/main/java/com/benjamin/studio/MainActivity.java`
+- `src/context/SettingsContext.tsx`
+- `AGENTS.md`

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, X, Image as ImageIcon, Cross, BookOpen, Sparkles, Heart, Hand } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Image as ImageIcon, Cross, Sparkles, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useSettings } from '@/context/SettingsContext';
@@ -25,6 +25,10 @@ const STATION_SEQUENCE = [
   { type: 'ave_maria', label: 'Ave María' },
   { type: 'gloria', label: 'Gloria' },
   { type: 'peque', label: 'Acto de Contrición' },
+];
+
+const VIA_CRUCIS_BACKGROUND_IMAGES = [
+  '/images/inmaculate-heart.jpeg',
 ];
 
 type ImmersiveViaCrucisProps = {
@@ -163,6 +167,15 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
   // Derived State
   const currentStation = stationsData[currentStationIndex];
   const currentStep = STATION_SEQUENCE[currentStepIndex];
+  const currentBackgroundUrl = useMemo(() => {
+    if (phase === 'stations') {
+      return VIA_CRUCIS_BACKGROUND_IMAGES[currentStationIndex] || VIA_CRUCIS_BACKGROUND_IMAGES[0];
+    }
+    if (phase === 'outro') {
+      return VIA_CRUCIS_BACKGROUND_IMAGES[VIA_CRUCIS_BACKGROUND_IMAGES.length - 1];
+    }
+    return VIA_CRUCIS_BACKGROUND_IMAGES[0];
+  }, [phase, currentStationIndex]);
   
   const isDark = theme === 'dark' || isDistractionFree;
   
@@ -235,7 +248,7 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
     if (phase === 'intro') {
       return (
         <div className="text-center max-w-md mx-auto">
-          <div className="text-8xl mb-6">✝️</div>
+          <div className="text-8xl mb-6 flex justify-center"><Cross className="h-16 w-16" /></div>
           <h2 className="text-3xl font-bold mb-6">{introData?.title}</h2>
           <div className="text-lg opacity-90 leading-relaxed whitespace-pre-wrap">
             {typeof introData?.content === 'string' ? introData.content : ''}
@@ -248,7 +261,7 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
       const data = outroData[outroStepIndex];
       return (
         <div className="text-center max-w-md mx-auto">
-          <div className="text-8xl mb-6">🙏</div>
+          <div className="text-8xl mb-6 flex justify-center"><Heart className="h-16 w-16" /></div>
           <h2 className="text-2xl font-bold mb-6">{data?.title}</h2>
           <div className="text-lg opacity-90 leading-relaxed whitespace-pre-wrap max-h-[50vh] overflow-y-auto px-2 scrollbar-hide">
             {typeof data?.content === 'string' ? data.content : ''}
@@ -261,12 +274,12 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
     const stationNumber = currentStationIndex + 1;
     const roman = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV"][currentStationIndex];
     
-    let mainIcon = roman;
+    let mainIcon: React.ReactNode = roman;
     let mainText = "";
     
     switch (currentStep.type) {
       case 'adoracion':
-        mainIcon = "🧎";
+        mainIcon = <Cross className="h-16 w-16" />;
         mainText = PRAYERS_TEXT.te_adoramos;
         break;
       case 'meditacion':
@@ -275,19 +288,19 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
         mainText = getMeditationContent(typeof rawContent === 'string' ? rawContent : "");
         break;
       case 'padre_nuestro':
-        mainIcon = "✝️";
+        mainIcon = <Cross className="h-16 w-16" />;
         mainText = PRAYERS_TEXT.padre_nuestro;
         break;
       case 'ave_maria':
-        mainIcon = "🌹";
+        mainIcon = <Sparkles className="h-16 w-16" />;
         mainText = PRAYERS_TEXT.ave_maria;
         break;
       case 'gloria':
-        mainIcon = "✨";
+        mainIcon = <Sparkles className="h-16 w-16" />;
         mainText = PRAYERS_TEXT.gloria;
         break;
       case 'peque':
-        mainIcon = "🛐";
+        mainIcon = <Heart className="h-16 w-16" />;
         mainText = PRAYERS_TEXT.peque;
         break;
     }
@@ -324,10 +337,18 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
     )}>
        {/* Background */}
        {showBackground && (
-        <div className={cn(
-            "absolute inset-0 z-0 transition-colors duration-1000 opacity-20",
-            "bg-gradient-to-b from-red-900/40 to-black"
-        )} />
+        <>
+          <div
+            className="absolute inset-0 z-0 transition-opacity duration-700 bg-cover bg-center"
+            style={{ backgroundImage: `url(${currentBackgroundUrl})` }}
+          />
+          <div
+            className={cn(
+              "absolute inset-0 z-0 transition-colors duration-700",
+              isDark ? "bg-black/72" : "bg-black/58"
+            )}
+          />
+        </>
        )}
 
        {/* Top Bar */}
@@ -362,59 +383,90 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
           </AnimatePresence>
        </div>
 
-       {/* Navigation Control */}
-       <div
-          ref={navRef}
-          className={cn(
-            "fixed z-50 flex items-center gap-1 p-1 pl-2 rounded-xl bg-background/80 shadow-lg border border-border/20 backdrop-blur-md",
-            navPos ? "" : "bottom-[calc(2rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2"
-          )}
-          style={navPos ? { left: navPos.x, top: navPos.y } : undefined}
-        >
-             {/* Drag Handle */}
-             <div
-               className="flex items-center px-1.5 select-none opacity-30 cursor-grab active:cursor-grabbing"
-               onPointerDown={(event) => {
-                 event.preventDefault();
-                 const rect = navRef.current?.getBoundingClientRect();
-                 navDragStart.current = {
-                   x: event.clientX,
-                   y: event.clientY,
-                   startX: rect?.left ?? 0,
-                   startY: rect?.top ?? 0,
-                 };
-                 setIsDraggingNav(true);
-               }}
-               style={{ touchAction: 'none' }}
-             >
-                <div className="grid grid-cols-2 gap-0.5">
-                    {Array.from({ length: 6 }).map((_, i) => (
-                    <span key={i} className="h-1 w-1 rounded-full bg-foreground" />
-                    ))}
-                </div>
+              {/* Navigation Control */}
+       {touchNavEnabled && (
+         <div className="pointer-events-none absolute inset-0 z-20">
+           <div
+             className="pointer-events-auto absolute left-0 w-full flex"
+             style={{
+               top: 'calc(4rem + env(safe-area-inset-top))',
+               height: 'calc(100% - (4rem + env(safe-area-inset-top)))',
+             }}
+           >
+             <button
+               type="button"
+               aria-label="Anterior"
+               className="h-full"
+               style={{ width: '25%' }}
+               onClick={handlePrev}
+             />
+             <div className="h-full pointer-events-none" style={{ width: '37.5%' }} />
+             <button
+               type="button"
+               aria-label="Siguiente"
+               className="h-full"
+               style={{ width: '37.5%' }}
+               onClick={handleNext}
+             />
+           </div>
+         </div>
+       )}
+
+       {!touchNavEnabled && (
+         <div
+           ref={navRef}
+           className={cn(
+             "fixed z-50 flex items-center bg-background/80 shadow-lg border border-border/20 backdrop-blur-md",
+             navBubbleClass,
+             navPos ? "" : "bottom-[calc(2rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2"
+           )}
+           style={navPos ? { left: navPos.x, top: navPos.y } : undefined}
+         >
+           {/* Drag Handle */}
+           <div
+             className="flex items-center px-1.5 select-none opacity-30 cursor-grab active:cursor-grabbing"
+             onPointerDown={(event) => {
+               event.preventDefault();
+               const rect = navRef.current?.getBoundingClientRect();
+               navDragStart.current = {
+                 x: event.clientX,
+                 y: event.clientY,
+                 startX: rect?.left ?? 0,
+                 startY: rect?.top ?? 0,
+               };
+               setIsDraggingNav(true);
+             }}
+             style={{ touchAction: 'none' }}
+           >
+             <div className="grid grid-cols-2 gap-0.5">
+               {Array.from({ length: 6 }).map((_, i) => (
+                 <span key={i} className="h-1 w-1 rounded-full bg-foreground" />
+               ))}
              </div>
+           </div>
 
-             <Button 
-                variant="ghost" 
-                size="icon" 
-                className="hover:bg-foreground/5"
-                onClick={handlePrev}
-                disabled={phase === 'intro'}
-             >
-                <ChevronLeft className="size-5" />
-             </Button>
+           <Button
+             variant="ghost"
+             size="icon"
+             className={cn("hover:bg-foreground/5", navButtonClass)}
+             onClick={handlePrev}
+             disabled={phase === 'intro'}
+           >
+             <ChevronLeft className={navIconClass} />
+           </Button>
 
-             <div className="w-px h-6 bg-border mx-1" />
+           <div className="w-px h-6 bg-border mx-1" />
 
-             <Button 
-                variant="ghost" 
-                size="icon" 
-                className="hover:bg-foreground/5"
-                onClick={handleNext}
-             >
-                <ChevronRight className="size-5" />
-             </Button>
-        </div>
+           <Button
+             variant="ghost"
+             size="icon"
+             className={cn("hover:bg-foreground/5", navButtonClass)}
+             onClick={handleNext}
+           >
+             <ChevronRight className={navIconClass} />
+           </Button>
+         </div>
+       )}
 
        {/* Progress Bar */}
        <div className="absolute bottom-0 left-0 w-full h-1 bg-muted/20">
@@ -426,3 +478,6 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
     </div>
   );
 }
+
+
+

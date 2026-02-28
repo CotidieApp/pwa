@@ -78,6 +78,14 @@
         </receiver>
 
         <receiver android:name=".widgets.SaintWidgetAlarmReceiver" android:exported="false" />
+
+        <receiver
+            android:name=".MarkPrayedActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.benjamin.studio.MARK_PRAYED" />
+            </intent-filter>
+        </receiver>
     </application>
 
     <!-- Permissions -->
