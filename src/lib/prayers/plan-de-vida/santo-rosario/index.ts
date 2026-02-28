@@ -307,24 +307,23 @@ Ruega por nosotros, Santa Madre de Dios.
 *Para que seamos dignos de alcanzar las promesas de Nuestro Señor Jesucristo.*
 
 Oración
-Te rogamos nos concedas, Señor Dios nuestro, gozar de continua salud de alma y cuerpo, y por la gloriosa intercesión de la bienaventurada siempre Virgen María, vernos libres de las tristezas de la vida presente y disfrutar de las alegrías eternas. Por Cristo nuestro Señor.
-*Amén.*
+Infunde, Señor, Tu Gracia en nuestras almas, para que, con el anuncio del Ángel, hayamos conocido la Encarnación de Nuestro Señor Jesucristo, seamos llevados, por su Pasión y su Cruz, a la gloria de la resurrección. Por el mismo Cristo, nuestro Señor.
+Amén.
 
-Por las intenciones del Romano Pontífice:
-Padre nuestro, que estás en el cielo, santificado sea tu Nombre; venga a nosotros tu reino; hágase tu voluntad en la tierra como en el cielo.
-*Danos hoy nuestro pan de cada día; perdona nuestras ofensas, como también nosotros perdonamos a los que nos ofenden; no nos dejes caer en la tentación, y líbranos del mal. Amén.*
+*Por las necesidades de la Iglesia y del Estado:*
+Padre nuestro…
+Dios te salve…
+Gloria al Padre…
 
-Dios te salve, María, llena eres de gracia; el Señor es contigo; bendita Tú eres entre todas las mujeres, y bendito es el fruto de tu vientre, Jesús.
-*Santa María, Madre de Dios, ruega por nosotros, pecadores, ahora y en la hora de nuestra muerte. Amén.*
+*Por la persona e intenciones del Señor Obispo de esta diócesis:*
+Padre nuestro…
+Dios te salve…
+Gloria al Padre…
 
-Gloria al Padre, y al Hijo, y al Espíritu Santo.
-*Como era en el principio, ahora y siempre, por los siglos de los siglos. Amén.*
-
-Por las benditas ánimas del Purgatorio:
-Padre nuestro... Dios te salve, María... Dale, Señor, el descanso eterno.
-*Y brille para ellas la luz perpetua.*
-Descansen en paz.
-*Amén.*`
+*Por las benditas ánimas del Purgatorio:*
+Padre nuestro…
+Dios te salve…
+Descansen en paz. Amén.`
     }
   ]
 };

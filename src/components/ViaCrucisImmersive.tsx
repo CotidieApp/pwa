@@ -263,7 +263,7 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
         <div className="text-center max-w-md mx-auto">
           <div className="text-8xl mb-6 flex justify-center"><Heart className="h-16 w-16" /></div>
           <h2 className="text-2xl font-bold mb-6">{data?.title}</h2>
-          <div className="text-lg opacity-90 leading-relaxed whitespace-pre-wrap max-h-[50vh] overflow-y-auto px-2 scrollbar-hide">
+          <div className="text-lg opacity-90 leading-relaxed whitespace-pre-wrap max-h-[50vh] overflow-y-auto px-2 scrollbar-hide overscroll-contain">
             {typeof data?.content === 'string' ? data.content : ''}
           </div>
         </div>
@@ -323,7 +323,7 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
         <h3 className="text-xl font-bold mb-4">{currentStep.label}</h3>
 
         {/* Content Text */}
-        <div className="text-lg sm:text-xl opacity-90 leading-relaxed px-4 max-h-[30vh] overflow-y-auto scrollbar-hide">
+        <div className="text-lg sm:text-xl opacity-90 leading-relaxed px-4 max-h-[30vh] overflow-y-auto scrollbar-hide overscroll-contain">
           {mainText}
         </div>
       </div>
@@ -370,7 +370,7 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
        </div>
 
        {/* Main Content */}
-       <div className="flex-1 flex flex-col items-center justify-center w-full px-6 relative z-10">
+       <div className="flex-1 flex flex-col items-center justify-center w-full px-6 relative z-10 min-h-0">
           <AnimatePresence mode="wait">
             <motion.div
                 key={`${phase}-${currentStationIndex}-${currentStepIndex}-${outroStepIndex}`}
