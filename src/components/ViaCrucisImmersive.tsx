@@ -344,9 +344,11 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
           />
           <div
             className={cn(
-              "absolute inset-0 z-0 transition-colors duration-700",
-              isDark ? "bg-black/72" : "bg-black/58"
-            )}
+           "absolute inset-0 z-0 transition-all duration-700",
+            isDark 
+            ? "bg-black/65"          // negro medio-fuerte en dark
+           : "bg-white/55"          // blanco medio en light
+           )}
           />
         </>
        )}
