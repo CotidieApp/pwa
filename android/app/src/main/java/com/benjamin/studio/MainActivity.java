@@ -49,7 +49,7 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    protected void onPause() {
+    public void onPause() {  // ← cambia protected → public
         isInForeground = false;
         super.onPause();
     }
