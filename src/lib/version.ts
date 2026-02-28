@@ -1,2 +1,2 @@
 // 📦 src/lib/version.ts
-export const appVersion = "4.4.5";
+export const appVersion = "4.4.6";
