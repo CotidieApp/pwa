@@ -14,7 +14,7 @@ En la Cruz se escondía sólo la Divinidad, pero aquí se esconde también la Hu
 
 No veo las llagas como las vió Tomás, pero confieso que eres mi Dios: haz que yo crea más y más en Ti, que en Ti espere y que te ame.
 
-¡Memorial de la muerte del Señor! Pan vivo que das vida al hombre:concede a mi alma que de Ti viva y que siempre saboree tu dulzura.
+¡Memorial de la muerte del Señor! Pan vivo que das vida al hombre: concede a mi alma que de Ti viva y que siempre saboree tu dulzura.
 
 Señor Jesús, Pelícano bueno, límpiame a mí, inmundo, con tu Sangre, de la que una sola gota puede liberar de todos los crímenes al mundo entero.
 
