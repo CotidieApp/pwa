@@ -69,9 +69,9 @@ export default function HomePage({ onSelectCategory, onOpenCustomPlan, onCreateC
     const today = new Date().toISOString().slice(0, 10);
     const key = `cotidie_quote_counted_${today}_${quoteOfTheDay.id ?? "unknown"}`;
     if (typeof window === "undefined") return;
-    if (window.sessionStorage.getItem(key) === "1") return;
+    if (window.localStorage.getItem(key) === "1") return;
     incrementStat("saintQuotesOpened");
-    window.sessionStorage.setItem(key, "1");
+    window.localStorage.setItem(key, "1");
   }, [incrementStat, quoteOfTheDay]);
 
   const triggerEasterEgg = useCallback(() => {

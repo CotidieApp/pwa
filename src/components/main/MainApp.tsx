@@ -30,6 +30,9 @@ import { isWrappedSeason } from '@/lib/movable-feasts';
 import WrappedStory from '../WrappedStory';
 import Image from 'next/image';
 import DeveloperDashboard from '@/components/developer/DeveloperDashboard';
+import { useNavPersistence } from '@/components/main/useNavPersistence';
+import { initialState, normalizeNavState, NAV_STATE_STORAGE_KEY } from '@/components/main/navigation';
+import type { NavigationState } from '@/components/main/navigation';
 
 import {
   AlertDialog,
@@ -57,18 +60,6 @@ type AppView =
   | 'rosaryMeditated'
   | 'planCalendar';
 
-interface NavigationState {
-  activeView: AppView;
-  selectedCategoryId: string | null;
-  prayerPathIds: string[];
-  editingPrayerId: string | null;
-  addFormMode: AddFormMode | null;
-  selectedCustomPlanSlot: 1 | 2 | 3 | 4 | null;
-  customPlanPrayerSlot: 1 | 2 | 3 | 4 | null;
-  customPlanPrayerIndex: number | null;
-  customPlanEditMode: boolean;
-}
-
 const CartasIntro = () => (
   <Card className="mb-4 bg-card/80 shadow-md backdrop-blur-sm border-border/50">
     <CardContent className="p-6 text-sm text-foreground/90 space-y-3">
@@ -85,19 +76,6 @@ const CartasIntro = () => (
   </Card>
 );
 
-const initialState: NavigationState = {
-  activeView: 'home',
-  selectedCategoryId: null,
-  prayerPathIds: [],
-  editingPrayerId: null,
-  addFormMode: null,
-  selectedCustomPlanSlot: null,
-  customPlanPrayerSlot: null,
-  customPlanPrayerIndex: null,
-  customPlanEditMode: false,
-};
-
-const NAV_STATE_STORAGE_KEY = 'cotidie_nav_state';
 const RESTORABLE_VIEWS = new Set<AppView>([
   'home',
   'category',
@@ -110,44 +88,10 @@ const RESTORABLE_VIEWS = new Set<AppView>([
   'planCalendar',
 ]);
 
-const normalizeNavState = (raw: any): NavigationState => {
-  const activeView: AppView = RESTORABLE_VIEWS.has(raw?.activeView)
-    ? raw.activeView
-    : 'home';
-  const selectedCategoryId =
-    typeof raw?.selectedCategoryId === 'string' ? raw.selectedCategoryId : null;
-  const prayerPathIds = Array.isArray(raw?.prayerPathIds)
-    ? raw.prayerPathIds.filter((id: unknown) => typeof id === 'string')
-    : [];
-  const selectedCustomPlanSlot = [1, 2, 3, 4].includes(raw?.selectedCustomPlanSlot)
-    ? raw.selectedCustomPlanSlot
-    : null;
-  const customPlanPrayerSlot = [1, 2, 3, 4].includes(raw?.customPlanPrayerSlot)
-    ? raw.customPlanPrayerSlot
-    : null;
-  const customPlanPrayerIndex =
-    typeof raw?.customPlanPrayerIndex === 'number' && Number.isFinite(raw.customPlanPrayerIndex)
-      ? raw.customPlanPrayerIndex
-      : null;
-  const customPlanEditMode = Boolean(raw?.customPlanEditMode);
-
-  return {
-    activeView,
-    selectedCategoryId,
-    prayerPathIds,
-    editingPrayerId: null,
-    addFormMode: null,
-    selectedCustomPlanSlot,
-    customPlanPrayerSlot,
-    customPlanPrayerIndex,
-    customPlanEditMode,
-  };
-};
-
 const getInitialNavState = (): NavigationState => {
   if (typeof window === 'undefined') return initialState;
   try {
-    const raw = window.sessionStorage.getItem(NAV_STATE_STORAGE_KEY);
+    const raw = window.localStorage.getItem(NAV_STATE_STORAGE_KEY);
     if (!raw) return initialState;
     return normalizeNavState(JSON.parse(raw));
   } catch {
@@ -253,13 +197,13 @@ export default function MainApp() {
   useEffect(() => {
     navStateRef.current = navState;
   }, [navState]);
-
+  useNavPersistence(navStateRef, NAV_STATE_STORAGE_KEY, normalizeNavState);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
       const safeState = normalizeNavState(navState);
-      window.sessionStorage.setItem(NAV_STATE_STORAGE_KEY, JSON.stringify(safeState));
+      window.localStorage.setItem(NAV_STATE_STORAGE_KEY, JSON.stringify(safeState));
     } catch {}
   }, [navState]);
 
@@ -350,7 +294,9 @@ export default function MainApp() {
   }, [navState]);
   
   useEffect(() => {
-    window.scrollTo({ top: 0 });
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: 0 });
+    });
   }, [navState.activeView, navState.selectedCategoryId, navState.prayerPathIds?.length]);
   
   const handleBack = () => {
@@ -1162,16 +1108,16 @@ export default function MainApp() {
               <button
                 type="button"
                 aria-label="Anterior"
-                className="h-full"
+                className="h-full pointer-events-auto"
                 style={{ width: '25%' }}
                 onClick={goToCustomPlanPrev}
               />
-              <div className="h-full pointer-events-none" style={{ width: '37.5%' }} />
+              <div className="h-full pointer-events-none" style={{ width: '45%' }} />
               <button
                 type="button"
                 aria-label="Siguiente"
-                className="h-full"
-                style={{ width: '37.5%' }}
+                className="h-full pointer-events-auto"
+                style={{ width: '30%' }}
                 onClick={goToCustomPlanNext}
               />
             </div>

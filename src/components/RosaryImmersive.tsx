@@ -1195,16 +1195,16 @@ export default function RosaryImmersive({
               <button
                 type="button"
                 aria-label="Anterior"
-                className="h-full"
+                className="h-full pointer-events-auto"
                 style={{ width: '25%' }}
                 onClick={handlePrev}
               />
-              <div className="h-full pointer-events-none" style={{ width: '37.5%' }} />
+              <div className="h-full pointer-events-none" style={{ width: '45%' }} />
               <button
                 type="button"
                 aria-label="Siguiente"
-                className="h-full"
-                style={{ width: '37.5%' }}
+                className="h-full pointer-events-auto"
+                style={{ width: '30%' }}
                 onClick={handleNext}
               />
             </div>
