@@ -184,3 +184,11 @@ blockquote {
 }
 
 /* Barra de desplazamiento nativa del sistema (sin ocultarla) */
+
+.touch-nav-zone {
+  background: transparent;
+}
+
+.touch-nav-zone:active {
+  background: transparent;
+}

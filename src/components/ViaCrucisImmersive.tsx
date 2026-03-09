@@ -387,9 +387,9 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
 
               {/* Navigation Control */}
        {touchNavEnabled && (
-         <div className="pointer-events-none absolute inset-0 z-20">
+         <div className="absolute inset-0 z-20">
            <div
-             className="pointer-events-auto absolute left-0 w-full flex"
+             className="absolute left-0 w-full flex"
              style={{
                top: 'calc(4rem + env(safe-area-inset-top))',
                height: 'calc(100% - (4rem + env(safe-area-inset-top)))',
@@ -398,7 +398,7 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
              <button
                type="button"
                aria-label="Anterior"
-               className="h-full"
+               className="h-full touch-nav-zone"
                style={{ width: '25%' }}
                onClick={handlePrev}
              />
@@ -406,7 +406,7 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
              <button
                type="button"
                aria-label="Siguiente"
-               className="h-full"
+               className="h-full touch-nav-zone"
                style={{ width: '37.5%' }}
                onClick={handleNext}
              />
@@ -480,6 +480,3 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
     </div>
   );
 }
-
-
-
