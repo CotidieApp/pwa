@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { handleTouchNavigation } from '@/utils/touchNavigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, X, Plus, Trash2, Settings2, Image as ImageIcon, Calendar, Pencil, BookOpen, Crown, Cross, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -182,15 +183,6 @@ const renderCenterIcon = (
       return <span />;
   }
 };
-
-const isInteractiveElement = (el: HTMLElement | null) => {
-  if (!el) return false
-  return Boolean(
-    el.closest(
-      'button, a, input, textarea, select, [role="button"], [data-no-touch-nav]'
-    )
-  )
-}
 
 type MysteryType = 'gozosos' | 'luminosos' | 'dolorosos' | 'gloriosos';
 
@@ -609,27 +601,6 @@ export default function RosaryImmersive({
     }
   };
 
-  /* NUEVA FUNCIÓN — PÉGALA JUSTO AQUÍ */
-
-  const handleTouchNavigation = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!touchNavEnabled) return
-
-    const target = e.target as HTMLElement
-    if (isInteractiveElement(target)) return
-
-    if (window.getSelection()?.toString()) return
-
-    const rect = e.currentTarget.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const width = rect.width
-
-    if (x < width * 0.33) {
-      handlePrev()
-    } else if (x > width * 0.66) {
-      handleNext()
-    }
-  }
-
   const handleSkipToNextMystery = () => {
     if (isPostRosary || isPreRosary) return;
     if (currentMysteryIndex < totalMysteries - 1 && !initialTitle) {
@@ -887,7 +858,9 @@ export default function RosaryImmersive({
   // --- PRAYER VIEW ---
   return (
     <div
-      onClick={handleTouchNavigation}
+      onClick={(e) =>
+        handleTouchNavigation(e, handlePrev, handleNext)
+      }
       className={cn(
         "fixed inset-0 z-50 flex flex-col items-center justify-between pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] overflow-hidden",
         isDark ? "bg-black text-white" : "bg-zinc-50 text-zinc-900"

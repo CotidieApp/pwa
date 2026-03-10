@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { handleTouchNavigation } from '@/utils/touchNavigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, X, Image as ImageIcon, Cross, Sparkles, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -250,26 +251,6 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
     }
   };
 
-  const handleTouchNavigation = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!touchNavEnabled) return;
-
-    const target = e.target as HTMLElement;
-
-    if (isInteractiveElement(target)) return;
-
-    if (window.getSelection()?.toString()) return;
-
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const width = rect.width;
-
-    if (x < width * 0.33) {
-      handlePrev();
-    } else if (x > width * 0.66) {
-      handleNext();
-    }
-  };
-
   // Render Content
   const renderContent = () => {
     if (phase === 'intro') {
@@ -363,7 +344,10 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
 
   return (
     <div
-      onClick={handleTouchNavigation}
+      onClick={(e) => {
+        if (!touchNavEnabled) return
+        handleTouchNavigation(e, handlePrev, handleNext)
+      }}
       className={cn(
         "fixed inset-0 z-50 flex flex-col items-center justify-between pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] overflow-hidden",
         isDark ? "bg-black text-white" : "bg-zinc-50 text-zinc-900"
