@@ -183,6 +183,15 @@ const renderCenterIcon = (
   }
 };
 
+const isInteractiveElement = (el: HTMLElement | null) => {
+  if (!el) return false
+  return Boolean(
+    el.closest(
+      'button, a, input, textarea, select, [role="button"], [data-no-touch-nav]'
+    )
+  )
+}
+
 type MysteryType = 'gozosos' | 'luminosos' | 'dolorosos' | 'gloriosos';
 
 const MYSTERY_COLORS: Record<MysteryType, string> = {
@@ -309,7 +318,7 @@ export default function RosaryImmersive({
     md: "size-6",
     lg: "size-7",
   }[arrowBubbleSize];
-  
+
   // State for Selection Mode vs Prayer Mode
   const [mode, setMode] = useState<'selection' | 'prayer'>(
     initialTitle ? 'prayer' : 'selection'
@@ -324,7 +333,7 @@ export default function RosaryImmersive({
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isPostRosary, setIsPostRosary] = useState(false);
   const [postStepIndex, setPostStepIndex] = useState(0);
-  
+
   const [intentions, setIntentions] = useState<string[]>([]);
   const [showIntentionsMenu, setShowIntentionsMenu] = useState(false);
   const [newIntention, setNewIntention] = useState('');
@@ -333,7 +342,7 @@ export default function RosaryImmersive({
   const [jaculatorias, setJaculatorias] = useState<Jaculatoria[]>(DEFAULT_JACULATORIAS);
   const [showJaculatoriasMenu, setShowJaculatoriasMenu] = useState(false);
   const [newJaculatoria, setNewJaculatoria] = useState<Jaculatoria>({ v: '', r: '' });
-  
+
   const [showBackground, setShowBackground] = useState(true);
   const [navPos, setNavPos] = useState<{ x: number; y: number } | null>(null);
   const [isDraggingNav, setIsDraggingNav] = useState(false);
@@ -408,14 +417,14 @@ export default function RosaryImmersive({
     if (initialTitle && initialContent) {
       return { id: '', title: initialTitle, content: initialContent, group: initialGroup || '' };
     }
-    
+
     // Find the mystery list in santoRosario
     const groupKey = `misterios-${selectedMysteryType}`;
     const group = santoRosario.prayers?.find(p => p.id === groupKey);
     // Add safeguard for index out of bounds
     const safeIndex = Math.min(Math.max(0, currentMysteryIndex), (group?.prayers?.length || 1) - 1);
     const mystery = group?.prayers?.[safeIndex];
-    
+
     return {
       id: mystery?.id || '',
       title: mystery?.title || '',
@@ -434,21 +443,21 @@ export default function RosaryImmersive({
     const rawTitle = FULL_MYSTERY_TITLES[currentMysteryData.id] || displayTitle;
     // Prepend "Primer Misterio Gozoso", etc.
     const typeLabelMap: Record<string, string> = {
-        gozosos: 'gozoso',
-        luminosos: 'luminoso',
-        dolorosos: 'doloroso',
-        gloriosos: 'glorioso',
+      gozosos: 'gozoso',
+      luminosos: 'luminoso',
+      dolorosos: 'doloroso',
+      gloriosos: 'glorioso',
     };
     const ordinalMap = ['Primer', 'Segundo', 'Tercer', 'Cuarto', 'Quinto'];
-    
+
     // Only apply if it's one of the standard mysteries
     if (initialTitle) return rawTitle;
 
     const typeLabel = typeLabelMap[selectedMysteryType] || '';
     const ordinal = ordinalMap[currentMysteryIndex] || '';
-    
+
     if (ordinal && typeLabel) {
-        return `${ordinal} misterio ${typeLabel}, ${rawTitle}`;
+      return `${ordinal} misterio ${typeLabel}, ${rawTitle}`;
     }
     return rawTitle;
   }, [currentMysteryData.id, displayTitle, selectedMysteryType, currentMysteryIndex, initialTitle]);
@@ -458,7 +467,7 @@ export default function RosaryImmersive({
     const seq: Array<{ type: string; label: string; index?: number }> = [];
     seq.push({ type: 'reading', label: 'Meditación' });
     if (intentions.length > 0) {
-        seq.push({ type: 'intro', label: 'Intención' });
+      seq.push({ type: 'intro', label: 'Intención' });
     }
     seq.push({ type: 'padre_nuestro', label: 'Padre Nuestro' });
     for (let i = 1; i <= 10; i++) {
@@ -502,7 +511,7 @@ export default function RosaryImmersive({
   }, [jaculatorias, formatJaculatorias]);
 
   const [isSalveActive, setIsSalveActive] = useState(false);
-  
+
   const currentPreStep = preSteps[preStepIndex];
   const currentStep = sequence[currentStepIndex];
   const currentPostStep = isSalveActive ? { type: 'salve', label: 'La Salve', content: SALVE_TEXT } : postSteps[postStepIndex];
@@ -518,11 +527,11 @@ export default function RosaryImmersive({
 
   const handleNext = () => {
     if (isSalveActive) {
-        setIsSalveActive(false);
-        // Salve is a branch/detour. When finished, we simply return to the previous context.
-        // If we came from Gloria (mystery), we are now in postRosary context (set by the button).
-        // If we came from Litanies, we return to Litanies (or move to next step if user clicks next again).
-        return;
+      setIsSalveActive(false);
+      // Salve is a branch/detour. When finished, we simply return to the previous context.
+      // If we came from Gloria (mystery), we are now in postRosary context (set by the button).
+      // If we came from Litanies, we return to Litanies (or move to next step if user clicks next again).
+      return;
     }
 
     if (isPreRosary && preSteps.length > 0) {
@@ -557,15 +566,15 @@ export default function RosaryImmersive({
         setPostStepIndex(0);
       } else {
         // Only close if there are no post steps (should be rare/never given we have litanies)
-         // onClose(); // Never close automatically
+        // onClose(); // Never close automatically
       }
     }
   };
 
   const handlePrev = () => {
     if (isSalveActive) {
-        setIsSalveActive(false);
-        return;
+      setIsSalveActive(false);
+      return;
     }
 
     if (isPreRosary && preSteps.length > 0) {
@@ -600,29 +609,50 @@ export default function RosaryImmersive({
     }
   };
 
+  /* NUEVA FUNCIÓN — PÉGALA JUSTO AQUÍ */
+
+  const handleTouchNavigation = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!touchNavEnabled) return
+
+    const target = e.target as HTMLElement
+    if (isInteractiveElement(target)) return
+
+    if (window.getSelection()?.toString()) return
+
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const width = rect.width
+
+    if (x < width * 0.33) {
+      handlePrev()
+    } else if (x > width * 0.66) {
+      handleNext()
+    }
+  }
+
   const handleSkipToNextMystery = () => {
     if (isPostRosary || isPreRosary) return;
     if (currentMysteryIndex < totalMysteries - 1 && !initialTitle) {
       setCurrentMysteryIndex(prev => prev + 1);
       setCurrentStepIndex(0);
     } else {
-        // Jump to Litanies
-        if (postSteps.length > 0) {
-            setIsPostRosary(true);
-            setPostStepIndex(0);
-        }
+      // Jump to Litanies
+      if (postSteps.length > 0) {
+        setIsPostRosary(true);
+        setPostStepIndex(0);
+      }
     }
   };
-  
+
   const handleSkipPreRosary = () => {
-      if (!isPreRosary) return;
-      setIsPreRosary(false);
-      setCurrentMysteryIndex(0);
-      setCurrentStepIndex(0);
+    if (!isPreRosary) return;
+    setIsPreRosary(false);
+    setCurrentMysteryIndex(0);
+    setCurrentStepIndex(0);
   };
-  
+
   const handleJumpToLitanies = () => {
-      onClose('letanias');
+    onClose('letanias');
   };
 
   const addIntention = () => {
@@ -659,28 +689,28 @@ export default function RosaryImmersive({
   const isPostRosaryActive = (isPostRosary && postSteps.length > 0) || isSalveActive;
 
   const getMysteryImage = useCallback((type: MysteryType, index: number) => {
-      // Imagenes específicas para Pre y Post Rosario
-      if (isPreRosaryActive) return '/images/sacred-heart.jpeg';
-      if (isPostRosaryActive) return '/images/immaculate-conception.jpeg';
+    // Imagenes específicas para Pre y Post Rosario
+    if (isPreRosaryActive) return '/images/sacred-heart.jpeg';
+    if (isPostRosaryActive) return '/images/immaculate-conception.jpeg';
 
-      const typeShort = type.endsWith('s') ? type.slice(0, -1) : type; // gozosos -> gozoso
-      const specificKey = `${typeShort}-${index + 1}`;
-      return MYSTERY_SPECIFIC_IMAGES[specificKey] || MYSTERY_IMAGES[type];
+    const typeShort = type.endsWith('s') ? type.slice(0, -1) : type; // gozosos -> gozoso
+    const specificKey = `${typeShort}-${index + 1}`;
+    return MYSTERY_SPECIFIC_IMAGES[specificKey] || MYSTERY_IMAGES[type];
   }, [isPreRosaryActive, isPostRosaryActive]);
   const totalMysteries = initialTitle ? 1 : 5;
   const totalSteps = preSteps.length + sequence.length * totalMysteries + postSteps.length;
   const progressIndex = isPreRosaryActive
     ? preStepIndex
     : isPostRosaryActive
-    ? isSalveActive ? totalSteps : preSteps.length + sequence.length * totalMysteries + postStepIndex
-    : preSteps.length + currentMysteryIndex * sequence.length + currentStepIndex;
+      ? isSalveActive ? totalSteps : preSteps.length + sequence.length * totalMysteries + postStepIndex
+      : preSteps.length + currentMysteryIndex * sequence.length + currentStepIndex;
   const progressPercent = totalSteps > 0 ? ((progressIndex + 1) / totalSteps) * 100 : 0;
   const headerGroupLabel = isPreRosaryActive || isPostRosaryActive ? 'Santo Rosario' : currentMysteryData.group;
   const headerTitle = isPreRosaryActive
     ? currentPreStep?.label
     : isPostRosaryActive
-    ? currentPostStep?.label
-    : displayTitle;
+      ? currentPostStep?.label
+      : displayTitle;
 
   // Visibility Logic
   const showSalveButton =
@@ -693,7 +723,7 @@ export default function RosaryImmersive({
   // Porcentaje de la imagen que se mostrará durante el recorrido (default 80%)
   // Se puede especificar un valor diferente por cada misterio usando su clave (ej: 'gozoso-1')
   const DEFAULT_VISIBILITY_PERCENTAGE = 80;
-  
+
   const MYSTERY_VISIBILITY_CONFIG: Record<string, number> = {
     // Misterios Gozosos
     'gozoso-1': 40,
@@ -724,13 +754,13 @@ export default function RosaryImmersive({
   const mysteryProgress = useMemo(() => {
     // Si estamos en Pre o Post Rosario, devolvemos 50% fijo (centro)
     if (isPreRosaryActive || isPostRosaryActive) {
-        return 50;
+      return 50;
     }
 
     const total = sequence.length - 1;
     const current = currentStepIndex;
     const ratio = total > 0 ? Math.min(Math.max(current / total, 0), 1) : 0;
-    
+
     // Determinar visibilidad específica
     const typeShort = selectedMysteryType.endsWith('s') ? selectedMysteryType.slice(0, -1) : selectedMysteryType;
     const specificKey = `${typeShort}-${currentMysteryIndex + 1}`;
@@ -740,7 +770,7 @@ export default function RosaryImmersive({
     const start = margin;
     const end = 100 - margin;
     const range = end - start;
-    
+
     return start + (ratio * range);
   }, [currentStepIndex, sequence.length, selectedMysteryType, currentMysteryIndex, isPreRosaryActive, isPostRosaryActive]);
 
@@ -795,60 +825,60 @@ export default function RosaryImmersive({
         isDark ? "text-white" : "text-zinc-900"
       )}>
         <Button variant="ghost" size="icon" className="absolute top-4 left-4 mt-[env(safe-area-inset-top)]" onClick={() => onClose()}>
-            <X />
+          <X />
         </Button>
-        
+
         <div className="absolute top-4 right-4 mt-[env(safe-area-inset-top)] flex gap-2">
-            {onSwitchToMeditated && (
-                <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                    onClick={onSwitchToMeditated}
-                >
-                    <BookOpen className="size-4" />
-                    Leer
-                </Button>
-            )}
-            <Button 
-                variant="outline" 
-                size="sm" 
-                className="gap-2"
-                onClick={() => startMystery(getMysteryByDay())}
+          {onSwitchToMeditated && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={onSwitchToMeditated}
             >
-                <Calendar className="size-4" />
-                Día: {MYSTERY_NAMES[getMysteryByDay()].replace('Misterios ', '')}
+              <BookOpen className="size-4" />
+              Leer
             </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => startMystery(getMysteryByDay())}
+          >
+            <Calendar className="size-4" />
+            Día: {MYSTERY_NAMES[getMysteryByDay()].replace('Misterios ', '')}
+          </Button>
         </div>
 
         <h2 className="text-2xl font-bold mb-8">Selecciona los Misterios</h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-md">
-            {(['gozosos', 'luminosos', 'dolorosos', 'gloriosos'] as const).map((type) => (
-                <div key={type} className="flex flex-col gap-2">
-                    <Button
-                        variant={selectedMysteryType === type ? 'default' : 'outline'}
-                        className={cn(
-                            "h-24 text-lg font-serif flex flex-col gap-1",
-                            selectedMysteryType === type && "ring-2 ring-offset-2"
-                        )}
-                        onClick={() => startMystery(type)}
-                    >
-                        <span>{MYSTERY_NAMES[type]}</span>
-                    </Button>
-                </div>
-            ))}
+          {(['gozosos', 'luminosos', 'dolorosos', 'gloriosos'] as const).map((type) => (
+            <div key={type} className="flex flex-col gap-2">
+              <Button
+                variant={selectedMysteryType === type ? 'default' : 'outline'}
+                className={cn(
+                  "h-24 text-lg font-serif flex flex-col gap-1",
+                  selectedMysteryType === type && "ring-2 ring-offset-2"
+                )}
+                onClick={() => startMystery(type)}
+              >
+                <span>{MYSTERY_NAMES[type]}</span>
+              </Button>
+            </div>
+          ))}
         </div>
-        
+
         <div className="mt-8 flex flex-col gap-3 items-center">
-            <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-muted-foreground hover:text-foreground"
-                onClick={handleJumpToLitanies}
-            >
-                Ir directamente a Letanías
-            </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground hover:text-foreground"
+            onClick={handleJumpToLitanies}
+          >
+            Ir directamente a Letanías
+          </Button>
         </div>
       </div>
     );
@@ -856,432 +886,444 @@ export default function RosaryImmersive({
 
   // --- PRAYER VIEW ---
   return (
-    <div className={cn(
-      "fixed inset-0 z-50 flex flex-col items-center justify-between pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] overflow-hidden",
-      isDark ? "bg-black text-white" : "bg-zinc-50 text-zinc-900"
-    )}>
-        {/* Background Layer */}
-        {showBackground && (
-            <>
-                {/* Image Background */}
-                <motion.div 
-                    className="absolute inset-0 z-0 bg-cover"
-                    initial={false}
-                      animate={{
-                          backgroundPosition: `${mysteryProgress}% top`
-                      }}
-                    transition={{
-                        duration: 1.5,
-                        ease: "easeInOut"
-                    }}
-                    style={{ 
-                        backgroundImage: `url(${getMysteryImage(selectedMysteryType, currentMysteryIndex)})`,
-                        opacity: isDark ? 0.4 : 0.3
-                    }}
-                />
-                {/* Gradient Overlay (fallback & tint) */}
-                <div className={cn(
-                    "absolute inset-0 z-0 transition-colors duration-1000",
-                    "bg-gradient-to-b",
-                    MYSTERY_COLORS[selectedMysteryType],
-                    isDark ? "opacity-30" : "opacity-40"
-                )} />
-            </>
-        )}
+    <div
+      onClick={handleTouchNavigation}
+      className={cn(
+        "fixed inset-0 z-50 flex flex-col items-center justify-between pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] overflow-hidden",
+        isDark ? "bg-black text-white" : "bg-zinc-50 text-zinc-900"
+      )}>
+      {/* Background Layer */}
+      {showBackground && (
+        <>
+          {/* Image Background */}
+          <motion.div
+            className="absolute inset-0 z-0 bg-cover"
+            initial={false}
+            animate={{
+              backgroundPosition: `${mysteryProgress}% top`
+            }}
+            transition={{
+              duration: 1.5,
+              ease: "easeInOut"
+            }}
+            style={{
+              backgroundImage: `url(${getMysteryImage(selectedMysteryType, currentMysteryIndex)})`,
+              opacity: isDark ? 0.4 : 0.3
+            }}
+          />
+          {/* Gradient Overlay (fallback & tint) */}
+          <div className={cn(
+            "absolute inset-0 z-0 transition-colors duration-1000",
+            "bg-gradient-to-b",
+            MYSTERY_COLORS[selectedMysteryType],
+            isDark ? "opacity-30" : "opacity-40"
+          )} />
+        </>
+      )}
 
-        {/* Top Bar */}
-        <div className="w-full flex justify-between items-start p-4 relative z-20">
-            <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowIntentionsMenu(!showIntentionsMenu)}
-                  title="Editar intenciones"
-                >
-                    {intentions.length > 0 ? <Settings2 className="size-5" /> : <Plus className="size-5" />}
-                </Button>
-
-                {/* Edit Jaculatorias - Only when visible */}
-                {showEditJaculatorias && (
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setShowJaculatoriasMenu(!showJaculatoriasMenu)}
-                        title="Editar jaculatorias"
-                    >
-                        <Pencil className="size-5" />
-                    </Button>
-                )}
-
-                {/* Salve Button - Only at end range */}
-                {showSalveButton && (
-                    <Button 
-                        variant="ghost" 
-                        className="gap-1 px-2 hover:bg-background/20"
-                        onClick={() => {
-                            setIsSalveActive(true);
-                            setIsPostRosary(true); // Force post rosary context
-                            setIsPreRosary(false);
-                        }}
-                        title="Ir a La Salve"
-                    >
-                       <Crown className="size-4 text-yellow-500" />
-                       <span className="text-xs font-bold">Salve</span>
-                    </Button>
-                )}
-            </div>
-            
-            <div className="flex flex-col items-center text-center max-w-[50%]">
-                 {/* Intentions (Smallest, Top) */}
-                 <AnimatePresence mode="wait">
-                    {!isPreRosaryActive && !isPostRosaryActive && (randomIntention || currentStep.type === 'intro') && (
-                        <motion.div 
-                            initial={{ opacity: 0, y: -5 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -5 }}
-                            className="text-[10px] uppercase tracking-wider font-medium opacity-60 mb-1 truncate w-full"
-                        >
-                            {randomIntention || "INTENCIí“N GENERAL"}
-                        </motion.div>
-                    )}
-                 </AnimatePresence>
-
-                 {/* Mystery Group (Small) */}
-                 <span className="text-xs font-semibold opacity-70 mb-0.5">{headerGroupLabel}</span>
-                 
-                 {/* Mystery Name (Medium) */}
-                 <h2 className="text-sm font-bold leading-tight px-2 line-clamp-2">{headerTitle}</h2>
-            </div>
-
-            <div className="flex gap-1">
-                {/* Skip Pre-Rosary */}
-                {isPreRosaryActive && (
-                    <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={handleSkipPreRosary}
-                        title="Saltar Intro"
-                    >
-                        <ChevronRight className="size-5" />
-                    </Button>
-                )}
-
-                {/* Skip Mystery */}
-                {!initialTitle && !isPreRosaryActive && !isPostRosaryActive && (
-                     <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={handleSkipToNextMystery}
-                        title="Saltar Misterio"
-                     >
-                        <div className="flex">
-                            <ChevronRight className="size-4 opacity-70 translate-x-1" />
-                            <ChevronRight className="size-4 opacity-70 -translate-x-1" />
-                        </div>
-                     </Button>
-                )}
-
-                <Button variant="ghost" size="icon" onClick={() => setShowBackground(!showBackground)} title="Alternar fondo">
-                    <ImageIcon className={cn("size-5", !showBackground && "opacity-30")} />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => onClose()}>
-                    <X className="size-6" />
-                </Button>
-            </div>
-        </div>
-
-        {/* Intentions Menu Overlay */}
-        <AnimatePresence>
-            {showIntentionsMenu && (
-                <motion.div 
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="absolute top-16 left-4 right-4 bg-popover/95 backdrop-blur border border-border rounded-xl shadow-2xl p-4 z-50 max-w-sm mx-auto"
-                >
-                    <div className="flex justify-between items-center mb-3">
-                        <h3 className="font-bold">Mis Intenciones</h3>
-                        <Button variant="ghost" size="sm" onClick={() => setShowIntentionsMenu(false)}><X className="size-4" /></Button>
-                    </div>
-                    
-                    <div className="flex gap-2 mb-4">
-                        <input 
-                            value={newIntention}
-                            onChange={(e) => setNewIntention(e.target.value)}
-                            placeholder="Nueva intención..."
-                            className="flex-1 bg-background border rounded px-3 py-2 text-sm"
-                            onKeyDown={(e) => e.key === 'Enter' && addIntention()}
-                            name="rosary-new-intention"
-                            aria-label="Nueva intención"
-                        />
-                        <Button size="sm" onClick={addIntention}><Plus className="size-4" /></Button>
-                    </div>
-                    
-                    <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
-                        {intentions.map((int, i) => (
-                            <div key={i} className="flex justify-between items-center text-sm bg-muted/50 p-2 rounded group">
-                                <span className="truncate flex-1 font-medium">{int}</span>
-                                <button onClick={() => removeIntention(i)} className="text-muted-foreground hover:text-destructive transition-colors"><Trash2 className="size-4" /></button>
-                            </div>
-                        ))}
-                        {intentions.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">Agrega intenciones para ofrecerlas durante el rosario.</p>}
-                    </div>
-                </motion.div>
-            )}
-        </AnimatePresence>
-
-        {/* Jaculatorias Menu Overlay */}
-        <AnimatePresence>
-            {showJaculatoriasMenu && (
-                <motion.div 
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="absolute top-16 left-4 right-4 bg-popover/95 backdrop-blur border border-border rounded-xl shadow-2xl p-4 z-50 max-w-md mx-auto"
-                >
-                    <div className="flex justify-between items-center mb-3">
-                        <h3 className="font-bold">Jaculatorias</h3>
-                        <Button variant="ghost" size="sm" onClick={() => setShowJaculatoriasMenu(false)}><X className="size-4" /></Button>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-2 mb-4">
-                        <input 
-                            value={newJaculatoria.v}
-                            onChange={(e) => setNewJaculatoria((prev) => ({ ...prev, v: e.target.value }))}
-                            placeholder="V. ..."
-                            className="w-full bg-background border rounded px-3 py-2 text-sm"
-                            name="rosary-new-jaculatoria-v"
-                            aria-label="Nueva jaculatoria V"
-                        />
-                        <input 
-                            value={newJaculatoria.r}
-                            onChange={(e) => setNewJaculatoria((prev) => ({ ...prev, r: e.target.value }))}
-                            placeholder="F. ..."
-                            className="w-full bg-background border rounded px-3 py-2 text-sm"
-                            onKeyDown={(e) => e.key === 'Enter' && addJaculatoria()}
-                            name="rosary-new-jaculatoria-r"
-                            aria-label="Nueva jaculatoria F"
-                        />
-                        <Button size="sm" onClick={addJaculatoria}><Plus className="size-4" /></Button>
-                    </div>
-
-                    <div className="max-h-60 overflow-y-auto space-y-3 pr-1">
-                        {jaculatorias.map((item, i) => (
-                            <div key={i} className="space-y-2 bg-muted/50 p-2 rounded">
-                                <div className="flex items-center gap-2">
-                                    <input
-                                        value={item.v}
-                                        onChange={(e) => updateJaculatoria(i, 'v', e.target.value)}
-                                        placeholder="V. ..."
-                                        className="flex-1 bg-background border rounded px-3 py-2 text-sm"
-                                        name={`rosary-jaculatoria-${i}-v`}
-                                        aria-label={`Jaculatoria ${i + 1} V`}
-                                    />
-                                    <button
-                                        onClick={() => removeJaculatoria(i)}
-                                        className="text-muted-foreground hover:text-destructive transition-colors"
-                                    >
-                                        <Trash2 className="size-4" />
-                                    </button>
-                                </div>
-                                <input
-                                    value={item.r}
-                                    onChange={(e) => updateJaculatoria(i, 'r', e.target.value)}
-                                    placeholder="F. ..."
-                                    className="w-full bg-background border rounded px-3 py-2 text-sm"
-                                    name={`rosary-jaculatoria-${i}-r`}
-                                    aria-label={`Jaculatoria ${i + 1} F`}
-                                />
-                            </div>
-                        ))}
-                        {jaculatorias.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">Agrega jaculatorias para el cierre del rosario.</p>}
-                    </div>
-                </motion.div>
-            )}
-        </AnimatePresence>
-
-        {/* Main Content Center */}
-        <div className="flex-1 flex flex-col items-center justify-center w-full px-6 text-center relative z-10">
-             <AnimatePresence mode="wait">
-                <motion.div
-                    key={`${isPreRosaryActive ? 'pre' : isPostRosaryActive ? 'post' : 'mystery'}-${currentMysteryIndex}-${currentStepIndex}-${preStepIndex}-${postStepIndex}`}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 1.05 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                    className="flex flex-col items-center w-full max-w-lg"
-                >
-                    {!isPreRosaryActive && !isPostRosaryActive && currentStep?.type === 'reading' && (
-                        <div className="text-2xl sm:text-3xl font-semibold mb-6 text-center">
-                          {fullMysteryTitle}
-                        </div>
-                    )}
-                    {/* Big Center Element */}
-                    <div
-                      className={cn(
-                        "text-8xl sm:text-9xl font-black mb-8 select-none transition-colors duration-500",
-                        currentStep?.type === 'ave_maria' ? "text-primary" : "text-foreground/60"
-                      )}
-                    >
-                      {renderCenterIcon(
-                        isPreRosaryActive,
-                        isPostRosaryActive,
-                        currentPreStep ?? undefined,
-                        currentPostStep ?? undefined,
-                        currentStep ?? undefined
-                      )}
-                    </div>
-
-                    {/* Prayer Text (Below Center) */}
-                    <h3 className="text-xl font-bold mb-4">
-                      {isPreRosaryActive
-                        ? currentPreStep?.label
-                        : isPostRosaryActive
-                        ? currentPostStep?.label
-                        : currentStep?.label}
-                    </h3>
-                    
-                    <div className="text-lg sm:text-xl opacity-90 leading-relaxed max-h-[35vh] overflow-y-auto px-4 scrollbar-hide w-full">
-                        {isPreRosaryActive
-                          ? <div>{renderRosaryText(currentPreStep?.content ?? '')}</div>
-                          : isPostRosaryActive
-                          ? currentPostStep?.type === 'letanias' 
-                            ? (
-                                <div className="text-left space-y-1">
-                                    {currentPostStep.content.split('\n').map((line, i) => {
-                                        // Regex to match **bold**, *gray-bold*, and _italic_
-                                        // Order matters: check double asterisks first
-                                        const parts = line.split(/(\*\*.*?\*\*|\*.*?\*|_.*?_)/g);
-                                        return (
-                                            <div key={i} className="min-h-[1.2rem]">
-                                                {parts.map((part, j) => {
-                                                    if (part.startsWith('**') && part.endsWith('**')) {
-                                                        return <span key={j} className="font-bold text-foreground">{part.slice(2, -2)}</span>;
-                                                    }
-                                                    if (part.startsWith('*') && part.endsWith('*')) {
-                                                        return <span key={j} className="font-semibold text-muted-foreground">{part.slice(1, -1)}</span>;
-                                                    }
-                                                    if (part.startsWith('_') && part.endsWith('_')) {
-                                                        return <span key={j} className="italic">{part.slice(1, -1)}</span>;
-                                                    }
-                                                    return <span key={j}>{part}</span>;
-                                                })}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )
-                            : <div className="whitespace-pre-wrap">{currentPostStep?.content}</div>
-                          : currentStep?.type === 'intro' 
-                            ? (randomIntention ? <span className="font-serif italic">"{randomIntention}"</span> : "Ofrecemos este misterio por nuestras intenciones...") 
-                            : currentStep?.type === 'reading'
-                            ? <span className="font-serif text-base whitespace-pre-wrap">{currentMysteryData.content}</span>
-                            : <div className="whitespace-pre-wrap">{PRAYERS_TEXT[currentStep?.type as keyof typeof PRAYERS_TEXT]}</div>
-                        }
-                    </div>
-                </motion.div>
-             </AnimatePresence>
-        </div>
-
-        {touchNavEnabled && (
-          <div className="pointer-events-none absolute inset-0 z-20">
-            <div
-              className="pointer-events-auto absolute left-0 w-full flex"
-              style={{
-                top: 'calc(4rem + env(safe-area-inset-top))',
-                height: 'calc(100% - (4rem + env(safe-area-inset-top)))',
-              }}
-            >
-              <button
-                type="button"
-                aria-label="Anterior"
-                className="h-full pointer-events-auto"
-                style={{ width: '25%' }}
-                onClick={handlePrev}
-              />
-              <div className="h-full pointer-events-none" style={{ width: '45%' }} />
-              <button
-                type="button"
-                aria-label="Siguiente"
-                className="h-full pointer-events-auto"
-                style={{ width: '30%' }}
-                onClick={handleNext}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Navigation Globe (Bottom) */}
-        {!touchNavEnabled && (
-          <div
-            ref={navRef}
-            className={cn(
-              "fixed z-50 flex items-center bg-background/80 shadow-lg border border-border/20 backdrop-blur-md",
-              navBubbleClass,
-              navPos ? "" : "bottom-[calc(2rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2"
-            )}
-            style={navPos ? { left: navPos.x, top: navPos.y } : undefined}
+      {/* Top Bar */}
+      <div className="w-full flex justify-between items-start p-4 relative z-20">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowIntentionsMenu(!showIntentionsMenu)}
+            title="Editar intenciones"
           >
-             {/* Drag Handle */}
-             <div
-               className="flex items-center px-1.5 select-none opacity-30 cursor-grab active:cursor-grabbing"
-               onPointerDown={(event) => {
-                 event.preventDefault();
-                 const rect = navRef.current?.getBoundingClientRect();
-                 navDragStart.current = {
-                   x: event.clientX,
-                   y: event.clientY,
-                   startX: rect?.left ?? 0,
-                   startY: rect?.top ?? 0,
-                 };
-                 setIsDraggingNav(true);
-               }}
-               style={{ touchAction: 'none' }}
-             >
-                <div className="grid grid-cols-2 gap-0.5">
-                    {Array.from({ length: 6 }).map((_, i) => (
-                    <span key={i} className="h-1 w-1 rounded-full bg-foreground" />
-                    ))}
-                </div>
-             </div>
+            {intentions.length > 0 ? <Settings2 className="size-5" /> : <Plus className="size-5" />}
+          </Button>
 
-             <Button 
-                variant="ghost" 
-                size="icon" 
-                className={cn("hover:bg-foreground/5", navButtonClass)}
-                onClick={handlePrev}
-                disabled={
-                    !isSalveActive &&
-                    !isPostRosary &&
-                    (isPreRosary 
-                        ? preStepIndex === 0 
-                        : (currentMysteryIndex === 0 && currentStepIndex === 0 && preSteps.length === 0)
-                    )
-                }
-             >
-                <ChevronLeft className={navIconClass} />
-             </Button>
+          {/* Edit Jaculatorias - Only when visible */}
+          {showEditJaculatorias && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowJaculatoriasMenu(!showJaculatoriasMenu)}
+              title="Editar jaculatorias"
+            >
+              <Pencil className="size-5" />
+            </Button>
+          )}
 
-             <div className="w-px h-6 bg-border mx-1" />
-
-             <Button 
-                variant="ghost" 
-                size="icon" 
-                className={cn("hover:bg-foreground/5", navButtonClass)}
-                onClick={handleNext}
-             >
-                <ChevronRight className={navIconClass} />
-             </Button>
-          </div>
-        )}
-
-        {/* Progress Bar */}
-        <div className="absolute bottom-0 left-0 w-full h-1 bg-muted/20">
-            <div 
-                className="h-full bg-primary transition-all duration-300"
-                style={{ width: `${progressPercent}%` }}
-            />
+          {/* Salve Button - Only at end range */}
+          {showSalveButton && (
+            <Button
+              variant="ghost"
+              className="gap-1 px-2 hover:bg-background/20"
+              onClick={() => {
+                setIsSalveActive(true);
+                setIsPostRosary(true); // Force post rosary context
+                setIsPreRosary(false);
+              }}
+              title="Ir a La Salve"
+            >
+              <Crown className="size-4 text-yellow-500" />
+              <span className="text-xs font-bold">Salve</span>
+            </Button>
+          )}
         </div>
+
+        <div className="flex flex-col items-center text-center max-w-[50%]">
+          {/* Intentions (Smallest, Top) */}
+          <AnimatePresence mode="wait">
+            {!isPreRosaryActive && !isPostRosaryActive && (randomIntention || currentStep.type === 'intro') && (
+              <motion.div
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -5 }}
+                className="text-[10px] uppercase tracking-wider font-medium opacity-60 mb-1 truncate w-full"
+              >
+                {randomIntention || "INTENCIí“N GENERAL"}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Mystery Group (Small) */}
+          <span className="text-xs font-semibold opacity-70 mb-0.5">{headerGroupLabel}</span>
+
+          {/* Mystery Name (Medium) */}
+          <h2 className="text-sm font-bold leading-tight px-2 line-clamp-2">{headerTitle}</h2>
+        </div>
+
+        <div className="flex gap-1">
+          {/* Skip Pre-Rosary */}
+          {isPreRosaryActive && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleSkipPreRosary}
+              title="Saltar Intro"
+            >
+              <ChevronRight className="size-5" />
+            </Button>
+          )}
+
+          {/* Skip Mystery */}
+          {!initialTitle && !isPreRosaryActive && !isPostRosaryActive && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleSkipToNextMystery}
+              title="Saltar Misterio"
+            >
+              <div className="flex">
+                <ChevronRight className="size-4 opacity-70 translate-x-1" />
+                <ChevronRight className="size-4 opacity-70 -translate-x-1" />
+              </div>
+            </Button>
+          )}
+
+          <Button variant="ghost" size="icon" onClick={() => setShowBackground(!showBackground)} title="Alternar fondo">
+            <ImageIcon className={cn("size-5", !showBackground && "opacity-30")} />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => onClose()}>
+            <X className="size-6" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Intentions Menu Overlay */}
+      <AnimatePresence>
+        {showIntentionsMenu && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="absolute top-16 left-4 right-4 bg-popover/95 backdrop-blur border border-border rounded-xl shadow-2xl p-4 z-50 max-w-sm mx-auto"
+          >
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="font-bold">Mis Intenciones</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowIntentionsMenu(false)}><X className="size-4" /></Button>
+            </div>
+
+            <div className="flex gap-2 mb-4">
+              <input
+                value={newIntention}
+                onChange={(e) => setNewIntention(e.target.value)}
+                placeholder="Nueva intención..."
+                className="flex-1 bg-background border rounded px-3 py-2 text-sm"
+                onKeyDown={(e) => e.key === 'Enter' && addIntention()}
+                name="rosary-new-intention"
+                aria-label="Nueva intención"
+              />
+              <Button size="sm" onClick={addIntention}><Plus className="size-4" /></Button>
+            </div>
+
+            <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
+              {intentions.map((int, i) => (
+                <div key={i} className="flex justify-between items-center text-sm bg-muted/50 p-2 rounded group">
+                  <span className="truncate flex-1 font-medium">{int}</span>
+                  <button onClick={() => removeIntention(i)} className="text-muted-foreground hover:text-destructive transition-colors"><Trash2 className="size-4" /></button>
+                </div>
+              ))}
+              {intentions.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">Agrega intenciones para ofrecerlas durante el rosario.</p>}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Jaculatorias Menu Overlay */}
+      <AnimatePresence>
+        {showJaculatoriasMenu && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="absolute top-16 left-4 right-4 bg-popover/95 backdrop-blur border border-border rounded-xl shadow-2xl p-4 z-50 max-w-md mx-auto"
+          >
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="font-bold">Jaculatorias</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowJaculatoriasMenu(false)}><X className="size-4" /></Button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-2 mb-4">
+              <input
+                value={newJaculatoria.v}
+                onChange={(e) => setNewJaculatoria((prev) => ({ ...prev, v: e.target.value }))}
+                placeholder="V. ..."
+                className="w-full bg-background border rounded px-3 py-2 text-sm"
+                name="rosary-new-jaculatoria-v"
+                aria-label="Nueva jaculatoria V"
+              />
+              <input
+                value={newJaculatoria.r}
+                onChange={(e) => setNewJaculatoria((prev) => ({ ...prev, r: e.target.value }))}
+                placeholder="F. ..."
+                className="w-full bg-background border rounded px-3 py-2 text-sm"
+                onKeyDown={(e) => e.key === 'Enter' && addJaculatoria()}
+                name="rosary-new-jaculatoria-r"
+                aria-label="Nueva jaculatoria F"
+              />
+              <Button size="sm" onClick={addJaculatoria}><Plus className="size-4" /></Button>
+            </div>
+
+            <div className="max-h-60 overflow-y-auto space-y-3 pr-1">
+              {jaculatorias.map((item, i) => (
+                <div key={i} className="space-y-2 bg-muted/50 p-2 rounded">
+                  <div className="flex items-center gap-2">
+                    <input
+                      value={item.v}
+                      onChange={(e) => updateJaculatoria(i, 'v', e.target.value)}
+                      placeholder="V. ..."
+                      className="flex-1 bg-background border rounded px-3 py-2 text-sm"
+                      name={`rosary-jaculatoria-${i}-v`}
+                      aria-label={`Jaculatoria ${i + 1} V`}
+                    />
+                    <button
+                      onClick={() => removeJaculatoria(i)}
+                      className="text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </div>
+                  <input
+                    value={item.r}
+                    onChange={(e) => updateJaculatoria(i, 'r', e.target.value)}
+                    placeholder="F. ..."
+                    className="w-full bg-background border rounded px-3 py-2 text-sm"
+                    name={`rosary-jaculatoria-${i}-r`}
+                    aria-label={`Jaculatoria ${i + 1} F`}
+                  />
+                </div>
+              ))}
+              {jaculatorias.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">Agrega jaculatorias para el cierre del rosario.</p>}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Main Content Center */}
+      <div className="flex-1 flex flex-col items-center justify-center w-full px-6 text-center relative z-10">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`${isPreRosaryActive ? 'pre' : isPostRosaryActive ? 'post' : 'mystery'}-${currentMysteryIndex}-${currentStepIndex}-${preStepIndex}-${postStepIndex}`}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.05 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            className="flex flex-col items-center w-full max-w-lg"
+          >
+            {!isPreRosaryActive && !isPostRosaryActive && currentStep?.type === 'reading' && (
+              <div className="text-2xl sm:text-3xl font-semibold mb-6 text-center">
+                {fullMysteryTitle}
+              </div>
+            )}
+            {/* Big Center Element */}
+            <div
+              className={cn(
+                "text-8xl sm:text-9xl font-black mb-8 select-none transition-colors duration-500",
+                currentStep?.type === 'ave_maria' ? "text-primary" : "text-foreground/60"
+              )}
+            >
+              {renderCenterIcon(
+                isPreRosaryActive,
+                isPostRosaryActive,
+                currentPreStep ?? undefined,
+                currentPostStep ?? undefined,
+                currentStep ?? undefined
+              )}
+            </div>
+
+            {/* Prayer Text (Below Center) */}
+            <h3 className="text-xl font-bold mb-4">
+              {isPreRosaryActive
+                ? currentPreStep?.label
+                : isPostRosaryActive
+                  ? currentPostStep?.label
+                  : currentStep?.label}
+            </h3>
+
+            <div
+              data-no-touch-nav
+              className="text-lg sm:text-xl opacity-90 leading-relaxed max-h-[35vh] overflow-y-auto px-4 scrollbar-hide w-full">
+              {isPreRosaryActive
+                ? <div>{renderRosaryText(currentPreStep?.content ?? '')}</div>
+                : isPostRosaryActive
+                  ? currentPostStep?.type === 'letanias'
+                    ? (
+                      <div className="text-left space-y-1">
+                        {currentPostStep.content.split('\n').map((line, i) => {
+                          // Regex to match **bold**, *gray-bold*, and _italic_
+                          // Order matters: check double asterisks first
+                          const parts = line.split(/(\*\*.*?\*\*|\*.*?\*|_.*?_)/g);
+                          return (
+                            <div key={i} className="min-h-[1.2rem]">
+                              {parts.map((part, j) => {
+                                if (part.startsWith('**') && part.endsWith('**')) {
+                                  return <span key={j} className="font-bold text-foreground">{part.slice(2, -2)}</span>;
+                                }
+                                if (part.startsWith('*') && part.endsWith('*')) {
+                                  return <span key={j} className="font-semibold text-muted-foreground">{part.slice(1, -1)}</span>;
+                                }
+                                if (part.startsWith('_') && part.endsWith('_')) {
+                                  return <span key={j} className="italic">{part.slice(1, -1)}</span>;
+                                }
+                                return <span key={j}>{part}</span>;
+                              })}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )
+                    : <div className="whitespace-pre-wrap">{currentPostStep?.content}</div>
+                  : currentStep?.type === 'intro'
+                    ? (randomIntention ? <span className="font-serif italic">"{randomIntention}"</span> : "Ofrecemos este misterio por nuestras intenciones...")
+                    : currentStep?.type === 'reading'
+                      ? <span className="font-serif text-base whitespace-pre-wrap">{currentMysteryData.content}</span>
+                      : <div className="whitespace-pre-wrap">{PRAYERS_TEXT[currentStep?.type as keyof typeof PRAYERS_TEXT]}</div>
+              }
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {touchNavEnabled && (
+        <div className="pointer-events-none absolute inset-0 z-20">
+          <div
+            className="pointer-events-auto absolute left-0 w-full flex"
+            style={{
+              top: 'calc(4rem + env(safe-area-inset-top))',
+              height: 'calc(100% - (4rem + env(safe-area-inset-top)))',
+            }}
+          >
+            <button
+              type="button"
+              aria-label="Anterior"
+              className="h-full pointer-events-auto"
+              style={{ width: '25%' }}
+              onClick={(e) => {
+                e.stopPropagation()
+                handlePrev()
+              }}
+            />
+
+            <div className="h-full pointer-events-none" style={{ width: '45%' }} />
+
+            <button
+              type="button"
+              aria-label="Siguiente"
+              className="h-full pointer-events-auto"
+              style={{ width: '30%' }}
+              onClick={(e) => {
+                e.stopPropagation()
+                handleNext()
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Navigation Globe (Bottom) */}
+      {!touchNavEnabled && (
+        <div
+          ref={navRef}
+          className={cn(
+            "fixed z-50 flex items-center bg-background/80 shadow-lg border border-border/20 backdrop-blur-md",
+            navBubbleClass,
+            navPos ? "" : "bottom-[calc(2rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2"
+          )}
+          style={navPos ? { left: navPos.x, top: navPos.y } : undefined}
+        >
+          {/* Drag Handle */}
+          <div
+            className="flex items-center px-1.5 select-none opacity-30 cursor-grab active:cursor-grabbing"
+            onPointerDown={(event) => {
+              event.preventDefault();
+              const rect = navRef.current?.getBoundingClientRect();
+              navDragStart.current = {
+                x: event.clientX,
+                y: event.clientY,
+                startX: rect?.left ?? 0,
+                startY: rect?.top ?? 0,
+              };
+              setIsDraggingNav(true);
+            }}
+            style={{ touchAction: 'none' }}
+          >
+            <div className="grid grid-cols-2 gap-0.5">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <span key={i} className="h-1 w-1 rounded-full bg-foreground" />
+              ))}
+            </div>
+          </div>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn("hover:bg-foreground/5", navButtonClass)}
+            onClick={handlePrev}
+            disabled={
+              !isSalveActive &&
+              !isPostRosary &&
+              (isPreRosary
+                ? preStepIndex === 0
+                : (currentMysteryIndex === 0 && currentStepIndex === 0 && preSteps.length === 0)
+              )
+            }
+          >
+            <ChevronLeft className={navIconClass} />
+          </Button>
+
+          <div className="w-px h-6 bg-border mx-1" />
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn("hover:bg-foreground/5", navButtonClass)}
+            onClick={handleNext}
+          >
+            <ChevronRight className={navIconClass} />
+          </Button>
+        </div>
+      )}
+
+      {/* Progress Bar */}
+      <div className="absolute bottom-0 left-0 w-full h-1 bg-muted/20">
+        <div
+          className="h-full bg-primary transition-all duration-300"
+          style={{ width: `${progressPercent}%` }}
+        />
+      </div>
     </div>
   );
 }

@@ -112,6 +112,15 @@ const resolveOracionDelDiaPrayerId = () => {
 };
 
 export default function MainApp() {
+
+  const isInteractiveElement = (el: HTMLElement | null): boolean => {
+    if (!el) return false;
+    return Boolean(
+      el.closest(
+        'button, a, input, textarea, select, [role="button"], [data-no-touch-nav]'
+      )
+    );
+  };
   const [navState, setNavState] = useState<NavigationState>(() => getInitialNavState());
   const navStateRef = useRef(navState);
   const [isSearchVisible, setIsSearchVisible] = useState(false);
@@ -174,13 +183,13 @@ export default function MainApp() {
     if (!isDraggingWrapped) return;
     const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
-    
+
     const dx = clientX - wrappedDragStart.current.x;
     const dy = clientY - wrappedDragStart.current.y;
 
     setOverlayPosition('wrappedBubble', {
-        x: wrappedStartPos.current.x + dx,
-        y: wrappedStartPos.current.y + dy
+      x: wrappedStartPos.current.x + dx,
+      y: wrappedStartPos.current.y + dy
     });
   };
 
@@ -189,9 +198,9 @@ export default function MainApp() {
   };
 
   const isSeason = useMemo(() => {
-      if (forceWrappedSeason) return true;
-      const now = simulatedDate ? new Date(simulatedDate) : new Date();
-      return isWrappedSeason(now);
+    if (forceWrappedSeason) return true;
+    const now = simulatedDate ? new Date(simulatedDate) : new Date();
+    return isWrappedSeason(now);
   }, [simulatedDate, forceWrappedSeason]);
 
   useEffect(() => {
@@ -204,7 +213,7 @@ export default function MainApp() {
     try {
       const safeState = normalizeNavState(navState);
       window.localStorage.setItem(NAV_STATE_STORAGE_KEY, JSON.stringify(safeState));
-    } catch {}
+    } catch { }
   }, [navState]);
 
   useEffect(() => {
@@ -292,13 +301,13 @@ export default function MainApp() {
     }
     window.history.pushState(navState, '');
   }, [navState]);
-  
+
   useEffect(() => {
     requestAnimationFrame(() => {
       window.scrollTo({ top: 0 });
     });
   }, [navState.activeView, navState.selectedCategoryId, navState.prayerPathIds?.length]);
-  
+
   const handleBack = () => {
     if (navState.activeView === 'prayer' && navState.customPlanPrayerSlot !== null) {
       window.history.replaceState(navStateRef.current ?? initialState, '');
@@ -314,12 +323,12 @@ export default function MainApp() {
       });
       return;
     }
-    
+
     // Fix for Plan de Vida navigation: If we are in Plan de Vida list, go to Home instead of back to previous prayer
     if (navState.activeView === 'category' && navState.selectedCategoryId === 'plan-de-vida') {
-        window.history.replaceState(initialState, '');
-        setNavState(initialState);
-        return;
+      window.history.replaceState(initialState, '');
+      setNavState(initialState);
+      return;
     }
 
     window.history.back();
@@ -343,10 +352,10 @@ export default function MainApp() {
 
   const prayerPath = useMemo(() => {
     if (!navState.prayerPathIds || navState.prayerPathIds.length === 0) return [];
-    
+
     const path: Prayer[] = [];
     let currentList = allPrayers;
-  
+
     for (const id of navState.prayerPathIds) {
       const prayer = getPrayerById(id, currentList);
       if (prayer) {
@@ -438,7 +447,7 @@ export default function MainApp() {
 
     incrementStat('prayersOpenedHistory', prayer.id);
   };
-  
+
   const handleSavePrayer = (data: {
     title: string;
     content: string;
@@ -495,7 +504,7 @@ export default function MainApp() {
       addFormMode: mode,
     }));
   };
-  
+
   const handleCancelForm = () => {
     handleBack();
   }
@@ -544,11 +553,11 @@ export default function MainApp() {
     const prayerListSource =
       selectedCategory.id === 'devociones'
         ? [
-            ...allPrayers.filter(
-              (p) => p.categoryId === 'devociones' && !p.isUserDefined
-            ),
-            ...userDevotions,
-          ]
+          ...allPrayers.filter(
+            (p) => p.categoryId === 'devociones' && !p.isUserDefined
+          ),
+          ...userDevotions,
+        ]
         : allPrayers.filter((p) => p.categoryId === selectedCategory.id);
 
     return (
@@ -559,8 +568,8 @@ export default function MainApp() {
           selectedCategory.id === 'devociones'
             ? removeUserDevotion
             : isDeveloperMode
-            ? removePredefinedPrayer
-            : undefined
+              ? removePredefinedPrayer
+              : undefined
         }
         onEditPrayer={
           selectedCategory.id === 'devociones'
@@ -575,19 +584,19 @@ export default function MainApp() {
       />
     );
   };
-  
+
   const handleOpenDeveloperDashboard = useCallback(() => {
     setNavState(prev => ({
-        ...initialState,
-        activeView: 'developer'
+      ...initialState,
+      activeView: 'developer'
     }));
   }, []);
 
   const renderContent = () => {
     switch (navState.activeView) {
       case 'settings':
-        return <Settings 
-          onOpenDeveloperDashboard={handleOpenDeveloperDashboard} 
+        return <Settings
+          onOpenDeveloperDashboard={handleOpenDeveloperDashboard}
           onShowWrapped={() => setShowWrapped(true)}
         />;
       case 'developer':
@@ -595,18 +604,18 @@ export default function MainApp() {
       case 'viaCrucis':
         return <ViaCrucisImmersive onClose={() => setNavState({ ...initialState, activeView: 'category', selectedCategoryId: 'plan-de-vida' })} />;
       case 'rosary':
-        return <RosaryImmersive 
+        return <RosaryImmersive
           onClose={(targetId) => {
             if (targetId) {
               handleOpenPrayerById(targetId);
             } else {
               setNavState({ ...initialState, activeView: 'category', selectedCategoryId: 'plan-de-vida' });
             }
-          }} 
+          }}
           onSwitchToMeditated={() => setNavState(prev => ({ ...prev, activeView: 'rosaryMeditated' }))}
         />;
       case 'rosaryMeditated':
-        return <RosaryMeditated 
+        return <RosaryMeditated
           onClose={() => setNavState({ ...initialState, activeView: 'category', selectedCategoryId: 'plan-de-vida' })}
           onSwitchToImmersive={() => setNavState(prev => ({ ...prev, activeView: 'rosary' }))}
         />;
@@ -756,7 +765,7 @@ export default function MainApp() {
         if (target?.type === 'prayer' && typeof target.id === 'string') {
           togglePlanDeVidaItem(target.id, true);
         }
-        void LocalNotifications.cancel({ notifications: [{ id: action.notification.id }] }).catch(() => {});
+        void LocalNotifications.cancel({ notifications: [{ id: action.notification.id }] }).catch(() => { });
         return;
       }
       pushDevLiveTrace({
@@ -799,7 +808,7 @@ export default function MainApp() {
     });
 
     return () => {
-      sub.then((handle) => handle.remove()).catch(() => {});
+      sub.then((handle) => handle.remove()).catch(() => { });
     };
   }, [handleOpenCategoryById, handleOpenPrayerById, handleRouteNavigation, pushDevLiveTrace]);
 
@@ -872,10 +881,10 @@ export default function MainApp() {
       if (launch?.url) {
         processImportUrl(launch.url);
       }
-    }).catch(() => {});
+    }).catch(() => { });
 
     return () => {
-      listener?.remove().catch(() => {});
+      listener?.remove().catch(() => { });
     };
   }, [pushDevLiveTrace]);
 
@@ -893,7 +902,7 @@ export default function MainApp() {
       if (!resolvedId) return false;
       const pathIds = getPrayerPathIds(resolvedId, allPrayers);
       if (!pathIds) return false;
-      
+
       incrementStat('prayersOpenedHistory', resolvedId);
 
       setNavState({
@@ -941,10 +950,10 @@ export default function MainApp() {
     navState.activeView === 'customPlan' && navState.selectedCustomPlanSlot
       ? customPlans[navState.selectedCustomPlanSlot - 1]?.name?.trim() || `Plan ${navState.selectedCustomPlanSlot}`
       : null;
-    const headerTitle =
-      navState.activeView === 'planCalendar'
-        ? 'Calendario'
-        : customPlanTitle || currentPrayer?.title || selectedCategory?.name || 'Cotidie';
+  const headerTitle =
+    navState.activeView === 'planCalendar'
+      ? 'Calendario'
+      : customPlanTitle || currentPrayer?.title || selectedCategory?.name || 'Cotidie';
   const customPlanValidIndices = useMemo(() => {
     if (!navState.customPlanPrayerSlot) return [];
     const plan = customPlans[navState.customPlanPrayerSlot - 1];
@@ -1001,53 +1010,53 @@ export default function MainApp() {
     currentPrayer?.categoryId === 'devociones'
       ? 'devotion'
       : currentPrayer?.categoryId === 'cartas'
-      ? 'letter'
-      : 'entry';
+        ? 'letter'
+        : 'entry';
   const currentPrayerEditAction =
     canEditExamenDeConciencia && currentPrayer
       ? () =>
-          setNavState((prevState) => ({
-            ...prevState,
-            activeView: 'editForm',
-            editingPrayerId: currentPrayer.id!,
-            addFormMode: 'predefined',
-          }))
+        setNavState((prevState) => ({
+          ...prevState,
+          activeView: 'editForm',
+          editingPrayerId: currentPrayer.id!,
+          addFormMode: 'predefined',
+        }))
       : canEditCurrentPrayer && currentPrayer
-      ? () => handleEditEntrada(currentPrayer, currentPrayerEditMode)
-      : undefined;
+        ? () => handleEditEntrada(currentPrayer, currentPrayerEditMode)
+        : undefined;
 
   return (
     <div className={cn("h-full w-full text-foreground relative", navState.activeView === 'home' ? "bg-transparent" : "bg-background")}>
       {isSeason && !hasViewedWrapped && navState.activeView === 'home' && (
-          <div 
-            className="absolute z-40 cursor-pointer animate-in fade-in zoom-in duration-500 hover:scale-110 transition-transform"
-            style={{ 
-                top: overlayPositions.wrappedBubble?.y ?? 48, 
-                left: overlayPositions.wrappedBubble?.x ?? 16,
-                marginTop: 'env(safe-area-inset-top)',
-                touchAction: 'none'
-            }}
-            onClick={() => !isDraggingWrapped && setShowWrapped(true)}
-            onTouchStart={handleWrappedTouchStart}
-            onTouchMove={handleWrappedTouchMove}
-            onTouchEnd={handleWrappedTouchEnd}
-            onMouseDown={handleWrappedTouchStart}
-            onMouseMove={handleWrappedTouchMove}
-            onMouseUp={handleWrappedTouchEnd}
-            onMouseLeave={handleWrappedTouchEnd}
-          >
-             <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-yellow-500 shadow-lg shadow-yellow-500/50 bg-black">
-                <Image 
-                    src="/icons/icon.png" 
-                    alt="Annuum" 
-                    fill 
-                    className="object-cover"
-                />
-             </div>
-             <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-yellow-500 text-black text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap shadow-sm">
-                 {new Date().getFullYear()}
-             </div>
+        <div
+          className="absolute z-40 cursor-pointer animate-in fade-in zoom-in duration-500 hover:scale-110 transition-transform"
+          style={{
+            top: overlayPositions.wrappedBubble?.y ?? 48,
+            left: overlayPositions.wrappedBubble?.x ?? 16,
+            marginTop: 'env(safe-area-inset-top)',
+            touchAction: 'none'
+          }}
+          onClick={() => !isDraggingWrapped && setShowWrapped(true)}
+          onTouchStart={handleWrappedTouchStart}
+          onTouchMove={handleWrappedTouchMove}
+          onTouchEnd={handleWrappedTouchEnd}
+          onMouseDown={handleWrappedTouchStart}
+          onMouseMove={handleWrappedTouchMove}
+          onMouseUp={handleWrappedTouchEnd}
+          onMouseLeave={handleWrappedTouchEnd}
+        >
+          <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-yellow-500 shadow-lg shadow-yellow-500/50 bg-black">
+            <Image
+              src="/icons/icon.png"
+              alt="Annuum"
+              fill
+              className="object-cover"
+            />
           </div>
+          <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-yellow-500 text-black text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap shadow-sm">
+            {new Date().getFullYear()}
+          </div>
+        </div>
       )}
 
       <div className="flex flex-col h-full md:max-w-6xl md:mx-auto md:border-x md:border-border/50">
@@ -1093,36 +1102,27 @@ export default function MainApp() {
             navState.activeView === 'home' ? 'overflow-y-hidden' : 'overflow-y-auto'
           )}
           data-app-scroll-container="true"
+          onClick={(e) => {
+            if (!customPlanTouchNavEnabled) return
+            if (!hasCustomPlanPrayerNav) return
+
+            const target = e.target as HTMLElement
+
+            if (isInteractiveElement(target)) return
+
+            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+            const x = e.clientX - rect.left
+            const width = rect.width
+
+            if (x < width * 0.33) {
+              goToCustomPlanPrev()
+            } else if (x > width * 0.66) {
+              goToCustomPlanNext()
+            }
+          }}
         >
           {renderContent()}
         </div>
-        {customPlanTouchNavEnabled && hasCustomPlanPrayerNav && (
-          <div className="pointer-events-none absolute inset-0 z-20">
-            <div
-              className="pointer-events-auto absolute left-0 w-full flex"
-              style={{
-                top: 'calc(4rem + env(safe-area-inset-top))',
-                height: 'calc(100% - (4rem + env(safe-area-inset-top)))',
-              }}
-            >
-              <button
-                type="button"
-                aria-label="Anterior"
-                className="h-full pointer-events-auto"
-                style={{ width: '25%' }}
-                onClick={goToCustomPlanPrev}
-              />
-              <div className="h-full pointer-events-none" style={{ width: '45%' }} />
-              <button
-                type="button"
-                aria-label="Siguiente"
-                className="h-full pointer-events-auto"
-                style={{ width: '30%' }}
-                onClick={goToCustomPlanNext}
-              />
-            </div>
-          </div>
-        )}
       </div>
 
       {isCaminoActive && isSearchVisible && currentPrayer?.content && (
@@ -1153,17 +1153,17 @@ export default function MainApp() {
 
       <AnimatePresence>
         {showWrapped && (
-          <WrappedStory 
-              onClose={() => {
-                  setShowWrapped(false);
-                  setHasViewedWrapped(true);
-              }} 
-              originRect={overlayPositions.wrappedBubble ? { 
-                  top: overlayPositions.wrappedBubble.y, 
-                  left: overlayPositions.wrappedBubble.x, 
-                  width: 48, 
-                  height: 48 
-              } : undefined} 
+          <WrappedStory
+            onClose={() => {
+              setShowWrapped(false);
+              setHasViewedWrapped(true);
+            }}
+            originRect={overlayPositions.wrappedBubble ? {
+              top: overlayPositions.wrappedBubble.y,
+              left: overlayPositions.wrappedBubble.x,
+              width: 48,
+              height: 48
+            } : undefined}
           />
         )}
       </AnimatePresence>

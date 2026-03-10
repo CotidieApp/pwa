@@ -38,6 +38,13 @@ type ImmersiveViaCrucisProps = {
 export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps) {
   const { isDistractionFree, theme, arrowBubbleSize, navMode } = useSettings();
   const touchNavEnabled = navMode === 'touch';
+  const isInteractiveElement = (el: HTMLElement | null): boolean => {
+    if (!el) return false;
+
+    return !!el.closest(
+      'button, a, input, textarea, select, [role="button"], [data-no-touch-nav]'
+    );
+  };
 
   const navBubbleClass = {
     sm: "gap-1 p-1 pl-2 rounded-xl",
@@ -56,17 +63,17 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
     md: "size-6",
     lg: "size-7",
   }[arrowBubbleSize];
-  
+
   // State
   const [currentStationIndex, setCurrentStationIndex] = useState(0); // 0-13 for stations
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  
+
   // Phases: Intro -> Stations -> Outro
   // We can manage this with a single "phase" state or flags.
   // Intro: id="via-crucis-introduccion"
   // Stations: id="via-crucis-01" to "14"
   // Outro: id="via-crucis-oremos" + others
-  
+
   const [phase, setPhase] = useState<'intro' | 'stations' | 'outro'>('intro');
   const [outroStepIndex, setOutroStepIndex] = useState(0);
 
@@ -135,13 +142,13 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
   const getMeditationContent = (fullContent: string) => {
     // Remove header and footer standard text to isolate meditation
     let text = fullContent;
-    
+
     // Common start phrases to remove
     const starts = [
       "Te adoramos Cristo y te bendecimos.\nQue por tu Santa Cruz redimiste al mundo.",
       "Te adoramos Cristo y te bendecimos.\nQue por tu Santa Cruz redimiste al mundo"
     ];
-    
+
     // Common end phrases to remove
     const ends = [
       "Padre nuestro…\nDios te salve…\n\nPequé, Señor, Pequé\nTen Piedad y misericordia de mí.",
@@ -154,7 +161,7 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
         text = text.replace(s, "");
       }
     }
-    
+
     for (const e of ends) {
       if (text.includes(e)) {
         text = text.replace(e, "");
@@ -176,17 +183,17 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
     }
     return VIA_CRUCIS_BACKGROUND_IMAGES[0];
   }, [phase, currentStationIndex]);
-  
+
   const isDark = theme === 'dark' || isDistractionFree;
-  
+
   // Progress Calculation
   const totalSteps = 1 + (stationsData.length * STATION_SEQUENCE.length) + outroData.length;
   let currentGlobalStep = 0;
-  
+
   if (phase === 'intro') currentGlobalStep = 0;
   else if (phase === 'stations') currentGlobalStep = 1 + (currentStationIndex * STATION_SEQUENCE.length) + currentStepIndex;
   else if (phase === 'outro') currentGlobalStep = 1 + (stationsData.length * STATION_SEQUENCE.length) + outroStepIndex;
-  
+
   const progressPercent = (currentGlobalStep / totalSteps) * 100;
 
   // Navigation Handlers
@@ -243,6 +250,26 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
     }
   };
 
+  const handleTouchNavigation = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!touchNavEnabled) return;
+
+    const target = e.target as HTMLElement;
+
+    if (isInteractiveElement(target)) return;
+
+    if (window.getSelection()?.toString()) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const width = rect.width;
+
+    if (x < width * 0.33) {
+      handlePrev();
+    } else if (x > width * 0.66) {
+      handleNext();
+    }
+  };
+
   // Render Content
   const renderContent = () => {
     if (phase === 'intro') {
@@ -263,7 +290,9 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
         <div className="text-center max-w-md mx-auto">
           <div className="text-8xl mb-6 flex justify-center"><Heart className="h-16 w-16" /></div>
           <h2 className="text-2xl font-bold mb-6">{data?.title}</h2>
-          <div className="text-lg opacity-90 leading-relaxed whitespace-pre-wrap max-h-[50vh] overflow-y-auto px-2 scrollbar-hide overscroll-contain">
+          <div
+            data-no-touch-nav
+            className="text-lg opacity-90 leading-relaxed whitespace-pre-wrap max-h-[50vh] overflow-y-auto px-2 scrollbar-hide overscroll-contain">
             {typeof data?.content === 'string' ? data.content : ''}
           </div>
         </div>
@@ -273,10 +302,10 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
     // Stations Phase
     const stationNumber = currentStationIndex + 1;
     const roman = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV"][currentStationIndex];
-    
+
     let mainIcon: React.ReactNode = roman;
     let mainText = "";
-    
+
     switch (currentStep.type) {
       case 'adoracion':
         mainIcon = <Cross className="h-16 w-16" />;
@@ -310,7 +339,7 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
         {/* Station Title */}
         <h3 className="text-sm uppercase tracking-widest opacity-70 mb-2">Estación {roman}</h3>
         <h2 className="text-2xl font-bold mb-8 px-4">{currentStation?.title.split('. ')[1] || currentStation?.title}</h2>
-        
+
         {/* Icon/Number */}
         <div className={cn(
           "text-8xl sm:text-9xl font-black mb-8 select-none transition-colors duration-500 font-serif",
@@ -323,7 +352,9 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
         <h3 className="text-xl font-bold mb-4">{currentStep.label}</h3>
 
         {/* Content Text */}
-        <div className="text-lg sm:text-xl opacity-90 leading-relaxed px-4 max-h-[30vh] overflow-y-auto scrollbar-hide overscroll-contain">
+        <div
+          data-no-touch-nav
+          className="text-lg sm:text-xl opacity-90 leading-relaxed px-4 max-h-[30vh] overflow-y-auto scrollbar-hide overscroll-contain">
           {mainText}
         </div>
       </div>
@@ -331,12 +362,14 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
   };
 
   return (
-    <div className={cn(
-      "fixed inset-0 z-50 flex flex-col items-center justify-between pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] overflow-hidden",
-      isDark ? "bg-black text-white" : "bg-zinc-50 text-zinc-900"
-    )}>
-       {/* Background */}
-       {showBackground && (
+    <div
+      onClick={handleTouchNavigation}
+      className={cn(
+        "fixed inset-0 z-50 flex flex-col items-center justify-between pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] overflow-hidden",
+        isDark ? "bg-black text-white" : "bg-zinc-50 text-zinc-900"
+      )}>
+      {/* Background */}
+      {showBackground && (
         <>
           <div
             className="absolute inset-0 z-0 transition-opacity duration-700 bg-cover bg-center"
@@ -344,139 +377,110 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
           />
           <div
             className={cn(
-           "absolute inset-0 z-0 transition-all duration-700",
-            isDark 
-            ? "bg-black/65"          // negro medio-fuerte en dark
-           : "bg-white/55"          // blanco medio en light
-           )}
+              "absolute inset-0 z-0 transition-all duration-700",
+              isDark
+                ? "bg-black/65"          // negro medio-fuerte en dark
+                : "bg-white/55"          // blanco medio en light
+            )}
           />
         </>
-       )}
+      )}
 
-       {/* Top Bar */}
-       <div className="w-full flex justify-between items-start p-4 relative z-20">
-          <div className="w-10" /> {/* Spacer */}
-          <div className="text-center">
-            <h1 className="font-bold text-lg">Vía Crucis</h1>
+      {/* Top Bar */}
+      <div className="w-full flex justify-between items-start p-4 relative z-20">
+        <div className="w-10" /> {/* Spacer */}
+        <div className="text-center">
+          <h1 className="font-bold text-lg">Vía Crucis</h1>
+        </div>
+        <div className="flex gap-1">
+          <Button variant="ghost" size="icon" onClick={() => setShowBackground(!showBackground)}>
+            <ImageIcon className={cn("size-5", !showBackground && "opacity-30")} />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="size-6" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col items-center justify-center w-full px-6 relative z-10 min-h-0">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`${phase}-${currentStationIndex}-${currentStepIndex}-${outroStepIndex}`}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.05 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            className="w-full"
+          >
+            {renderContent()}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {!touchNavEnabled && (
+        <div
+          ref={navRef}
+          className={cn(
+            "fixed z-50 flex items-center bg-background/80 shadow-lg border border-border/20 backdrop-blur-md",
+            navBubbleClass,
+            navPos ? "" : "bottom-[calc(2rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2"
+          )}
+          style={navPos ? { left: navPos.x, top: navPos.y } : undefined}
+        >
+          {/* Drag Handle */}
+          <div
+            className="flex items-center px-1.5 select-none opacity-30 cursor-grab active:cursor-grabbing"
+            onPointerDown={(event) => {
+              event.preventDefault();
+              const rect = navRef.current?.getBoundingClientRect();
+              navDragStart.current = {
+                x: event.clientX,
+                y: event.clientY,
+                startX: rect?.left ?? 0,
+                startY: rect?.top ?? 0,
+              };
+              setIsDraggingNav(true);
+            }}
+            style={{ touchAction: 'none' }}
+          >
+            <div className="grid grid-cols-2 gap-0.5">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <span key={i} className="h-1 w-1 rounded-full bg-foreground" />
+              ))}
+            </div>
           </div>
-          <div className="flex gap-1">
-             <Button variant="ghost" size="icon" onClick={() => setShowBackground(!showBackground)}>
-                <ImageIcon className={cn("size-5", !showBackground && "opacity-30")} />
-             </Button>
-             <Button variant="ghost" size="icon" onClick={onClose}>
-                <X className="size-6" />
-             </Button>
-          </div>
-       </div>
 
-       {/* Main Content */}
-       <div className="flex-1 flex flex-col items-center justify-center w-full px-6 relative z-10 min-h-0">
-          <AnimatePresence mode="wait">
-            <motion.div
-                key={`${phase}-${currentStationIndex}-${currentStepIndex}-${outroStepIndex}`}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 1.05 }}
-                transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                className="w-full"
-            >
-                {renderContent()}
-            </motion.div>
-          </AnimatePresence>
-       </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn("hover:bg-foreground/5", navButtonClass)}
+            onClick={handlePrev}
+            disabled={phase === 'intro'}
+          >
+            <ChevronLeft className={navIconClass} />
+          </Button>
 
-              {/* Navigation Control */}
-       {touchNavEnabled && (
-         <div className="absolute inset-0 z-20 pointer-events-none">
-           <div
-             className="absolute left-0 w-full flex"
-             style={{
-               top: 'calc(4rem + env(safe-area-inset-top))',
-               height: 'calc(100% - (4rem + env(safe-area-inset-top)))',
-             }}
-           >
-             <button
-               type="button"
-               aria-label="Anterior"
-               className="h-full touch-nav-zone pointer-events-auto"
-               style={{ width: '25%' }}
-               onClick={handlePrev}
-             />
-             <div className="h-full pointer-events-none" style={{ width: '45%' }} />
-             <button
-               type="button"
-               aria-label="Siguiente"
-               className="h-full touch-nav-zone pointer-events-auto"
-               style={{ width: '30%' }}
-               onClick={handleNext}
-             />
-           </div>
-         </div>
-       )}
+          <div className="w-px h-6 bg-border mx-1" />
 
-       {!touchNavEnabled && (
-         <div
-           ref={navRef}
-           className={cn(
-             "fixed z-50 flex items-center bg-background/80 shadow-lg border border-border/20 backdrop-blur-md",
-             navBubbleClass,
-             navPos ? "" : "bottom-[calc(2rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2"
-           )}
-           style={navPos ? { left: navPos.x, top: navPos.y } : undefined}
-         >
-           {/* Drag Handle */}
-           <div
-             className="flex items-center px-1.5 select-none opacity-30 cursor-grab active:cursor-grabbing"
-             onPointerDown={(event) => {
-               event.preventDefault();
-               const rect = navRef.current?.getBoundingClientRect();
-               navDragStart.current = {
-                 x: event.clientX,
-                 y: event.clientY,
-                 startX: rect?.left ?? 0,
-                 startY: rect?.top ?? 0,
-               };
-               setIsDraggingNav(true);
-             }}
-             style={{ touchAction: 'none' }}
-           >
-             <div className="grid grid-cols-2 gap-0.5">
-               {Array.from({ length: 6 }).map((_, i) => (
-                 <span key={i} className="h-1 w-1 rounded-full bg-foreground" />
-               ))}
-             </div>
-           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn("hover:bg-foreground/5", navButtonClass)}
+            onClick={handleNext}
+          >
+            <ChevronRight className={navIconClass} />
+          </Button>
+        </div>
+      )}
 
-           <Button
-             variant="ghost"
-             size="icon"
-             className={cn("hover:bg-foreground/5", navButtonClass)}
-             onClick={handlePrev}
-             disabled={phase === 'intro'}
-           >
-             <ChevronLeft className={navIconClass} />
-           </Button>
-
-           <div className="w-px h-6 bg-border mx-1" />
-
-           <Button
-             variant="ghost"
-             size="icon"
-             className={cn("hover:bg-foreground/5", navButtonClass)}
-             onClick={handleNext}
-           >
-             <ChevronRight className={navIconClass} />
-           </Button>
-         </div>
-       )}
-
-       {/* Progress Bar */}
-       <div className="absolute bottom-0 left-0 w-full h-1 bg-muted/20">
-            <div 
-                className="h-full bg-red-600 transition-all duration-300"
-                style={{ width: `${progressPercent}%` }}
-            />
-       </div>
+      {/* Progress Bar */}
+      <div className="absolute bottom-0 left-0 w-full h-1 bg-muted/20">
+        <div
+          className="h-full bg-red-600 transition-all duration-300"
+          style={{ width: `${progressPercent}%` }}
+        />
+      </div>
     </div>
   );
 }
