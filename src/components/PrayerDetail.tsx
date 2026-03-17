@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useRef, useLayoutEffect, useCallback, useEffect, useState } from 'react';
 import type { Prayer } from '@/lib/types';
@@ -12,6 +12,7 @@ import { Label } from './ui/label';
 import { ArrowRightLeft } from 'lucide-react';
 import * as Icon from 'lucide-react';
 import { AudioPlayer } from './AudioPlayer';
+import { useScreenWakeLock } from '@/hooks/useScreenWakeLock';
 
 // Encadre centralizado por id (si no tienes este archivo, coméntalo o ajusta):
 import { getImageObjectPosition } from '@/lib/image-display';
@@ -212,7 +213,7 @@ const renderText = (text: string): React.ReactNode[] => {
       const items = trimmed
         .split('\n')
         .filter((ln) => /^[-•]\s+/.test(ln))
-        .map((ln, j) => {
+        .map((ln) => {
           const txt = ln.replace(/^[-•]\s+/, '');
           const safe = formatInlineHtml(escapeHtml(txt));
           return `<li>${safe}</li>`;
@@ -284,9 +285,31 @@ const renderText = (text: string): React.ReactNode[] => {
   return out;
 };
 
+const normalizeVariantKey = (key: string) =>
+  String(key || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '');
+
+const resolveVariantKey = (contentObj: Record<string, string>, preferredKey?: string | null) => {
+  const entries = Object.keys(contentObj);
+  if (entries.length === 0) return '';
+  if (!preferredKey) return entries[0] || '';
+
+  const directHit = entries.find((entry) => entry === preferredKey);
+  if (directHit) return directHit;
+
+  const normalizedPreferred = normalizeVariantKey(preferredKey);
+  return entries.find((entry) => normalizeVariantKey(entry) === normalizedPreferred) || entries[0] || '';
+};
+
 const formatVariantLabel = (key: string) => {
   if (!key) return '';
-  if (key === 'reginaCoeli') return 'Regina Coeli';
+  const normalized = normalizeVariantKey(key);
+  if (normalized === 'reginacoeli') return 'Regina Coeli';
+  if (normalized === 'espanol') return 'Español';
+  if (normalized === 'latin') return 'Latín';
   const spaced = key
     .replace(/([a-záéíóúñ])([A-Z])/g, '$1 $2')
     .replace(/[-_]+/g, ' ')
@@ -306,7 +329,16 @@ const PrayerContent = ({
   prayer: Prayer;
   searchState?: { term: string; activeIndex: number; resultsCount: number };
 }) => {
-  const { setScrollPosition, scrollPositions, theme, pinchToZoomEnabled, fontSize, setFontSize } = useSettings();
+  const {
+    setScrollPosition,
+    scrollPositions,
+    theme,
+    pinchToZoomEnabled,
+    fontSize,
+    setFontSize,
+    prayerLanguagePreferences,
+    setPrayerLanguagePreference,
+  } = useSettings();
   const throttleTimeout = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -389,7 +421,7 @@ const PrayerContent = ({
     if (!container) return;
     if (prayer.isLongText) {
       const saved = scrollPositions[prayerId];
-      if (typeof saved === 'number' && (!searchState || !searchState.term)) {
+      if (typeof saved === 'number') {
         container.scrollTo({ top: saved });
       }
     } else {
@@ -434,23 +466,27 @@ const PrayerContent = ({
     }
   }, [searchState?.activeIndex, searchState?.term]);
 
-  const [selectedLang, setSelectedLang] = useState(() =>
-    prayer.id === 'preces' ? 'latín' : 'español'
-  );
+  const [selectedLang, setSelectedLang] = useState('');
 
   useEffect(() => {
     if (!prayer.content || typeof prayer.content !== 'object') return;
     const contentObj = prayer.content as Record<string, string>;
-    const langs = Object.keys(contentObj);
-    if (langs.length === 0) return;
-    if (prayer.id === 'preces' && langs.includes('latín')) {
-      setSelectedLang('latín');
-      return;
+    const preferredLang =
+      (prayer.id ? prayerLanguagePreferences[prayer.id] : undefined) ??
+      (prayer.id === 'preces' ? 'latín' : 'español');
+    const resolvedLang = resolveVariantKey(contentObj, selectedLang || preferredLang);
+    if (resolvedLang && resolvedLang !== selectedLang) {
+      setSelectedLang(resolvedLang);
     }
-    if (!langs.includes(selectedLang)) {
-      setSelectedLang(langs[0] || 'español');
-    }
-  }, [prayer.content, prayer.id]);
+  }, [prayer.content, prayer.id, prayerLanguagePreferences, selectedLang]);
+
+  useEffect(() => {
+    if (!prayer.id || !prayer.content || typeof prayer.content !== 'object') return;
+    const contentObj = prayer.content as Record<string, string>;
+    const resolvedLang = resolveVariantKey(contentObj, selectedLang);
+    if (!resolvedLang) return;
+    setPrayerLanguagePreference(prayer.id, resolvedLang);
+  }, [prayer.id, prayer.content, selectedLang, setPrayerLanguagePreference]);
 
   if (typeof prayer.content === 'string') {
     const { term = '', activeIndex = -1 } = searchState || {};
@@ -472,9 +508,10 @@ const PrayerContent = ({
     const contentObj = prayer.content as Record<string, string>;
     const langs = Object.keys(contentObj);
 
-    const displayedContent = contentObj[selectedLang] || '';
-    const otherLang = langs.find((lang) => lang !== selectedLang);
-    const selectedLabel = formatVariantLabel(selectedLang);
+    const resolvedLang = resolveVariantKey(contentObj, selectedLang);
+    const displayedContent = resolvedLang ? contentObj[resolvedLang] || '' : '';
+    const otherLang = langs.find((lang) => normalizeVariantKey(lang) !== normalizeVariantKey(resolvedLang));
+    const selectedLabel = formatVariantLabel(resolvedLang);
     const otherLabel = otherLang ? formatVariantLabel(otherLang) : '';
 
     const toggleLang = () => {
@@ -516,9 +553,7 @@ export default function PrayerDetail({
 }) {
   const { isDistractionFree } = useSettings();
   const [localAudioSrc, setLocalAudioSrc] = useState<string | null>(null);
-  const [showRosaryGuide, setShowRosaryGuide] = useState(false);
-  
-  const isRosaryMystery = prayer.id?.startsWith('rosario-') || prayer.id?.startsWith('misterios-') || prayer.id === 'santo-rosario' || prayer.title?.toLowerCase().includes('rosario');
+  useScreenWakeLock(Boolean(prayer.isLongText));
 
   const predefinedAudios = [
     { title: 'Discurso San Josemaría', src: '/media/Discurso San Josemaría.mp3' },
@@ -536,38 +571,23 @@ export default function PrayerDetail({
   const showAudioPlayer = (prayer.audio || prayer.id === 'lectura-audio') && !isDistractionFree;
   const audioSrc = localAudioSrc || prayer.audio || '';
 
-  useEffect(() => {
-    // Wake Lock
-    let wakeLock: any = null;
-    const requestWakeLock = async () => {
-        try {
-            if ('wakeLock' in navigator) {
-                wakeLock = await (navigator as any).wakeLock.request('screen');
-            }
-        } catch (err) {
-            console.error(err);
-        }
-    };
-    requestWakeLock();
-    return () => {
-        if (wakeLock) wakeLock.release();
-    };
-  }, []);
-
   const objectPosition = getImageObjectPosition(prayer.id);
 
   return (
-    <div
-      className={cn(
-        'p-4',
-        isDistractionFree ? 'max-w-3xl mx-auto py-20 sm:px-6 lg:px-8' : ''
-      )}
-    >
-      {prayer.imageUrl && !isDistractionFree && (
-        <div className="relative mb-4 rounded-lg overflow-hidden" style={{ height: '200px' }}>
+    <div className={cn(isDistractionFree ? 'py-20' : 'p-4')}>
+      {prayer.imageUrl && (
+        <div
+          className={cn(
+            'relative overflow-hidden',
+            isDistractionFree
+              ? 'mb-8 left-1/2 w-screen max-w-none -translate-x-1/2 rounded-none'
+              : 'mb-4 rounded-lg'
+          )}
+          style={{ height: isDistractionFree ? 'min(42vh, 420px)' : '200px' }}
+        >
           <Image
             src={prayer.imageUrl}
-            alt={prayer.title || 'Imagen de la oración'}
+            alt={prayer.title || 'Imagen de la oracion'}
             fill
             className="object-cover"
             style={{ objectPosition }}
@@ -576,67 +596,71 @@ export default function PrayerDetail({
         </div>
       )}
 
-      {showAudioPlayer && (
-        <div className="mb-6 space-y-4">
-           {audioSrc ? (
-             <AudioPlayer src={audioSrc} title={localAudioSrc ? "Audio seleccionado" : "Escuchar meditación"} />
-           ) : (
-             <div className="p-4 bg-secondary/50 rounded-lg text-center text-sm text-muted-foreground">
-               Selecciona un audio para escuchar
-             </div>
-           )}
-
-           {prayer.id === 'lectura-audio' && (
-             <div className="space-y-3">
-               <div className="grid gap-2">
-                 <Label className="text-sm font-medium">Audios Disponibles</Label>
-                 {predefinedAudios.map((audio, idx) => (
-                   <Button
-                    key={idx}
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left",
-                      localAudioSrc === audio.src && "border-primary bg-primary/5 text-primary"
-                    )}
-                    onClick={() => setLocalAudioSrc(audio.src)}
-                   >
-                     <Icon.Play className="mr-2 h-4 w-4" />
-                     {audio.title}
-                   </Button>
-                 ))}
+      <div className={cn(isDistractionFree && 'mx-auto max-w-3xl px-4 sm:px-6 lg:px-8')}>
+        {showAudioPlayer && (
+          <div className="mb-6 space-y-4">
+             {audioSrc ? (
+               <AudioPlayer src={audioSrc} title={localAudioSrc ? 'Audio seleccionado' : 'Escuchar meditacion'} />
+             ) : (
+               <div className="rounded-lg bg-secondary/50 p-4 text-center text-sm text-muted-foreground">
+                 Selecciona un audio para escuchar
                </div>
+             )}
 
-               <div className="pt-2 border-t">
-                  <Label htmlFor="audio-upload" className="block text-sm font-medium mb-2">
-                    O subir archivo personal (.mp3)
-                  </Label>
-                  <Input
-                    id="audio-upload"
-                    type="file"
-                    accept="audio/*"
-                    onChange={handleFileUpload}
-                    className="cursor-pointer"
-                  />
+             {prayer.id === 'lectura-audio' && (
+               <div className="space-y-3">
+                 <div className="grid gap-2">
+                   <Label className="text-sm font-medium">Audios Disponibles</Label>
+                   {predefinedAudios.map((audio, idx) => (
+                     <Button
+                      key={idx}
+                      variant="outline"
+                      className={cn(
+                        'w-full justify-start text-left',
+                        localAudioSrc === audio.src && 'border-primary bg-primary/5 text-primary'
+                      )}
+                      onClick={() => setLocalAudioSrc(audio.src)}
+                     >
+                       <Icon.Play className="mr-2 h-4 w-4" />
+                       {audio.title}
+                     </Button>
+                   ))}
+                 </div>
+
+                 <div className="border-t pt-2">
+                    <Label htmlFor="audio-upload" className="mb-2 block text-sm font-medium">
+                      O subir archivo personal (.mp3)
+                    </Label>
+                    <Input
+                      id="audio-upload"
+                      type="file"
+                      accept="audio/*"
+                      onChange={handleFileUpload}
+                      className="cursor-pointer"
+                    />
+                 </div>
                </div>
-             </div>
-           )}
-        </div>
-      )}
-
-      <Card
-        className={cn(
-          'bg-card shadow-md border overflow-hidden',
-          isDistractionFree && 'border-0 shadow-none bg-transparent'
+             )}
+          </div>
         )}
-      >
-        <CardContent className={cn('p-6 pt-6', isDistractionFree && 'p-0 pt-0 text-[1.05rem] leading-[1.85]')}>
-          {prayer.content ? (
-            <PrayerContent prayer={prayer} searchState={searchState} />
-          ) : (
-            <p className="text-sm text-muted-foreground">Contenido no disponible.</p>
+
+        <Card
+          className={cn(
+            'overflow-hidden border bg-card shadow-md',
+            isDistractionFree && 'border-0 bg-transparent shadow-none'
           )}
-        </CardContent>
-      </Card>
+        >
+          <CardContent className={cn('p-6 pt-6', isDistractionFree && 'p-0 pt-0 text-[1.05rem] leading-[1.85]')}>
+            {prayer.content ? (
+              <PrayerContent prayer={prayer} searchState={searchState} />
+            ) : (
+              <p className="text-sm text-muted-foreground">Contenido no disponible.</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
+
+

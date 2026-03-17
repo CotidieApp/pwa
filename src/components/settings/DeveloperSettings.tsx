@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useRef } from 'react';
 import { useSettings } from '@/context/SettingsContext';
@@ -32,7 +32,6 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
     hardResetApp,
     isDeveloperMode,
     loginAsDeveloper,
-    logoutDeveloper,
   } = useSettings();
 
   const { toast } = useToast();
@@ -79,11 +78,6 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
     } else {
       toast({ variant: 'destructive', title: 'Credenciales incorrectas' });
     }
-  };
-
-  const handleDevLogout = () => {
-    logoutDeveloper();
-    toast({ title: 'Modo desarrollador desactivado' });
   };
   
   const handleHardReset = () => {
@@ -358,6 +352,7 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
         <CardContent className="text-xs text-muted-foreground space-y-2">
           <p><strong>Cotidie</strong> - Versión {appVersion}</p>
           <p><em>Sérviam cum gaudio magno!</em></p>
+          <p>Esta aplicación fue desarrollada en constante colaboración con IA.</p>
           <p>© 2025 - {new Date().getFullYear()} Cotidie. Todos los derechos reservados.</p>
           <p>"Mirad al Señor con ojos atentos, y descubriréis en Él el rostro mismo de Dios."</p>
         </CardContent>
@@ -372,3 +367,5 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
     </div>
   );
 }
+
+

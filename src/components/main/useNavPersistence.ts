@@ -1,18 +1,15 @@
 import { useEffect } from "react";
+import type { MutableRefObject } from "react";
+import { persistNavState } from "@/components/main/navigation";
+import type { NavigationState } from "@/components/main/navigation";
 
 export function useNavPersistence(
-  navStateRef: any,
-  NAV_STATE_STORAGE_KEY: string,
-  normalizeNavState: (raw: any) => any
+  navStateRef: MutableRefObject<NavigationState>
 ) {
   useEffect(() => {
     const saveState = () => {
       try {
-        const safeState = normalizeNavState(navStateRef.current);
-        window.localStorage.setItem(
-          NAV_STATE_STORAGE_KEY,
-          JSON.stringify(safeState)
-        );
+        persistNavState(navStateRef.current);
       } catch {}
     };
 
@@ -21,5 +18,5 @@ export function useNavPersistence(
     return () => {
       document.removeEventListener("visibilitychange", saveState);
     };
-  }, []);
+  }, [navStateRef]);
 }

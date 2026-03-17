@@ -11,6 +11,14 @@ export type NavigationState = {
 }
 
 export const NAV_STATE_STORAGE_KEY = 'cotidie_nav_state';
+const getNavStorage = (): Storage | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
+};
 
 export const RESTORABLE_VIEWS = new Set([
   'home',
@@ -56,4 +64,32 @@ export const normalizeNavState = (raw: any): NavigationState => {
     selectedCategoryId,
     prayerPathIds,
   };
+};
+
+export const loadPersistedNavState = (): NavigationState => {
+  const storage = getNavStorage();
+  if (!storage) return initialState;
+  try {
+    const raw = storage.getItem(NAV_STATE_STORAGE_KEY);
+    if (!raw) return initialState;
+    return normalizeNavState(JSON.parse(raw));
+  } catch {
+    return initialState;
+  }
+};
+
+export const persistNavState = (state: NavigationState) => {
+  const storage = getNavStorage();
+  if (!storage) return;
+  try {
+    storage.setItem(NAV_STATE_STORAGE_KEY, JSON.stringify(normalizeNavState(state)));
+  } catch {}
+};
+
+export const clearPersistedNavState = () => {
+  const storage = getNavStorage();
+  if (!storage) return;
+  try {
+    storage.removeItem(NAV_STATE_STORAGE_KEY);
+  } catch {}
 };

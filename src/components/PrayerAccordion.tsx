@@ -1,17 +1,10 @@
 'use client';
 
 import type { Prayer } from '@/lib/types';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
 import PrayerList from './PrayerList';
 import { Card } from './ui/card';
 import { useSettings } from '@/context/SettingsContext';
 import { cn } from '@/lib/utils';
-import { renderText } from '@/lib/textFormatter';
 
 type PrayerAccordionProps = {
   predeterminadas: Prayer[];
@@ -32,74 +25,52 @@ export default function PrayerAccordion({
 }: PrayerAccordionProps) {
   const { isDeveloperMode, isEditModeEnabled } = useSettings();
 
-  const noEntradas = entradas.length === 0;
-
   return (
-    <Card className="bg-card shadow-md border-border/50 animate-in fade-in-0 duration-500 overflow-hidden">
-      <Accordion
-        type="multiple"
-        defaultValue={['predeterminadas', 'entradas']}
-        className="w-full"
-      >
-        {/* ORACIONES PREDETERMINADAS */}
-        <AccordionItem
-          value="predeterminadas"
-          className="border-b px-4 md:px-6"
-        >
-          <AccordionTrigger className="text-base font-headline text-left font-bold hover:no-underline">
-            Predeterminadas
-          </AccordionTrigger>
-          <AccordionContent className="px-1 pt-4">
-            <PrayerList
-              prayers={predeterminadas}
-              onSelectPrayer={onSelectPrayer}
-              onRemovePrayer={
-                isDeveloperMode && isEditModeEnabled ? onRemoveEntrada : undefined
-              }
-              onEditPrayer={isDeveloperMode ? onEditEntrada : undefined}
-            />
-          </AccordionContent>
-        </AccordionItem>
+    <div className="space-y-4 animate-in fade-in-0 duration-500">
+      <Card className="bg-card shadow-md border-border/50 p-4 md:p-6">
+        <div className="space-y-4">
+          <h2 className="text-base font-headline font-bold">Predeterminadas</h2>
+          <PrayerList
+            prayers={predeterminadas}
+            onSelectPrayer={onSelectPrayer}
+            onRemovePrayer={
+              isDeveloperMode && isEditModeEnabled ? onRemoveEntrada : undefined
+            }
+            onEditPrayer={isDeveloperMode ? onEditEntrada : undefined}
+          />
+        </div>
+      </Card>
 
-        {/* ORACIONES DEL USUARIO */}
-        <AccordionItem
-          value="entradas"
-          className="border-b-0 px-4 md:px-6"
-        >
-          <AccordionTrigger className="text-base font-headline text-left font-bold hover:no-underline">
-            Mis Oraciones
-          </AccordionTrigger>
+      <Card className="bg-card shadow-md border-border/50 p-4 md:p-6">
+        <div className="space-y-4">
+          <h2 className="text-base font-headline font-bold">Mis Oraciones</h2>
 
-          <AccordionContent className="px-1 pt-4 space-y-4">
-            <PrayerList
-              prayers={entradas}
-              onSelectPrayer={onSelectPrayer}
-              onRemovePrayer={onRemoveEntrada}
-              onEditPrayer={onEditEntrada}
-            />
+          <PrayerList
+            prayers={entradas}
+            onSelectPrayer={onSelectPrayer}
+            onRemovePrayer={onRemoveEntrada}
+            onEditPrayer={onEditEntrada}
+          />
 
-            {/* Mensaje limpio si no hay oraciones del usuario */}
-            {noEntradas && (
-              <div className="text-center text-muted-foreground text-sm italic">
-                Aún no has agregado ninguna oración personal.
-              </div>
-            )}
-
-            {/* Botón consistente con el resto de la UI */}
-            <div className="mt-2">
-              <button
-                onClick={onAddEntrada}
-                className={cn(
-                  'w-full bg-primary text-primary-foreground p-2 rounded-md font-medium',
-                  'hover:bg-primary/90 transition-colors'
-                )}
-              >
-                Agregar Oración
-              </button>
+          {entradas.length === 0 && (
+            <div className="text-center text-muted-foreground text-sm italic">
+              Aún no has agregado ninguna oración personal.
             </div>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
-    </Card>
+          )}
+
+          <div className="mt-2">
+            <button
+              onClick={onAddEntrada}
+              className={cn(
+                'w-full bg-primary text-primary-foreground p-2 rounded-md font-medium',
+                'hover:bg-primary/90 transition-colors'
+              )}
+            >
+              Agregar Oración
+            </button>
+          </div>
+        </div>
+      </Card>
+    </div>
   );
 }

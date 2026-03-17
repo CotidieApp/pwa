@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from 'react';
 import type { Prayer } from '@/lib/types';
@@ -83,7 +83,6 @@ export default function CustomPlanView({ slot, onOpenPrayerId, onOpenPlanPrayerA
     moveCustomPlanPrayer,
     isEditModeEnabled,
     deleteCustomPlan,
-    createCustomPlan,
     importUserData,
     arrowBubbleSize,
   } = useSettings();
@@ -140,7 +139,7 @@ export default function CustomPlanView({ slot, onOpenPrayerId, onOpenPlanPrayerA
                 dialogTitle: 'Guardar plan'
             });
             
-            toast({ title: 'Plan listo', description: 'Se ha abierto el menú compartir.' });
+            toast({ title: 'Plan listo', description: 'Se ha abierto el menú para compartir.' });
 
         } catch (error) {
             console.error(error);
@@ -157,33 +156,17 @@ export default function CustomPlanView({ slot, onOpenPrayerId, onOpenPlanPrayerA
       try {
         const text = event.target?.result as string;
         const imported = JSON.parse(text) as CustomPlan;
-        
-        // Basic validation
-        if (typeof imported.name !== 'string' || !Array.isArray(imported.prayerIds)) {
-            throw new Error('Formato inválido');
+        const result = importUserData(imported, { silent: true, preferredCustomPlanSlot: slot });
+
+        if (result.status === 'invalid') {
+          toast({ variant: 'destructive', title: result.title, description: result.description });
+          return;
         }
 
-        imported.slot = slot;
-        imported.id = `custom-plan-${slot}-${Date.now()}`;
-
-        // Construct a full settings object to update ONLY customPlans
-        // But importUserData might expect other fields or merge them.
-        // Reading SettingsContext earlier showed importUserData handles partials.
-        // BUT, importUserData usually merges global state.
-        // It updates `customPlans` array entirely if provided.
-        // Let's check logic:
-        // if (data.customPlans) { setCustomPlans(prev => ...) }
-        // Yes.
-        
-        // We need to preserve OTHER plans.
-        const newPlans = [...customPlans];
-        newPlans[slot - 1] = imported;
-        
-        importUserData({ customPlans: newPlans });
-        toast({ title: 'Plan importado correctamente.' });
+        toast({ title: result.title, description: result.description });
       } catch (err) {
         console.error(err);
-        toast({ variant: 'destructive', title: 'Error al importar', description: 'Archivo inválido o corrupto.' });
+        toast({ variant: 'destructive', title: 'Error al importar', description: 'Archivo invalido o corrupto.' });
       }
     };
     reader.readAsText(file);
@@ -414,3 +397,4 @@ export default function CustomPlanView({ slot, onOpenPrayerId, onOpenPlanPrayerA
     </div>
   );
 }
+

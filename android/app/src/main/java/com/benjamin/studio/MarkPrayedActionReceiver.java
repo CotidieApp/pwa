@@ -30,9 +30,13 @@ public class MarkPrayedActionReceiver extends BroadcastReceiver {
             JSONObject target = extra != null ? extra.optJSONObject("target") : null;
             String type = target != null ? target.optString("type", "") : "";
             String prayerId = target != null ? target.optString("id", "") : "";
+            String dateKey = extra != null ? extra.optString("date", null) : null;
+            if ((dateKey == null || dateKey.isEmpty()) && extra != null) {
+                dateKey = extra.optString("dateKey", null);
+            }
 
             if ("prayer".equals(type) && prayerId != null && !prayerId.isEmpty()) {
-                appendPendingPrayer(context, prayerId);
+                appendPendingPrayer(context, prayerId, dateKey);
             }
 
             if (notificationId >= 0) {
@@ -42,7 +46,7 @@ public class MarkPrayedActionReceiver extends BroadcastReceiver {
         }
     }
 
-    private void appendPendingPrayer(Context context, String prayerId) {
+    private void appendPendingPrayer(Context context, String prayerId, String dateKey) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         String raw = prefs.getString(PREFS_KEY, null);
         JSONArray list;
@@ -53,11 +57,27 @@ public class MarkPrayedActionReceiver extends BroadcastReceiver {
         }
 
         for (int i = 0; i < list.length(); i++) {
+            JSONObject existing = list.optJSONObject(i);
+            if (existing != null) {
+                if (prayerId.equals(existing.optString("id", ""))) {
+                    return;
+                }
+                continue;
+            }
             if (prayerId.equals(list.optString(i, ""))) {
-                return;
+                list.remove(i);
+                break;
             }
         }
-        list.put(prayerId);
+
+        try {
+            JSONObject entry = new JSONObject();
+            entry.put("id", prayerId);
+            entry.put("dateKey", dateKey);
+            list.put(entry);
+        } catch (Exception ignored) {
+            list.put(prayerId);
+        }
         prefs.edit().putString(PREFS_KEY, list.toString()).apply();
     }
 }

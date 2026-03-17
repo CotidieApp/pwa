@@ -10,6 +10,7 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.text.Normalizer;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Locale;
@@ -17,35 +18,37 @@ import java.util.Map;
 
 final class SaintWidgetContentFactory {
     private static Map<Integer, SaintEntry> cachedSaints;
+    private static Map<String, String> cachedPlaceholderAssetPaths;
 
     static SaintWidgetContent forNow(Context context) {
         Calendar now = Calendar.getInstance();
         int year = now.get(Calendar.YEAR);
         int month = now.get(Calendar.MONTH) + 1;
         int day = now.get(Calendar.DAY_OF_MONTH);
-        int dow = now.get(Calendar.DAY_OF_WEEK);
 
-        // 1. Calculate Movable Feasts
         Calendar easter = getEasterDate(year);
         SaintEntry movable = getMovableFeast(now, easter);
-
-        // 2. Get Fixed Saint
         SaintEntry fixed = getSaintForDate(context, month, day);
-
-        // 3. Priority: Movable > Fixed
         SaintEntry saint = (movable != null) ? movable : fixed;
 
-        String name = saint != null && saint.name != null ? saint.name : "Santo del Día";
+        String name = saint != null && saint.name != null ? saint.name : "Santo del Dia";
         String bio = saint != null && saint.bio != null ? saint.bio : "";
-
-        String imageAssetPath = pickSaintImageAssetPath(saint, dow);
+        SelectedImage selectedImage = pickSaintImage(context, saint, now);
 
         int backgroundColor = getLiturgicalColor(saint, now, easter);
         boolean lightBg = isLightColor(backgroundColor);
         int titleTextColor = lightBg ? Color.parseColor("#1E293B") : Color.WHITE;
         int bodyTextColor = lightBg ? Color.parseColor("#334155") : Color.argb(230, 255, 255, 255);
 
-        return new SaintWidgetContent(name, bio, imageAssetPath, backgroundColor, titleTextColor, bodyTextColor);
+        return new SaintWidgetContent(
+                name,
+                bio,
+                selectedImage.id,
+                selectedImage.assetPath,
+                backgroundColor,
+                titleTextColor,
+                bodyTextColor
+        );
     }
 
     private static SaintEntry getSaintForDate(Context context, int month, int day) {
@@ -94,135 +97,169 @@ final class SaintWidgetContentFactory {
         }
     }
 
-    private static String pickSaintImageAssetPath(SaintEntry saint, int dow) {
-        String name = saint != null ? saint.name : "";
-        String type = saint != null ? saint.type : "";
-        
-        // 1. Specific Saint/Feast Images (Priority)
-        if (name != null) {
-            if (name.contains("Alberto Hurtado")) return "public/images/san-alberto.jpeg";
-            if (name.contains("Francisco de Sales")) return "public/images/san-francisco.jpeg";
-            if (name.contains("Agustín, obispo y doctor")) return "public/images/san-agustin.jpeg";
-            if (name.contains("Santo Tomás de Aquino")) return "public/images/santo-tomas.jpeg";
-            if (name.contains("Natividad del Señor")) return "public/images/nativity.jpeg";
-            
-            // Movable Feasts Images
-            if (name.contains("Resurrección")) return "public/images/resurrection.jpeg";
-            if (name.contains("Ceniza") || name.contains("Cuaresma")) return "public/images/crucifixion.jpeg"; // Or generic penitential
-            if (name.contains("Ramos") || name.contains("Viernes Santo")) return "public/images/crucifixion.jpeg";
-            if (name.contains("Pentecostés")) return "public/images/holy-trinity.jpeg"; // Close enough
-            if (name.contains("Ascensión")) return "public/images/resurrection.jpeg";
-            if (name.contains("Rey del Universo")) return "public/images/resurrection.jpeg";
-            if (name.contains("Adviento")) return "public/images/nativity.jpeg"; // Preparation for Nativity
-            if (name.contains("Santísima Trinidad")) return "public/images/holy-trinity.jpeg";
-            if (name.contains("Corpus Christi")) return "public/images/eucharist.jpeg";
-            if (name.contains("Sagrado Corazón")) return "public/images/sacred-heart.jpeg";
+    private static SelectedImage pickSaintImage(Context context, SaintEntry saint, Calendar now) {
+        int month = now.get(Calendar.MONTH) + 1;
+        int day = now.get(Calendar.DAY_OF_MONTH);
+        String dayImageId = "saintoftheday-" + toJsDayIndex(now.get(Calendar.DAY_OF_WEEK));
+        String imageId = dayImageId;
+
+        if (month == 12 && (day == 24 || day == 25)) {
+            if (resolvePlaceholderAssetPath("christmas-image") != null) {
+                imageId = "christmas-image";
+            }
+        } else {
+            String saintName = saint != null ? saint.name : "";
+            String saintType = saint != null ? saint.type : "";
+            String[][] saintImageBySubstring = new String[][] {
+                    {"Alberto Hurtado", "sanalbertohurtado-image"},
+                    {"Francisco de Sales", "sanfranciscodesales-image"},
+                    {"Agustin, obispo y doctor", "sanagustindehipona-image"},
+                    {"Agust?n, obispo y doctor", "sanagustindehipona-image"},
+                    {"Santo Tomas de Aquino", "santotomasdeaquino-image"},
+                    {"Santo Tom?s de Aquino", "santotomasdeaquino-image"},
+                    {"Benjamin", "sanbenjamin-image"},
+                    {"Benjam?n", "sanbenjamin-image"},
+                    {"Natividad del Senor", "nativity-image"},
+                    {"Natividad del Se?or", "nativity-image"}
+            };
+
+            boolean isMarian = saintType != null && saintType.equalsIgnoreCase("marian");
+            if (!isMarian && saintName != null && !saintName.isEmpty()) {
+                String loweredName = saintName.toLowerCase(Locale.getDefault());
+                isMarian = loweredName.contains("nuestra senora")
+                        || loweredName.contains("nuestra se?ora")
+                        || loweredName.contains("virgen maria")
+                        || loweredName.contains("virgen mar?a")
+                        || loweredName.contains("inmaculada concepcion")
+                        || loweredName.contains("inmaculada concepci?n")
+                        || loweredName.contains("asuncion de la virgen")
+                        || loweredName.contains("asunci?n de la virgen")
+                        || loweredName.contains("presentacion de la virgen")
+                        || loweredName.contains("presentaci?n de la virgen")
+                        || loweredName.contains("natividad de la virgen")
+                        || loweredName.contains("visitacion de la virgen")
+                        || loweredName.contains("visitaci?n de la virgen");
+            }
+
+            if (isMarian) {
+                imageId = "saintoftheday-6";
+            } else if (saintName != null && !saintName.isEmpty()) {
+                for (String[] entry : saintImageBySubstring) {
+                    if (saintName.contains(entry[0]) && resolvePlaceholderAssetPath(entry[1]) != null) {
+                        imageId = entry[1];
+                        break;
+                    }
+                }
+            }
         }
 
-        // 2. Marian Logic (Matches SettingsContext.tsx)
-        boolean isMarian = false;
-        if (type != null && type.toLowerCase(Locale.getDefault()).contains("marian")) {
-            isMarian = true;
-        } else if (name != null) {
-             String n = name.toLowerCase(Locale.getDefault());
-             if (n.contains("nuestra señora") || 
-                 n.contains("virgen maría") || 
-                 n.contains("inmaculada concepción") || 
-                 n.contains("asunción de la virgen") || 
-                 n.contains("presentación de la virgen") || 
-                 n.contains("natividad de la virgen") || 
-                 n.contains("visitación de la virgen")) {
-                 isMarian = true;
-             }
+        String assetPath = resolvePlaceholderAssetPath(imageId);
+        if (assetPath == null) {
+            imageId = dayImageId;
+            assetPath = resolvePlaceholderAssetPath(dayImageId);
         }
+        return new SelectedImage(imageId, assetPath);
+    }
 
-        if (isMarian) {
-            return "public/images/immaculate-conception.jpeg";
-        }
-
-        // 3. Day of Week Fallback
-        switch (dow) {
+    private static int toJsDayIndex(int dayOfWeek) {
+        switch (dayOfWeek) {
             case Calendar.SUNDAY:
-                return "public/images/resurrection.jpeg";
+                return 0;
             case Calendar.MONDAY:
-                return "public/images/holy-trinity.jpeg";
+                return 1;
             case Calendar.TUESDAY:
-                return "public/images/creation.jpeg";
+                return 2;
             case Calendar.WEDNESDAY:
-                return "public/images/holy-family.jpeg";
+                return 3;
             case Calendar.THURSDAY:
-                return "public/images/eucharist.jpeg";
+                return 4;
             case Calendar.FRIDAY:
-                return "public/images/crucifixion.jpeg";
-            default: // SATURDAY
-                return "public/images/immaculate-conception.jpeg";
+                return 5;
+            case Calendar.SATURDAY:
+            default:
+                return 6;
         }
+    }
+
+    private static String resolvePlaceholderAssetPath(String imageId) {
+        return ensurePlaceholderAssetPathsLoaded().get(imageId);
+    }
+
+    private static synchronized Map<String, String> ensurePlaceholderAssetPathsLoaded() {
+        if (cachedPlaceholderAssetPaths != null) return cachedPlaceholderAssetPaths;
+
+        Map<String, String> map = new HashMap<>();
+        map.put("saintoftheday-0", "public/images/resurrection.jpeg");
+        map.put("saintoftheday-1", "public/images/holy-trinity.jpeg");
+        map.put("saintoftheday-2", "public/images/creation.jpeg");
+        map.put("saintoftheday-3", "public/images/holy-family.jpeg");
+        map.put("saintoftheday-4", "public/images/eucharist.jpeg");
+        map.put("saintoftheday-5", "public/images/crucifixion.jpeg");
+        map.put("saintoftheday-6", "public/images/immaculate-conception.jpeg");
+        map.put("sanalbertohurtado-image", "public/images/san-alberto.jpeg");
+        map.put("sanfranciscodesales-image", "public/images/san-francisco.jpeg");
+        map.put("sanagustindehipona-image", "public/images/san-agustin.jpeg");
+        map.put("santotomasdeaquino-image", "public/images/santo-tomas.jpeg");
+        map.put("nativity-image", "public/images/nativity.jpeg");
+        map.put("christmas-image", "public/images/christmas-image.png");
+        cachedPlaceholderAssetPaths = map;
+        return cachedPlaceholderAssetPaths;
     }
 
     private static int getLiturgicalColor(SaintEntry saint, Calendar current, Calendar easter) {
         if (saint == null) return Color.parseColor("#225722");
 
-        String title = saint.title != null ? saint.title.toLowerCase(Locale.getDefault()) : "";
-        String type = saint.type != null ? saint.type.toLowerCase(Locale.getDefault()) : "";
-        String name = saint.name != null ? saint.name.toLowerCase(Locale.getDefault()) : "";
+        String title = normalizeLiturgicalText(saint.title);
+        String type = normalizeLiturgicalText(saint.type);
+        String name = normalizeLiturgicalText(saint.name);
 
-        // Liturgical Colors
         int gold = Color.parseColor("#B8860B");
         int red = Color.parseColor("#8B0000");
         int white = Color.parseColor("#F8F9FA");
         int purple = Color.parseColor("#5A2A69");
         int green = Color.parseColor("#225722");
         int blue = Color.parseColor("#3A5F7A");
-        int baseColor = green;
 
-        // 1. Solemnities and Feasts of the Lord (Gold/White)
-        if (title.contains("solemnidad") || name.contains("señor") || name.contains("cristo rey") || title.contains("fiesta del señor")) {
-            // Exception: Good Friday / Passion is Red
-            if (name.contains("pasión") || name.contains("viernes santo") || name.contains("cruz")) {
-                return applySeasonOverride(red, current, easter, red, blue, gold, purple);
+        if (title.contains("solemnidad") || name.contains("senor") || name.contains("cristo rey") || title.contains("fiesta del senor")) {
+            if (name.contains("pasion") || name.contains("viernes santo") || name.contains("cruz")) {
+                return applySeasonOverride(red, title, name, current, easter, purple);
             }
-            return applySeasonOverride(gold, current, easter, red, blue, gold, purple);
+            return applySeasonOverride(gold, title, name, current, easter, purple);
         }
 
-        // 2. Passion, Holy Spirit, Martyrs, Apostles (Red)
-        if (name.contains("viernes santo") || 
-            name.contains("pentecostés") || 
-            name.contains("espíritu santo") ||
-            name.contains("pasión") ||
-            type.contains("martyr") || type.contains("mártir") || name.contains("mártir") ||
-            type.contains("apostle") || type.contains("apóstol") ||
+        if (name.contains("viernes santo") ||
+            name.contains("pentecostes") ||
+            name.contains("espiritu santo") ||
+            name.contains("pasion") ||
+            type.contains("martyr") || type.contains("martir") || name.contains("martir") ||
+            type.contains("apostle") || type.contains("apostol") ||
             type.contains("evangelist") || type.contains("evangelista")) {
-            
-            // Exception: St. John Evangelist is White
+
             if (name.contains("juan") && name.contains("evangelista")) {
-                return applySeasonOverride(white, current, easter, red, blue, gold, purple);
+                return applySeasonOverride(white, title, name, current, easter, purple);
             }
-            return applySeasonOverride(red, current, easter, red, blue, gold, purple);
+            return applySeasonOverride(red, title, name, current, easter, purple);
         }
 
-        // 4. Marian Feasts (Blue - Hispanic privilege, or White)
-        if (type.contains("marian") || name.contains("virgen") || name.contains("inmaculada") || name.contains("asunción") || name.contains("madre de dios")) {
-            return applySeasonOverride(blue, current, easter, red, blue, gold, purple);
+        if (type.contains("marian") || name.contains("virgen") || name.contains("inmaculada") || name.contains("asuncion") || name.contains("madre de dios")) {
+            return applySeasonOverride(blue, title, name, current, easter, purple);
         }
 
-        // 5. Virgins (Green - User explicit request)
         if (type.contains("virgin") || type.contains("virgen")) {
-            return applySeasonOverride(green, current, easter, red, blue, gold, purple);
+            return applySeasonOverride(green, title, name, current, easter, purple);
         }
 
-        // 6. Saints (Non-Martyrs), Popes, Doctors (White)
-        if (type.contains("confessor") || 
-            type.contains("doctor") || 
-            type.contains("pope") || type.contains("papa") || 
+        if (type.contains("confessor") ||
+            type.contains("doctor") ||
+            type.contains("pope") || type.contains("papa") ||
             type.contains("bishop") || type.contains("obispo") ||
             type.contains("religious") || type.contains("religioso") ||
             type.contains("abbot") || type.contains("abad") ||
             title.contains("fiesta") || title.contains("memoria")) {
-            return applySeasonOverride(white, current, easter, red, blue, gold, purple);
+            return applySeasonOverride(white, title, name, current, easter, purple);
         }
 
-        // 7. Ordinary Time (Green)
-        return applySeasonOverride(green, current, easter, red, blue, gold, purple);
+        return applySeasonOverride(green, title, name, current, easter, purple);
     }
 
     private static boolean isLightColor(int color) {
@@ -235,19 +272,42 @@ final class SaintWidgetContentFactory {
 
     private static int applySeasonOverride(
         int baseColor,
+        String title,
+        String name,
         Calendar current,
         Calendar easter,
-        int red,
-        int blue,
-        int gold,
         int purple
     ) {
-        if (isPenitentialSeason(current, easter)) {
-            if (baseColor != red && baseColor != blue && baseColor != gold) {
-                return purple;
-            }
+        if (isPenitentialSeason(current, easter) && !keepsOwnColorInPenitentialSeason(title, name)) {
+            return purple;
         }
         return baseColor;
+    }
+
+    private static boolean keepsOwnColorInPenitentialSeason(String title, String name) {
+        return title.contains("solemnidad")
+            || title.contains("fiesta del senor")
+            || name.contains("viernes santo")
+            || name.contains("pasion del senor")
+            || name.contains("pentecostes")
+            || name.contains("domingo de ramos");
+    }
+
+    private static String normalizeLiturgicalText(String value) {
+        if (value == null) return "";
+
+        String normalized = value
+            .toLowerCase(Locale.getDefault())
+            .replace("Ã¡", "a")
+            .replace("Ã©", "e")
+            .replace("Ã­", "i")
+            .replace("Ã³", "o")
+            .replace("Ãº", "u")
+            .replace("Ã±", "n")
+            .replace("Ã¼", "u");
+
+        normalized = Normalizer.normalize(normalized, Normalizer.Form.NFD);
+        return normalized.replaceAll("\\p{M}+", "");
     }
 
     private static boolean isPenitentialSeason(Calendar current, Calendar easter) {
@@ -426,6 +486,16 @@ final class SaintWidgetContentFactory {
         }
 
         return null;
+    }
+
+    private static final class SelectedImage {
+        final String id;
+        final String assetPath;
+
+        SelectedImage(String id, String assetPath) {
+            this.id = id != null ? id : "";
+            this.assetPath = assetPath != null ? assetPath : "";
+        }
     }
 
     private static final class SaintEntry {

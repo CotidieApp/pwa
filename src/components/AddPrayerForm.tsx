@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,8 +18,7 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import type { Prayer } from '@/lib/types';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSettings } from '@/context/SettingsContext';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { Info, Eye } from 'lucide-react';
+import { Eye } from 'lucide-react';
 import { renderText } from '@/lib/textFormatter';
 import ImageCropper from '@/components/ui/ImageCropper';
 
@@ -310,3 +309,5 @@ export default function AddPrayerForm({
     </>
   );
 }
+
+

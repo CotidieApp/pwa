@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, {
   createContext,
@@ -30,6 +30,8 @@ import saintsDataRaw from '@/lib/saints-data.json';
 import { getMovableFeast, getEasterDate } from '@/lib/movable-feasts';
 import { persistence } from '@/lib/persistence';
 import { fixedNotifications, type FixedNotificationEntry } from '@/lib/fixed-notifications';
+import { addByKind, addDays, formatTemplate, getNextOccurrence, parseFixedNotificationDate } from '@/context/settings/notification-date-utils';
+import { applyPlanDeVidaAggregateIncrement, applyPrayerOpenIncrement } from '@/context/settings/stats-updates';
 
 const saintsData = saintsDataRaw as { saints: SaintOfTheDay[] };
 const NOTIFICATION_ACTION_TYPE_ID = 'cotidie-prayer-actions';
@@ -85,6 +87,12 @@ export type UserStats = {
   rosaryCount: number;
   examinationCount: number;
   angelusCount: number;
+  planDeVidaCompletedTotal: number;
+  planDeVidaCompletedHistory: Record<string, number>;
+};
+
+type StatIncrementOptions = {
+  eventDate?: Date;
 };
 
 type ThemeColor = { h: number; s: number };
@@ -114,6 +122,8 @@ type Settings = {
   setHomeBackgroundId: (id: string | null) => void;
   autoRotateBackground: boolean;
   setAutoRotateBackground: (enabled: boolean) => void;
+  welcomeScreenEnabled: boolean;
+  setWelcomeScreenEnabled: (enabled: boolean) => void;
 
   allPrayers: Prayer[];
   userDevotions: Prayer[];
@@ -151,7 +161,11 @@ type Settings = {
   hiddenPrayerIds: string[];
   editedPrayerIds: string[];
 
-  importUserData: (data: any, options?: { silent?: boolean }) => void;
+  getBackupSnapshot: () => any;
+  importUserData: (
+    data: any,
+    options?: { silent?: boolean; preferredCustomPlanSlot?: 1 | 2 | 3 | 4 | null }
+  ) => ImportResult;
 
   timerEnabled: boolean;
   setTimerEnabled: (enabled: boolean) => void;
@@ -185,7 +199,7 @@ type Settings = {
   planDeVidaTrackerEnabled: boolean;
   setPlanDeVidaTrackerEnabled: (enabled: boolean) => void;
   planDeVidaProgress: string[];
-  togglePlanDeVidaItem: (id: string, force?: boolean, skipStatIncrement?: boolean) => void;
+  togglePlanDeVidaItem: (id: string, force?: boolean, skipStatIncrement?: boolean, eventDateKey?: string | null) => void;
   resetPlanDeVidaProgress: () => void;
   planDeVidaCalendar: Record<string, string[]>;
 
@@ -231,6 +245,8 @@ type Settings = {
 
   scrollPositions: { [key: string]: number };
   setScrollPosition: (prayerId: string, position: number) => void;
+  prayerLanguagePreferences: Record<string, string>;
+  setPrayerLanguagePreference: (prayerId: string, language: string) => void;
 
   quoteOfTheDay: Quote | null;
 
@@ -264,10 +280,10 @@ type Settings = {
   simulatedStats: UserStats | null;
   setSimulatedStats: (stats: UserStats | null) => void;
 
-  incrementStat: (key: keyof UserStats, subKey?: string) => void;
+  incrementStat: (key: keyof UserStats, subKey?: string, options?: StatIncrementOptions) => void;
   updateUserStats: (newStats: UserStats) => void;
   globalUserStats: UserStats;
-  incrementGlobalStat: (key: keyof UserStats, subKey?: string) => void;
+  incrementGlobalStat: (key: keyof UserStats, subKey?: string, options?: StatIncrementOptions) => void;
 
   hasViewedWrapped: boolean;
   setHasViewedWrapped: (viewed: boolean) => void;
@@ -295,9 +311,44 @@ const isFullAppStatePayload = (data: any): boolean => {
       typeof data.fontSize === 'number' ||
       typeof data.fontFamily === 'string' ||
       typeof data.timerDuration === 'number' ||
-      Array.isArray(data.customPlans))
+      typeof data.notificationsEnabled === 'boolean' ||
+      typeof data.isDeveloperMode === 'boolean')
   );
 };
+
+type PredefinedPrayerOverrideData = {
+  title: string;
+  content: string;
+  imageUrl?: string;
+};
+
+type ImportResult = {
+  status: 'applied' | 'duplicate' | 'invalid';
+  kind: 'custom-plan' | 'full' | 'partial';
+  title: string;
+  description?: string;
+  destructive?: boolean;
+};
+
+const applyPredefinedPrayerState = (
+  prayers: Prayer[],
+  hiddenIds: string[],
+  overrides: Record<string, PredefinedPrayerOverrideData>
+): Prayer[] =>
+  prayers
+    .filter((prayer) => !prayer.id || !hiddenIds.includes(prayer.id))
+    .map((prayer) => {
+      const override = prayer.id ? overrides[prayer.id] : undefined;
+      const nestedPrayers = prayer.prayers?.length
+        ? applyPredefinedPrayerState(prayer.prayers, hiddenIds, overrides)
+        : prayer.prayers;
+
+      return {
+        ...prayer,
+        ...(override ?? {}),
+        ...(nestedPrayers ? { prayers: nestedPrayers } : {}),
+      };
+    });
 
 const defaultThemeColors: CustomThemeColors = {
   primary: { h: 36, s: 88 },
@@ -339,6 +390,393 @@ const defaultUserStats: UserStats = {
   rosaryCount: 0,
   examinationCount: 0,
   angelusCount: 0,
+  planDeVidaCompletedTotal: 0,
+  planDeVidaCompletedHistory: {},
+};
+
+const isFiniteNumber = (value: any): value is number =>
+  typeof value === 'number' && Number.isFinite(value);
+
+const hasOwnKey = (value: Record<string, any>, key: string) =>
+  Object.prototype.hasOwnProperty.call(value, key);
+
+const normalizeNullableString = (value: any): string | null =>
+  typeof value === 'string' ? value : null;
+
+const normalizeBoolean = (value: any, fallback = false) =>
+  typeof value === 'boolean' ? value : fallback;
+
+const normalizeNumber = (value: any, fallback = 0) =>
+  isFiniteNumber(value) ? value : fallback;
+
+const normalizeStringArray = (raw: any, requiredValues: string[] = []): string[] => {
+  const values = Array.isArray(raw)
+    ? raw.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+    : [];
+  for (const requiredValue of requiredValues) {
+    if (!values.includes(requiredValue)) {
+      values.push(requiredValue);
+    }
+  }
+  return values;
+};
+
+const normalizeNumberRecord = (raw: any): Record<string, number> => {
+  const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  const result: Record<string, number> = {};
+  Object.entries(source).forEach(([key, value]) => {
+    if (isFiniteNumber(value)) {
+      result[key] = value;
+    }
+  });
+  return result;
+};
+
+const normalizeStringRecord = (raw: any): Record<string, string> => {
+  const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  const result: Record<string, string> = {};
+  Object.entries(source).forEach(([key, value]) => {
+    if (typeof value === 'string') {
+      result[key] = value;
+    }
+  });
+  return result;
+};
+
+const normalizePredefinedPrayerOverrides = (raw: any): Record<string, PredefinedPrayerOverrideData> => {
+  const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  const result: Record<string, PredefinedPrayerOverrideData> = {};
+  Object.entries(source).forEach(([key, value]) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return;
+    const title = typeof (value as any).title === 'string' ? (value as any).title : '';
+    const content = typeof (value as any).content === 'string' ? (value as any).content : '';
+    const imageUrl = typeof (value as any).imageUrl === 'string' ? (value as any).imageUrl : undefined;
+    result[key] = { title, content, ...(imageUrl ? { imageUrl } : {}) };
+  });
+  return result;
+};
+
+const normalizeThemeColor = (raw: any, fallback: ThemeColor): ThemeColor => ({
+  h: normalizeNumber(raw?.h, fallback.h),
+  s: normalizeNumber(raw?.s, fallback.s),
+});
+
+const normalizeThemeColorsValue = (raw: any): CustomThemeColors => ({
+  primary: normalizeThemeColor(raw?.primary, defaultThemeColors.primary),
+  background: normalizeThemeColor(raw?.background, defaultThemeColors.background),
+  accent: normalizeThemeColor(raw?.accent, defaultThemeColors.accent),
+});
+
+const normalizeOverlayPositionValue = (raw: any, fallback: OverlayPosition): OverlayPosition => ({
+  x: Math.max(0, Math.round(normalizeNumber(raw?.x, fallback.x))),
+  y: Math.max(0, Math.round(normalizeNumber(raw?.y, fallback.y))),
+});
+
+const normalizeOverlayPositionsValue = (raw: any): OverlayPositions => ({
+  timer: normalizeOverlayPositionValue(raw?.timer, defaultOverlayPositions.timer),
+  planNav: normalizeOverlayPositionValue(raw?.planNav, defaultOverlayPositions.planNav),
+  wrappedBubble: normalizeOverlayPositionValue(raw?.wrappedBubble, defaultOverlayPositions.wrappedBubble),
+});
+
+const normalizeDailyRemindersValue = (raw: any): DailyReminder[] => {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((entry, index) => {
+      if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
+      const reminder = entry as any;
+      const hours = Math.min(23, Math.max(0, Math.floor(normalizeNumber(reminder.time?.hours, 9))));
+      const minutes = Math.min(59, Math.max(0, Math.floor(normalizeNumber(reminder.time?.minutes, 0))));
+      const notificationId = Math.max(1, Math.floor(normalizeNumber(reminder.notificationId, index + 1)));
+      const targetType = reminder.target?.type === 'prayer' ? 'prayer' : 'category';
+      const targetId = typeof reminder.target?.id === 'string' && reminder.target.id.trim().length > 0
+        ? reminder.target.id
+        : 'devociones';
+      return {
+        id: typeof reminder.id === 'string' && reminder.id.trim().length > 0 ? reminder.id : 'imported-reminder-' + index,
+        notificationId,
+        enabled: normalizeBoolean(reminder.enabled, true),
+        target: { type: targetType, id: targetId } as DailyReminder['target'],
+        time: { hours, minutes },
+        message: typeof reminder.message === 'string' ? reminder.message : '',
+        createdAt: Math.floor(normalizeNumber(reminder.createdAt, 0)),
+      } satisfies DailyReminder;
+    })
+    .filter(Boolean) as DailyReminder[];
+};
+
+const normalizePlanDeVidaCalendarValue = (raw: any): Record<string, string[]> => {
+  const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  const result: Record<string, string[]> = {};
+  Object.entries(source).forEach(([key, value]) => {
+    const normalized = normalizeStringArray(value);
+    if (normalized.length > 0) {
+      result[key] = normalized;
+    }
+  });
+  return result;
+};
+
+const normalizeDevTraceEventsValue = (raw: any): DevTraceEvent[] => {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((entry, index) => {
+      if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
+      const item = entry as any;
+      const level: DevTraceLevel = item.level === 'warn' || item.level === 'error' ? item.level : 'info';
+      return {
+        id: typeof item.id === 'string' && item.id.trim().length > 0 ? item.id : 'trace-' + index,
+        ts: Math.floor(normalizeNumber(item.ts, 0)),
+        level,
+        source: typeof item.source === 'string' ? item.source : 'import',
+        message: typeof item.message === 'string' ? item.message : '',
+        ...(typeof item.data === 'string' ? { data: item.data } : {}),
+      } satisfies DevTraceEvent;
+    })
+    .filter(Boolean) as DevTraceEvent[];
+};
+
+const normalizeUserStatsValue = (raw: any): UserStats => {
+  const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  return {
+    daysActive: normalizeNumber(source.daysActive, defaultUserStats.daysActive),
+    lastActiveDate: normalizeNullableString(source.lastActiveDate),
+    massStreak: normalizeNumber(source.massStreak, defaultUserStats.massStreak),
+    massDaysCount: normalizeNumber(source.massDaysCount, defaultUserStats.massDaysCount),
+    morningDaysCount: normalizeNumber(source.morningDaysCount, defaultUserStats.morningDaysCount),
+    nightDaysCount: normalizeNumber(source.nightDaysCount, defaultUserStats.nightDaysCount),
+    lastMassDate: normalizeNullableString(source.lastMassDate),
+    lastNightPrayerDate: normalizeNullableString(source.lastNightPrayerDate),
+    lastMorningPrayerDate: normalizeNullableString(source.lastMorningPrayerDate),
+    totalPrayersOpened: normalizeNumber(source.totalPrayersOpened, defaultUserStats.totalPrayersOpened),
+    prayersOpenedHistory: normalizeNumberRecord(source.prayersOpenedHistory),
+    prayerDaysCount: normalizeNumberRecord(source.prayerDaysCount),
+    prayerLastOpened: normalizeStringRecord(source.prayerLastOpened),
+    prayerLastIncrementTimestamp: normalizeNumberRecord(source.prayerLastIncrementTimestamp),
+    lettersWritten: normalizeNumber(source.lettersWritten, defaultUserStats.lettersWritten),
+    devotionsCreated: normalizeNumber(source.devotionsCreated, defaultUserStats.devotionsCreated),
+    prayersCreated: normalizeNumber(source.prayersCreated, defaultUserStats.prayersCreated),
+    saintQuotesOpened: normalizeNumber(source.saintQuotesOpened, defaultUserStats.saintQuotesOpened),
+    rosaryCount: normalizeNumber(source.rosaryCount, defaultUserStats.rosaryCount),
+    examinationCount: normalizeNumber(source.examinationCount, defaultUserStats.examinationCount),
+    angelusCount: normalizeNumber(source.angelusCount, defaultUserStats.angelusCount),
+    planDeVidaCompletedTotal: normalizeNumber(source.planDeVidaCompletedTotal, defaultUserStats.planDeVidaCompletedTotal),
+    planDeVidaCompletedHistory: normalizeNumberRecord(source.planDeVidaCompletedHistory),
+  };
+};
+
+const isGenericCustomPlanName = (value: string) =>
+  /^Plan(?: personalizado)?(?: \d+)?$/i.test(value.trim());
+
+const normalizeCustomPlanDisplayName = (value: any): string => {
+  const trimmed = typeof value === 'string' ? value.trim() : '';
+  return trimmed.length > 0 && !isGenericCustomPlanName(trimmed) ? trimmed : '';
+};
+
+const normalizeCustomPlanComparable = (value: any) => ({
+  name: normalizeCustomPlanDisplayName(value?.name),
+  prayerIds: Array.isArray(value?.prayerIds)
+    ? value.prayerIds.filter((item: unknown): item is string => typeof item === 'string')
+    : [],
+});
+
+const normalizeCustomPlansValue = (raw: any): Array<CustomPlan | null> => {
+  const normalized: Array<CustomPlan | null> = [null, null, null, null];
+  if (!Array.isArray(raw)) return normalized;
+  raw.forEach((entry, index) => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return;
+    const entryAny = entry as any;
+    const slot = entryAny.slot === 1 || entryAny.slot === 2 || entryAny.slot === 3 || entryAny.slot === 4 ? entryAny.slot : null;
+    if (!slot || normalized[slot - 1]) return;
+    const prayerIds = Array.isArray(entryAny.prayerIds)
+      ? entryAny.prayerIds.filter((item: unknown): item is string => typeof item === 'string')
+      : [];
+    normalized[slot - 1] = {
+      id:
+        typeof entryAny.id === 'string' && entryAny.id.trim().length > 0
+          ? entryAny.id
+          : 'custom-plan-' + slot + '-import-' + index,
+      slot,
+      name: normalizeCustomPlanDisplayName(entryAny.name),
+      prayerIds,
+      createdAt: Math.floor(normalizeNumber(entryAny.createdAt, 0)),
+    };
+  });
+  return normalized;
+};
+
+const FULL_BACKUP_KEYS = [
+  'theme',
+  'fontSize',
+  'fontFamily',
+  'homeBackgroundId',
+  'autoRotateBackground',
+  'welcomeScreenEnabled',
+  'lastBackgroundRotationDate',
+  'hiddenPrayerIds',
+  'editedPrayerIds',
+  'predefinedPrayerOverrides',
+  'userDevotions',
+  'userPrayers',
+  'userLetters',
+  'alwaysShowPrayers',
+  'isDeveloperMode',
+  'isEditModeEnabled',
+  'timerEnabled',
+  'timerDuration',
+  'timerTime',
+  'timerActive',
+  'overlayPositions',
+  'simulatedDate',
+  'planDeVidaTrackerEnabled',
+  'planDeVidaProgress',
+  'planDeVidaCalendar',
+  'lastResetTimestamp',
+  'isDistractionFree',
+  'userQuotes',
+  'showTimerFinishedAlert',
+  'movableFeastsEnabled',
+  'customThemeColors',
+  'isCustomThemeActive',
+  'pinchToZoomEnabled',
+  'navMode',
+  'arrowBubbleSize',
+  'userHomeBackgrounds',
+  'scrollPositions',
+  'prayerLanguagePreferences',
+  'quoteOfTheDay',
+  'recentQuoteIds',
+  'lastQuoteDate',
+  'shownEasterEggQuoteIds',
+  'saintOfTheDay',
+  'saintOfTheDayImage',
+  'lastSaintUpdate',
+  'simulatedQuoteId',
+  'customPlans',
+  'notificationsEnabled',
+  'dailyReminders',
+  'devTestNotificationEnabled',
+  'devLiveTraceEnabled',
+  'devLiveTraceEvents',
+  'userStats',
+  'globalUserStats',
+  'statsYear',
+  'simulatedStats',
+  'forceWrappedSeason',
+  'showZeroStats',
+  'hasViewedWrapped',
+] as const;
+
+const stableSortValue = (value: any): any => {
+  if (Array.isArray(value)) {
+    return value.map(stableSortValue);
+  }
+  if (value && typeof value === 'object') {
+    return Object.keys(value)
+      .sort()
+      .reduce((acc, key) => {
+        acc[key] = stableSortValue(value[key]);
+        return acc;
+      }, {} as Record<string, any>);
+  }
+  return value;
+};
+
+const stableSerialize = (value: any) => JSON.stringify(stableSortValue(value));
+
+const normalizeBackupState = (raw: any) => {
+  const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  const timerDuration = Math.max(1, Math.floor(normalizeNumber(source.timerDuration, 15)));
+  const timerTime = Math.max(0, Math.floor(normalizeNumber(source.timerTime, timerDuration * 60)));
+  const theme: Theme = source.theme === 'dark' ? 'dark' : 'light';
+  const fontSize = isFiniteNumber(source.fontSize)
+    ? Math.round(source.fontSize)
+    : source.fontSize === 'large'
+      ? 18
+      : 15;
+  const navMode: NavMode = source.navMode === 'touch' ? 'touch' : 'bubble';
+  const arrowBubbleSize: ArrowBubbleSize =
+    source.arrowBubbleSize === 'md' || source.arrowBubbleSize === 'lg' ? source.arrowBubbleSize : 'sm';
+  return {
+    theme,
+    fontSize,
+    fontFamily: typeof source.fontFamily === 'string' && source.fontFamily.trim().length > 0 ? source.fontFamily : 'literata',
+    homeBackgroundId: normalizeNullableString(source.homeBackgroundId) ?? defaultHomeBackgroundId,
+    autoRotateBackground: normalizeBoolean(source.autoRotateBackground, true),
+    welcomeScreenEnabled: normalizeBoolean(source.welcomeScreenEnabled, true),
+    lastBackgroundRotationDate: normalizeNullableString(source.lastBackgroundRotationDate),
+    hiddenPrayerIds: normalizeStringArray(source.hiddenPrayerIds),
+    editedPrayerIds: normalizeStringArray(source.editedPrayerIds),
+    predefinedPrayerOverrides: normalizePredefinedPrayerOverrides(source.predefinedPrayerOverrides),
+    userDevotions: Array.isArray(source.userDevotions) ? source.userDevotions : [],
+    userPrayers: Array.isArray(source.userPrayers) ? source.userPrayers : [],
+    userLetters: Array.isArray(source.userLetters) ? source.userLetters : [],
+    alwaysShowPrayers: normalizeStringArray(source.alwaysShowPrayers, defaultAlwaysShowPrayers),
+    isDeveloperMode: normalizeBoolean(source.isDeveloperMode),
+    isEditModeEnabled: normalizeBoolean(source.isEditModeEnabled),
+    timerEnabled: normalizeBoolean(source.timerEnabled),
+    timerDuration,
+    timerTime,
+    timerActive: normalizeBoolean(source.timerActive) && timerTime > 0,
+    overlayPositions: normalizeOverlayPositionsValue(source.overlayPositions),
+    simulatedDate: normalizeNullableString(source.simulatedDate),
+    planDeVidaTrackerEnabled: normalizeBoolean(source.planDeVidaTrackerEnabled, true),
+    planDeVidaProgress: normalizeStringArray(source.planDeVidaProgress),
+    planDeVidaCalendar: normalizePlanDeVidaCalendarValue(source.planDeVidaCalendar),
+    lastResetTimestamp: Math.floor(normalizeNumber(source.lastResetTimestamp, Date.now())),
+    isDistractionFree: normalizeBoolean(source.isDistractionFree),
+    userQuotes: Array.isArray(source.userQuotes) ? source.userQuotes : [],
+    showTimerFinishedAlert: normalizeBoolean(source.showTimerFinishedAlert),
+    movableFeastsEnabled: normalizeBoolean(source.movableFeastsEnabled, true),
+    customThemeColors: normalizeThemeColorsValue(source.customThemeColors),
+    isCustomThemeActive: normalizeBoolean(source.isCustomThemeActive),
+    pinchToZoomEnabled: normalizeBoolean(source.pinchToZoomEnabled, true),
+    navMode,
+    arrowBubbleSize,
+    userHomeBackgrounds: Array.isArray(source.userHomeBackgrounds) ? source.userHomeBackgrounds : [],
+    scrollPositions: normalizeNumberRecord(source.scrollPositions),
+    prayerLanguagePreferences: normalizeStringRecord(source.prayerLanguagePreferences),
+    quoteOfTheDay: source.quoteOfTheDay ?? null,
+    recentQuoteIds: normalizeStringArray(source.recentQuoteIds),
+    lastQuoteDate: normalizeNullableString(source.lastQuoteDate),
+    shownEasterEggQuoteIds: normalizeStringArray(source.shownEasterEggQuoteIds),
+    saintOfTheDay: source.saintOfTheDay ?? null,
+    saintOfTheDayImage: source.saintOfTheDayImage ?? null,
+    lastSaintUpdate: normalizeNullableString(source.lastSaintUpdate),
+    simulatedQuoteId: normalizeNullableString(source.simulatedQuoteId),
+    customPlans: normalizeCustomPlansValue(source.customPlans),
+    notificationsEnabled: normalizeBoolean(source.notificationsEnabled, true),
+    dailyReminders: normalizeDailyRemindersValue(source.dailyReminders),
+    devTestNotificationEnabled: normalizeBoolean(source.devTestNotificationEnabled),
+    devLiveTraceEnabled: normalizeBoolean(source.devLiveTraceEnabled),
+    devLiveTraceEvents: normalizeDevTraceEventsValue(source.devLiveTraceEvents),
+    userStats: normalizeUserStatsValue(source.userStats),
+    globalUserStats: normalizeUserStatsValue(source.globalUserStats),
+    statsYear: Math.floor(normalizeNumber(source.statsYear, new Date().getFullYear())),
+    simulatedStats: source.simulatedStats == null ? null : normalizeUserStatsValue(source.simulatedStats),
+    forceWrappedSeason: normalizeBoolean(source.forceWrappedSeason),
+    showZeroStats: normalizeBoolean(source.showZeroStats),
+    hasViewedWrapped: normalizeBoolean(source.hasViewedWrapped),
+  };
+};
+
+const normalizePartialImportPayload = (raw: any) => {
+  const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  const normalized = normalizeBackupState(source);
+  return FULL_BACKUP_KEYS.reduce((acc, key) => {
+    if (hasOwnKey(source, key)) {
+      acc[key] = normalized[key];
+    }
+    return acc;
+  }, {} as Record<string, any>);
+};
+
+const pickSnapshotKeys = (snapshot: Record<string, any>, keys: string[]) => {
+  return keys.reduce((acc, key) => {
+    if (hasOwnKey(snapshot, key)) {
+      acc[key] = snapshot[key];
+    }
+    return acc;
+  }, {} as Record<string, any>);
 };
 
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {
@@ -353,10 +791,12 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   const [homeBackgroundId, setHomeBackgroundId] = useState<string | null>(defaultHomeBackgroundId);
   const [autoRotateBackground, setAutoRotateBackground] = useState(true);
+  const [welcomeScreenEnabled, setWelcomeScreenEnabled] = useState(true);
   const [lastBackgroundRotationDate, setLastBackgroundRotationDate] = useState<string | null>(null);
 
   const [hiddenPrayerIds, setHiddenPrayerIds] = useState<string[]>([]);
   const [editedPrayerIds, setEditedPrayerIds] = useState<string[]>([]);
+  const [predefinedPrayerOverrides, setPredefinedPrayerOverrides] = useState<Record<string, PredefinedPrayerOverrideData>>({});
 
   const [userDevotions, setUserDevotions] = useState<Prayer[]>([]);
   const [userPrayers, setUserPrayers] = useState<Prayer[]>([]);
@@ -399,6 +839,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   const [userHomeBackgrounds, setUserHomeBackgrounds] = useState<ImagePlaceholder[]>([]);
   const [scrollPositions, setScrollPositions] = useState<{ [k: string]: number }>({});
+  const [prayerLanguagePreferences, setPrayerLanguagePreferences] = useState<Record<string, string>>({});
 
   const [quoteOfTheDay, setQuoteOfTheDay] = useState<Quote | null>(null);
   const [recentQuoteIds, setRecentQuoteIds] = useState<string[]>([]);
@@ -409,10 +850,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [saintOfTheDay, setSaintOfTheDay] = useState<SaintOfTheDay | null>(null);
   const [saintOfTheDayImage, setSaintOfTheDayImage] =
     useState<ImagePlaceholder | null>(null);
-  const [saintOfTheDayPrayerId, setSaintOfTheDayPrayerId] = useState<string | null>(null);
+  const [saintOfTheDayPrayerId] = useState<string | null>(null);
   
-  const [overriddenFixedSaint, setOverriddenFixedSaint] = useState<SaintOfTheDay | null>(null);
-  const [overriddenFixedSaintImage, setOverriddenFixedSaintImage] = useState<ImagePlaceholder | null>(null);
+  const [overriddenFixedSaint] = useState<SaintOfTheDay | null>(null);
+  const [overriddenFixedSaintImage] = useState<ImagePlaceholder | null>(null);
   
   const [lastSaintUpdate, setLastSaintUpdate] = useState<string | null>(null);
   
@@ -527,6 +968,196 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     [normalizeOverlayPosition]
   );
 
+  const applyBackupSnapshot = useCallback((snapshot: ReturnType<typeof normalizeBackupState>) => {
+    setTheme(snapshot.theme);
+    setFontSize(snapshot.fontSize);
+    setFontFamily(snapshot.fontFamily);
+    setHomeBackgroundId(snapshot.homeBackgroundId);
+    setAutoRotateBackground(snapshot.autoRotateBackground);
+    setWelcomeScreenEnabled(snapshot.welcomeScreenEnabled);
+    setLastBackgroundRotationDate(snapshot.lastBackgroundRotationDate);
+    setHiddenPrayerIds(snapshot.hiddenPrayerIds);
+    setEditedPrayerIds(snapshot.editedPrayerIds);
+    setPredefinedPrayerOverrides(snapshot.predefinedPrayerOverrides);
+    setUserDevotions(snapshot.userDevotions);
+    setUserPrayers(snapshot.userPrayers);
+    setUserLetters(snapshot.userLetters);
+    setAlwaysShowPrayers(snapshot.alwaysShowPrayers);
+    setIsDeveloperMode(snapshot.isDeveloperMode);
+    setIsEditModeEnabled(snapshot.isEditModeEnabled);
+    setTimerEnabled(snapshot.timerEnabled);
+    setTimerDuration(snapshot.timerDuration);
+    setTimerTime(snapshot.timerTime);
+    setTimerActive(snapshot.timerActive);
+    setOverlayPositions(snapshot.overlayPositions);
+    setSimulatedDate(snapshot.simulatedDate);
+    setPlanDeVidaTrackerEnabled(snapshot.planDeVidaTrackerEnabled);
+    setPlanDeVidaProgress(snapshot.planDeVidaProgress);
+    setPlanDeVidaCalendar(snapshot.planDeVidaCalendar);
+    setLastResetTimestamp(snapshot.lastResetTimestamp);
+    setIsDistractionFree(snapshot.isDistractionFree);
+    setUserQuotes(snapshot.userQuotes);
+    setShowTimerFinishedAlert(snapshot.showTimerFinishedAlert);
+    setMovableFeastsEnabled(snapshot.movableFeastsEnabled);
+    setCustomThemeColors(snapshot.customThemeColors);
+    setIsCustomThemeActive(snapshot.isCustomThemeActive);
+    setPinchToZoomEnabled(snapshot.pinchToZoomEnabled);
+    setNavMode(snapshot.navMode);
+    setArrowBubbleSize(snapshot.arrowBubbleSize);
+    setUserHomeBackgrounds(snapshot.userHomeBackgrounds);
+    setScrollPositions(snapshot.scrollPositions);
+    setPrayerLanguagePreferences(snapshot.prayerLanguagePreferences);
+    setQuoteOfTheDay(snapshot.quoteOfTheDay);
+    setRecentQuoteIds(snapshot.recentQuoteIds);
+    setLastQuoteDate(snapshot.lastQuoteDate);
+    setShownEasterEggQuoteIds(snapshot.shownEasterEggQuoteIds);
+    setSaintOfTheDay(snapshot.saintOfTheDay);
+    setSaintOfTheDayImage(snapshot.saintOfTheDayImage);
+    setLastSaintUpdate(snapshot.lastSaintUpdate);
+    setSimulatedQuoteId(snapshot.simulatedQuoteId);
+    setCustomPlans(snapshot.customPlans);
+    setNotificationsEnabledState(snapshot.notificationsEnabled);
+    setDailyReminders(snapshot.dailyReminders);
+    setDevTestNotificationEnabledState(snapshot.devTestNotificationEnabled);
+    setDevLiveTraceEnabledState(snapshot.devLiveTraceEnabled);
+    setDevLiveTraceEvents(snapshot.devLiveTraceEvents);
+    setUserStats(snapshot.userStats);
+    setGlobalUserStats(snapshot.globalUserStats);
+    setStatsYear(snapshot.statsYear);
+    setSimulatedStats(snapshot.simulatedStats);
+    setForceWrappedSeason(snapshot.forceWrappedSeason);
+    setShowZeroStats(snapshot.showZeroStats);
+    setHasViewedWrapped(snapshot.hasViewedWrapped);
+  }, []);
+
+  const backupSnapshot = useMemo(
+    () =>
+      normalizeBackupState({
+        theme,
+        fontSize,
+        fontFamily,
+        homeBackgroundId,
+        autoRotateBackground,
+        welcomeScreenEnabled,
+        lastBackgroundRotationDate,
+        hiddenPrayerIds,
+        editedPrayerIds,
+        predefinedPrayerOverrides,
+        userDevotions,
+        userPrayers,
+        userLetters,
+        alwaysShowPrayers,
+        isDeveloperMode,
+        isEditModeEnabled,
+        timerEnabled,
+        timerDuration,
+        timerTime,
+        timerActive,
+        overlayPositions,
+        simulatedDate,
+        planDeVidaTrackerEnabled,
+        planDeVidaProgress,
+        planDeVidaCalendar,
+        lastResetTimestamp,
+        isDistractionFree,
+        userQuotes,
+        showTimerFinishedAlert,
+        movableFeastsEnabled,
+        customThemeColors,
+        isCustomThemeActive,
+        pinchToZoomEnabled,
+        navMode,
+        arrowBubbleSize,
+        userHomeBackgrounds,
+        scrollPositions,
+        prayerLanguagePreferences,
+        quoteOfTheDay,
+        recentQuoteIds,
+        lastQuoteDate,
+        shownEasterEggQuoteIds,
+        saintOfTheDay,
+        saintOfTheDayImage,
+        lastSaintUpdate,
+        simulatedQuoteId,
+        customPlans,
+        notificationsEnabled,
+        dailyReminders,
+        devTestNotificationEnabled,
+        devLiveTraceEnabled,
+        devLiveTraceEvents,
+        userStats,
+        globalUserStats,
+        statsYear,
+        simulatedStats,
+        forceWrappedSeason,
+        showZeroStats,
+        hasViewedWrapped,
+      }),
+    [
+      theme,
+      fontSize,
+      fontFamily,
+      homeBackgroundId,
+      autoRotateBackground,
+      welcomeScreenEnabled,
+      lastBackgroundRotationDate,
+      hiddenPrayerIds,
+      editedPrayerIds,
+      predefinedPrayerOverrides,
+      userDevotions,
+      userPrayers,
+      userLetters,
+      alwaysShowPrayers,
+      isDeveloperMode,
+      isEditModeEnabled,
+      timerEnabled,
+      timerDuration,
+      timerTime,
+      timerActive,
+      overlayPositions,
+      simulatedDate,
+      planDeVidaTrackerEnabled,
+      planDeVidaProgress,
+      planDeVidaCalendar,
+      lastResetTimestamp,
+      isDistractionFree,
+      userQuotes,
+      showTimerFinishedAlert,
+      movableFeastsEnabled,
+      customThemeColors,
+      isCustomThemeActive,
+      pinchToZoomEnabled,
+      navMode,
+      arrowBubbleSize,
+      userHomeBackgrounds,
+      scrollPositions,
+      prayerLanguagePreferences,
+      quoteOfTheDay,
+      recentQuoteIds,
+      lastQuoteDate,
+      shownEasterEggQuoteIds,
+      saintOfTheDay,
+      saintOfTheDayImage,
+      lastSaintUpdate,
+      simulatedQuoteId,
+      customPlans,
+      notificationsEnabled,
+      dailyReminders,
+      devTestNotificationEnabled,
+      devLiveTraceEnabled,
+      devLiveTraceEvents,
+      userStats,
+      globalUserStats,
+      statsYear,
+      simulatedStats,
+      forceWrappedSeason,
+      showZeroStats,
+      hasViewedWrapped,
+    ]
+  );
+
+  const getBackupSnapshot = useCallback(() => backupSnapshot, [backupSnapshot]);
+
   useEffect(() => {
     const loadSettings = async () => {
         if (typeof window === 'undefined') {
@@ -561,166 +1192,22 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           }
 
           // ... BLOQUE DE HIDRATACIÓN ...
-          setTheme(s.theme ?? 'light');
-          if (typeof s.fontSize === 'number' && Number.isFinite(s.fontSize)) {
-            setFontSize(Math.round(s.fontSize));
-          } else if (s.fontSize === 'large') {
-            setFontSize(18);
-          } else {
-            setFontSize(15);
-          }
-          setFontFamily(s.fontFamily ?? 'literata');
-
-          const savedHomeBackgroundId =
-            typeof s.homeBackgroundId === 'string' ? s.homeBackgroundId : null;
-          const savedLastRotationDate =
-            typeof s.lastBackgroundRotationDate === 'string' ? s.lastBackgroundRotationDate : null;
-
-          const resolvedHomeBackgroundId = savedHomeBackgroundId ?? defaultHomeBackgroundId;
-          setHomeBackgroundId(resolvedHomeBackgroundId);
-          setAutoRotateBackground(s.autoRotateBackground ?? true);
-          setLastBackgroundRotationDate(savedLastRotationDate);
-
-          setHiddenPrayerIds(s.hiddenPrayerIds ?? []);
-          setEditedPrayerIds(s.editedPrayerIds ?? []);
-          setUserDevotions(s.userDevotions ?? []);
-          setUserPrayers(s.userPrayers ?? []);
-          setUserLetters(s.userLetters ?? []);
-
-          const asp = s.alwaysShowPrayers ?? [];
-          if (!asp.includes('cartas')) asp.push('cartas');
-          setAlwaysShowPrayers(asp);
-
-          setIsDeveloperMode(s.isDeveloperMode ?? false);
-          setIsEditModeEnabled(s.isEditModeEnabled ?? false);
-
-          setTimerEnabled(s.timerEnabled ?? false);
-          setTimerDuration(s.timerDuration ?? 15);
-          setTimerTime((s.timerDuration ?? 15) * 60);
-          setOverlayPositions(normalizeOverlayPositions(s.overlayPositions));
-
-          setPlanDeVidaTrackerEnabled(s.planDeVidaTrackerEnabled ?? true);
-          setPlanDeVidaProgress(s.planDeVidaProgress ?? []);
-          const calendarRaw =
-            s.planDeVidaCalendar && typeof s.planDeVidaCalendar === 'object'
-              ? s.planDeVidaCalendar
-              : {};
-          setPlanDeVidaCalendar(calendarRaw);
-          setLastResetTimestamp(s.lastResetTimestamp ?? Date.now());
-
-          setUserQuotes(s.userQuotes ?? []);
-          setMovableFeastsEnabled(s.movableFeastsEnabled ?? true);
-
-          setCustomThemeColors(s.customThemeColors ?? defaultThemeColors);
-          setIsCustomThemeActive(s.isCustomThemeActive ?? false);
-
-          setPinchToZoomEnabled(s.pinchToZoomEnabled ?? true);
-          setNavMode(s.navMode === 'touch' ? 'touch' : 'bubble');
-          setArrowBubbleSize(s.arrowBubbleSize === 'md' || s.arrowBubbleSize === 'lg' ? s.arrowBubbleSize : 'sm');
-
-          const resolvedUserHomeBackgrounds = Array.isArray(s.userHomeBackgrounds) ? s.userHomeBackgrounds : [];
-          setUserHomeBackgrounds(resolvedUserHomeBackgrounds);
-          setScrollPositions(s.scrollPositions ?? {});
-
-          setQuoteOfTheDay(s.quoteOfTheDay ?? null);
-          setRecentQuoteIds(s.recentQuoteIds ?? []);
-          setLastQuoteDate(s.lastQuoteDate ?? null);
-
-          setShownEasterEggQuoteIds(s.shownEasterEggQuoteIds ?? []);
-
-          setHasViewedWrapped(s.hasViewedWrapped ?? false);
-
-          setSaintOfTheDay(s.saintOfTheDay ?? null);
-          setSaintOfTheDayImage(s.saintOfTheDayImage ?? null);
-          setLastSaintUpdate(s.lastSaintUpdate ?? null);
-
-          const rawCustomPlans = Array.isArray(s.customPlans) ? s.customPlans : [];
-          const normalizedPlans: Array<CustomPlan | null> = [null, null, null, null];
-          for (const entry of rawCustomPlans) {
-            if (!entry || typeof entry !== 'object') continue;
-            const slot = (entry as any).slot;
-            if (slot !== 1 && slot !== 2 && slot !== 3 && slot !== 4) continue;
-            const nameCandidate = typeof (entry as any).name === 'string' ? (entry as any).name : '';
-            const trimmedName = nameCandidate.trim();
-            const name = trimmedName.length > 0 && !/^Plan personalizado\b/i.test(trimmedName) ? trimmedName : '';
-            const prayerIds = Array.isArray((entry as any).prayerIds)
-              ? (entry as any).prayerIds.filter((x: any) => typeof x === 'string')
-              : [];
-            const id = typeof (entry as any).id === 'string' ? (entry as any).id : `custom-plan-${slot}-${Date.now()}`;
-            const createdAt = typeof (entry as any).createdAt === 'number' ? (entry as any).createdAt : Date.now();
-            normalizedPlans[slot - 1] = { id, slot, name, prayerIds, createdAt };
-          }
-          setCustomPlans(normalizedPlans);
-
-          setNotificationsEnabledState(s.notificationsEnabled ?? true);
-          setDailyReminders(normalizeDailyReminders(s.dailyReminders));
-          setDevTestNotificationEnabledState(Boolean(s.devTestNotificationEnabled));
-          setDevLiveTraceEnabledState(Boolean(s.devLiveTraceEnabled));
-          
+          let snapshot = normalizeBackupState(s);
           const currentYear = new Date().getFullYear();
-          const savedStatsYear = typeof s.statsYear === 'number' ? s.statsYear : currentYear;
+          const hasSavedGlobalUserStats =
+            s && typeof s === 'object' && !Array.isArray(s) && hasOwnKey(s as Record<string, any>, 'globalUserStats');
 
-          // Handle Year Reset (Jan 1st)
-          if (savedStatsYear !== currentYear) {
-             // Reset yearly stats
-             setUserStats(defaultUserStats);
-             setStatsYear(currentYear);
-             setHasViewedWrapped(false); // Reset wrapped view for new year
-             
-             // Initialize global stats from old userStats if global didn't exist
-             // (Migration for existing users: assume previous stats were global)
-             if (!s.globalUserStats) {
-                 setGlobalUserStats({
-                     ...defaultUserStats,
-                     ...(s.userStats || {}),
-                     prayersOpenedHistory: s.userStats?.prayersOpenedHistory || {},
-                 });
-             } else {
-                 setGlobalUserStats({
-                     ...defaultUserStats,
-                     ...(s.globalUserStats || {}),
-                     prayersOpenedHistory: s.globalUserStats?.prayersOpenedHistory || {},
-                 });
-             }
-          } else {
-              setUserStats({
-                ...defaultUserStats,
-                ...(s.userStats || {}),
-                prayersOpenedHistory: s.userStats?.prayersOpenedHistory || {},
-              });
-              setStatsYear(savedStatsYear);
-              
-              if (s.globalUserStats) {
-                 setGlobalUserStats({
-                     ...defaultUserStats,
-                     ...(s.globalUserStats || {}),
-                     prayersOpenedHistory: s.globalUserStats?.prayersOpenedHistory || {},
-                 });
-              } else {
-                 // First run with new code but same year: treat current stats as global too
-                 setGlobalUserStats({
-                     ...defaultUserStats,
-                     ...(s.userStats || {}),
-                     prayersOpenedHistory: s.userStats?.prayersOpenedHistory || {},
-                 });
-              }
+          if (snapshot.statsYear !== currentYear) {
+            snapshot = {
+              ...snapshot,
+              userStats: normalizeUserStatsValue(defaultUserStats),
+              globalUserStats: normalizeUserStatsValue(hasSavedGlobalUserStats ? (s as any).globalUserStats : snapshot.userStats),
+              statsYear: currentYear,
+              hasViewedWrapped: false,
+            };
           }
 
-          const placeholderHomeBackgrounds = PlaceHolderImages.filter((img) => img.id.startsWith('home-'));
-          const resolvedUrl =
-            (resolvedHomeBackgroundId
-              ? [...placeholderHomeBackgrounds, ...resolvedUserHomeBackgrounds].find((img) => img.id === resolvedHomeBackgroundId)?.imageUrl ?? null
-              : null) ?? placeholderHomeBackgrounds[0]?.imageUrl ?? null;
-
-          if (resolvedUrl && typeof document !== 'undefined') {
-            const escaped = resolvedUrl.replace(/"/g, '\\"');
-            document.documentElement.style.setProperty('--home-bg-image', `url("${escaped}")`);
-          }
-          if (resolvedUrl) {
-            try {
-              window.localStorage.setItem('cotidie_home_bg_url', resolvedUrl);
-            } catch {}
-          }
+          applyBackupSnapshot(snapshot);
         } catch (e) {
           console.error("Error cargando configuración", e);
           // Fallback to clear LS if corrupted, but careful with IDB
@@ -741,108 +1228,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (!isLoaded) return;
-
-    saveState({
-      theme,
-      fontSize,
-      fontFamily,
-      homeBackgroundId,
-      autoRotateBackground,
-      lastBackgroundRotationDate,
-      hiddenPrayerIds,
-      editedPrayerIds,
-      userDevotions,
-      userPrayers,
-      userLetters,
-      alwaysShowPrayers,
-      isDeveloperMode,
-      isEditModeEnabled,
-      timerEnabled,
-      timerDuration,
-      overlayPositions,
-      notificationsEnabled,
-      dailyReminders,
-      devTestNotificationEnabled,
-      devLiveTraceEnabled,
-      planDeVidaTrackerEnabled,
-      planDeVidaProgress,
-      planDeVidaCalendar,
-      lastResetTimestamp,
-      userQuotes,
-      movableFeastsEnabled,
-      customThemeColors,
-      isCustomThemeActive,
-      pinchToZoomEnabled,
-      navMode,
-      arrowBubbleSize,
-      userHomeBackgrounds,
-      scrollPositions,
-      quoteOfTheDay,
-      recentQuoteIds,
-      lastQuoteDate,
-      shownEasterEggQuoteIds,
-      saintOfTheDay,
-      saintOfTheDayImage,
-      lastSaintUpdate,
-      customPlans,
-      userStats,
-      globalUserStats,
-      statsYear,
-      forceWrappedSeason,
-      showZeroStats,
-    });
-  }, [
-    isLoaded,
-    theme,
-    fontSize,
-    fontFamily,
-    homeBackgroundId,
-    autoRotateBackground,
-    lastBackgroundRotationDate,
-    hiddenPrayerIds,
-    editedPrayerIds,
-    userDevotions,
-    userPrayers,
-    userLetters,
-    alwaysShowPrayers,
-    isDeveloperMode,
-    isEditModeEnabled,
-    timerEnabled,
-    timerDuration,
-    overlayPositions,
-    notificationsEnabled,
-    dailyReminders,
-    devTestNotificationEnabled,
-    devLiveTraceEnabled,
-    planDeVidaTrackerEnabled,
-    planDeVidaProgress,
-    planDeVidaCalendar,
-    lastResetTimestamp,
-    userQuotes,
-    movableFeastsEnabled,
-    customThemeColors,
-    isCustomThemeActive,
-    pinchToZoomEnabled,
-    navMode,
-    arrowBubbleSize,
-    userHomeBackgrounds,
-    scrollPositions,
-    quoteOfTheDay,
-    recentQuoteIds,
-    lastQuoteDate,
-    shownEasterEggQuoteIds,
-    saintOfTheDay,
-    saintOfTheDayImage,
-    lastSaintUpdate,
-    customPlans,
-    userStats,
-    globalUserStats,
-    statsYear,
-    forceWrappedSeason,
-    showZeroStats,
-    hasViewedWrapped,
-    saveState,
-  ]);
+    saveState(backupSnapshot);
+  }, [backupSnapshot, isLoaded, saveState]);
 
   // Track Days Active & Morning/Night Usage (App Open)
   useEffect(() => {
@@ -1259,9 +1646,21 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const setPredefinedPrayerOverride = (id: string, data: { title: string; content: string; imageUrl?: string }) => {
-    // TODO: Implement override logic for predefined prayers
-    console.warn('setPredefinedPrayerOverride not implemented', id, data);
-    toast({ title: 'Función no implementada aún.' });
+    if (!id) return;
+
+    const nextOverride: PredefinedPrayerOverrideData = {
+      title: data.title,
+      content: data.content,
+      ...(data.imageUrl ? { imageUrl: data.imageUrl } : {}),
+    };
+
+    setPredefinedPrayerOverrides(prev => ({
+      ...prev,
+      [id]: nextOverride,
+    }));
+    setEditedPrayerIds(prev => (prev.includes(id) ? prev : [...prev, id]));
+    setHiddenPrayerIds(prev => prev.filter(prayerId => prayerId !== id));
+    toast({ title: 'Actualizado correctamente.' });
   };
 
   const resetSettings = () => {
@@ -1272,6 +1671,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setNavMode('bubble');
     setArrowBubbleSize('sm');
     setMovableFeastsEnabled(true);
+    setWelcomeScreenEnabled(true);
     // ... reset others as needed, but usually we keep user data
     toast({ title: 'Configuración restablecida.' });
   };
@@ -1317,172 +1717,219 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   const restorePredefinedPrayer = (id: string) => {
     setHiddenPrayerIds(prev => prev.filter(p => p !== id));
+    setEditedPrayerIds(prev => prev.filter(p => p !== id));
+    setPredefinedPrayerOverrides(prev => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
   };
 
   const restoreAllPredefinedPrayers = () => {
     setHiddenPrayerIds([]);
     setEditedPrayerIds([]);
+    setPredefinedPrayerOverrides({});
     toast({ title: 'Oraciones predeterminadas restauradas.' });
   };
 
-  const importUserData = (data: any, options?: { silent?: boolean }) => {
-    const silent = options?.silent === true;
-    if (!data || typeof data !== 'object') {
-      pushDevLiveTrace({
-        level: 'warn',
-        source: 'import',
-        message: 'Importacion rechazada: payload invalido.',
+  const importUserData = useCallback(
+    (
+      data: any,
+      options?: { silent?: boolean; preferredCustomPlanSlot?: 1 | 2 | 3 | 4 | null }
+    ): ImportResult => {
+      const silent = options?.silent === true;
+      const preferredCustomPlanSlot = options?.preferredCustomPlanSlot ?? null;
+
+      const invalidResult: ImportResult = {
+        status: 'invalid',
+        kind: 'partial',
+        title: 'Error al importar',
+        description: 'El archivo no es valido.',
+      };
+
+      const notifyIfNeeded = (result: ImportResult) => {
+        if (!silent) {
+          toast({
+            title: result.title,
+            description: result.description,
+            ...(result.status === 'invalid' ? { variant: 'destructive' as const } : {}),
+          });
+        }
+        return result;
+      };
+
+      if (!data || typeof data !== 'object') {
+        pushDevLiveTrace({
+          level: 'warn',
+          source: 'import',
+          message: 'Importacion rechazada: payload invalido.',
+        });
+        return notifyIfNeeded(invalidResult);
+      }
+
+      if (isCustomPlanPayload(data)) {
+        const normalizedPrayerIds = data.prayerIds.filter((item: unknown): item is string => typeof item === 'string');
+        if (normalizedPrayerIds.length === 0) {
+          pushDevLiveTrace({
+            level: 'warn',
+            source: 'import',
+            message: 'Plan personalizado rechazado: sin oraciones validas.',
+          });
+          return notifyIfNeeded(invalidResult);
+        }
+
+        const payloadSlot = data.slot === 1 || data.slot === 2 || data.slot === 3 || data.slot === 4 ? data.slot : null;
+        const preferredSlot = preferredCustomPlanSlot ?? payloadSlot;
+        const firstEmpty = backupSnapshot.customPlans.findIndex((entry) => !entry);
+        const fallbackSlot = firstEmpty >= 0 ? ((firstEmpty + 1) as 1 | 2 | 3 | 4) : (preferredSlot ?? 1);
+        const targetSlot =
+          preferredSlot && !backupSnapshot.customPlans[preferredSlot - 1] ? preferredSlot : fallbackSlot;
+
+        const normalizedName = normalizeCustomPlanDisplayName(data.name);
+        const importedPlanId = typeof data.id === 'string' ? data.id.trim() : '';
+        const importedCreatedAt = isFiniteNumber(data.createdAt) ? Math.floor(data.createdAt) : null;
+        const canCheckExactDuplicate = importedPlanId.length > 0 && importedCreatedAt !== null;
+        const duplicateComparable = canCheckExactDuplicate
+          ? stableSerialize(
+              normalizeCustomPlansValue([
+                {
+                  id: importedPlanId,
+                  slot: targetSlot,
+                  name: normalizedName || 'Plan ' + String(targetSlot),
+                  prayerIds: normalizedPrayerIds,
+                  createdAt: importedCreatedAt,
+                },
+              ])[0]
+            )
+          : null;
+        const duplicateSlot = duplicateComparable
+          ? backupSnapshot.customPlans.findIndex((plan) => plan && stableSerialize(plan) === duplicateComparable)
+          : -1;
+        if (duplicateSlot >= 0) {
+          const duplicateResult: ImportResult = {
+            status: 'duplicate',
+            kind: 'custom-plan',
+            title: 'Importacion innecesaria',
+            description: 'Ese plan personalizado ya existe y no se importo.',
+          };
+          pushDevLiveTrace({
+            level: 'warn',
+            source: 'import',
+            message: 'Plan personalizado omitido por duplicado.',
+            data: 'slot=' + String(duplicateSlot + 1),
+          });
+          return notifyIfNeeded(duplicateResult);
+        }
+
+        const nextPlans = backupSnapshot.customPlans.map((entry) => (entry ? { ...entry } : null));
+        nextPlans[targetSlot - 1] = {
+          id: importedPlanId || 'custom-plan-' + String(targetSlot) + '-' + String(Date.now()),
+          slot: targetSlot,
+          name: normalizedName || 'Plan ' + String(targetSlot),
+          prayerIds: normalizedPrayerIds,
+          createdAt: importedCreatedAt ?? Date.now(),
+        };
+
+        const nextSnapshot = normalizeBackupState({
+          ...backupSnapshot,
+          customPlans: nextPlans,
+        });
+        applyBackupSnapshot(nextSnapshot);
+
+        const appliedResult: ImportResult = {
+          status: 'applied',
+          kind: 'custom-plan',
+          title: 'Plan personalizado cargado con exito.',
+          description: 'Se actualizo el plan personalizado importado.',
+        };
+        pushDevLiveTrace({
+          level: 'info',
+          source: 'import',
+          message: 'Plan personalizado importado.',
+          data: 'slot=' + String(targetSlot),
+        });
+        return notifyIfNeeded(appliedResult);
+      }
+
+      if (isFullAppStatePayload(data)) {
+        const nextSnapshot = normalizeBackupState(data);
+        if (stableSerialize(nextSnapshot) === stableSerialize(backupSnapshot)) {
+          const duplicateResult: ImportResult = {
+            status: 'duplicate',
+            kind: 'full',
+            title: 'Importacion innecesaria',
+            description: 'Ese respaldo ya coincide con la app actual y no se importo.',
+          };
+          pushDevLiveTrace({
+            level: 'warn',
+            source: 'import',
+            message: 'Respaldo completo omitido por duplicado.',
+          });
+          return notifyIfNeeded(duplicateResult);
+        }
+
+        applyBackupSnapshot(nextSnapshot);
+        const appliedResult: ImportResult = {
+          status: 'applied',
+          kind: 'full',
+          title: 'Respaldo cargado con exito.',
+          description: 'Se restauro la copia completa de la app.',
+        };
+        pushDevLiveTrace({
+          level: 'info',
+          source: 'import',
+          message: 'Importacion completa aplicada.',
+        });
+        return notifyIfNeeded(appliedResult);
+      }
+
+      const partialPayload = normalizePartialImportPayload(data);
+      const partialKeys = Object.keys(partialPayload);
+      if (partialKeys.length === 0) {
+        pushDevLiveTrace({
+          level: 'warn',
+          source: 'import',
+          message: 'Importacion rechazada: no contiene campos reconocidos.',
+        });
+        return notifyIfNeeded(invalidResult);
+      }
+
+      const currentSubset = pickSnapshotKeys(backupSnapshot as Record<string, any>, partialKeys);
+      if (stableSerialize(currentSubset) === stableSerialize(partialPayload)) {
+        const duplicateResult: ImportResult = {
+          status: 'duplicate',
+          kind: 'partial',
+          title: 'Importacion innecesaria',
+          description: 'Los datos importados ya coinciden con los actuales y no se aplicaron cambios.',
+        };
+        pushDevLiveTrace({
+          level: 'warn',
+          source: 'import',
+          message: 'Importacion parcial omitida por duplicado.',
+        });
+        return notifyIfNeeded(duplicateResult);
+      }
+
+      const nextSnapshot = normalizeBackupState({
+        ...backupSnapshot,
+        ...partialPayload,
       });
-      if (!silent) {
-        toast({ variant: 'destructive', title: 'Error al importar', description: 'El archivo no es válido.' });
-      }
-      return;
-    }
-
-    const isFullAppState = isFullAppStatePayload(data);
-
-    if (!isFullAppState) {
-      if (data.userDevotions) setUserDevotions(data.userDevotions);
-      if (data.userPrayers) setUserPrayers(data.userPrayers);
-      if (data.userLetters) setUserLetters(data.userLetters);
-      if (data.userQuotes) setUserQuotes(data.userQuotes);
-      if (Array.isArray(data.userHomeBackgrounds)) setUserHomeBackgrounds(data.userHomeBackgrounds);
-      if (typeof data.homeBackgroundId === 'string') {
-        setHomeBackgroundId(data.homeBackgroundId);
-      }
-      if (typeof data.autoRotateBackground === 'boolean') {
-        setAutoRotateBackground(data.autoRotateBackground);
-      }
+      applyBackupSnapshot(nextSnapshot);
+      const appliedResult: ImportResult = {
+        status: 'applied',
+        kind: 'partial',
+        title: 'Respaldo cargado con exito.',
+        description: 'Se aplicaron los datos importados.',
+      };
       pushDevLiveTrace({
         level: 'info',
         source: 'import',
         message: 'Importacion parcial aplicada.',
       });
-      if (!silent) {
-        toast({ title: 'Datos importados.' });
-      }
-      return;
-    }
-
-    setTheme(data.theme ?? 'light');
-    if (typeof data.fontSize === 'number' && Number.isFinite(data.fontSize)) {
-      setFontSize(Math.round(data.fontSize));
-    } else if (data.fontSize === 'large') {
-      setFontSize(18);
-    } else {
-      setFontSize(15);
-    }
-    setFontFamily(data.fontFamily ?? 'literata');
-
-    setHomeBackgroundId(data.homeBackgroundId ?? defaultHomeBackgroundId);
-    setAutoRotateBackground(data.autoRotateBackground ?? true);
-    setLastBackgroundRotationDate(data.lastBackgroundRotationDate ?? null);
-
-    setHiddenPrayerIds(Array.isArray(data.hiddenPrayerIds) ? data.hiddenPrayerIds : []);
-    setEditedPrayerIds(Array.isArray(data.editedPrayerIds) ? data.editedPrayerIds : []);
-
-    setUserDevotions(Array.isArray(data.userDevotions) ? data.userDevotions : []);
-    setUserPrayers(Array.isArray(data.userPrayers) ? data.userPrayers : []);
-    setUserLetters(Array.isArray(data.userLetters) ? data.userLetters : []);
-
-    const asp = Array.isArray(data.alwaysShowPrayers) ? data.alwaysShowPrayers : [];
-    if (!asp.includes('cartas')) asp.push('cartas');
-    setAlwaysShowPrayers(asp);
-
-    setIsDeveloperMode(data.isDeveloperMode ?? false);
-    setIsEditModeEnabled(data.isEditModeEnabled ?? false);
-
-    setTimerEnabled(data.timerEnabled ?? false);
-    setTimerDuration(typeof data.timerDuration === 'number' ? data.timerDuration : 15);
-    setTimerActive(false);
-    setTimerTime((typeof data.timerDuration === 'number' ? data.timerDuration : 15) * 60);
-    setOverlayPositions(normalizeOverlayPositions(data.overlayPositions));
-
-    setPlanDeVidaTrackerEnabled(data.planDeVidaTrackerEnabled ?? true);
-    setPlanDeVidaProgress(Array.isArray(data.planDeVidaProgress) ? data.planDeVidaProgress : []);
-    setPlanDeVidaCalendar(
-      data.planDeVidaCalendar && typeof data.planDeVidaCalendar === 'object'
-        ? data.planDeVidaCalendar
-        : {}
-    );
-    setLastResetTimestamp(typeof data.lastResetTimestamp === 'number' ? data.lastResetTimestamp : Date.now());
-
-    setUserQuotes(Array.isArray(data.userQuotes) ? data.userQuotes : []);
-    setMovableFeastsEnabled(data.movableFeastsEnabled ?? true);
-
-    setCustomThemeColors(data.customThemeColors ?? defaultThemeColors);
-    setIsCustomThemeActive(data.isCustomThemeActive ?? false);
-    setPinchToZoomEnabled(data.pinchToZoomEnabled ?? true);
-    setNavMode(data.navMode === 'touch' ? 'touch' : 'bubble');
-    setArrowBubbleSize(data.arrowBubbleSize === 'md' || data.arrowBubbleSize === 'lg' ? data.arrowBubbleSize : 'sm');
-
-    setUserHomeBackgrounds(Array.isArray(data.userHomeBackgrounds) ? data.userHomeBackgrounds : []);
-    setScrollPositions(data.scrollPositions && typeof data.scrollPositions === 'object' ? data.scrollPositions : {});
-
-    setQuoteOfTheDay(data.quoteOfTheDay ?? null);
-    setRecentQuoteIds(Array.isArray(data.recentQuoteIds) ? data.recentQuoteIds : []);
-    setLastQuoteDate(typeof data.lastQuoteDate === 'string' ? data.lastQuoteDate : null);
-
-    setShownEasterEggQuoteIds(Array.isArray(data.shownEasterEggQuoteIds) ? data.shownEasterEggQuoteIds : []);
-
-    setSaintOfTheDay(data.saintOfTheDay ?? null);
-          setSaintOfTheDayImage(data.saintOfTheDayImage ?? null);
-          setLastSaintUpdate(typeof data.lastSaintUpdate === 'string' ? data.lastSaintUpdate : null);
-          // No necesitamos persistir overriddenFixedSaint, se recalcula
-
-    const rawCustomPlans = Array.isArray(data.customPlans) ? data.customPlans : [];
-    const normalizedPlans: Array<CustomPlan | null> = [null, null, null, null];
-    for (const entry of rawCustomPlans) {
-      if (!entry || typeof entry !== 'object') continue;
-      const slot = (entry as any).slot;
-      if (slot !== 1 && slot !== 2 && slot !== 3 && slot !== 4) continue;
-      const nameCandidate = typeof (entry as any).name === 'string' ? (entry as any).name : '';
-      const trimmedName = nameCandidate.trim();
-      const name = trimmedName.length > 0 && !/^Plan personalizado\b/i.test(trimmedName) ? trimmedName : '';
-      const prayerIds = Array.isArray((entry as any).prayerIds)
-        ? (entry as any).prayerIds.filter((x: any) => typeof x === 'string')
-        : [];
-      const id = typeof (entry as any).id === 'string' ? (entry as any).id : `custom-plan-${slot}-${Date.now()}`;
-      const createdAt = typeof (entry as any).createdAt === 'number' ? (entry as any).createdAt : Date.now();
-      normalizedPlans[slot - 1] = { id, slot, name, prayerIds, createdAt };
-    }
-    setCustomPlans(normalizedPlans);
-
-    if (!silent) {
-      toast({ title: 'Datos importados.' });
-    }
-    pushDevLiveTrace({
-      level: 'info',
-      source: 'import',
-      message: 'Importacion completa aplicada.',
-    });
-  };
-
-  const importCustomPlanPayload = useCallback((data: any) => {
-    if (!isCustomPlanPayload(data)) return false;
-    const normalizedPrayerIds = data.prayerIds.filter((x: unknown): x is string => typeof x === 'string');
-    if (normalizedPrayerIds.length === 0) return false;
-
-    const preferredSlot = data.slot === 1 || data.slot === 2 || data.slot === 3 || data.slot === 4 ? data.slot : null;
-    setCustomPlans((prev) => {
-      const next = [...prev];
-      const firstEmpty = next.findIndex((entry) => !entry);
-      const targetSlot =
-        (preferredSlot && !next[preferredSlot - 1] && preferredSlot) ||
-        (firstEmpty >= 0 ? ((firstEmpty + 1) as 1 | 2 | 3 | 4) : (preferredSlot ?? 1));
-      const trimmed = data.name.trim();
-      const name = trimmed.length > 0 && !/^Plan personalizado\b/i.test(trimmed) ? trimmed : `Plan ${targetSlot}`;
-      next[targetSlot - 1] = {
-        id: `custom-plan-${targetSlot}-${Date.now()}`,
-        slot: targetSlot,
-        name,
-        prayerIds: normalizedPrayerIds,
-        createdAt: Date.now(),
-      };
-      return next;
-    });
-    return true;
-  }, []);
+      return notifyIfNeeded(appliedResult);
+    },
+    [applyBackupSnapshot, backupSnapshot, pushDevLiveTrace, toast]
+  );
 
   useEffect(() => {
     if (!isLoaded || typeof window === 'undefined') return;
@@ -1496,22 +1943,18 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         window.localStorage.removeItem(PENDING_IMPORT_STORAGE_KEY);
 
         const parsed = JSON.parse(raw);
-        if (importCustomPlanPayload(parsed)) {
-          pushDevLiveTrace({
-            level: 'info',
-            source: 'import',
-            message: 'Plan personalizado importado desde archivo compartido.',
-          });
-          toast({ title: 'Plan personalizado cargado con éxito.' });
+        const result = importUserData(parsed, { silent: true });
+
+        if (result.status === 'applied' || result.status === 'duplicate') {
+          toast({ title: result.title, description: result.description });
           return;
         }
-        importUserData(parsed, { silent: true });
-        pushDevLiveTrace({
-          level: 'info',
-          source: 'import',
-          message: 'Respaldo importado desde archivo compartido.',
+
+        toast({
+          variant: 'destructive',
+          title: result.title,
+          description: result.description,
         });
-        toast({ title: 'Respaldo cargado con éxito.' });
       } catch {
         pushDevLiveTrace({
           level: 'error',
@@ -1531,7 +1974,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       window.removeEventListener('cotidie-pending-import', consumePendingImport);
     };
-  }, [isLoaded, importCustomPlanPayload, importUserData, toast]);
+  }, [importUserData, isLoaded, pushDevLiveTrace, toast]);
 
   const setOverlayPosition = (key: keyof OverlayPositions, pos: OverlayPosition) => {
     setOverlayPositions((prev) => ({
@@ -1576,18 +2019,35 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [timerDuration]);
 
-  const togglePlanDeVidaItem = (id: string, force?: boolean, skipStatIncrement?: boolean) => {
-     const now = simulatedDate ? new Date(simulatedDate) : new Date();
-     const dateKey = getPastoralDayKey(now);
+  const parseEventDateFromDateKey = (dateKey?: string | null) => {
+    if (!dateKey) return null;
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateKey);
+    if (!match) return null;
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return null;
+    return new Date(year, month - 1, day, 12, 0, 0, 0);
+  };
+
+  const incrementPlanDeVidaAggregate = (id: string) => {
+    setUserStats((prev) => applyPlanDeVidaAggregateIncrement(prev, id));
+    setGlobalUserStats((prev) => applyPlanDeVidaAggregateIncrement(prev, id));
+  };
+  const togglePlanDeVidaItem = (id: string, force?: boolean, skipStatIncrement?: boolean, eventDateKey?: string | null) => {
+     const eventDate = parseEventDateFromDateKey(eventDateKey) ?? (simulatedDate ? new Date(simulatedDate) : new Date());
+     const dateKey = eventDateKey ?? getPastoralDayKey(eventDate);
 
      setPlanDeVidaProgress(prev => {
         const isChecked = prev.includes(id);
         const nextChecked = force !== undefined ? force : !isChecked;
+        let addedToCalendar = false;
 
         setPlanDeVidaCalendar(prevCalendar => {
           const existing = Array.isArray(prevCalendar[dateKey]) ? prevCalendar[dateKey] : [];
           if (nextChecked) {
             if (existing.includes(id)) return prevCalendar;
+            addedToCalendar = true;
             return { ...prevCalendar, [dateKey]: [...existing, id] };
           }
           if (!existing.includes(id)) return prevCalendar;
@@ -1599,11 +2059,15 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           return { ...prevCalendar, [dateKey]: nextList };
         });
 
-        if (nextChecked && !isChecked && !isIncrementSyncingPlanRef.current && !skipStatIncrement) {
-          incrementStat('prayersOpenedHistory', id);
+        if (addedToCalendar) {
+          incrementPlanDeVidaAggregate(id);
         }
 
-        if (nextChecked !== isChecked) {
+        if (nextChecked && !isChecked && !isIncrementSyncingPlanRef.current && !skipStatIncrement) {
+          incrementStat('prayersOpenedHistory', id, { eventDate });
+        }
+
+        if (nextChecked !== isChecked || addedToCalendar) {
           pushDevLiveTrace({
             level: 'info',
             source: 'plan-de-vida',
@@ -1625,11 +2089,11 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
     const applyPending = async () => {
       const result = await BackgroundActions.getPendingMarkPrayed().catch(() => null);
-      const ids = result?.ids ?? [];
-      if (ids.length === 0) return;
-      ids.forEach((id) => {
-        if (typeof id === 'string' && id.length > 0) {
-          togglePlanDeVidaItem(id, true);
+      const items = result?.items ?? [];
+      if (items.length === 0) return;
+      items.forEach((item) => {
+        if (typeof item?.id === 'string' && item.id.length > 0) {
+          togglePlanDeVidaItem(item.id, true, false, item.dateKey ?? null);
         }
       });
     };
@@ -1733,6 +2197,14 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setScrollPositions(prev => ({ ...prev, [prayerId]: position }));
   };
 
+  const setPrayerLanguagePreference = (prayerId: string, language: string) => {
+    if (!prayerId || !language) return;
+    setPrayerLanguagePreferences(prev => {
+      if (prev[prayerId] === language) return prev;
+      return { ...prev, [prayerId]: language };
+    });
+  };
+
   const registerEasterEggQuote = (quoteId: string | null, reset?: boolean) => {
      if (reset) {
          setShownEasterEggQuoteIds([]);
@@ -1744,12 +2216,12 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   // Combined prayers list
   const allPrayers = useMemo(() => {
     return [
-      ...initialPrayers.filter(p => !hiddenPrayerIds.includes(p.id!)),
+      ...applyPredefinedPrayerState(initialPrayers, hiddenPrayerIds, predefinedPrayerOverrides),
       ...userDevotions,
       ...userPrayers,
       ...userLetters,
     ];
-  }, [initialPrayers, hiddenPrayerIds, userDevotions, userPrayers, userLetters]);
+  }, [initialPrayers, hiddenPrayerIds, predefinedPrayerOverrides, userDevotions, userPrayers, userLetters]);
 
   const getPrayerById = useCallback((id: string, list: Prayer[]): Prayer | null => {
     for (const prayer of list) {
@@ -1816,129 +2288,38 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     return Array.from(new Set(keys));
   };
 
-  const incrementGlobalStat = (key: keyof UserStats, subKey?: string) => {
+  const incrementGlobalStat = (key: keyof UserStats, subKey?: string, options?: StatIncrementOptions) => {
     setGlobalUserStats(prev => {
-        // Reuse logic? Or copy-paste for safety.
-        // It's safer to just replicate the increment logic for global stats
-        // but without side effects (like plan de vida toggling)
         if (key === 'prayersOpenedHistory' && subKey) {
-            const history = { ...prev.prayersOpenedHistory };
-            const statKeys = getAngelusStatKeys(subKey);
-            for (const statKey of statKeys) {
-              history[statKey] = (history[statKey] || 0) + 1;
-            }
-            
-            const now = new Date();
-            const hour = now.getHours();
-            const isNight = hour >= 20 || hour < 4; // Expanded range for Night (8PM - 4AM)
-            const isMorning = hour >= 4 && hour < 12; // Expanded range for Morning (4AM - 12PM)
-
-            const isRosary = subKey === 'rosario' || subKey === 'santo-rosario';
-            const isAngelus = isAngelusStatKey(subKey);
-            const isExamination = subKey === 'examen-conciencia' || subKey === 'examen-noche';
-            
-            const todayKey = getPastoralDayKey(now);
-            const lastOpened = prev.prayerLastOpened?.[subKey];
-            
-            const newPrayerLastOpened = { ...(prev.prayerLastOpened || {}) };
-            const newPrayerDaysCount = { ...(prev.prayerDaysCount || {}) };
-            
-            if (lastOpened !== todayKey) {
-                 for (const statKey of statKeys) {
-                   newPrayerLastOpened[statKey] = todayKey;
-                   newPrayerDaysCount[statKey] = (newPrayerDaysCount[statKey] || 0) + 1;
-                 }
-            }
-
-            let newMassStreak = prev.massStreak || 0;
-            let newMassDaysCount = prev.massDaysCount || 0;
-            let newLastMassDate = prev.lastMassDate;
-
-            // Morning Stats (No streak, just total days)
-            let newMorningDaysCount = prev.morningDaysCount || 0;
-            let newLastMorningDate = prev.lastMorningPrayerDate;
-
-            // Night Stats (No streak, just total days)
-            let newNightDaysCount = prev.nightDaysCount || 0;
-            let newLastNightDate = prev.lastNightPrayerDate;
-
-            const prayer = getPrayerById(subKey, allPrayers);
-            
-            // Mass Logic
-            const isMassPrayer = 
-                subKey === 'santa-misa' || 
-                subKey === 'antes-misa' || 
-                subKey === 'despues-misa' || 
-                subKey === 'misal' ||
-                (prayer?.categoryId === 'santa-misa') ||
-                (getRootPlanDeVidaId(subKey) === 'santa-misa');
-
-            if (isMassPrayer) {
-                 if (newLastMassDate !== todayKey) {
-                     const yesterday = getPastoralDayDate(now);
-                     yesterday.setDate(yesterday.getDate() - 1);
-                     const yesterdayKey = getLocalDateKey(yesterday);
-                     
-                     if (newLastMassDate === yesterdayKey) {
-                         newMassStreak += 1;
-                     } else {
-                         newMassStreak = 1;
-                     }
-                     newLastMassDate = todayKey;
-                     newMassDaysCount += 1;
-                 }
-            }
-
-            // Morning Logic
-            if (isMorning) {
-                if (newLastMorningDate !== todayKey) {
-                    newLastMorningDate = todayKey;
-                    newMorningDaysCount += 1;
-                }
-            }
-
-            // Night Logic
-            if (isNight) {
-                if (newLastNightDate !== todayKey) {
-                    newLastNightDate = todayKey;
-                    newNightDaysCount += 1;
-                }
-            }
-            
-            return { 
-              ...prev, 
-              prayersOpenedHistory: history,
-              totalPrayersOpened: prev.totalPrayersOpened + 1,
-              // Update specific requested stats
-              massStreak: newMassStreak,
-              massDaysCount: newMassDaysCount,
-              morningDaysCount: newMorningDaysCount,
-              nightDaysCount: newNightDaysCount,
-              // Update dates
-              lastMassDate: newLastMassDate,
-              lastMorningPrayerDate: newLastMorningDate,
-              lastNightPrayerDate: newLastNightDate,
-              // Keep others updating in background just in case
-              rosaryCount: isRosary ? (prev.rosaryCount || 0) + 1 : (prev.rosaryCount || 0),
-              angelusCount: isAngelus ? (prev.angelusCount || 0) + 1 : (prev.angelusCount || 0),
-              examinationCount: isExamination ? (prev.examinationCount || 0) + 1 : (prev.examinationCount || 0),
-              prayerLastOpened: newPrayerLastOpened,
-              prayerDaysCount: newPrayerDaysCount,
-            };
+            return applyPrayerOpenIncrement({
+              prev,
+              subKey,
+              eventDate: options?.eventDate ?? new Date(),
+              allPrayers,
+              getPrayerById,
+              getRootPlanDeVidaId,
+              getPastoralDayKey,
+              getPastoralDayDate,
+              getLocalDateKey,
+              isAngelusStatKey,
+              getAngelusStatKeys,
+              updateTimestamp: false,
+            });
         }
-        
+
         if (typeof prev[key] === 'number') {
             return { ...prev, [key]: (prev[key] as number) + 1 };
         }
-        
+
         return prev;
     });
   };
 
-  const incrementStat = (key: keyof UserStats, subKey?: string) => {
+  const incrementStat = (key: keyof UserStats, subKey?: string, options?: StatIncrementOptions) => {
     // Check freeze time (1 hour)
     if (key === 'prayersOpenedHistory' && subKey) {
         const now = Date.now();
+        const forcedDateKey = options?.eventDate ? getPastoralDayKey(options.eventDate) : null;
         const cooldownKey = isAngelusStatKey(subKey) ? 'angelus' : subKey;
         const lastIncrement = userStats.prayerLastIncrementTimestamp?.[cooldownKey] || 0;
         if (now - lastIncrement < 3600000) { // 1 hour = 3600000 ms
@@ -1947,7 +2328,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
             const targetId = rootId || subKey;
             if (targetId) {
               isIncrementSyncingPlanRef.current = true;
-              togglePlanDeVidaItem(targetId, true, true);
+              togglePlanDeVidaItem(targetId, true, true, forcedDateKey);
               isIncrementSyncingPlanRef.current = false;
             }
             pushDevLiveTrace({
@@ -1961,7 +2342,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     }
 
     // Always increment global stats too
-    incrementGlobalStat(key, subKey);
+    incrementGlobalStat(key, subKey, options);
     pushDevLiveTrace({
       level: 'info',
       source: 'stats',
@@ -1975,128 +2356,27 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         const targetId = rootId || subKey;
         if (targetId) {
             isIncrementSyncingPlanRef.current = true;
-            togglePlanDeVidaItem(targetId, true, true);
+            togglePlanDeVidaItem(targetId, true, true, options?.eventDate ? getPastoralDayKey(options.eventDate) : null);
             isIncrementSyncingPlanRef.current = false;
         }
     }
 
     setUserStats(prev => {
       if (key === 'prayersOpenedHistory' && subKey) {
-        const history = { ...prev.prayersOpenedHistory };
-        const statKeys = getAngelusStatKeys(subKey);
-        for (const statKey of statKeys) {
-          history[statKey] = (history[statKey] || 0) + 1;
-        }
-        
-        // Update timestamp
-        const timestamps = { ...(prev.prayerLastIncrementTimestamp || {}) };
-        const nowTs = Date.now();
-        for (const statKey of statKeys) {
-          timestamps[statKey] = nowTs;
-        }
-
-        // Check for time-based stats
-        const now = new Date();
-        const hour = now.getHours();
-        const isNight = hour >= 20 || hour < 4; // Expanded range for Night (8PM - 4AM)
-        const isMorning = hour >= 4 && hour < 12; // Expanded range for Morning (4AM - 12PM)
-
-        // Specific prayer type checks
-        const isRosary = subKey === 'rosario' || subKey === 'santo-rosario';
-        const isAngelus = isAngelusStatKey(subKey);
-        const isExamination = subKey === 'examen-conciencia' || subKey === 'examen-noche';
-        
-        // Track unique days for this prayer/devotion
-        const todayKey = getPastoralDayKey(now);
-        const lastOpened = prev.prayerLastOpened?.[subKey];
-        
-        const newPrayerLastOpened = { ...(prev.prayerLastOpened || {}) };
-        const newPrayerDaysCount = { ...(prev.prayerDaysCount || {}) };
-        
-        if (lastOpened !== todayKey) {
-             for (const statKey of statKeys) {
-               newPrayerLastOpened[statKey] = todayKey;
-               newPrayerDaysCount[statKey] = (newPrayerDaysCount[statKey] || 0) + 1;
-             }
-        }
-
-        // Mass Stats
-        let newMassStreak = prev.massStreak || 0;
-        let newMassDaysCount = prev.massDaysCount || 0;
-        let newLastMassDate = prev.lastMassDate;
-
-        const prayer = getPrayerById(subKey, allPrayers);
-        const isMassPrayer = 
-            subKey === 'santa-misa' || 
-            subKey === 'antes-misa' || 
-            subKey === 'despues-misa' || 
-            subKey === 'misal' ||
-            (prayer?.categoryId === 'santa-misa') ||
-            (getRootPlanDeVidaId(subKey) === 'santa-misa');
-
-        if (isMassPrayer) {
-             if (newLastMassDate !== todayKey) {
-                 const yesterday = getPastoralDayDate(now);
-                 yesterday.setDate(yesterday.getDate() - 1);
-                 const yesterdayKey = getLocalDateKey(yesterday);
-                 
-                 if (newLastMassDate === yesterdayKey) {
-                     newMassStreak += 1;
-                 } else {
-                     newMassStreak = 1;
-                 }
-                 newLastMassDate = todayKey;
-                 newMassDaysCount += 1;
-             }
-        }
-
-        // Morning Stats (Total Days)
-        let newMorningDaysCount = prev.morningDaysCount || 0;
-        let newLastMorningDate = prev.lastMorningPrayerDate;
-
-        if (isMorning) {
-            if (newLastMorningDate !== todayKey) {
-                newLastMorningDate = todayKey;
-                newMorningDaysCount += 1;
-            }
-        }
-
-        // Night Stats (Total Days)
-        let newNightDaysCount = prev.nightDaysCount || 0;
-        let newLastNightDate = prev.lastNightPrayerDate;
-
-        if (isNight) {
-            if (newLastNightDate !== todayKey) {
-                newLastNightDate = todayKey;
-                newNightDaysCount += 1;
-            }
-        }
-        
-        return { 
-          ...prev, 
-          prayersOpenedHistory: history,
-          totalPrayersOpened: prev.totalPrayersOpened + 1,
-          
-          // Updated Stats
-          massStreak: newMassStreak,
-          massDaysCount: newMassDaysCount,
-          morningDaysCount: newMorningDaysCount,
-          nightDaysCount: newNightDaysCount,
-          
-          // Updated Dates
-          lastMassDate: newLastMassDate,
-          lastMorningPrayerDate: newLastMorningDate,
-          lastNightPrayerDate: newLastNightDate,
-
-          // Other Counts
-          rosaryCount: isRosary ? (prev.rosaryCount || 0) + 1 : (prev.rosaryCount || 0),
-          angelusCount: isAngelus ? (prev.angelusCount || 0) + 1 : (prev.angelusCount || 0),
-          examinationCount: isExamination ? (prev.examinationCount || 0) + 1 : (prev.examinationCount || 0),
-          
-          prayerLastOpened: newPrayerLastOpened,
-          prayerDaysCount: newPrayerDaysCount,
-          prayerLastIncrementTimestamp: timestamps,
-        };
+        return applyPrayerOpenIncrement({
+          prev,
+          subKey,
+          eventDate: options?.eventDate ?? new Date(),
+          allPrayers,
+          getPrayerById,
+          getRootPlanDeVidaId,
+          getPastoralDayKey,
+          getPastoralDayDate,
+          getLocalDateKey,
+          isAngelusStatKey,
+          getAngelusStatKeys,
+          updateTimestamp: true,
+        });
       }
       
       if (typeof prev[key] === 'number') {
@@ -2125,308 +2405,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     if (target.id === 'santa-misa') return `Recuerda tu hora de ${title}.`;
     return `Recuerda rezar ${title}.`;
   }, [allPrayers, getPrayerById]);
-
-  const daysInMonth = (year: number, monthIndex: number) =>
-    new Date(year, monthIndex + 1, 0).getDate();
-
-  const addMonthsClamped = (date: Date, months: number) => {
-    const year = date.getFullYear();
-    const month = date.getMonth() + months;
-    const targetYear = year + Math.floor(month / 12);
-    const targetMonth = ((month % 12) + 12) % 12;
-    const maxDay = daysInMonth(targetYear, targetMonth);
-    const day = Math.min(date.getDate(), maxDay);
-    return new Date(
-      targetYear,
-      targetMonth,
-      day,
-      date.getHours(),
-      date.getMinutes(),
-      0,
-      0
-    );
-  };
-
-  const addYearsClamped = (date: Date, years: number) => {
-    const targetYear = date.getFullYear() + years;
-    const maxDay = daysInMonth(targetYear, date.getMonth());
-    const day = Math.min(date.getDate(), maxDay);
-    return new Date(
-      targetYear,
-      date.getMonth(),
-      day,
-      date.getHours(),
-      date.getMinutes(),
-      0,
-      0
-    );
-  };
-
-  const addDays = (date: Date, days: number) => {
-    const next = new Date(date);
-    next.setDate(next.getDate() + days);
-    return next;
-  };
-
-  type FixedDateKind = 'daily' | 'monthly' | 'yearly' | 'once' | 'relative-monthly';
-  type RelativeMonthlySpec = {
-    weekday: number;
-    ordinal: '1' | '2' | '3' | '4' | 'u';
-    hours: number;
-    minutes: number;
-  };
-  type ParsedFixedDate = { kind: FixedDateKind; date: Date; relative?: RelativeMonthlySpec };
-
-  const weekdayByLetter: Record<string, number> = {
-    d: 0,
-    l: 1,
-    m: 2,
-    w: 3,
-    j: 4,
-    v: 5,
-    s: 6,
-  };
-
-  const getNthWeekdayOfMonth = (year: number, monthIndex: number, weekday: number, nth: number) => {
-    const first = new Date(year, monthIndex, 1);
-    const firstDow = first.getDay();
-    const delta = (weekday - firstDow + 7) % 7;
-    const day = 1 + delta + (nth - 1) * 7;
-    return new Date(year, monthIndex, day);
-  };
-
-  const getLastWeekdayOfMonth = (year: number, monthIndex: number, weekday: number) => {
-    const lastDay = new Date(year, monthIndex + 1, 0);
-    const lastDow = lastDay.getDay();
-    const delta = (lastDow - weekday + 7) % 7;
-    const day = lastDay.getDate() - delta;
-    return new Date(year, monthIndex, day);
-  };
-
-  const buildRelativeMonthlyDate = (
-    year: number,
-    monthIndex: number,
-    spec: RelativeMonthlySpec
-  ) => {
-    const candidate =
-      spec.ordinal === 'u'
-        ? getLastWeekdayOfMonth(year, monthIndex, spec.weekday)
-        : getNthWeekdayOfMonth(year, monthIndex, spec.weekday, Number(spec.ordinal));
-    candidate.setHours(spec.hours, spec.minutes, 0, 0);
-    return candidate;
-  };
-
-  const parseFixedNotificationDate = (value: string, now: Date): ParsedFixedDate | null => {
-    const full = value.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})$/);
-    if (full) {
-      const [, dd, mm, yyyy, hh, min] = full;
-      const day = Number(dd);
-      const month = Number(mm);
-      const year = Number(yyyy);
-      const hours = Number(hh);
-      const minutes = Number(min);
-      if (![day, month, year, hours, minutes].every(Number.isFinite)) return null;
-      if (month < 1 || month > 12 || day < 1 || day > 31 || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
-      const maxDay = daysInMonth(year, month - 1);
-      if (day > maxDay) return null;
-      const date = new Date(year, month - 1, day, hours, minutes, 0, 0);
-      return Number.isNaN(date.getTime()) ? null : { kind: 'once', date };
-    }
-
-    const dayMonth = value.match(/^(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})$/);
-    if (dayMonth) {
-      const [, dd, mm, hh, min] = dayMonth;
-      const day = Number(dd);
-      const month = Number(mm);
-      const hours = Number(hh);
-      const minutes = Number(min);
-      if (![day, month, hours, minutes].every(Number.isFinite)) return null;
-      if (month < 1 || month > 12 || day < 1 || day > 31 || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
-      const year = now.getFullYear();
-      const maxDay = daysInMonth(year, month - 1);
-      const clampedDay = Math.min(day, maxDay);
-      const date = new Date(year, month - 1, clampedDay, hours, minutes, 0, 0);
-      return Number.isNaN(date.getTime()) ? null : { kind: 'yearly', date };
-    }
-
-    const dayOnly = value.match(/^(\d{2})\s+(\d{2}):(\d{2})$/);
-    if (dayOnly) {
-      const [, dd, hh, min] = dayOnly;
-      const day = Number(dd);
-      const hours = Number(hh);
-      const minutes = Number(min);
-      if (![day, hours, minutes].every(Number.isFinite)) return null;
-      if (day < 1 || day > 31 || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
-      const year = now.getFullYear();
-      const monthIndex = now.getMonth();
-      const maxDay = daysInMonth(year, monthIndex);
-      const clampedDay = Math.min(day, maxDay);
-      const date = new Date(year, monthIndex, clampedDay, hours, minutes, 0, 0);
-      return Number.isNaN(date.getTime()) ? null : { kind: 'monthly', date };
-    }
-
-    const relative = value.match(/^([lmwjvsd])([1234u])\s+(\d{2}):(\d{2})$/i);
-    if (relative) {
-      const [, letter, ordinal, hh, min] = relative;
-      const weekday = weekdayByLetter[String(letter).toLowerCase()];
-      const hours = Number(hh);
-      const minutes = Number(min);
-      if (typeof weekday !== 'number') return null;
-      if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
-      const spec: RelativeMonthlySpec = {
-        weekday,
-        ordinal: ordinal.toLowerCase() as RelativeMonthlySpec['ordinal'],
-        hours,
-        minutes,
-      };
-      const date = buildRelativeMonthlyDate(now.getFullYear(), now.getMonth(), spec);
-      return Number.isNaN(date.getTime())
-        ? null
-        : { kind: 'relative-monthly', date, relative: spec };
-    }
-
-    const timeOnly = value.match(/^(\d{2}):(\d{2})$/);
-    if (timeOnly) {
-      const [, hh, min] = timeOnly;
-      const hours = Number(hh);
-      const minutes = Number(min);
-      if (![hours, minutes].every(Number.isFinite)) return null;
-      if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
-      const date = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0, 0);
-      return Number.isNaN(date.getTime()) ? null : { kind: 'daily', date };
-    }
-
-    return null;
-  };
-
-  const addByKind = (date: Date, kind: FixedDateKind, relative?: RelativeMonthlySpec) => {
-    switch (kind) {
-      case 'daily':
-        return addDays(date, 1);
-      case 'monthly':
-        return addMonthsClamped(date, 1);
-      case 'yearly':
-        return addYearsClamped(date, 1);
-      case 'relative-monthly': {
-        if (!relative) return addMonthsClamped(date, 1);
-        const baseMonth = new Date(date.getFullYear(), date.getMonth(), 1);
-        const nextMonth = addMonthsClamped(baseMonth, 1);
-        return buildRelativeMonthlyDate(nextMonth.getFullYear(), nextMonth.getMonth(), relative);
-      }
-      case 'once':
-      default:
-        return date;
-    }
-  };
-
-  const getNextOccurrence = (
-    base: Date,
-    kind: FixedDateKind,
-    now: Date,
-    relative?: RelativeMonthlySpec
-  ) => {
-    if (kind === 'relative-monthly' && relative) {
-      let next = buildRelativeMonthlyDate(now.getFullYear(), now.getMonth(), relative);
-      if (next.getTime() < now.getTime()) {
-        const nextMonth = addMonthsClamped(new Date(now.getFullYear(), now.getMonth(), 1), 1);
-        next = buildRelativeMonthlyDate(nextMonth.getFullYear(), nextMonth.getMonth(), relative);
-      }
-      return next;
-    }
-    let next = new Date(base);
-    if (kind === 'once') return next;
-    while (next.getTime() < now.getTime()) {
-      next = addByKind(next, kind);
-    }
-    return next;
-  };
-
-  const weekdayNames = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-  const weekdayShort = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
-  const monthNames = [
-    'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
-  ];
-  const monthShort = [
-    'ene', 'feb', 'mar', 'abr', 'may', 'jun',
-    'jul', 'ago', 'sep', 'oct', 'nov', 'dic'
-  ];
-
-  const formatTemplate = (template: string, date: Date) => {
-    const pad2 = (n: number) => String(n).padStart(2, '0');
-
-    const buildReplacements = (base: Date): Record<string, string> => {
-      const year = base.getFullYear();
-      const month = base.getMonth() + 1;
-      const day = base.getDate();
-      const hours = base.getHours();
-      const minutes = base.getMinutes();
-      const isoDate = `${year}-${pad2(month)}-${pad2(day)}`;
-      const dateEs = `${pad2(day)}/${pad2(month)}/${year}`;
-      const time = `${pad2(hours)}:${pad2(minutes)}`;
-      const isoDateTime = `${isoDate} ${time}`;
-
-      return {
-        year: String(year),
-        month: pad2(month),
-        day: pad2(day),
-        hour: pad2(hours),
-        minute: pad2(minutes),
-        weekday: weekdayNames[base.getDay()],
-        weekday_short: weekdayShort[base.getDay()],
-        month_name: monthNames[base.getMonth()],
-        month_short: monthShort[base.getMonth()],
-        date: dateEs,
-        date_iso: isoDate,
-        time,
-        datetime: `${dateEs} ${time}`,
-        datetime_iso: isoDateTime,
-      };
-    };
-
-    const applyOffset = (base: Date, key: string, offset: number) => {
-      if (!Number.isFinite(offset) || offset === 0) return new Date(base);
-      switch (key) {
-        case 'year':
-          return addYearsClamped(base, offset);
-        case 'month':
-        case 'month_name':
-        case 'month_short':
-          return addMonthsClamped(base, offset);
-        case 'day':
-        case 'date':
-        case 'date_iso':
-        case 'weekday':
-        case 'weekday_short':
-        case 'datetime':
-        case 'datetime_iso':
-          return addDays(base, offset);
-        case 'hour': {
-          const next = new Date(base);
-          next.setHours(next.getHours() + offset);
-          return next;
-        }
-        case 'minute': {
-          const next = new Date(base);
-          next.setMinutes(next.getMinutes() + offset);
-          return next;
-        }
-        default:
-          return new Date(base);
-      }
-    };
-
-    return template.replace(/\{([a-z_]+)([+-]\d+)?\}/gi, (match, key, delta) => {
-      const k = String(key).toLowerCase();
-      const offset = delta ? Number(delta) : 0;
-      if (k === 'year' && Number.isFinite(offset) && Math.abs(offset) >= 1000) {
-        return String(date.getFullYear() + offset);
-      }
-      const base = Number.isFinite(offset) && offset !== 0 ? applyOffset(date, k, offset) : date;
-      const replacements = buildReplacements(base);
-      return Object.prototype.hasOwnProperty.call(replacements, k) ? replacements[k] : match;
-    });
-  };
 
   const ensureAndroidNotificationChannel = useCallback(async () => {
     if (Capacitor.getPlatform() !== 'android') return;
@@ -2513,7 +2491,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       await ensureAndroidNotificationChannel();
 
       const icon = theme === 'dark' ? 'small_icon_white' : 'small_icon_black';
-      const isAndroid = platform === 'android';
 
       const pad2 = (n: number) => String(n).padStart(2, '0');
       const toDateKey = (d: Date) =>
@@ -3041,6 +3018,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         setHomeBackgroundId,
         autoRotateBackground,
         setAutoRotateBackground,
+        welcomeScreenEnabled,
+        setWelcomeScreenEnabled,
         allPrayers,
         userDevotions,
         addUserDevotion,
@@ -3067,6 +3046,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         restoreAllPredefinedPrayers,
         hiddenPrayerIds,
         editedPrayerIds,
+        getBackupSnapshot,
         importUserData,
         timerEnabled,
         setTimerEnabled,
@@ -3128,6 +3108,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         activeThemeColors,
         scrollPositions,
         setScrollPosition,
+        prayerLanguagePreferences,
+        setPrayerLanguagePreference,
         quoteOfTheDay,
         shownEasterEggQuoteIds,
         registerEasterEggQuote,
@@ -3169,6 +3151,21 @@ export const useSettings = () => {
   if (!ctx) throw new Error('useSettings must be used within SettingsProvider');
   return ctx;
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

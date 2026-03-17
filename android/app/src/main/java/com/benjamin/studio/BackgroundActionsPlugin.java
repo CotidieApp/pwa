@@ -9,6 +9,7 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import org.json.JSONArray;
+import org.json.JSONObject;
 
 @CapacitorPlugin(name = "BackgroundActions")
 public class BackgroundActionsPlugin extends Plugin {
@@ -17,7 +18,7 @@ public class BackgroundActionsPlugin extends Plugin {
 
     @PluginMethod
     public void getPendingMarkPrayed(PluginCall call) {
-        JSArray ids = new JSArray();
+        JSArray items = new JSArray();
         try {
             Context context = getContext();
             if (context != null) {
@@ -25,9 +26,24 @@ public class BackgroundActionsPlugin extends Plugin {
                 String raw = prefs.getString(PREFS_KEY, null);
                 JSONArray list = raw != null ? new JSONArray(raw) : new JSONArray();
                 for (int i = 0; i < list.length(); i++) {
-                    String value = list.optString(i, "");
+                    JSONObject entry = list.optJSONObject(i);
+                    if (entry == null) {
+                        String legacyValue = list.optString(i, "");
+                        if (legacyValue != null && !legacyValue.isEmpty()) {
+                            JSObject item = new JSObject();
+                            item.put("id", legacyValue);
+                            item.put("dateKey", JSONObject.NULL);
+                            items.put(item);
+                        }
+                        continue;
+                    }
+
+                    String value = entry.optString("id", "");
                     if (value != null && !value.isEmpty()) {
-                        ids.put(value);
+                        JSObject item = new JSObject();
+                        item.put("id", value);
+                        item.put("dateKey", entry.optString("dateKey", null));
+                        items.put(item);
                     }
                 }
                 prefs.edit().remove(PREFS_KEY).apply();
@@ -36,7 +52,7 @@ public class BackgroundActionsPlugin extends Plugin {
         }
 
         JSObject result = new JSObject();
-        result.put("ids", ids);
+        result.put("items", items);
         call.resolve(result);
     }
 }

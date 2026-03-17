@@ -1,10 +1,9 @@
-'use client';
+﻿'use client';
 
 import React, { useRef, useState, useEffect } from 'react';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { Play, Pause, RotateCcw, Volume2, VolumeX } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface AudioPlayerProps {
   src: string;
@@ -157,3 +156,4 @@ export function AudioPlayer({ src, title }: AudioPlayerProps) {
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-﻿# Registro de Actividad de Agentes (AGENTS.md)
+# Registro de Actividad de Agentes (AGENTS.md)
 
 Este archivo documenta todas las intervenciones realizadas por el asistente (Trae AI), detallando planes, ejecuciones y archivos modificados para mantener un historial claro de cambios y facilitar la depuración.
 
@@ -2347,4 +2347,514 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `src/components/ViaCrucisImmersive.tsx`
 - `android/app/src/main/java/com/benjamin/studio/MainActivity.java`
 - `src/context/SettingsContext.tsx`
+- `AGENTS.md`
+
+
+
+
+
+### [2026-03-11 09:50] 126. Fix build Next 15 (spawn EPERM) + hardening export workers
+**PlanificaciÃ³n:**
+- Resolver el fallo de `npm run build` en Windows donde Next.js terminaba con `spawn EPERM` tras compilar.
+- Mantener `next-pwa` activo sin romper la exportaciÃ³n estÃ¡tica con `workerThreads`.
+- Evitar que el script Android dependa del home de Gradle del entorno y no haga bump/push involuntario en validaciones.
+
+**EjecuciÃ³n:**
+- **Next build / Windows**:
+  - En `next.config.mjs` se desactivÃ³ `experimental.webpackBuildWorker` y se activÃ³ `experimental.workerThreads` para evitar el `spawn` bloqueado de `jest-worker`.
+  - Se aÃ±adiÃ³ `hideFunctionProperties(...)` para ocultar propiedades funciÃ³n en la config devuelta por `withPWA`, reduciendo conflictos de clonaciÃ³n en workers.
+- **Patch reproducible para export workers**:
+  - Se creÃ³ `scripts/patch-next-export-workers.js` para parchear `node_modules/next/dist/export/index.js`.
+  - El parche vuelve no enumerables las funciones de `nextConfig` antes de enviar la configuraciÃ³n a workers de exportaciÃ³n, evitando `DataCloneError` con `generateBuildId`, `exportPathMap` y similares.
+  - `package.json` ahora ejecuta este parche tambiÃ©n en `postinstall`.
+- **Android APK script**:
+  - `scripts/android-apk.mjs` ahora fija `GRADLE_USER_HOME` dentro del workspace (`.gradle-user-home`) para no depender de perfiles invÃ¡lidos del entorno.
+  - Se aÃ±adiÃ³ soporte explÃ­cito para validar con `--no-bump --no-push`, evitando subir versiÃ³n o hacer `git push` por una corrida tÃ©cnica.
+
+**ValidaciÃ³n:**
+- `npm run build` completÃ³ correctamente: compilaciÃ³n, page data, static pages, build traces y export.
+- `node scripts/android-apk.mjs --no-bump --no-push` ya supera el fallo original de Next/webpack y avanza hasta Gradle; la fase final de Android quedÃ³ limitada por descarga/lock del wrapper en el entorno, no por error de la app web.
+
+**Archivos Modificados:**
+- `next.config.mjs`
+- `package.json`
+- `scripts/android-apk.mjs`
+- `scripts/patch-next-export-workers.js`
+- `AGENTS.md`
+
+### [2026-03-11 10:20] 127. Zonas de toque inmersivas como Plan Personalizado
+**PlanificaciÃ³n:**
+- Igualar la navegaciÃ³n tÃ¡ctil de `RosaryImmersive` y `ViaCrucisImmersive` al comportamiento del Plan Personalizado.
+- Permitir que tocar sobre texto tambiÃ©n avance/retroceda, sin romper botones interactivos.
+- Evitar zonas muertas en Rosario cuando el modo global es `Zonas de toque`.
+
+**EjecuciÃ³n:**
+- **Helper tÃ¡ctil**: `src/utils/touchNavigation.ts` ahora exporta `TOUCH_NAV_INTERACTIVE_SELECTORS` y acepta `blockedSelectors` para reutilizar la lÃ³gica con distinto criterio segÃºn la vista.
+- **Rosario inmersivo**:
+  - En modo `touch`, la navegaciÃ³n tÃ¡ctil ahora ignora solo controles interactivos reales (`button`, links, inputs, etc.), igual que el flujo deseado del plan personalizado.
+  - Se retirÃ³ la capa overlay de zonas laterales que estaba interceptando toques y dejaba el centro sin respuesta sobre el texto.
+  - El root click quedÃ³ condicionado a `touchNavEnabled`, para no mezclar globo y zonas de toque a la vez.
+- **Via Crucis inmersivo**:
+  - Se aplicÃ³ el mismo criterio de navegaciÃ³n tÃ¡ctil del Plan Personalizado al tocar texto.
+  - Se eliminÃ³ helper local redundante que bloqueaba `[data-no-touch-nav]`.
+
+**ValidaciÃ³n:**
+- `node .\\node_modules\\typescript\\lib\\tsc.js --noEmit --pretty false` sin errores.
+
+**Archivos Modificados:**
+- `src/utils/touchNavigation.ts`
+- `src/components/RosaryImmersive.tsx`
+- `src/components/ViaCrucisImmersive.tsx`
+- `AGENTS.md`
+
+### [2026-03-11 12:55] 128. AuditorÃ­a global + limpieza de cÃ³digo muerto + separaciÃ³n de componentes
+**PlanificaciÃ³n:**
+- Revisar el proyecto completo excluyendo temporales/cachÃ©s para detectar errores reales, imports/estados muertos y piezas que podÃ­an separarse sin riesgo.
+- Endurecer el chequeo de TypeScript con `noUnusedLocals` y `noUnusedParameters` para identificar cÃ³digo muerto confirmado.
+- Reordenar archivos con fronteras claras de responsabilidad y corregir deuda funcional encontrada durante la auditorÃ­a.
+
+**EjecuciÃ³n:**
+- **Limpieza de cÃ³digo muerto**:
+  - Se eliminaron imports, estados, handlers y helpers sin uso en mÃºltiples componentes (`MainApp`, `PrayerList`, `PrayerDetail`, `ContentSettings`, `AppearanceSettings`, `WrappedStory`, `RosaryImmersive`, `RosaryMeditated`, `SearchCamino`, `DeveloperSettings`, `CustomPlanView`, `AudioPlayer`, `ImageCropper`, `calendar`, etc.).
+  - Se simplificÃ³ `ics-generator.ts` removiendo lÃ³gica/variables huÃ©rfanas y dejando una implementaciÃ³n mÃ¡s directa.
+- **SeparaciÃ³n por coherencia**:
+  - Se extrajo `CartasIntro` desde `MainApp` a `src/components/main/CartasIntro.tsx`.
+  - Se extrajo `SaintOfTheDayCard` desde `PrayerList` a `src/components/saints/SaintOfTheDayCard.tsx`.
+- **CorrecciÃ³n funcional adicional**:
+  - `setPredefinedPrayerOverride` en `SettingsContext` dejÃ³ de ser un `TODO` y ahora guarda, persiste y reaplica overrides de oraciones predeterminadas.
+  - La aplicaciÃ³n de overrides/ocultamiento de oraciones predeterminadas pasÃ³ a ser recursiva, cubriendo tambiÃ©n oraciones anidadas.
+  - `restorePredefinedPrayer` y `restoreAllPredefinedPrayers` ahora limpian correctamente overrides asociados.
+
+**ValidaciÃ³n:**
+- `node .\node_modules\typescript\lib\tsc.js --noEmit --pretty false` sin errores.
+- `node .\node_modules\typescript\lib\tsc.js --noEmit --noUnusedLocals --noUnusedParameters --pretty false` sin errores.
+- `cmd /c npm run build` completado correctamente (`next build` + export estÃ¡tico).
+
+**Archivos Modificados:**
+- `src/components/AddPrayerForm.tsx`
+- `src/components/AudioPlayer.tsx`
+- `src/components/EpubReader.tsx`
+- `src/components/Header.tsx`
+- `src/components/PrayerAccordion.tsx`
+- `src/components/PrayerDetail.tsx`
+- `src/components/PrayerList.tsx`
+- `src/components/RosaryImmersive.tsx`
+- `src/components/RosaryMeditated.tsx`
+- `src/components/SearchCamino.tsx`
+- `src/components/ViaCrucisImmersive.tsx`
+- `src/components/WrappedStory.tsx`
+- `src/components/main/MainApp.tsx`
+- `src/components/main/CartasIntro.tsx`
+- `src/components/plans/CustomPlanView.tsx`
+- `src/components/saints/SaintOfTheDayCard.tsx`
+- `src/components/settings/AppearanceSettings.tsx`
+- `src/components/settings/ContentSettings.tsx`
+- `src/components/settings/DeveloperSettings.tsx`
+- `src/components/ui/ImageCropper.tsx`
+- `src/components/ui/calendar.tsx`
+- `src/context/SettingsContext.tsx`
+- `src/lib/ics-generator.ts`
+- `src/lib/textFormatter.tsx`
+- `AGENTS.md`
+
+### [2026-03-11 13:20] 129. Fix importaciÃ³n real de planes `.ctd` y respaldos completos
+**PlanificaciÃ³n:**
+- Verificar si la importaciÃ³n/exportaciÃ³n mostraba mensajes de Ã©xito acordes al estado real aplicado.
+- Corregir el caso donde un `.ctd` de plan personalizado se confirmaba pero no actualizaba `customPlans`.
+- Corregir la importaciÃ³n de respaldo completo para que no dependa solo de `localStorage` cuando la app prioriza IndexedDB.
+
+**EjecuciÃ³n:**
+- **Plans `.ctd`**: en `SettingsContext`, la rama de importaciÃ³n parcial ahora procesa `customPlans`, de modo que importar un plan personalizado desde archivo local sÃ­ actualiza el estado efectivo de la app.
+- **Backups completos**: en `ContentSettings`, la detecciÃ³n de backup completo dejÃ³ de escribir solo en `localStorage` + recargar; ahora usa `importUserData(...)` para aplicar el estado vivo y persistirlo correctamente por la vÃ­a normal (IndexedDB + respaldo local).
+- **Resultado funcional**: tanto el mensaje de Ã©xito como el estado aplicado quedaron alineados para importaciones de planes y respaldos.
+
+**ValidaciÃ³n:**
+- `node .\node_modules\typescript\lib\tsc.js --noEmit --noUnusedLocals --noUnusedParameters --pretty false` sin errores.
+- `cmd /c npm run build` completado correctamente.
+
+**Archivos Modificados:**
+- `src/context/SettingsContext.tsx`
+- `src/components/settings/ContentSettings.tsx`
+- `AGENTS.md`
+
+### [2026-03-11 15:30] 130. Traslado limpio del proyecto a Escritorio
+**PlanificaciÃ³n:**
+- Mover el proyecto a `Desktop` excluyendo carpetas y archivos temporales o de cachÃ©.
+- Reinstalar Ãºnicamente dependencias y artefactos temporales necesarios en la copia nueva.
+- Intentar retirar la carpeta original para evitar duplicados y confusiÃ³n de rutas.
+
+**EjecuciÃ³n:**
+- **Copia limpia**: se replicÃ³ el proyecto en `C:\Users\balca\Desktop\CotidieApp` excluyendo `node_modules`, `.next`, `out`, `dist`, `coverage`, `.turbo`, `.gradle-user-home`, `.gradle`, `.idea`, `.trae`, `android\.gradle`, `android\build`, `android\app\build` y logs/temporales comunes.
+- **ReinstalaciÃ³n**: se ejecutÃ³ `npm install` en la copia de Escritorio para reconstruir Ãºnicamente dependencias necesarias.
+- **Limpieza final**: se eliminaron rastros generados no necesarios en la nueva copia (`tsc.out`, `tsconfig.tsbuildinfo`).
+- **Ruta original**: la carpeta original quedÃ³ vaciada, pero Windows mantuvo bloqueado el borrado del directorio raÃ­z por uso de otro proceso durante esta sesiÃ³n.
+
+**Resultado:**
+- La copia operativa y limpia del proyecto pasÃ³ a ser `C:\Users\balca\Desktop\CotidieApp`.
+- En la copia nueva no quedaron `.trae` ni carpetas de cachÃ© excluidas del traslado.
+
+**Archivos Modificados:**
+- `AGENTS.md`
+
+
+### [2026-03-11 16:17] 131. Saneamiento tras mudanza de carpeta + validaciÃ³n completa
+**PlanificaciÃ³n:**
+- Revisar si el cambio de ubicaciÃ³n dejÃ³ rutas absolutas, dependencias ausentes o builds rotos.
+- Corregir textos daÃ±ados o mal formulados que hubieran quedado en la copia nueva.
+- Restaurar artefactos externos faltantes solo si eran necesarios para volver a compilar.
+
+**EjecuciÃ³n:**
+- **Rutas tras la mudanza**: se revisaron referencias a rutas antiguas y no quedaron configuraciones activas del proyecto apuntando a la carpeta previa; las coincidencias restantes fueron solo histÃ³ricas en `AGENTS.md` o referencias nominales del cÃ³digo.
+- **Texto/UI**: se normalizaron secuencias mojibake reales en 17 archivos de `src` (acentos, signos de apertura, viÃ±etas, emoji e Ã­ndices) para que la interfaz vuelva a mostrarse correctamente.
+- **FormulaciÃ³n**: se corrigieron frases visibles como `Se ha abierto el menÃº para compartir.` y el misterio luminoso `La autorrevelaciÃ³n de JesÃºs en las bodas de CanÃ¡`.
+- **Android/Gradle**: se restaurÃ³ la cachÃ© local necesaria del wrapper de Gradle en la nueva ubicaciÃ³n y se recompilÃ³ Android usando `GRADLE_USER_HOME` dentro del proyecto.
+
+**ValidaciÃ³n:**
+- `npm run build` completado correctamente en `C:\Users\balca\Desktop\CotidieApp`.
+- `android\gradlew.bat :app:compileDebugJavaWithJavac` completado correctamente con la cachÃ© nueva de Gradle.
+- No quedaron secuencias mojibake en `src` tras el saneamiento.
+
+**Archivos Modificados:**
+- `src/components/AddPrayerForm.tsx`
+- `src/components/EpubReader.tsx`
+- `src/components/Header.tsx`
+- `src/components/main/MainApp.tsx`
+- `src/components/plans/CustomPlanView.tsx`
+- `src/components/PrayerAccordion.tsx`
+- `src/components/PrayerDetail.tsx`
+- `src/components/PrayerList.tsx`
+- `src/components/RosaryImmersive.tsx`
+- `src/components/RosaryMeditated.tsx`
+- `src/components/settings/AppearanceSettings.tsx`
+- `src/components/settings/ContentSettings.tsx`
+- `src/components/settings/DeveloperSettings.tsx`
+- `src/components/ViaCrucisImmersive.tsx`
+- `src/components/WrappedStory.tsx`
+- `src/context/SettingsContext.tsx`
+- `src/lib/textFormatter.tsx`
+- `AGENTS.md`
+
+
+### [2026-03-11 18:09] 132. Fix back en Plan Personalizado entre categor?as
+**Planificaci?n:**
+- Revisar por qu? el flujo de retroceso se romp?a al pasar de una oraci?n de Plan de Vida a una devoci?n dentro de un plan personalizado.
+- Corregir tanto el bot?n de volver de la app como el back nativo de Android para que respeten el contexto del plan.
+
+**Ejecuci?n:**
+- **MainApp**: `handleBack` dej? de expulsar al usuario a Inicio cuando la oraci?n actual viene de un plan personalizado. Ahora intenta abrir el ?tem v?lido anterior del mismo plan y, si no existe uno previo, vuelve a la vista del plan.
+- **Cruce de categor?as**: el retroceso ahora conserva el slot e ?ndice del plan aunque el siguiente elemento pertenezca a otra categor?a (por ejemplo, de `Acordaos` a `Oraci?n a San Benjam?n`).
+- **Android**: `useAndroidBackButton` pas? a delegar en la misma l?gica central de `handleBack`, evitando que el bot?n f?sico tenga un comportamiento distinto al bot?n del header.
+
+**Validaci?n:**
+- `npm run build` completado correctamente.
+
+**Archivos Modificados:**
+- `src/components/main/MainApp.tsx`
+- `src/components/main/useNativeAppBindings.ts`
+- `AGENTS.md`
+
+
+### [2026-03-11 18:24] 133. Ajuste final de secuencia lineal en Plan Personalizado
+**Planificaci?n:**
+- Ajustar el fix anterior para que la navegaci?n del plan sea estrictamente lineal entre ?tems.
+- Evitar que el retroceso en el primer ?tem saque al usuario del flujo.
+
+**Ejecuci?n:**
+- **MainApp**: en contexto de oraci?n abierta desde plan personalizado, `handleBack` ahora intenta abrir el ?tem anterior v?lido del plan y, si no existe uno previo, no realiza ninguna acci?n.
+- **Bordes del flujo**: la secuencia qued? como `1 -> 2 -> 3 -> ... -> x`; en `1`, retroceder no hace nada, y en `x`, avanzar sigue sin hacer nada como antes.
+
+**Validaci?n:**
+- `npm run build` completado correctamente.
+
+**Archivos Modificados:**
+- `src/components/main/MainApp.tsx`
+- `AGENTS.md`
+
+
+### [2026-03-11 18:36] 134. Doble avance para salir al men? en fin de plan
+**Planificaci?n:**
+- A?adir una salida controlada al llegar al ?ltimo ?tem de un plan personalizado sin romper la secuencia lineal.
+- Mantener el flujo `1 -> 2 -> ... -> x`, pero permitir salir con doble avance desde `x`.
+
+**Ejecuci?n:**
+- **MainApp**: al intentar avanzar en el ?ltimo ?tem del plan, ahora aparece un toast con el aviso `Vuelve a avanzar para salir`.
+- **Confirmaci?n**: si el usuario vuelve a avanzar dentro de una ventana corta, la app vuelve al men? del plan personalizado.
+- **Controles de borde**: las flechas de navegaci?n del plan ya no se deshabilitan en los extremos; en el primero, retroceder no hace nada, y en el ?ltimo, avanzar activa la confirmaci?n de salida.
+
+**Validaci?n:**
+- `npm run build` completado correctamente.
+
+**Archivos Modificados:**
+- `src/components/main/MainApp.tsx`
+- `AGENTS.md`
+
+### [2026-03-11 21:57] 124. Fullscreen con imagen + respaldo total + importacion inteligente
+**Planificacion:**
+- Mantener la imagen asociada a la oracion dentro del modo pantalla completa, sin perder el ancho completo.
+- Hacer que el respaldo general `.ctd` exporte y restaure todo el estado relevante de la app desde un snapshot unico.
+- Evitar importaciones innecesarias detectando respaldos, ajustes o planes personalizados ya existentes.
+
+**Ejecucion:**
+- **PrayerDetail**: la imagen enlazada ya no desaparece en pantalla completa; ahora se mantiene visible y ocupa todo el ancho mientras el texto sigue centrado.
+- **Snapshot completo**: se agrego `getBackupSnapshot` en `SettingsContext` y se normalizo/exporto el estado completo, incluyendo timer, modo distraccion, planes, stats, modo dev, trazas dev, simulaciones y banderas de wrapped.
+- **Hidratacion/importacion**: se centralizo la aplicacion del snapshot completo para cargar/exportar/importar el mismo formato y restaurar esos campos adicionales.
+- **Importacion inteligente**: `importUserData` ahora distingue importacion completa, parcial y de plan personalizado; si el contenido ya coincide con lo existente, muestra aviso y no aplica cambios.
+- **Ajustes y planes**: `ContentSettings` y `CustomPlanView` ahora usan la respuesta de importacion para exportar el snapshot completo y reportar correctamente duplicados o archivos invalidos.
+- **Validacion**: `npx tsc --noEmit` OK. `npm run build` alcanzo `next build --no-lint` pero no termino dentro del timeout del entorno.
+
+**Archivos Modificados:**
+- `src/context/SettingsContext.tsx`
+- `src/components/settings/ContentSettings.tsx`
+- `src/components/plans/CustomPlanView.tsx`
+- `src/components/PrayerDetail.tsx`
+- `AGENTS.md`
+### [2026-03-12 23:10] 135. Comando reutilizable para respaldo limpio a J:
+**Planificacion:**
+- Reemplazar el script de respaldo previo por uno que actualice directamente `J:\BENJA\CotidieApp`.
+- Excluir artefactos temporales e innecesarios del respaldo.
+- Dejar un comando corto reutilizable para ejecutar el respaldo y mostrar error claro si el disco no esta conectado.
+
+**Ejecucion:**
+- **Script de respaldo**: `scripts/create-backup.mjs` ahora limpia y recrea `J:\BENJA\CotidieApp`, copiando el proyecto sin `.git`, `node_modules`, `.next`, `out`, builds, caches, logs, temporales ni APKs.
+- **Validacion de disco**: el script verifica que exista `J:\` antes de copiar; si no esta conectado, falla con mensaje explicito.
+- **Comando npm**: se agrego `npm run backup:drive` en `package.json` para ejecutar el respaldo desde el proyecto.
+- **PowerShell**: se creo la funcion `crear` en el perfil del usuario para permitir `crear respaldo` desde cualquier carpeta.
+- **Validacion**: se ejecuto `node scripts/create-backup.mjs` y `powershell -Command "crear respaldo"` con resultado correcto.
+
+**Archivos Modificados:**
+- `scripts/create-backup.mjs`
+- `package.json`
+- `AGENTS.md`
+### [2026-03-12 23:40] 136. Hardening de git push en android:apk
+**Planificacion:**
+- Revisar por que el paso final de `git push` en `npm run android:apk` falla aunque el mismo push manual funciona.
+- Unificar la ejecucion de Git para evitar diferencias entre el script y la terminal del usuario.
+- Mejorar el diagnostico del comando ejecutado cuando falle.
+
+**Ejecucion:**
+- **Diagnostico**: se detecto que el script ejecutaba Git como string con `shell: true` y ademas usaba una ruta distinta para `commit` frente al resto del flujo, lo que hacia fragil el parseo del ejecutable y argumentos en Windows.
+- **Hardening**: `scripts/android-apk.mjs` ahora usa `spawnSync` con binario y argumentos separados (`shell: false`) para `npm`, `npx`, Gradle y Git.
+- **Consistencia**: `git add`, `git commit` y `git push` ahora comparten la misma resolucion de binario y el mismo entorno de ejecucion.
+- **Trazabilidad**: el helper imprime el comando exacto antes de correrlo y devuelve un error mas preciso si falla.
+- **Validacion**: `node --check scripts\android-apk.mjs` sin errores.
+
+**Archivos Modificados:**
+- `scripts/android-apk.mjs`
+- `AGENTS.md`
+### [2026-03-12 23:58] 137. Idioma por oracion + memoria de navegacion por sesion
+**Planificacion:**
+- Hacer que el idioma elegido se recuerde por cada oracion individual.
+- Mantener la posicion de navegacion si la app solo pasa a segundo plano.
+- Evitar restaurar la ultima pantalla cuando la app fue cerrada del todo y se vuelve a abrir desde cero.
+
+**Ejecucion:**
+- **Idioma por oracion**: se agrego persistencia `prayerLanguagePreferences` en `SettingsContext`, con guardado por `prayerId` y restauracion en `PrayerDetail`.
+- **Detalle de oracion**: cada oracion con variantes recuerda su ultimo idioma valido; `Preces` sigue arrancando en latin solo si aun no existe una preferencia guardada para esa oracion.
+- **Navegacion por sesion**: la persistencia de `navState` se movio de `localStorage` a `sessionStorage`, de modo que la posicion sobrevive al segundo plano pero no a un relanzamiento real tras cerrar la app.
+- **Validacion**: `node .\node_modules\typescript\bin\tsc --noEmit --pretty false` OK.
+
+**Archivos Modificados:**
+- `src/context/SettingsContext.tsx`
+- `src/components/PrayerDetail.tsx`
+- `src/components/main/navigation.ts`
+- `src/components/main/useNavPersistence.ts`
+- `src/components/main/MainApp.tsx`
+- `AGENTS.md`
+### [2026-03-13 00:08] 138. Fix ENOENT de npm/npx en android:apk
+**Planificacion:**
+- Corregir el fallo introducido al ejecutar `npm` y `npx` sin `shell: true` dentro de `scripts/android-apk.mjs` en Windows.
+- Mantener el hardening previo de Git sin volver al esquema fragil anterior.
+
+**Ejecucion:**
+- **Resolucion de comandos**: se agrego `resolveNodeTool()` para convertir `npm` y `npx` a `npm.cmd` y `npx.cmd` en Windows, usando el directorio de Node cuando esta disponible.
+- **Compatibilidad**: el flujo sigue usando `spawnSync` con binario y argumentos separados, pero ahora encuentra correctamente las herramientas Node en Windows.
+- **Validacion**: `node --check scripts\android-apk.mjs` OK.
+
+**Archivos Modificados:**
+- `scripts/android-apk.mjs`
+- `AGENTS.md`
+### [2026-03-13 00:14] 139. Fix EINVAL al lanzar npm.cmd en android:apk
+**Planificacion:**
+- Corregir el fallo `EINVAL` al invocar `npm.cmd`/`npx.cmd` desde `spawnSync` en Windows.
+- Mantener el esquema endurecido sin volver a `shell: true` global.
+
+**Ejecucion:**
+- **Compatibilidad Windows**: `runCommand()` ahora detecta `.cmd` y los ejecuta mediante `cmd.exe /d /s /c`, que es la forma compatible en este entorno para `npm.cmd` y `npx.cmd`.
+- **Alcance acotado**: el cambio solo aplica a scripts `.cmd`; Git y los binarios normales siguen ejecutandose directamente con argumentos separados.
+- **Validacion**: `node --check scripts\android-apk.mjs` OK.
+
+**Archivos Modificados:**
+- `scripts/android-apk.mjs`
+- `AGENTS.md`
+### [2026-03-13 00:28] 140. Endurecimiento completo de android:apk en Windows
+**Planificacion:**
+- Revisar de punta a punta `scripts/android-apk.mjs` para eliminar fallos encadenados de invocacion en Windows.
+- Reemplazar las capas fragiles de `npm.cmd`/`npx.cmd` por entrypoints directos en Node.
+- Validar el flujo real de build/APK y verificar el tramo final de Git sin publicar cambios.
+
+**Ejecucion:**
+- **Node tools**: se reemplazo la ejecucion de `npm` y `npx` por llamadas directas a `node` sobre `npm-cli.js` y la CLI local de Capacitor.
+- **Gradle**: en Windows el script usa `cmd.exe /d /s /c gradlew.bat assembleDebug`, manteniendo compatibilidad con `.bat` sin aplicar shell fragil al resto.
+- **Git**: se mantuvo la ejecucion directa del binario `git.exe` con argumentos separados para `add`, `commit` y `push`.
+- **Validacion real**: `node scripts\android-apk.mjs --no-bump --no-push` completo con build Next, `cap sync android`, `gradlew.bat assembleDebug` y generacion de APK exitosa.
+- **Validacion Git**: `git push --dry-run` respondio `Everything up-to-date`.
+
+**Archivos Modificados:**
+- `scripts/android-apk.mjs`
+- `AGENTS.md`
+### [2026-03-13 00:40] 141. Fix de git add sobre caches de Gradle
+**Planificacion:**
+- Explicar y cortar el fallo del `git add` automatico al final de `android:apk`.
+- Evitar que Git intente indexar caches y locks generados por Gradle dentro del repo.
+
+**Ejecucion:**
+- **Gitignore**: se agrego `/.gradle-user-home/` en el `.gitignore` raiz y se confirmo que `android/build` y `android/app/build` ya estaban ignorados por `android/.gitignore`.
+- **Script APK**: el paso de stage ahora usa `git add -A -- .` con exclusiones explicitas para `.gradle-user-home`, `android/build`, `android/app/build`, `.next`, `out` y `node_modules`.
+- **Validacion**: `git check-ignore -v .gradle-user-home android\build android\app\build` OK y `node --check scripts\android-apk.mjs` OK.
+
+**Archivos Modificados:**
+- `.gitignore`
+- `scripts/android-apk.mjs`
+- `AGENTS.md`
+### [2026-03-13 22:34] 142. Navegacion jerarquica + morado penitencial + salida de plan personalizado
+**Planificacion:**
+- Reemplazar el retroceso basado en historial por retroceso jerarquico real A > B > C > D > E.
+- Hacer que el plan personalizado quede fuera de esa jerarquia: back a Inicio y doble avance final a pantalla principal.
+- Forzar el morado sobre memorias de martires en tiempos penitenciales, dejando solo las celebraciones mayores con color propio, tambien en el widget Android.
+
+**Ejecucion:**
+- **Navegacion jerarquica**: handleBack en MainApp ya no depende de window.history.back(). Ahora sube un nivel por prayerPathIds; un nivel raiz vuelve a su categoria y la categoria vuelve al menu principal.
+- **Plan personalizado**: dentro de un plan personalizado, el back sale a Inicio y el doble avance al final tambien lleva a Inicio, no al menu del plan. La navegacion lineal interna por anterior/siguiente se mantiene.
+- **Color liturgico web**: se ajusto keepsOwnColorInPenitentialSeason para que el morado prevalezca en Adviento/Cuaresma sobre memorias y fiestas menores, incluyendo martires; solo solemnidades, fiesta del Senor y casos mayores como Viernes Santo, Pentecostes y Domingo de Ramos conservan color propio.
+- **Color liturgico Android**: se replico la misma precedencia en SaintWidgetContentFactory, normalizando texto liturgico antes de decidir color para que el widget grande quede alineado con la app.
+- **Validacion**: node node_modules/typescript/bin/tsc --noEmit --pretty false OK y ./gradlew.bat :app:compileDebugJavaWithJavac --console=plain OK.
+
+**Archivos Modificados:**
+- src/components/main/MainApp.tsx
+- src/lib/liturgical-color-rules.ts
+- android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetContentFactory.java
+- AGENTS.md
+### [2026-03-13 22:41] 143. Verificacion de navegacion + limpieza de persistencia
+**Planificacion:**
+- Confirmar que la navegacion jerarquica nueva compile sin errores y revisar si quedo codigo redundante.
+- Eliminar redundancias de persistencia del estado de navegacion sin tocar el comportamiento ya corregido.
+
+**Ejecucion:**
+- **Verificacion**: se reviso MainApp y la salida del plan personalizado; la logica jerarquica y la salida a Inicio permanecen correctas.
+- **Limpieza**: useNavPersistence dejo de recibir argumentos muertos y ahora persiste NavigationState tipado directamente.
+- **Persistencia**: en MainApp se elimino la normalizacion duplicada antes de persistNavState, porque persistNavState ya normaliza internamente.
+- **Validacion**: node node_modules/typescript/bin/tsc --noEmit --pretty false OK.
+
+**Archivos Modificados:**
+- src/components/main/useNavPersistence.ts
+- src/components/main/MainApp.tsx
+- AGENTS.md
+### [2026-03-16 15:42] 144. Fixes de Oraciones/PWA/idioma/Rosario/Camino/EPUB/bienvenida
+**Planificacion:**
+- Corregir la carga visual de `Oraciones`, el override de oraciones predeterminadas y la persistencia de Camino.
+- Resolver fallos de idioma, retroceso en Rosario modo `Leer`, memoria/busqueda del lector EPUB y duracion/limpieza del aviso final de plan personalizado.
+- Agregar ajuste persistente para desactivar la bienvenida, dejar trazabilidad de la causa real de la PWA y conectar imagenes base a oraciones estructurales.
+
+**Ejecucion:**
+- **Oraciones**: se reemplazo el acordeon por secciones visibles estables para evitar que el contenido quedara invisible aunque los botones siguieran activos.
+- **PWA**: se confirmo que `origin/main` quedo detenido en `v4.4.9`, por eso la web no recibio `4.4.10+`; ademas se versiono el `manifest` desde `layout` y `android-apk.mjs` ahora avisa explicitamente cuando se construye APK sin `git push`.
+- **Idioma**: `PrayerDetail` ahora resuelve variantes de idioma por clave normalizada y persiste la eleccion correcta aun si cambian acentos/codificacion de las claves.
+- **Rosario Leer**: `MainApp` y `RosaryMeditated` comparten un back-handler para que retroceder desde un misterio vuelva al menu del Rosario meditado, no a Plan de Vida.
+- **Camino**: el scroll guardado vuelve a ser prioritario; al salir de Camino se limpia el estado del buscador para no reabrir en la ultima busqueda.
+- **Examen de Conciencia**: `setPredefinedPrayerOverride` quedo implementado y las ediciones del usuario ya se guardan/aplican sin el mensaje `Funcion no implementada aun`.
+- **Creditos y bienvenida**: se agrego el texto de colaboracion con IA en `Otros` y un ajuste persistente para desactivar la pantalla de bienvenida.
+- **Imagenes estructurales**: se conectaron imagenes locales a `Padre Nuestro`, `Ave Maria` y `Gloria`, y se corrigieron sus textos base visibles.
+- **Lectura prolongada**: se creo `useScreenWakeLock` y se aplica a textos largos y al lector EPUB para evitar que se apague la pantalla mientras se lee.
+- **EPUB NT**: se reforzo la memoria de ubicacion guardando `cfi` y `href`, con flush en `pagehide/visibilitychange`; la busqueda ahora admite referencias como `Juan 13:18` ademas de texto libre.
+- **Plan personalizado**: el toast final ahora respeta `3` segundos exactos y se descarta inmediatamente al salir del plan para que no aparezca fuera de contexto.
+- **Validacion**: `node node_modules/typescript/bin/tsc --noEmit --pretty false` OK y `npm.cmd run build` OK.
+
+**Archivos Modificados:**
+- `scripts/android-apk.mjs`
+- `src/app/layout.tsx`
+- `src/app/page.tsx`
+- `src/components/EpubReader.tsx`
+- `src/components/PrayerAccordion.tsx`
+- `src/components/PrayerDetail.tsx`
+- `src/components/RosaryMeditated.tsx`
+- `src/components/main/MainApp.tsx`
+- `src/components/settings/AppearanceSettings.tsx`
+- `src/components/settings/DeveloperSettings.tsx`
+- `src/context/SettingsContext.tsx`
+- `src/hooks/use-toast.ts`
+- `src/hooks/useScreenWakeLock.ts`
+- `src/lib/prayers/oraciones/estructurales.ts`
+- `AGENTS.md`
+
+### [2026-03-16 18:19] 145. Preview dev para racha de Misa + AGENTS.md en UTF-8
+**Planificación:**
+- Crear una vista previa completamente aislada de la animación de racha de Misa para Cotidie Annuum.
+- Limitar el acceso solo al panel de desarrollador, usando fechas simuladas aleatorias a lo largo de todos los meses del año.
+- Convertir `AGENTS.md` a UTF-8 real para eliminar el mojibake al abrirlo con herramientas que esperan esa codificación.
+
+**Ejecución:**
+- **Preview de racha**: se agregó `MassStreakSparkPreview` como pieza independiente, con calendario mensual animado, chispa activa, acumulación visual de días recorridos, aceleración progresiva en las rachas y progreso por meses.
+- **Simulación aislada**: la vista genera fechas aleatorias de asistencia a Misa para todo el año, garantizando recorrido por los doce meses sin tocar estadísticas, fechas ni estados reales de la app.
+- **Acceso dev-only**: `DeveloperDashboard` ahora expone un botón `Probar Racha de Misa` que abre el preview en pantalla completa solo dentro del panel de desarrollador.
+- **AGENTS**: se recodificó `AGENTS.md` desde Windows-1252 a UTF-8 sin BOM, conservando el contenido y corrigiendo la visualización de caracteres acentuados y comillas tipográficas.
+- **Validación**: `node node_modules/typescript/bin/tsc --noEmit --pretty false` OK y `npm.cmd run build` OK.
+
+**Archivos Modificados:**
+- `src/components/developer/MassStreakSparkPreview.tsx`
+- `src/components/developer/DeveloperDashboard.tsx`
+- `AGENTS.md`
+
+### [2026-03-16 21:12] 146. Copia automática del APK a Drive en android:apk
+**Planificación:**
+- Extender `npm run android:apk` para que, además de dejar el APK local, lo copie automáticamente a `H:\Mi Unidad\Cotidie\APK Installer`.
+- Hacer que el paso de Drive sea obligatorio, con error claro si no se puede escribir allí, para no dar por exitoso un build incompleto.
+
+**Ejecución:**
+- **Script APK**: se agregó `copyApkToDrive()` en `scripts/android-apk.mjs`, con ruta por defecto `H:\Mi Unidad\Cotidie\APK Installer` y posibilidad de override por `COTIDIE_APK_DRIVE_DIR`.
+- **Copia final**: después de generar `cotidie-installer-v{version}.apk` en la raíz del proyecto, el script ahora lo copia también al destino de Drive con el mismo nombre.
+- **Robustez**: el script crea la carpeta si falta, verifica permiso de escritura y falla explícitamente si no logra completar la copia.
+- **Validación**: `node --check scripts\android-apk.mjs` OK y prueba real de escritura/borrado en `H:\Mi Unidad\Cotidie\APK Installer` OK.
+
+**Archivos Modificados:**
+- `scripts/android-apk.mjs`
+- `AGENTS.md`
+
+### [2026-03-16 21:14] 147. Falla temprana si Git tiene index.lock en android:apk
+**Planificación:**
+- Evitar que `android:apk` haga build completo y falle recién al final cuando Git está bloqueado.
+- Mostrar un mensaje directo si existe `.git\index.lock` antes de intentar `git add/commit/push`.
+
+**Ejecución:**
+- **Preflight Git**: se agregó `ensureGitIndexUnlocked()` a `scripts/android-apk.mjs`.
+- **Chequeo temprano**: cuando el flujo va a hacer `push` automático, el script ahora verifica si existe `.git\index.lock` y aborta antes del build con la fecha de modificación del lock y una instrucción clara para desbloquear Git.
+- **Validación**: `node --check scripts\android-apk.mjs` OK.
+
+**Archivos Modificados:**
+- `scripts/android-apk.mjs`
+- `AGENTS.md`
+
+### [2026-03-16 21:16] 148. Limpieza manual de `.git/index.lock`
+**Planificación:**
+- Destrabar el repositorio para permitir que `android:apk` pueda volver a ejecutar `git add/commit/push`.
+
+**Ejecución:**
+- **Lock de Git**: se eliminó `.git\index.lock`, que estaba bloqueando el índice e impidiendo la sincronización automática.
+- **Verificación**: `git status --short` volvió a responder correctamente después de la limpieza.
+
+**Archivos Modificados:**
+- `AGENTS.md`
+
+### [2026-03-16 21:23] 149. Fix de git add en android:apk por exclusiones ignoradas
+**Planificación:**
+- Corregir el fallo de `git add` al final de `android:apk`, que impedía el `commit/push` de la PWA aunque el APK ya se hubiera generado.
+- Verificar si el problema venía de los avisos de fin de línea o del uso de pathspecs `:(exclude)` sobre rutas ignoradas.
+
+**Ejecución:**
+- **Diagnóstico**: se confirmó que los avisos `LF will be replaced by CRLF` eran solo warnings y no la causa del error.
+- **Causa real**: `git add -A -- . :(exclude)...` devolvía `exit=1` porque las rutas pasadas como exclusión (`.gradle-user-home`, `.next`, `android/build`, `node_modules`, etc.) ya estaban ignoradas y Git las trataba como paths explícitos ignorados.
+- **Script APK**: se eliminó el bloque `GIT_ADD_EXCLUDES` y el stage ahora usa `git add -A -- .`, dejando que `.gitignore` haga su trabajo sin provocar error.
+- **Validación**: `node --check scripts\android-apk.mjs` OK y `git add -n -A -- .` devuelve `exit=0`.
+
+**Archivos Modificados:**
+- `scripts/android-apk.mjs`
 - `AGENTS.md`

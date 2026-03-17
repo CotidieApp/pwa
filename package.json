@@ -1,12 +1,13 @@
 {
   "name": "cotidie",
-  "version": "4.4.9",
+  "version": "4.4.13",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "tsc --noEmit && next build --no-lint",
+    "backup:drive": "node scripts/create-backup.mjs",
     "android:apk": "node scripts/android-apk.mjs",
-    "postinstall": "node scripts/patch-local-notifications.js",
+    "postinstall": "node scripts/patch-local-notifications.js && node scripts/patch-next-export-workers.js",
     "start": "node server.js"
   },
   "dependencies": {

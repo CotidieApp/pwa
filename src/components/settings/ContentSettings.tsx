@@ -1,41 +1,19 @@
-'use client';
+﻿'use client';
 
-import React, { useMemo, useRef, useState, ChangeEvent } from 'react';
-import Image from 'next/image';
+import React, { useMemo, useRef, ChangeEvent } from 'react';
 import { useSettings } from '@/context/SettingsContext';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Combobox } from '@/components/ui/combobox';
 import * as Icon from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useForm, SubmitHandler } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
-import { Prayer, Quote, ImagePlaceholder } from '@/lib/types';
-import { catholicQuotes } from '@/lib/quotes';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { getImageObjectPosition } from '@/lib/image-display';
+import { Prayer } from '@/lib/types';
 import { generateSaintsICS } from '@/lib/ics-generator';
 import { isWrappedSeason } from '@/lib/movable-feasts';
-
-const quoteFormSchema = z.object({
-    text: z.string().min(5, { message: 'El texto de la cita es requerido.' }),
-    author: z.string().min(2, { message: 'El autor es requerido.' }),
-});
-type QuoteFormValues = z.infer<typeof quoteFormSchema>;
 
 interface ContentSettingsProps {
   onShowWrapped?: () => void;
@@ -52,17 +30,11 @@ export default function ContentSettings({ onShowWrapped }: ContentSettingsProps)
     userDevotions,
     userPrayers,
     userLetters,
-    customPlans,
+    getBackupSnapshot,
     importUserData,
     simulatedDate,
-    setSimulatedDate,
     userQuotes,
-    addUserQuote,
-    removeUserQuote,
-    simulatedQuoteId,
-    setSimulatedQuoteId,
     userHomeBackgrounds,
-    incrementStat,
     homeBackgroundId,
     autoRotateBackground,
     isDeveloperMode,
@@ -71,21 +43,7 @@ export default function ContentSettings({ onShowWrapped }: ContentSettingsProps)
   } = useSettings();
 
   const { toast } = useToast();
-  const importFileRef = useRef<HTMLInputElement>(null);
-  const [selectedImage, setSelectedImage] = useState<ImagePlaceholder | null>(null);
-  const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
-
-  const quoteForm = useForm<QuoteFormValues>({
-    resolver: zodResolver(quoteFormSchema),
-    defaultValues: { text: '', author: '' },
-  });
-
-  const onQuoteSubmit: SubmitHandler<QuoteFormValues> = (data) => {
-    addUserQuote(data);
-    quoteForm.reset();
-  };
-
-  const requestStoragePermissionIfNeeded = async (): Promise<boolean> => {
+  const importFileRef = useRef<HTMLInputElement>(null);const requestStoragePermissionIfNeeded = async (): Promise<boolean> => {
     if (!Capacitor.isNativePlatform()) return true;
     if (Capacitor.getPlatform() !== 'android') return true;
     
@@ -96,7 +54,7 @@ export default function ContentSettings({ onShowWrapped }: ContentSettingsProps)
     // So we try to proceed even if check fails, letting the OS handle it.
     
     try {
-      const status = await Filesystem.requestPermissions();
+      await Filesystem.requestPermissions();
       // If granted, great. If denied, we might still be able to write to Documents (scoped).
       // We return true to attempt the write operation. The write itself will throw if it really can't.
       return true; 
@@ -113,20 +71,7 @@ export default function ContentSettings({ onShowWrapped }: ContentSettingsProps)
         return;
       }
 
-      const rawAppState =
-        typeof window !== 'undefined' && window.localStorage && typeof window.localStorage.getItem === 'function'
-          ? window.localStorage.getItem('cotidie_app_state')
-          : null;
-      const appState = rawAppState ? JSON.parse(rawAppState) : null;
-      const dataToExport = appState ?? {
-        userDevotions,
-        userPrayers,
-        userLetters,
-        userQuotes,
-        userHomeBackgrounds,
-        homeBackgroundId,
-        autoRotateBackground,
-      };
+      const dataToExport = getBackupSnapshot();
       const dataStr = JSON.stringify(dataToExport, null, 2);
       
       // Web Fallback
@@ -171,7 +116,7 @@ export default function ContentSettings({ onShowWrapped }: ContentSettingsProps)
           dialogTitle: 'Guardar copia de seguridad'
       });
       
-      toast({ title: 'Respaldo listo', description: 'Se ha abierto el menú compartir.' });
+      toast({ title: 'Respaldo listo', description: 'Se ha abierto el menú para compartir.' });
 
     } catch (error) {
       console.error(error);
@@ -244,7 +189,7 @@ export default function ContentSettings({ onShowWrapped }: ContentSettingsProps)
             dialogTitle: 'Guardar calendario'
         });
 
-        toast({ title: 'Calendario listo', description: 'Se ha abierto el menú compartir.' });
+        toast({ title: 'Calendario listo', description: 'Se ha abierto el menú para compartir.' });
 
     } catch (error) {
         console.error(error);
@@ -261,72 +206,16 @@ export default function ContentSettings({ onShowWrapped }: ContentSettingsProps)
       try {
         const text = e.target?.result as string;
         const data = JSON.parse(text);
-        const isCustomPlanPayload =
-          data &&
-          typeof data === 'object' &&
-          typeof data.name === 'string' &&
-          Array.isArray(data.prayerIds);
+        const result = importUserData(data, { silent: true });
 
-        if (isCustomPlanPayload) {
-          const normalizedPrayerIds = data.prayerIds.filter((x: unknown): x is string => typeof x === 'string');
-          if (normalizedPrayerIds.length === 0) throw new Error('Formato de plan inválido.');
-
-          const preferredSlot = data.slot === 1 || data.slot === 2 || data.slot === 3 || data.slot === 4 ? data.slot : null;
-          const firstEmpty = customPlans.findIndex((entry) => !entry);
-          const targetSlot =
-            (preferredSlot && !customPlans[preferredSlot - 1] && preferredSlot) ||
-            (firstEmpty >= 0 ? ((firstEmpty + 1) as 1 | 2 | 3 | 4) : (preferredSlot ?? 1));
-
-          const nextPlans = [...customPlans];
-          nextPlans[targetSlot - 1] = {
-            id: `custom-plan-${targetSlot}-${Date.now()}`,
-            slot: targetSlot,
-            name: data.name.trim() || `Plan ${targetSlot}`,
-            prayerIds: normalizedPrayerIds,
-            createdAt: Date.now(),
-          };
-          importUserData({ customPlans: nextPlans }, { silent: true });
-          toast({ title: 'Plan personalizado cargado con éxito.' });
+        if (result.status === 'invalid') {
+          toast({ variant: 'destructive', title: result.title, description: result.description });
           return;
         }
 
-        const isFullAppState =
-          data &&
-          typeof data === 'object' &&
-          (typeof data.theme === 'string' ||
-            typeof data.fontSize === 'string' ||
-            typeof data.fontSize === 'number' ||
-            typeof data.fontFamily === 'string' ||
-            typeof data.timerDuration === 'number' ||
-            Array.isArray(data.customPlans));
-
-        if (isFullAppState) {
-          if (typeof window !== 'undefined' && window.localStorage && typeof window.localStorage.setItem === 'function') {
-            window.localStorage.setItem('cotidie_app_state', JSON.stringify(data));
-            toast({ title: 'Respaldo cargado con éxito.' });
-            setTimeout(() => window.location.reload(), 50);
-            return;
-          }
-          throw new Error('No se pudo acceder al almacenamiento local.');
-        }
-
-        if (
-          data.userDevotions ||
-          data.userPrayers ||
-          data.userLetters ||
-          data.userQuotes ||
-          data.userHomeBackgrounds ||
-          typeof data.homeBackgroundId === 'string' ||
-          typeof data.autoRotateBackground === 'boolean'
-        ) {
-          importUserData(data, { silent: true });
-          toast({ title: 'Respaldo cargado con éxito.' });
-          return;
-        }
-
-        throw new Error('Formato de archivo inválido.');
+        toast({ title: result.title, description: result.description });
       } catch (error) {
-        toast({ variant: 'destructive', title: 'Error al importar', description: 'El archivo no es válido.' });
+        toast({ variant: 'destructive', title: 'Error al importar', description: 'El archivo no es valido.' });
       }
     };
     reader.readAsText(file);
@@ -339,55 +228,6 @@ export default function ContentSettings({ onShowWrapped }: ContentSettingsProps)
   const getPrayerDisplayName = (prayerId: string) => {
     const prayer = daySpecificPrayers.find(p => p.id === prayerId);
     return prayer?.title || 'Oración sin título';
-  }
-
-  const allQuotesForSelector = useMemo(() => {
-    const quotes: Quote[] = [
-      ...catholicQuotes.map((q, i) => ({...q, id: `cq_${i}`})), 
-      ...userQuotes
-    ];
-    return quotes.map(q => ({
-      value: q.id!,
-      label: `"${q.text.substring(0, 30)}..." - ${q.author}`
-    }));
-  }, [userQuotes]);
-
-  const allImagesForSelector = useMemo(() => {
-    const imageMap = new Map<string, ImagePlaceholder>();
-
-    PlaceHolderImages.forEach(img => {
-      if(img.imageUrl) imageMap.set(img.imageUrl, img);
-    });
-
-    userHomeBackgrounds.forEach(img => {
-      if(img.imageUrl) imageMap.set(img.imageUrl, img);
-    });
-
-    allPrayers.forEach(prayer => {
-      if (prayer.imageUrl) {
-        imageMap.set(prayer.imageUrl, {
-          id: prayer.id || prayer.title,
-          imageUrl: prayer.imageUrl,
-          description: prayer.title,
-          imageHint: prayer.imageHint
-        });
-      }
-    });
-    
-    return Array.from(imageMap.values()).map(img => ({
-      value: img.id,
-      label: img.description
-    }));
-  }, [allPrayers, userHomeBackgrounds]);
-
-  const handleImageSelection = (id: string | null) => {
-    if (!id) {
-      setSelectedImage(null);
-      return;
-    }
-    const allImages = [...PlaceHolderImages, ...userHomeBackgrounds, ...allPrayers.filter(p => p.imageUrl).map(p => ({ id: p.id!, imageUrl: p.imageUrl!, description: p.title, imageHint: p.imageHint }))]
-    const foundImage = allImages.find(img => img.id === id);
-    setSelectedImage(foundImage || null);
   };
 
   const isSeason = useMemo(() => {
@@ -546,3 +386,34 @@ export default function ContentSettings({ onShowWrapped }: ContentSettingsProps)
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

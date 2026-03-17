@@ -16,9 +16,12 @@
 # next.js
 /.next/
 /out/
+/.gradle-user-home/
 
 # production
 /build
+/android/build/
+/android/app/build/
 
 # misc
 .DS_Store

@@ -1,92 +1,122 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { execSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
-const rootDir = process.cwd();
-const backupDir = path.join(rootDir, `cotidie-backup-temp-${Date.now()}`);
-const zipFile = path.join(rootDir, 'cotidie-backup.zip');
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const projectRoot = path.resolve(scriptDir, '..');
+const driveRoot = 'J:\\';
+const backupRoot = path.join(driveRoot, 'BENJA');
+const backupDir = path.join(backupRoot, 'CotidieApp');
 
-console.log('Iniciando script de respaldo...');
+const excludedDirectories = new Set([
+  '.git',
+  '.next',
+  '.gradle-user-home',
+  '.trae',
+  '.turbo',
+  '.cache',
+  'node_modules',
+  'out',
+  'coverage',
+  'build',
+  'tmp',
+  'temp',
+]);
 
-function copyRecursive(src, dest) {
-    try {
-        const stats = fs.statSync(src);
-        if (stats.isDirectory()) {
-            if (!fs.existsSync(dest)) fs.mkdirSync(dest);
-            const items = fs.readdirSync(src);
-            for (const item of items) {
-                copyRecursive(path.join(src, item), path.join(dest, item));
-            }
-        } else {
-            fs.copyFileSync(src, dest);
-        }
-    } catch (e) {
-        console.warn(`⚠️ Error copiando ${src}: ${e.message}`);
+const excludedFiles = new Set([
+  '.DS_Store',
+  '.modified',
+  'tsc.out',
+  'tsconfig.tsbuildinfo',
+  'npm-debug.log',
+  'yarn-debug.log',
+  'yarn-error.log',
+  'firebase-debug.log',
+  'firestore-debug.log',
+]);
+
+const excludedExtensions = new Set([
+  '.apk',
+  '.tmp',
+  '.temp',
+  '.log',
+]);
+
+function normalizePath(filePath) {
+  return filePath.replace(/\//g, '\\');
+}
+
+function shouldExclude(relativePath, directoryEntry) {
+  const normalized = normalizePath(relativePath);
+  const parts = normalized.split('\\').filter(Boolean);
+  const baseName = parts.at(-1) ?? '';
+
+  if (parts.some((part) => excludedDirectories.has(part))) {
+    return true;
+  }
+
+  if (normalized === 'android\\build' || normalized.startsWith('android\\build\\')) {
+    return true;
+  }
+
+  if (normalized === 'android\\app\\build' || normalized.startsWith('android\\app\\build\\')) {
+    return true;
+  }
+
+  if (directoryEntry.isFile()) {
+    if (excludedFiles.has(baseName)) {
+      return true;
     }
+
+    const extension = path.extname(baseName).toLowerCase();
+    if (excludedExtensions.has(extension)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function copyDirectory(sourceDir, targetDir, relativeDir = '') {
+  fs.mkdirSync(targetDir, { recursive: true });
+
+  for (const entry of fs.readdirSync(sourceDir, { withFileTypes: true })) {
+    const sourcePath = path.join(sourceDir, entry.name);
+    const relativePath = relativeDir ? path.join(relativeDir, entry.name) : entry.name;
+
+    if (shouldExclude(relativePath, entry)) {
+      continue;
+    }
+
+    const targetPath = path.join(targetDir, entry.name);
+
+    if (entry.isDirectory()) {
+      copyDirectory(sourcePath, targetPath, relativePath);
+      continue;
+    }
+
+    fs.copyFileSync(sourcePath, targetPath);
+  }
 }
 
 try {
-    if (fs.existsSync(zipFile)) {
-        console.log('Eliminando zip anterior...');
-        fs.rmSync(zipFile);
-    }
+  if (!fs.existsSync(driveRoot)) {
+    console.error('Error: el disco J: no esta conectado. Conectalo e intenta de nuevo.');
+    process.exit(1);
+  }
 
-    const exclude = ['node_modules', '.next', 'out', '.git', '.vercel', 'cotidie-backup.zip', 'cotidie-backup-temp', 'android', 'cotidie-installer-v3.2.3.apk', 'backup_temp'];
+  fs.mkdirSync(backupRoot, { recursive: true });
 
-    const items = fs.readdirSync(rootDir);
-    console.log(`Encontrados ${items.length} elementos en la raíz.`);
-    
-    console.log(`Creando directorio: ${backupDir}`);
-    fs.mkdirSync(backupDir);
+  if (fs.existsSync(backupDir)) {
+    console.log(`Limpiando respaldo existente en ${backupDir}...`);
+    fs.rmSync(backupDir, { recursive: true, force: true });
+  }
 
-    for (const item of items) {
-        if (exclude.includes(item)) continue;
-        if (item.startsWith('cotidie-backup')) continue;
-        
-        const src = path.join(rootDir, item);
-        const dest = path.join(backupDir, item);
-        console.log(`Copiando ${item}...`);
-        copyRecursive(src, dest);
-    }
-
-    // Android
-    const androidSrc = path.join(rootDir, 'android');
-    const androidDest = path.join(backupDir, 'android');
-    if (fs.existsSync(androidSrc)) {
-        console.log('Procesando carpeta Android...');
-        fs.mkdirSync(androidDest);
-        const androidItems = fs.readdirSync(androidSrc);
-        for (const item of androidItems) {
-            if (item === 'build' || item === '.gradle') continue;
-            const src = path.join(androidSrc, item);
-            const dest = path.join(androidDest, item);
-            
-            if (item === 'app') {
-                fs.mkdirSync(dest);
-                const appItems = fs.readdirSync(src);
-                for (const appItem of appItems) {
-                    if (appItem === 'build') continue;
-                    copyRecursive(path.join(src, appItem), path.join(dest, appItem));
-                }
-            } else {
-                copyRecursive(src, dest);
-            }
-        }
-    }
-
-    console.log('Comprimiendo...');
-    execSync(`powershell -Command "Compress-Archive -Path '${backupDir}\\*' -DestinationPath '${zipFile}' -Force"`, { stdio: 'inherit' });
-    console.log(`✅ Respaldo creado: ${zipFile}`);
-
-} catch (err) {
-    console.error('❌ Error fatal:', err);
-} finally {
-    if (fs.existsSync(backupDir)) {
-        try {
-            console.log('Limpiando...');
-            fs.rmSync(backupDir, { recursive: true, force: true });
-        } catch (e) {
-            console.warn('No se pudo eliminar temp:', e.message);
-        }
-    }
+  console.log(`Creando respaldo limpio en ${backupDir}...`);
+  copyDirectory(projectRoot, backupDir);
+  console.log('Respaldo actualizado correctamente.');
+} catch (error) {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(`Error al crear el respaldo: ${message}`);
+  process.exit(1);
 }

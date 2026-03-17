@@ -22,7 +22,6 @@ export default function SplashScreen() {
 
   return (
     <div className="relative flex flex-col h-full bg-background text-foreground font-body">
-      {/* Fondo animado */}
       <div className="absolute inset-0 overflow-hidden">
         <div
           className="h-full w-full bg-cover bg-center animate-in fade-in-0 duration-1000"
@@ -31,7 +30,6 @@ export default function SplashScreen() {
         />
       </div>
 
-      {/* Título central */}
       <div className="relative flex-grow flex items-center justify-center">
         <div className="flex flex-col items-center p-4">
           <h1 className="!text-[clamp(4.25rem,18vw,7.25rem)] leading-none font-premium text-white text-center [text-shadow:0_4px_16px_rgba(0,0,0,0.9)]">
@@ -43,7 +41,6 @@ export default function SplashScreen() {
         </div>
       </div>
 
-      {/* Versión dinámica sincronizada con package.json */}
       <div className="absolute bottom-3 right-4 text-white/70 text-xs font-medium tracking-wide [text-shadow:0_2px_8px_rgba(0,0,0,0.9)]">
         v{appVersion}
       </div>

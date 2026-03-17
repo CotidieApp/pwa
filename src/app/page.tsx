@@ -1,5 +1,3 @@
-"use client";
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -8,14 +6,33 @@ import MainApp from '@/components/main/MainApp';
 import SplashScreen from '@/components/main/SplashScreen';
 import ErrorBoundary from '@/components/ErrorBoundary';
 
+const readWelcomeScreenPreference = () => {
+  if (typeof window === 'undefined' || !window.localStorage) return true;
+
+  try {
+    const raw = window.localStorage.getItem('cotidie_app_state');
+    if (!raw) return true;
+    const parsed = JSON.parse(raw);
+    return parsed?.welcomeScreenEnabled !== false;
+  } catch {
+    return true;
+  }
+};
+
 export default function Page() {
-  const [showSplashScreen, setShowSplashScreen] = useState(true);
+  const [showSplashScreen, setShowSplashScreen] = useState(readWelcomeScreenPreference);
   const settings = useSettings();
+  const welcomeScreenEnabled = settings?.welcomeScreenEnabled ?? true;
 
   useEffect(() => {
+    if (!welcomeScreenEnabled) {
+      setShowSplashScreen(false);
+      return;
+    }
+
     const timer = setTimeout(() => setShowSplashScreen(false), 2500);
     return () => clearTimeout(timer);
-  }, []);
+  }, [welcomeScreenEnabled]);
 
   useEffect(() => {
     const onUnhandledRejection = (event: PromiseRejectionEvent) => {
@@ -41,7 +58,7 @@ export default function Page() {
     };
   }, []);
 
-  if (!settings || showSplashScreen) {
+  if (welcomeScreenEnabled && showSplashScreen) {
     return <SplashScreen />;
   }
 

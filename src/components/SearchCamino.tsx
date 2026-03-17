@@ -1,10 +1,9 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { ChevronUp, ChevronDown, Search, X } from 'lucide-react';
-import { useSettings } from '@/context/SettingsContext';
 
 type CaminoSearchState = {
   term: string;
@@ -27,7 +26,6 @@ export default function SearchCamino({
 }: SearchCaminoProps) {
   const [localTerm, setLocalTerm] = useState(searchState.term);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { theme } = useSettings();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -140,3 +138,5 @@ export default function SearchCamino({
     </div>
   );
 }
+
+

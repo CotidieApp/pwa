@@ -2,7 +2,7 @@ import type { Prayer } from '@/lib/types';
 
 export const avesMariasPureza: Prayer = {
   id: 'aves-marias-pureza',
-  title: 'Aves Marías de Pureza',
+  title: 'Ave Marías de Pureza',
   categoryId: 'plan-de-vida',
   content: `*(De rodillas)*
 

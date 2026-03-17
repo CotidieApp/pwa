@@ -28,7 +28,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 final class SaintWidgetUpdater {
-    private static Map<String, Float> cachedBiasByPlaceholderId;
+    private static Map<String, CropBias> cachedBiasByPlaceholderId;
 
     static void updateAll(Context context) {
         AppWidgetManager manager = AppWidgetManager.getInstance(context);
@@ -53,15 +53,12 @@ final class SaintWidgetUpdater {
 
         Bitmap bmp = loadAssetBitmap(context, content.imageAssetPath, 1400, 900);
         if (bmp != null) {
-            // Apply smart cropping based on bias (e.g. keeping the face visible)
-            // We aim for a landscape-ish aspect ratio (e.g. 1.6) which fits most large widget headers,
-            // relying on centerCrop in XML to handle the final fit.
-            float bias = resolveVerticalBiasForAssetPath(context, content.imageAssetPath);
-            Bitmap cropped = cropToAspectWithVerticalBias(bmp, 1.6f, bias);
+            CropBias bias = resolveCropBiasForImageId(context, content.imageId);
+            Bitmap cropped = cropToAspectWithBias(bmp, 1.5f, bias.horizontal, bias.vertical);
             if (cropped != bmp) bmp.recycle();
-            
+
             int radiusPx = dpToPx(context, 24);
-            Bitmap rounded = roundAllCorners(cropped, radiusPx);
+            Bitmap rounded = roundTopCorners(cropped, radiusPx);
             if (rounded != cropped) cropped.recycle();
 
             views.setImageViewBitmap(R.id.widget_saint_image, rounded);
@@ -73,33 +70,15 @@ final class SaintWidgetUpdater {
         return views;
     }
 
-    private static float resolveVerticalBiasForAssetPath(Context context, String assetPath) {
-        String id = toPlaceholderId(assetPath);
-        if (id == null) return 0.22f;
-        Float bias = getBiasByPlaceholderId(context).get(id);
-        return bias != null ? bias : 0.22f;
+    private static CropBias resolveCropBiasForImageId(Context context, String imageId) {
+        if (imageId == null || imageId.isEmpty()) return new CropBias(0.50f, 0.50f);
+        CropBias bias = getBiasByPlaceholderId(context).get(imageId);
+        return bias != null ? bias : new CropBias(0.50f, 0.50f);
     }
 
-    private static String toPlaceholderId(String assetPath) {
-        if (assetPath == null) return null;
-        if (assetPath.endsWith("/resurrection.jpeg")) return "saintoftheday-0";
-        if (assetPath.endsWith("/holy-trinity.jpeg")) return "saintoftheday-1";
-        if (assetPath.endsWith("/creation.jpeg")) return "saintoftheday-2";
-        if (assetPath.endsWith("/holy-family.jpeg")) return "saintoftheday-3";
-        if (assetPath.endsWith("/eucharist.jpeg")) return "saintoftheday-4";
-        if (assetPath.endsWith("/crucifixion.jpeg")) return "saintoftheday-5";
-        if (assetPath.endsWith("/immaculate-conception.jpeg")) return "saintoftheday-6";
-        if (assetPath.endsWith("/san-alberto.jpeg")) return "sanalbertohurtado-image";
-        if (assetPath.endsWith("/san-francisco.jpeg")) return "sanfranciscodesales-image";
-        if (assetPath.endsWith("/san-agustin.jpeg")) return "sanagustindehipona-image";
-        if (assetPath.endsWith("/santo-tomas.jpeg")) return "santotomasdeaquino-image";
-        if (assetPath.endsWith("/nativity.jpeg")) return "nativity-image";
-        return null;
-    }
-
-    private static Map<String, Float> getBiasByPlaceholderId(Context context) {
+    private static Map<String, CropBias> getBiasByPlaceholderId(Context context) {
         if (cachedBiasByPlaceholderId != null) return cachedBiasByPlaceholderId;
-        Map<String, Float> map = new HashMap<>();
+        Map<String, CropBias> map = new HashMap<>();
         try {
             String source = readAssetText(context, "image-display.ts");
             String key = "export const placeholderImagePreference";
@@ -109,12 +88,12 @@ final class SaintWidgetUpdater {
                 int close = source.indexOf("};", open);
                 if (open > 0 && close > open) {
                     String objectBody = source.substring(open + 1, close);
-                    Pattern p = Pattern.compile("\"([^\"]+)\"\\s*:\\s*\"(top|center|bottom)\"");
+                    Pattern p = Pattern.compile("\"([^\"]+)\"\\s*:\\s*\"(top|center|bottom|extra)\"");
                     Matcher m = p.matcher(objectBody);
                     while (m.find()) {
                         String id = m.group(1);
                         String pref = m.group(2);
-                        map.put(id, toVerticalBias(pref));
+                        map.put(id, toCropBias(pref));
                     }
                 }
             }
@@ -124,11 +103,11 @@ final class SaintWidgetUpdater {
         return cachedBiasByPlaceholderId;
     }
 
-    private static float toVerticalBias(String pref) {
-        if ("top".equals(pref)) return 0.15f;
-        if ("bottom".equals(pref)) return 0.85f;
-        if ("extra".equals(pref)) return 0.40f; // Adjusted for 'extra' preference
-        return 0.50f;
+    private static CropBias toCropBias(String pref) {
+        if ("top".equals(pref)) return new CropBias(0.50f, 0.15f);
+        if ("bottom".equals(pref)) return new CropBias(0.50f, 0.85f);
+        if ("extra".equals(pref)) return new CropBias(0.40f, 0.50f);
+        return new CropBias(0.50f, 0.50f);
     }
 
     private static String readAssetText(Context context, String assetPath) throws Exception {
@@ -172,7 +151,7 @@ final class SaintWidgetUpdater {
         return Math.max(1, Math.round(dp * density));
     }
 
-    private static Bitmap cropToAspectWithVerticalBias(Bitmap src, float targetAspect, float verticalBias) {
+    private static Bitmap cropToAspectWithBias(Bitmap src, float targetAspect, float horizontalBias, float verticalBias) {
         if (src == null) return null;
         int w = src.getWidth();
         int h = src.getHeight();
@@ -188,12 +167,14 @@ final class SaintWidgetUpdater {
 
         if (srcAspect > targetAspect) {
             cropW = Math.round(h * targetAspect);
-            x = Math.max(0, (w - cropW) / 2);
+            int maxX = Math.max(0, w - cropW);
+            float clampedHorizontalBias = Math.max(0f, Math.min(1f, horizontalBias));
+            x = Math.round(maxX * clampedHorizontalBias);
         } else {
             cropH = Math.round(w / targetAspect);
             int maxY = Math.max(0, h - cropH);
-            float clampedBias = Math.max(0f, Math.min(1f, verticalBias));
-            y = Math.round(maxY * clampedBias);
+            float clampedVerticalBias = Math.max(0f, Math.min(1f, verticalBias));
+            y = Math.round(maxY * clampedVerticalBias);
         }
 
         try {
@@ -203,7 +184,7 @@ final class SaintWidgetUpdater {
         }
     }
 
-    private static Bitmap roundAllCorners(Bitmap src, int radiusPx) {
+    private static Bitmap roundTopCorners(Bitmap src, int radiusPx) {
         if (src == null) return null;
         int w = src.getWidth();
         int h = src.getHeight();
@@ -221,10 +202,22 @@ final class SaintWidgetUpdater {
             paint.setShader(shader);
 
             RectF rect = new RectF(0f, 0f, w, h);
-            canvas.drawRoundRect(rect, r, r, paint);
+            Path path = new Path();
+            path.addRoundRect(rect, new float[] {r, r, r, r, 0f, 0f, 0f, 0f}, Path.Direction.CW);
+            canvas.drawPath(path, paint);
             return out;
         } catch (Exception ignored) {
             return src;
+        }
+    }
+
+    private static final class CropBias {
+        final float horizontal;
+        final float vertical;
+
+        CropBias(float horizontal, float vertical) {
+            this.horizontal = horizontal;
+            this.vertical = vertical;
         }
     }
 

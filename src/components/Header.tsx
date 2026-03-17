@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { ArrowLeft, ChevronLeft, ChevronRight, RotateCcw, Expand, Minimize, Search, Pencil, Calendar } from 'lucide-react';
@@ -150,7 +150,7 @@ export default function Header({
         setPos({ x: nextX, y: nextY });
       };
 
-      const handleUp = (e: PointerEvent) => {
+      const handleUp = () => {
         const drag = dragRef.current;
         const el = ref.current;
         if (!drag) return;
@@ -369,3 +369,4 @@ export default function Header({
     </>
   );
 }
+

@@ -1,11 +1,10 @@
-'use client';
+﻿'use client';
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSettings, UserStats } from '@/context/SettingsContext';
-import { cn } from '@/lib/utils';
 import Image from 'next/image';
 
 type WrappedStoryProps = {
@@ -381,7 +380,7 @@ function TopPrayerSlide({ userStats, allPrayers }: { userStats: UserStats, allPr
           transition={{ type: 'spring', delay: 0.3 }}
           className="text-8xl"
         >
-          🙏
+          ðŸ™
         </motion.div>
         <p className="mt-4 text-xl">Cada oración cuenta, empieza ahora.</p>
       </div>
@@ -558,7 +557,7 @@ function TopDevotionSlide({ userStats, allPrayers }: { userStats: UserStats, all
 function MorningPrayersSlide({ userStats }: { userStats: UserStats }) {
     return (
         <div className="text-center space-y-6">
-            <motion.div className="text-6xl">🌅</motion.div>
+            <motion.div className="text-6xl">ðŸŒ…</motion.div>
             <h2 className="text-3xl font-bold">Madrugador de Dios</h2>
             <div className="text-8xl font-black text-orange-300">{userStats.morningDaysCount}</div>
             <p className="text-xl">Días orando en la mañana</p>
@@ -570,7 +569,7 @@ function MorningPrayersSlide({ userStats }: { userStats: UserStats }) {
 function NightPrayersSlide({ userStats }: { userStats: UserStats }) {
     return (
         <div className="text-center space-y-6">
-             <motion.div className="text-6xl">🌙</motion.div>
+             <motion.div className="text-6xl">ðŸŒ™</motion.div>
             <h2 className="text-3xl font-bold">Vigilante nocturno</h2>
             <div className="text-8xl font-black text-blue-300">{userStats.nightDaysCount}</div>
             <p className="text-xl">Días orando en la noche</p>
@@ -582,7 +581,7 @@ function NightPrayersSlide({ userStats }: { userStats: UserStats }) {
 function AngelusSlide({ userStats }: { userStats: UserStats }) {
     return (
         <div className="text-center space-y-6">
-             <motion.div className="text-6xl">🔔</motion.div>
+             <motion.div className="text-6xl">ðŸ””</motion.div>
             <h2 className="text-3xl font-bold">La hora del Ángel</h2>
             <div className="text-8xl font-black text-yellow-200">{userStats.angelusCount}</div>
             <p className="text-xl">Angelus / Regina Caeli</p>
@@ -594,7 +593,7 @@ function AngelusSlide({ userStats }: { userStats: UserStats }) {
 function RosarySlide({ userStats }: { userStats: UserStats }) {
     return (
         <div className="text-center space-y-6">
-             <motion.div className="text-6xl">📿</motion.div>
+             <motion.div className="text-6xl">ðŸ“¿</motion.div>
             <h2 className="text-3xl font-bold">Amante del Rosario</h2>
             <div className="text-8xl font-black text-pink-300">{userStats.rosaryCount}</div>
             <p className="text-xl">Rosarios rezados</p>
@@ -720,7 +719,7 @@ function CreationSlide({ userStats }: { userStats: UserStats }) {
 
       <div className="space-y-4">
         {(userStats.lettersWritten > 0 || totalCreated === 0) && <StatRow label="Cartas escritas" count={userStats.lettersWritten} delay={0.2} icon="✉️" />}
-        {(userStats.devotionsCreated > 0 || totalCreated === 0) && <StatRow label="Devociones creadas" count={userStats.devotionsCreated} delay={0.4} icon="🙏" />}
+        {(userStats.devotionsCreated > 0 || totalCreated === 0) && <StatRow label="Devociones creadas" count={userStats.devotionsCreated} delay={0.4} icon="ðŸ™" />}
         {(userStats.prayersCreated > 0 || totalCreated === 0) && <StatRow label="Oraciones propias" count={userStats.prayersCreated} delay={0.6} icon="✍️" />}
       </div>
 
@@ -765,7 +764,7 @@ function ProsperoAnoSlide() {
                 transition={{ type: "spring", duration: 1.5 }}
                 className="text-8xl"
             >
-                🎉
+                ðŸŽ‰
             </motion.div>
             
             <motion.h2
@@ -831,3 +830,5 @@ function OutroSlide() {
     </div>
   );
 }
+
+

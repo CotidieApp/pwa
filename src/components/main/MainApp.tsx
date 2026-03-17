@@ -1,14 +1,11 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { Prayer, Category } from '@/lib/types';
 import { useSettings } from '@/context/SettingsContext';
-import { Capacitor } from '@capacitor/core';
-import { LocalNotifications, type ActionPerformed } from '@capacitor/local-notifications';
-import { App } from '@capacitor/app';
-import { Filesystem } from '@capacitor/filesystem';
 
 import Header from '@/components/Header';
+import CartasIntro from '@/components/main/CartasIntro';
 import PrayerList from '@/components/PrayerList';
 import PrayerDetail from '@/components/PrayerDetail';
 import Settings from '@/components/Settings';
@@ -25,14 +22,17 @@ import PersonalEpubLibrary from '@/components/PersonalEpubLibrary';
 import SearchCamino from '@/components/SearchCamino';
 import { letanias as letaniasRosarioBase } from '@/lib/prayers/plan-de-vida/santo-rosario/letanias';
 import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { isWrappedSeason } from '@/lib/movable-feasts';
 import WrappedStory from '../WrappedStory';
 import Image from 'next/image';
 import DeveloperDashboard from '@/components/developer/DeveloperDashboard';
+import { useToast } from '@/hooks/use-toast';
 import { useNavPersistence } from '@/components/main/useNavPersistence';
-import { initialState, normalizeNavState, NAV_STATE_STORAGE_KEY } from '@/components/main/navigation';
+import { initialState, loadPersistedNavState, persistNavState } from '@/components/main/navigation';
 import type { NavigationState } from '@/components/main/navigation';
+import { findPrayerIdByTitle, getPrayerPathIds, normalizeRouteSegment, resolvePlanPrayerId } from '@/components/main/prayer-navigation';
+import { useAndroidBackButton, useNotificationActionBinding, useSharedImportBinding } from '@/components/main/useNativeAppBindings';
 
 import {
   AlertDialog,
@@ -42,77 +42,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Card, CardContent } from '../ui/card';
-import { Button } from '@/components/ui/button';
 
 type AddFormMode = 'devotion' | 'entry' | 'letter' | 'predefined';
-type AppView =
-  | 'home'
-  | 'category'
-  | 'prayer'
-  | 'settings'
-  | 'addForm'
-  | 'editForm'
-  | 'customPlan'
-  | 'developer'
-  | 'viaCrucis'
-  | 'rosary'
-  | 'rosaryMeditated'
-  | 'planCalendar';
-
-const CartasIntro = () => (
-  <Card className="mb-4 bg-card/80 shadow-md backdrop-blur-sm border-border/50">
-    <CardContent className="p-6 text-sm text-foreground/90 space-y-3">
-      <p>
-        Escribe una carta al Señor. Agradece lo vivido, pide claridad por lo que se viene,
-        ruega ante una necesidad..., pero, sobre todo, háblale; no como un servidor a su señor,
-        sino como un hijo a su Padre. Amor de Padre es el Suyo, no lo olvides.
-      </p>
-      <blockquote className="italic text-foreground/80 pl-4 border-l-2 border-border">
-        "Cuando te pongas delante de Dios, ten el descaro santo de un hijo que habla con su Padre."
-      </blockquote>
-      <div className="text-right text-foreground/80">— San Josemaría Escrivá</div>
-    </CardContent>
-  </Card>
-);
-
-const RESTORABLE_VIEWS = new Set<AppView>([
-  'home',
-  'category',
-  'prayer',
-  'settings',
-  'customPlan',
-  'viaCrucis',
-  'rosary',
-  'rosaryMeditated',
-  'planCalendar',
-]);
-
 const getInitialNavState = (): NavigationState => {
-  if (typeof window === 'undefined') return initialState;
-  try {
-    const raw = window.localStorage.getItem(NAV_STATE_STORAGE_KEY);
-    if (!raw) return initialState;
-    return normalizeNavState(JSON.parse(raw));
-  } catch {
-    return initialState;
-  }
+  return loadPersistedNavState();
 };
 
-const ORACION_DEL_DIA_ID = '__oracion_del_dia__';
 const PENDING_IMPORT_STORAGE_KEY = 'cotidie_pending_import';
-
-const resolveOracionDelDiaPrayerId = () => {
-  const day = new Date().getDay();
-  if (day === 2) return 'salmo-ii';
-  if (day === 4) return 'adoro-te-devote';
-  if (day === 6) return 'salve-regina';
-  if (day === 0) return 'simbolo-quicumque';
-  return null;
+const CUSTOM_PLAN_EXIT_CONFIRM_MS = 3000;
+const DEFAULT_CAMINO_SEARCH_STATE = {
+  term: '',
+  activeIndex: -1,
+  resultsCount: 0,
 };
+
 
 export default function MainApp() {
-
   const isInteractiveElement = (el: HTMLElement | null): boolean => {
     if (!el) return false;
     return Boolean(
@@ -125,11 +70,8 @@ export default function MainApp() {
   const navStateRef = useRef(navState);
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [showWrapped, setShowWrapped] = useState(false);
-  const [searchState, setSearchState] = useState({
-    term: '',
-    activeIndex: -1,
-    resultsCount: 0,
-  });
+  const { toast, dismiss } = useToast();
+  const [searchState, setSearchState] = useState(DEFAULT_CAMINO_SEARCH_STATE);
   const {
     allPrayers,
     userDevotions,
@@ -146,8 +88,6 @@ export default function MainApp() {
     toggleDistractionFree,
     showTimerFinishedAlert,
     setShowTimerFinishedAlert,
-    timerEnabled,
-    timerTime,
     categories,
     togglePlanDeVidaItem,
     userLetters,
@@ -166,6 +106,13 @@ export default function MainApp() {
     navMode,
   } = useSettings();
   const customPlanTouchNavEnabled = navMode === 'touch';
+  const customPlanExitAdvanceRef = useRef<{
+    slot: 1 | 2 | 3 | 4;
+    index: number;
+    expiresAt: number;
+  } | null>(null);
+  const customPlanExitToastIdRef = useRef<string | null>(null);
+  const rosaryMeditatedBackHandlerRef = useRef<(() => boolean) | null>(null);
 
   const [isDraggingWrapped, setIsDraggingWrapped] = useState(false);
   const wrappedDragStart = useRef({ x: 0, y: 0 });
@@ -206,55 +153,18 @@ export default function MainApp() {
   useEffect(() => {
     navStateRef.current = navState;
   }, [navState]);
-  useNavPersistence(navStateRef, NAV_STATE_STORAGE_KEY, normalizeNavState);
+  useEffect(() => {
+    customPlanExitAdvanceRef.current = null;
+    if (customPlanExitToastIdRef.current) {
+      dismiss(customPlanExitToastIdRef.current);
+      customPlanExitToastIdRef.current = null;
+    }
+  }, [dismiss, navState.activeView, navState.customPlanPrayerSlot, navState.customPlanPrayerIndex]);
+  useNavPersistence(navStateRef);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    try {
-      const safeState = normalizeNavState(navState);
-      window.localStorage.setItem(NAV_STATE_STORAGE_KEY, JSON.stringify(safeState));
-    } catch { }
+    persistNavState(navState);
   }, [navState]);
-
-  useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return;
-    if (Capacitor.getPlatform() !== 'android') return;
-
-    let listener: { remove: () => void } | null = null;
-
-    const setup = async () => {
-      listener = await App.addListener('backButton', ({ canGoBack }) => {
-        const s = navStateRef.current;
-        const isCustomPlanContext =
-          s.activeView === 'customPlan' ||
-          (s.activeView === 'prayer' && s.customPlanPrayerSlot !== null);
-
-        if (isCustomPlanContext) {
-          window.history.replaceState(initialState, '');
-          setNavState(initialState);
-          return;
-        }
-
-        if (s.activeView !== 'home') {
-          if (canGoBack) {
-            window.history.back();
-          } else {
-            window.history.replaceState(initialState, '');
-            setNavState(initialState);
-          }
-          return;
-        }
-
-        App.exitApp();
-      });
-    };
-
-    setup();
-
-    return () => {
-      listener?.remove();
-    };
-  }, []);
 
   // Effect to handle browser history (popstate for back/forward buttons)
   useEffect(() => {
@@ -308,32 +218,6 @@ export default function MainApp() {
     });
   }, [navState.activeView, navState.selectedCategoryId, navState.prayerPathIds?.length]);
 
-  const handleBack = () => {
-    if (navState.activeView === 'prayer' && navState.customPlanPrayerSlot !== null) {
-      window.history.replaceState(navStateRef.current ?? initialState, '');
-      setNavState(initialState);
-      return;
-    }
-
-    if (navState.activeView === 'prayer' && navState.selectedCategoryId === 'plan-de-vida') {
-      setNavState({
-        ...initialState,
-        activeView: 'category',
-        selectedCategoryId: 'plan-de-vida',
-      });
-      return;
-    }
-
-    // Fix for Plan de Vida navigation: If we are in Plan de Vida list, go to Home instead of back to previous prayer
-    if (navState.activeView === 'category' && navState.selectedCategoryId === 'plan-de-vida') {
-      window.history.replaceState(initialState, '');
-      setNavState(initialState);
-      return;
-    }
-
-    window.history.back();
-  };
-
   const getPrayerById = useCallback((id: string, list: Prayer[]): Prayer | null => {
     for (const prayer of list) {
       if (prayer.id === id) return prayer;
@@ -345,29 +229,129 @@ export default function MainApp() {
     return null;
   }, []);
 
+  const buildPrayerPath = useCallback((pathIds: string[]) => {
+    if (!pathIds || pathIds.length === 0) return [] as Prayer[];
+
+    const path: Prayer[] = [];
+    let currentList = allPrayers;
+
+    for (const id of pathIds) {
+      const prayer = getPrayerById(id, currentList);
+      if (!prayer) break;
+      path.push(prayer);
+      currentList = prayer.prayers || [];
+    }
+
+    return path;
+  }, [allPrayers, getPrayerById]);
+
+  const getCategoryIdForPrayerPath = useCallback((pathIds: string[]) => {
+    const rootId = pathIds[0];
+    if (!rootId) return null;
+    return getPrayerById(rootId, allPrayers)?.categoryId ?? null;
+  }, [allPrayers, getPrayerById]);
+
+  const buildCategoryNavState = useCallback((categoryId: string | null): NavigationState => {
+    if (!categoryId) return initialState;
+    return {
+      ...initialState,
+      activeView: categoryId === 'ajustes' ? 'settings' : 'category',
+      selectedCategoryId: categoryId,
+    };
+  }, []);
+
+  const buildPrayerNavState = useCallback((pathIds: string[]): NavigationState => ({
+    ...initialState,
+    activeView: 'prayer',
+    selectedCategoryId: getCategoryIdForPrayerPath(pathIds),
+    prayerPathIds: pathIds,
+  }), [getCategoryIdForPrayerPath]);
+
+  const replaceNavState = useCallback((nextState: NavigationState) => {
+    window.history.replaceState(nextState, '');
+    setNavState(nextState);
+  }, []);
+
+  const handleBack = useCallback(() => {
+    const currentState = navStateRef.current;
+
+    if (currentState.activeView === 'home') {
+      return;
+    }
+
+    if (currentState.activeView === 'prayer' && currentState.customPlanPrayerSlot !== null) {
+      replaceNavState(initialState);
+      return;
+    }
+
+    if (currentState.activeView === 'customPlan') {
+      replaceNavState(initialState);
+      return;
+    }
+
+    if (currentState.activeView === 'rosaryMeditated' && rosaryMeditatedBackHandlerRef.current?.()) {
+      return;
+    }
+
+    if (
+      currentState.activeView === 'viaCrucis' ||
+      currentState.activeView === 'rosary' ||
+      currentState.activeView === 'planCalendar'
+    ) {
+      replaceNavState(buildCategoryNavState('plan-de-vida'));
+      return;
+    }
+
+    if (currentState.activeView === 'rosaryMeditated') {
+      replaceNavState(buildCategoryNavState('plan-de-vida'));
+      return;
+    }
+
+    if (currentState.activeView === 'developer') {
+      replaceNavState(buildCategoryNavState('ajustes'));
+      return;
+    }
+
+    if (currentState.activeView === 'settings' || currentState.activeView === 'category') {
+      replaceNavState(initialState);
+      return;
+    }
+
+    if (currentState.activeView === 'addForm' || currentState.activeView === 'editForm') {
+      if (currentState.prayerPathIds.length > 0) {
+        replaceNavState(buildPrayerNavState(currentState.prayerPathIds));
+        return;
+      }
+
+      replaceNavState(buildCategoryNavState(currentState.selectedCategoryId));
+      return;
+    }
+
+    if (currentState.activeView === 'prayer') {
+      if (currentState.prayerPathIds.length > 1) {
+        replaceNavState(buildPrayerNavState(currentState.prayerPathIds.slice(0, -1)));
+        return;
+      }
+
+      const categoryId =
+        getCategoryIdForPrayerPath(currentState.prayerPathIds) ?? currentState.selectedCategoryId;
+      replaceNavState(buildCategoryNavState(categoryId));
+      return;
+    }
+
+    replaceNavState(initialState);
+  }, [buildCategoryNavState, buildPrayerNavState, getCategoryIdForPrayerPath, replaceNavState]);
+
+  useAndroidBackButton(navStateRef, handleBack);
+
   const selectedCategory = useMemo(
     () => categories.find((c) => c.id === navState.selectedCategoryId) || null,
     [navState.selectedCategoryId, categories]
   );
 
   const prayerPath = useMemo(() => {
-    if (!navState.prayerPathIds || navState.prayerPathIds.length === 0) return [];
-
-    const path: Prayer[] = [];
-    let currentList = allPrayers;
-
-    for (const id of navState.prayerPathIds) {
-      const prayer = getPrayerById(id, currentList);
-      if (prayer) {
-        path.push(prayer);
-        currentList = prayer.prayers || [];
-      } else {
-        // Path is broken, stop here
-        break;
-      }
-    }
-    return path;
-  }, [navState.prayerPathIds, allPrayers, getPrayerById]);
+    return buildPrayerPath(navState.prayerPathIds);
+  }, [buildPrayerPath, navState.prayerPathIds]);
 
   const editingPrayer = useMemo(() => {
     return navState.editingPrayerId
@@ -393,30 +377,6 @@ export default function MainApp() {
     });
   }, [categories]);
 
-  const resolvePlanPrayerId = useCallback((id: string) => {
-    if (id === ORACION_DEL_DIA_ID) return resolveOracionDelDiaPrayerId();
-    const legacyIdMap: Record<string, string> = {
-      acordaos: 'acordaos-oracion',
-      salmoII: 'salmo-ii',
-      adoroTeDevote: 'adoro-te-devote',
-      salveRegina: 'salve-regina',
-      simboloQuicumque: 'simbolo-quicumque',
-    };
-    return legacyIdMap[id] ?? id;
-  }, []);
-
-  const getPrayerPathIds = useCallback((targetId: string, list: Prayer[], path: string[] = []): string[] | null => {
-    for (const prayer of list) {
-      if (!prayer.id) continue;
-      const nextPath = [...path, prayer.id];
-      if (prayer.id === targetId) return nextPath;
-      if (prayer.prayers && prayer.prayers.length > 0) {
-        const found = getPrayerPathIds(targetId, prayer.prayers, nextPath);
-        if (found) return found;
-      }
-    }
-    return null;
-  }, []);
 
   const handleSelectPrayer = (prayer: Prayer) => {
     if (!prayer.id) return;
@@ -512,6 +472,12 @@ export default function MainApp() {
   const currentPrayer = prayerPath.at(-1) || null;
   const isCaminoActive = currentPrayer?.id === 'camino-libro';
 
+  useEffect(() => {
+    if (isCaminoActive) return;
+    setIsSearchVisible(false);
+    setSearchState(DEFAULT_CAMINO_SEARCH_STATE);
+  }, [isCaminoActive]);
+
   const renderCategory = () => {
     if (!selectedCategory) return null;
 
@@ -586,10 +552,10 @@ export default function MainApp() {
   };
 
   const handleOpenDeveloperDashboard = useCallback(() => {
-    setNavState(prev => ({
+    setNavState({
       ...initialState,
       activeView: 'developer'
-    }));
+    });
   }, []);
 
   const renderContent = () => {
@@ -618,6 +584,9 @@ export default function MainApp() {
         return <RosaryMeditated
           onClose={() => setNavState({ ...initialState, activeView: 'category', selectedCategoryId: 'plan-de-vida' })}
           onSwitchToImmersive={() => setNavState(prev => ({ ...prev, activeView: 'rosary' }))}
+          registerBackHandler={(handler) => {
+            rosaryMeditatedBackHandlerRef.current = handler;
+          }}
         />;
       case 'planCalendar':
         return <PlanDeVidaCalendar />;
@@ -696,36 +665,15 @@ export default function MainApp() {
     }
   };
 
-  const handleOpenPrayerById = useCallback((id: string) => {
+  const handleOpenPrayerById = useCallback((id: string, options?: { countOpen?: boolean }) => {
     const pathIds = getPrayerPathIds(id, allPrayers);
     if (!pathIds) return;
-    setNavState({
-      ...initialState,
-      activeView: 'prayer',
-      prayerPathIds: pathIds,
-    });
-  }, [allPrayers, getPrayerPathIds]);
-
-  const normalizeRouteSegment = (value: string) =>
-    value
-      .toLowerCase()
-      .replace(/[-_]/g, ' ')
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .trim();
-
-  const findPrayerIdByTitle = useCallback((title: string, list: Prayer[]): string | null => {
-    const target = normalizeRouteSegment(title);
-    for (const prayer of list) {
-      const prayerTitle = normalizeRouteSegment(prayer.title || '');
-      if (prayerTitle === target) return prayer.id ?? null;
-      if (prayer.prayers && prayer.prayers.length > 0) {
-        const found = findPrayerIdByTitle(title, prayer.prayers);
-        if (found) return found;
-      }
+    setNavState(buildPrayerNavState(pathIds));
+    if (options?.countOpen !== false) {
+      incrementStat('prayersOpenedHistory', id);
     }
-    return null;
-  }, []);
+  }, [allPrayers, buildPrayerNavState, incrementStat]);
+
 
   const handleRouteNavigation = useCallback((route: string) => {
     const parts = route.split('/').map((p) => p.trim()).filter(Boolean);
@@ -749,144 +697,20 @@ export default function MainApp() {
         }
       }
     }
-  }, [allPrayers, findPrayerIdByTitle, handleOpenPrayerById]);
+  }, [allPrayers, handleOpenPrayerById]);
 
-  useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return;
+  useNotificationActionBinding({
+    togglePlanDeVidaItem,
+    handleRouteNavigation,
+    handleOpenPrayerById,
+    handleOpenCategoryById,
+    pushDevLiveTrace,
+  });
 
-    const sub = LocalNotifications.addListener('localNotificationActionPerformed', (action: ActionPerformed) => {
-      const extra = action.notification.extra as any;
-      const actionId = action.actionId;
-      if (actionId === 'dismiss') {
-        return;
-      }
-      if (actionId === 'mark_prayed') {
-        const target = extra?.target as { type?: string; id?: string } | undefined;
-        if (target?.type === 'prayer' && typeof target.id === 'string') {
-          togglePlanDeVidaItem(target.id, true);
-        }
-        void LocalNotifications.cancel({ notifications: [{ id: action.notification.id }] }).catch(() => { });
-        return;
-      }
-      pushDevLiveTrace({
-        level: 'info',
-        source: 'notifications',
-        message: 'Notificacion tocada por usuario.',
-        data: `id=${action.notification.id}`,
-      });
-      const route = typeof extra?.route === 'string' ? extra.route : null;
-      if (route) {
-        pushDevLiveTrace({
-          level: 'info',
-          source: 'notifications',
-          message: 'Navegacion por ruta de notificacion.',
-          data: route,
-        });
-        handleRouteNavigation(route);
-        return;
-      }
-      const target = extra?.target as { type?: string; id?: string } | undefined;
-      if (target?.type === 'prayer' && typeof target.id === 'string') {
-        pushDevLiveTrace({
-          level: 'info',
-          source: 'notifications',
-          message: 'Navegacion a oracion por notificacion.',
-          data: target.id,
-        });
-        handleOpenPrayerById(target.id);
-        return;
-      }
-      if (target?.type === 'category' && typeof target.id === 'string') {
-        pushDevLiveTrace({
-          level: 'info',
-          source: 'notifications',
-          message: 'Navegacion a categoria por notificacion.',
-          data: target.id,
-        });
-        handleOpenCategoryById(target.id);
-      }
-    });
-
-    return () => {
-      sub.then((handle) => handle.remove()).catch(() => { });
-    };
-  }, [handleOpenCategoryById, handleOpenPrayerById, handleRouteNavigation, pushDevLiveTrace]);
-
-  useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return;
-
-    const extractImportUri = (rawUrl: string): string | null => {
-      const trimmed = rawUrl.trim();
-      if (!trimmed) return null;
-      if (trimmed.startsWith('content://') || trimmed.startsWith('file://')) return trimmed;
-      try {
-        const parsed = new URL(trimmed);
-        const uriParam = parsed.searchParams.get('uri') || parsed.searchParams.get('file');
-        if (uriParam && (uriParam.startsWith('content://') || uriParam.startsWith('file://'))) {
-          return decodeURIComponent(uriParam);
-        }
-        if (/\.(ctd|json)$/i.test(parsed.pathname)) return trimmed;
-      } catch {
-        if (/\.(ctd|json)$/i.test(trimmed)) return trimmed;
-      }
-      return null;
-    };
-
-    const decodeFileData = (data: string) => {
-      const trimmed = data.trim();
-      if (trimmed.startsWith('{') || trimmed.startsWith('[')) return data;
-      try {
-        return atob(data);
-      } catch {
-        return data;
-      }
-    };
-
-    const processImportUrl = async (rawUrl: string) => {
-      const importUri = extractImportUri(rawUrl);
-      if (!importUri) return;
-      try {
-        const result = await Filesystem.readFile({ path: importUri });
-        const payload = decodeFileData(String(result.data ?? ''));
-        if (!payload.trim()) return;
-        window.localStorage.setItem(PENDING_IMPORT_STORAGE_KEY, payload);
-        window.dispatchEvent(new Event('cotidie-pending-import'));
-        pushDevLiveTrace({
-          level: 'info',
-          source: 'import',
-          message: 'Archivo recibido por appUrlOpen.',
-          data: importUri,
-        });
-      } catch (error) {
-        console.error('No se pudo procesar importación por appUrlOpen:', error);
-        pushDevLiveTrace({
-          level: 'error',
-          source: 'import',
-          message: 'Fallo leyendo archivo compartido (appUrlOpen).',
-          data: importUri,
-        });
-      }
-    };
-
-    let listener: { remove: () => Promise<void> } | null = null;
-    App.addListener('appUrlOpen', ({ url }) => {
-      if (typeof url === 'string' && url.length > 0) {
-        processImportUrl(url);
-      }
-    }).then((handle) => {
-      listener = handle;
-    });
-
-    App.getLaunchUrl().then((launch) => {
-      if (launch?.url) {
-        processImportUrl(launch.url);
-      }
-    }).catch(() => { });
-
-    return () => {
-      listener?.remove().catch(() => { });
-    };
-  }, [pushDevLiveTrace]);
+  useSharedImportBinding({
+    pendingImportStorageKey: PENDING_IMPORT_STORAGE_KEY,
+    pushDevLiveTrace,
+  });
 
   const handleOpenCustomPlanPrayerAt = useCallback((slot: 1 | 2 | 3 | 4, index: number): boolean => {
     const plan = customPlans[slot - 1];
@@ -906,9 +730,7 @@ export default function MainApp() {
       incrementStat('prayersOpenedHistory', resolvedId);
 
       setNavState({
-        ...initialState,
-        activeView: 'prayer',
-        prayerPathIds: pathIds,
+        ...buildPrayerNavState(pathIds),
         customPlanPrayerSlot: slot,
         customPlanPrayerIndex: candidateIndex,
       });
@@ -926,7 +748,7 @@ export default function MainApp() {
     }
 
     return false;
-  }, [allPrayers, customPlans, getPrayerPathIds, resolvePlanPrayerId]);
+  }, [allPrayers, buildPrayerNavState, customPlans, incrementStat]);
 
   const handleOpenCustomPlan = useCallback((slot: 1 | 2 | 3 | 4, options?: { edit?: boolean; openFirstPrayer?: boolean }) => {
     if (options?.openFirstPrayer) {
@@ -985,9 +807,47 @@ export default function MainApp() {
   }, [customPlanPrevIndex, handleOpenCustomPlanPrayerAt, hasCustomPlanPrayerNav, navState.customPlanPrayerSlot]);
 
   const goToCustomPlanNext = useCallback(() => {
-    if (!hasCustomPlanPrayerNav || customPlanNextIndex === null || navState.customPlanPrayerSlot === null) return;
-    handleOpenCustomPlanPrayerAt(navState.customPlanPrayerSlot as 1 | 2 | 3 | 4, customPlanNextIndex);
-  }, [customPlanNextIndex, handleOpenCustomPlanPrayerAt, hasCustomPlanPrayerNav, navState.customPlanPrayerSlot]);
+    if (!hasCustomPlanPrayerNav || navState.customPlanPrayerSlot === null || navState.customPlanPrayerIndex === null) return;
+
+    if (customPlanNextIndex !== null) {
+      handleOpenCustomPlanPrayerAt(navState.customPlanPrayerSlot as 1 | 2 | 3 | 4, customPlanNextIndex);
+      return;
+    }
+
+    const now = Date.now();
+    const pendingExit = customPlanExitAdvanceRef.current;
+    const slot = navState.customPlanPrayerSlot as 1 | 2 | 3 | 4;
+    const index = navState.customPlanPrayerIndex;
+
+    if (
+      pendingExit &&
+      pendingExit.slot === slot &&
+      pendingExit.index === index &&
+      pendingExit.expiresAt > now
+    ) {
+      customPlanExitAdvanceRef.current = null;
+      if (customPlanExitToastIdRef.current) {
+        dismiss(customPlanExitToastIdRef.current);
+        customPlanExitToastIdRef.current = null;
+      }
+      replaceNavState(initialState);
+      return;
+    }
+
+    customPlanExitAdvanceRef.current = {
+      slot,
+      index,
+      expiresAt: now + CUSTOM_PLAN_EXIT_CONFIRM_MS,
+    };
+    if (customPlanExitToastIdRef.current) {
+      dismiss(customPlanExitToastIdRef.current);
+    }
+    customPlanExitToastIdRef.current = toast({
+      title: 'Vuelve a avanzar para salir',
+      description: 'Si avanzas otra vez, volverás a la pantalla principal.',
+      duration: CUSTOM_PLAN_EXIT_CONFIRM_MS,
+    }).id;
+  }, [customPlanNextIndex, dismiss, handleOpenCustomPlanPrayerAt, hasCustomPlanPrayerNav, navState.customPlanPrayerIndex, navState.customPlanPrayerSlot, replaceNavState, toast]);
 
   const canEditCurrentPrayer =
     navState.activeView === 'prayer' &&
@@ -1078,10 +938,10 @@ export default function MainApp() {
                 : undefined
             }
             prevDisabled={
-              !hasCustomPlanPrayerNav || customPlanPrevIndex === null
+              !hasCustomPlanPrayerNav
             }
             nextDisabled={
-              !hasCustomPlanPrayerNav || customPlanNextIndex === null
+              !hasCustomPlanPrayerNav
             }
             showSearchButton={isCaminoActive}
             onToggleSearch={() => setIsSearchVisible((p) => !p)}
@@ -1130,7 +990,10 @@ export default function MainApp() {
           prayerContent={typeof currentPrayer.content === 'string' ? currentPrayer.content : ''}
           searchState={searchState}
           setSearchState={setSearchState}
-          onClose={() => setIsSearchVisible(false)}
+          onClose={() => {
+            setIsSearchVisible(false);
+            setSearchState(DEFAULT_CAMINO_SEARCH_STATE);
+          }}
         />
       )}
 
@@ -1170,3 +1033,16 @@ export default function MainApp() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

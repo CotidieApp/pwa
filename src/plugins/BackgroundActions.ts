@@ -1,7 +1,10 @@
 import { registerPlugin } from '@capacitor/core';
 
 export type PendingMarkPrayedResult = {
-  ids: string[];
+  items: Array<{
+    id: string;
+    dateKey?: string | null;
+  }>;
 };
 
 export type BackgroundActionsPlugin = {
@@ -10,7 +13,7 @@ export type BackgroundActionsPlugin = {
 
 const BackgroundActions = registerPlugin<BackgroundActionsPlugin>('BackgroundActions', {
   web: () => ({
-    getPendingMarkPrayed: async () => ({ ids: [] }),
+    getPendingMarkPrayed: async () => ({ items: [] }),
   }),
 });
 

@@ -1,6 +1,7 @@
 package com.benjamin.studio;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -8,9 +9,9 @@ import android.os.Handler;
 import android.os.Looper;
 import android.webkit.RenderProcessGoneDetail;
 import android.webkit.WebView;
+import androidx.core.view.WindowCompat;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.BridgeWebViewClient;
-import androidx.core.view.WindowCompat;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -21,6 +22,12 @@ public class MainActivity extends BridgeActivity {
     private static final String PENDING_IMPORT_KEY = "cotidie_pending_import";
     private static final int MAX_FLUSH_RETRIES = 12;
     private static final int MAX_IMPORT_BYTES = 15 * 1024 * 1024;
+    private static final String WEBVIEW_PREFS = "cotidie_webview_stability";
+    private static final String WEBVIEW_CRASH_COUNT_KEY = "render_crash_count";
+    private static final String WEBVIEW_LAST_CRASH_AT_KEY = "render_crash_at";
+    private static final String RECOVERY_MODE_EXTRA = "cotidie_recovery_mode";
+    private static final long RENDER_CRASH_WINDOW_MS = 15000L;
+    private static final int MAX_RENDER_RESTARTS = 2;
     private boolean isInForeground = false;
     private String pendingImportPayload = null;
     private int pendingFlushRetries = 0;
@@ -31,6 +38,9 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         configureWebViewStability();
+        if (getIntent() != null && getIntent().getBooleanExtra(RECOVERY_MODE_EXTRA, false)) {
+            showRecoveryScreen();
+        }
         handleImportIntent(getIntent());
     }
 
@@ -49,7 +59,7 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    public void onPause() {  // ← cambia protected → public
+    public void onPause() {
         isInForeground = false;
         super.onPause();
     }
@@ -134,12 +144,29 @@ public class MainActivity extends BridgeActivity {
         WebView webView = bridge.getWebView();
         webView.setWebViewClient(new BridgeWebViewClient(bridge) {
             @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                if (getIntent() != null && getIntent().getBooleanExtra(RECOVERY_MODE_EXTRA, false)) {
+                    return;
+                }
+                clearRenderCrashState();
+            }
+
+            @Override
             public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
                 if (!isInForeground) {
                     return true;
                 }
                 try {
-                    Intent restart = getIntent();
+                    Intent restart = new Intent(MainActivity.this, MainActivity.class);
+                    if (getIntent() != null && getIntent().getExtras() != null) {
+                        restart.putExtras(getIntent().getExtras());
+                    }
+                    restart.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                    int crashCount = registerRenderCrash();
+                    if (crashCount >= MAX_RENDER_RESTARTS) {
+                        restart.putExtra(RECOVERY_MODE_EXTRA, true);
+                    }
                     finish();
                     startActivity(restart);
                 } catch (Exception ignored) {
@@ -147,5 +174,44 @@ public class MainActivity extends BridgeActivity {
                 return true;
             }
         });
+    }
+
+    private int registerRenderCrash() {
+        SharedPreferences prefs = getSharedPreferences(WEBVIEW_PREFS, MODE_PRIVATE);
+        long now = System.currentTimeMillis();
+        long lastCrashAt = prefs.getLong(WEBVIEW_LAST_CRASH_AT_KEY, 0L);
+        int count = prefs.getInt(WEBVIEW_CRASH_COUNT_KEY, 0);
+        if (now - lastCrashAt > RENDER_CRASH_WINDOW_MS) {
+            count = 0;
+        }
+        count += 1;
+        prefs.edit()
+            .putLong(WEBVIEW_LAST_CRASH_AT_KEY, now)
+            .putInt(WEBVIEW_CRASH_COUNT_KEY, count)
+            .apply();
+        return count;
+    }
+
+    private void clearRenderCrashState() {
+        SharedPreferences prefs = getSharedPreferences(WEBVIEW_PREFS, MODE_PRIVATE);
+        prefs.edit()
+            .remove(WEBVIEW_LAST_CRASH_AT_KEY)
+            .remove(WEBVIEW_CRASH_COUNT_KEY)
+            .apply();
+    }
+
+    private void showRecoveryScreen() {
+        if (bridge == null || bridge.getWebView() == null) return;
+        String baseUrl = "https://localhost/";
+        String html = "<!doctype html><html><head><meta charset='utf-8'>"
+            + "<meta name='viewport' content='width=device-width, initial-scale=1'>"
+            + "<title>Cotidie</title>"
+            + "<style>body{font-family:sans-serif;background:#0f172a;color:#e2e8f0;margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}"
+            + ".card{max-width:420px;background:#111827;border:1px solid #334155;border-radius:18px;padding:24px;box-shadow:0 20px 45px rgba(0,0,0,.35);}"
+            + "h1{margin:0 0 12px;font-size:22px;}p{line-height:1.5;color:#cbd5e1;}button{margin-top:16px;background:#f8fafc;color:#0f172a;border:0;border-radius:999px;padding:12px 18px;font-weight:700;width:100%;}</style>"
+            + "</head><body><div class='card'><h1>Cotidie se recupero de un fallo del WebView</h1>"
+            + "<p>La app detecto varios cierres seguidos al abrirse y detuvo el reinicio automatico para evitar un bucle. Puedes intentar una recarga limpia desde aqui.</p>"
+            + "<button onclick=\"window.location.replace('/')\">Reintentar</button></div></body></html>";
+        bridge.getWebView().loadDataWithBaseURL(baseUrl, html, "text/html", "utf-8", null);
     }
 }

@@ -6,6 +6,7 @@ import { SettingsProvider } from '@/context/SettingsContext';
 import ThemeManager from "@/components/ThemeManager";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import ServiceWorkerCleanup from "@/components/ServiceWorkerCleanup";
+import { appVersion } from "@/lib/version";
 
 const HOME_BG_URL_KEY = "cotidie_home_bg_url";
 
@@ -49,7 +50,7 @@ export default function RootLayout({
         <meta name="theme-color" content="#000000" />
         <meta name="google" content="notranslate" />
 
-        <link rel="manifest" href="/manifest.json" />
+        <link rel="manifest" href={`/manifest.json?v=${appVersion}`} />
         
         <link rel="icon" href="/icons/icon.png" />
         <link rel="apple-touch-icon" href="/icons/icon.png" />

@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { handleTouchNavigation } from '@/utils/touchNavigation';
+import { handleTouchNavigation, TOUCH_NAV_INTERACTIVE_SELECTORS } from '@/utils/touchNavigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, X, Plus, Trash2, Settings2, Image as ImageIcon, Calendar, Pencil, BookOpen, Crown, Cross, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,17 +9,6 @@ import { cn } from '@/lib/utils';
 import { useSettings } from '@/context/SettingsContext';
 import { santoRosario } from '@/lib/prayers/plan-de-vida/santo-rosario';
 import { letanias as letaniasData } from '@/lib/prayers/plan-de-vida/santo-rosario/letanias';
-import { renderText } from '@/lib/textFormatter';
-
-// Standard Rosary Sequence per Mystery
-const ROSARY_SEQUENCE = [
-  { type: 'reading', label: 'Meditación' },
-  { type: 'intro', label: 'Intención' },
-  { type: 'padre_nuestro', label: 'Padre Nuestro', count: 1 },
-  { type: 'ave_maria', label: 'Ave María', count: 10 },
-  { type: 'gloria', label: 'Gloria', count: 1 },
-  { type: 'jaculatoria', label: 'Jaculatoria', count: 1 },
-];
 
 const PRAYERS_TEXT = {
   padre_nuestro: `Padre nuestro, que estás en el cielo, santificado sea tu Nombre; venga a nosotros tu reino; hágase tu voluntad en la tierra como en el cielo. Danos hoy nuestro pan de cada día; perdona nuestras ofensas, como también nosotros perdonamos a los que nos ofenden; no nos dejes caer en la tentación, y líbranos del mal. Amén.`,
@@ -79,7 +68,7 @@ Y mi boca proclamará tus alabanzas.
 Ven + oh Dios, en mi ayuda.
 Apresúrate, Señor, a socorrerme.`;
 
-const SALVE_TEXT = `Dios te salve, Reina y Madre de misericordia, vida, dulzura y esperanza nuestra; Dios te salve. A Ti llamamos los desterrados hijos de Eva; a Ti suspiramos, gimiendo y llorando, en este valle de lágrimas. Ea, pues, Señora, abogada nuestra, vuelve a nosotros esos tus ojos misericordiosos; y después de este destierro muéstranos a Jesús, fruto bendito de tu vientre. Â¡Oh clementísima, oh piadosa, oh dulce Virgen María! Ruega por nosotros, Santa Madre de Dios, para que seamos dignos de alcanzar las promesas de Nuestro Señor Jesucristo. Amén.`;
+const SALVE_TEXT = `Dios te salve, Reina y Madre de misericordia, vida, dulzura y esperanza nuestra; Dios te salve. A Ti llamamos los desterrados hijos de Eva; a Ti suspiramos, gimiendo y llorando, en este valle de lágrimas. Ea, pues, Señora, abogada nuestra, vuelve a nosotros esos tus ojos misericordiosos; y después de este destierro muéstranos a Jesús, fruto bendito de tu vientre. ¡Oh clementísima, oh piadosa, oh dulce Virgen María! Ruega por nosotros, Santa Madre de Dios, para que seamos dignos de alcanzar las promesas de Nuestro Señor Jesucristo. Amén.`;
 
 const PRE_ROSARY_STEPS = [
   { type: 'adoracion', label: 'Adoración', content: ADORACION_SANTISIMO_TEXT_1 },
@@ -243,7 +232,7 @@ const FULL_MYSTERY_TITLES: Record<string, string> = {
   'gozoso-4': 'La Presentación del Señor en el Templo',
   'gozoso-5': 'El Niño Jesús perdido y hallado en el Templo',
   'luminoso-1': 'El Bautismo del Señor en el Jordán',
-  'luminoso-2': 'Las Autorrevelación en las bodas de Caná',
+  'luminoso-2': 'La autorrevelación de Jesús en las bodas de Caná',
   'luminoso-3': 'El Anuncio del Reino de Dios y la invitación a la conversión',
   'luminoso-4': 'La Transfiguración del Señor',
   'luminoso-5': 'La Institución de la Eucaristía',
@@ -858,9 +847,12 @@ export default function RosaryImmersive({
   // --- PRAYER VIEW ---
   return (
     <div
-      onClick={(e) =>
-        handleTouchNavigation(e, handlePrev, handleNext)
-      }
+      onClick={(e) => {
+        if (!touchNavEnabled) return
+        handleTouchNavigation(e, handlePrev, handleNext, {
+          blockedSelectors: TOUCH_NAV_INTERACTIVE_SELECTORS,
+        })
+      }}
       className={cn(
         "fixed inset-0 z-50 flex flex-col items-center justify-between pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] overflow-hidden",
         isDark ? "bg-black text-white" : "bg-zinc-50 text-zinc-900"
@@ -1190,42 +1182,7 @@ export default function RosaryImmersive({
         </AnimatePresence>
       </div>
 
-      {touchNavEnabled && (
-        <div className="pointer-events-none absolute inset-0 z-20">
-          <div
-            className="pointer-events-auto absolute left-0 w-full flex"
-            style={{
-              top: 'calc(4rem + env(safe-area-inset-top))',
-              height: 'calc(100% - (4rem + env(safe-area-inset-top)))',
-            }}
-          >
-            <button
-              type="button"
-              aria-label="Anterior"
-              className="h-full pointer-events-auto"
-              style={{ width: '25%' }}
-              onClick={(e) => {
-                e.stopPropagation()
-                handlePrev()
-              }}
-            />
-
-            <div className="h-full pointer-events-none" style={{ width: '45%' }} />
-
-            <button
-              type="button"
-              aria-label="Siguiente"
-              className="h-full pointer-events-auto"
-              style={{ width: '30%' }}
-              onClick={(e) => {
-                e.stopPropagation()
-                handleNext()
-              }}
-            />
-          </div>
-        </div>
-      )}
-
+      
       {/* Navigation Globe (Bottom) */}
       {!touchNavEnabled && (
         <div
@@ -1300,3 +1257,6 @@ export default function RosaryImmersive({
     </div>
   );
 }
+
+
+

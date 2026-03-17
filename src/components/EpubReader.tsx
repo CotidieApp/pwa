@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ePub, { type Book, type Rendition } from 'epubjs';
@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Menu } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
+import { useScreenWakeLock } from '@/hooks/useScreenWakeLock';
 
 const DEFAULT_FILE_NAME = 'nuevo-testamento.epub';
 type EpubReaderProps = {
@@ -28,8 +29,13 @@ type TocEntry = {
 
 type SearchResult = {
   id: string;
-  cfi: string;
+  target: string;
   excerpt: string;
+};
+
+type StoredReaderLocation = {
+  cfi?: string;
+  href?: string;
 };
 
 type BookmarkItem = {
@@ -117,6 +123,97 @@ const normalizeText = (value: string) =>
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
 
+const stripHash = (value: string) => value.split('#')[0] || value;
+
+const parseStoredReaderLocation = (raw: string | null): StoredReaderLocation | null => {
+  if (!raw) return null;
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+
+    const cfi = typeof parsed.cfi === 'string' && parsed.cfi.trim().length > 0 ? parsed.cfi : undefined;
+    const href = typeof parsed.href === 'string' && parsed.href.trim().length > 0 ? parsed.href : undefined;
+    return cfi || href ? { cfi, href } : null;
+  } catch {
+    return raw.trim().length > 0 ? { cfi: raw } : null;
+  }
+};
+
+const serializeStoredReaderLocation = (location: StoredReaderLocation) => JSON.stringify(location);
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+type NtReference = {
+  bookId: string;
+  chapter: number;
+  verse?: number;
+};
+
+const parseNtReference = (query: string): NtReference | null => {
+  const normalizedQuery = String(query || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9:.,\s]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!normalizedQuery) return null;
+
+  const sortedBooks = [...NT_BOOKS].sort((a, b) => {
+    const longestA = Math.max(...a.aliases.map((alias) => normalizeText(alias).length));
+    const longestB = Math.max(...b.aliases.map((alias) => normalizeText(alias).length));
+    return longestB - longestA;
+  });
+
+  for (const book of sortedBooks) {
+    for (const alias of book.aliases) {
+      const normalizedAlias = normalizeText(alias);
+      const pattern = new RegExp(`^${escapeRegExp(normalizedAlias)}\\s+(\\d+)(?:\\s*[:.,]\\s*(\\d+))?$`);
+      const match = normalizedQuery.match(pattern);
+      if (!match) continue;
+
+      const chapter = Number(match[1]);
+      const verse = match[2] ? Number(match[2]) : undefined;
+      if (!Number.isFinite(chapter) || chapter <= 0) return null;
+      if (verse !== undefined && (!Number.isFinite(verse) || verse <= 0)) return null;
+
+      return {
+        bookId: book.id,
+        chapter,
+        ...(verse !== undefined ? { verse } : {}),
+      };
+    }
+  }
+
+  return null;
+};
+
+const getElementCfi = (section: any, doc: Document, element: Element) => {
+  if (typeof section?.cfiFromElement === 'function') {
+    try {
+      const cfi = section.cfiFromElement(element);
+      if (typeof cfi === 'string' && cfi.length > 0) return cfi;
+    } catch {}
+  }
+
+  if (typeof section?.cfiFromRange === 'function') {
+    try {
+      const range = doc.createRange();
+      range.selectNode(element);
+      const cfi = section.cfiFromRange(range);
+      if (typeof cfi === 'string' && cfi.length > 0) return cfi;
+    } catch {}
+  }
+
+  return null;
+};
+
+const getExcerptFromElement = (element: Element | null, fallback: string) => {
+  const text = (element?.textContent || '').replace(/\s+/g, ' ').trim();
+  if (!text) return fallback;
+  return text.length > 220 ? `${text.slice(0, 217)}...` : text;
+};
+
 const NT_BOOKS = [
   { id: 'mateo', label: 'Mateo', aliases: ['mateo', 'mt'] },
   { id: 'marcos', label: 'Marcos', aliases: ['marcos', 'mc'] },
@@ -163,6 +260,7 @@ export default function EpubReader({
   context = 'nt',
 }: EpubReaderProps) {
   const { theme, pushDevLiveTrace } = useSettings();
+  useScreenWakeLock(true);
   const isNtContext = context === 'nt';
   const containerRef = useRef<HTMLDivElement | null>(null);
   const bookRef = useRef<Book | null>(null);
@@ -189,7 +287,7 @@ export default function EpubReader({
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [panelTab, setPanelTab] = useState<'toc' | 'search' | 'bookmarks' | 'highlights'>('toc');
   const [tocBookFilter, setTocBookFilter] = useState<string>('all');
-  const [isReaderFullscreen, setIsReaderFullscreen] = useState(false);
+  const isReaderFullscreen = false;
   const [showReaderChrome, setShowReaderChrome] = useState(true);
   const [readerTextColor, setReaderTextColor] = useState<'white' | 'black'>(theme === 'dark' ? 'white' : 'black');
   const [readerBackgroundColor, setReaderBackgroundColor] = useState<'white' | 'black'>(
@@ -225,6 +323,126 @@ export default function EpubReader({
     if (highlights.length > 0) tabs.push('highlights');
     return tabs;
   }, [bookmarks.length, highlights.length, tocEntries.length]);
+
+  const getSpineItems = useCallback(() => {
+    const items = ((bookRef.current as any)?.spine?.spineItems ?? []) as any[];
+    return Array.isArray(items) ? items : [];
+  }, []);
+
+  const getBookSpineItems = useCallback((bookId: string) => {
+    const orderedBooks = NT_BOOKS
+      .map((book) => ({
+        id: book.id,
+        href: tocBookAnchors[book.id]?.href,
+      }))
+      .filter((entry): entry is { id: string; href: string } => typeof entry.href === 'string' && entry.href.length > 0);
+
+    const currentBook = orderedBooks.find((entry) => entry.id === bookId);
+    if (!currentBook) return [];
+
+    const spineItems = getSpineItems();
+    const currentHref = stripHash(currentBook.href);
+    const startIndex = spineItems.findIndex((item) => stripHash(item?.href || '') === currentHref);
+    if (startIndex === -1) return [];
+
+    const nextBook = orderedBooks[orderedBooks.findIndex((entry) => entry.id === bookId) + 1];
+    const nextStartIndex = nextBook
+      ? spineItems.findIndex((item) => stripHash(item?.href || '') === stripHash(nextBook.href))
+      : -1;
+
+    return nextStartIndex > startIndex
+      ? spineItems.slice(startIndex, nextStartIndex)
+      : spineItems.slice(startIndex);
+  }, [getSpineItems, tocBookAnchors]);
+
+  const persistCurrentLocation = useCallback(() => {
+    const location = (renditionRef.current as any)?.currentLocation?.();
+    const start = Array.isArray(location) ? location[0]?.start : location?.start;
+    const cfi = typeof start?.cfi === 'string' && start.cfi.length > 0 ? start.cfi : undefined;
+    const href = typeof start?.href === 'string' && start.href.length > 0 ? start.href : undefined;
+
+    if (!cfi && !href) return;
+
+    try {
+      window.localStorage.setItem(
+        locationStorageKey,
+        serializeStoredReaderLocation({
+          ...(cfi ? { cfi } : {}),
+          ...(href ? { href } : {}),
+        })
+      );
+    } catch {}
+  }, [locationStorageKey]);
+
+  const findNtReferenceInSection = useCallback(async (section: any, reference: NtReference): Promise<SearchResult | null> => {
+    if (!bookRef.current) return null;
+
+    await section.load(bookRef.current.load.bind(bookRef.current));
+    const doc = section?.document as Document | undefined;
+    if (!doc) {
+      section.unload?.();
+      return null;
+    }
+
+    const chapterMarkers = Array.from(doc.querySelectorAll('span.cap'));
+    const chapterMarker = chapterMarkers.find((marker) => marker.textContent?.trim() === String(reference.chapter));
+    if (!chapterMarker) {
+      section.unload?.();
+      return null;
+    }
+
+    const nextChapterMarker =
+      chapterMarkers.find((marker) => marker !== chapterMarker && chapterMarker.compareDocumentPosition(marker) & Node.DOCUMENT_POSITION_FOLLOWING) || null;
+
+    const isInsideChapter = (element: Element) => {
+      const afterChapter =
+        element === chapterMarker ||
+        Boolean(chapterMarker.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING);
+      const beforeNextChapter =
+        !nextChapterMarker ||
+        element === nextChapterMarker ||
+        Boolean(element.compareDocumentPosition(nextChapterMarker) & Node.DOCUMENT_POSITION_FOLLOWING);
+      return afterChapter && beforeNextChapter;
+    };
+
+    const chapterContainer = chapterMarker.closest('p, h3, h4, h5, h6') || chapterMarker.parentElement || chapterMarker;
+
+    if (reference.verse === undefined) {
+      const cfi = getElementCfi(section, doc, chapterContainer);
+      const target = cfi || section.href;
+      section.unload?.();
+      return target
+        ? {
+            id: `${reference.bookId}-${reference.chapter}`,
+            target,
+            excerpt: getExcerptFromElement(chapterContainer, `${reference.chapter}`),
+          }
+        : null;
+    }
+
+    const verseMarker = Array.from(doc.querySelectorAll('sup.sup')).find((element) => {
+      const value = element.textContent?.replace(/\s+/g, '').trim();
+      return value === String(reference.verse) && isInsideChapter(element);
+    });
+
+    const verseContainer =
+      verseMarker?.closest('p, h3, h4, h5, h6') || chapterContainer;
+    const cfi = verseMarker ? getElementCfi(section, doc, verseMarker) : null;
+    const target = cfi || getElementCfi(section, doc, verseContainer) || section.href;
+
+    section.unload?.();
+
+    return target
+      ? {
+          id: `${reference.bookId}-${reference.chapter}-${reference.verse}`,
+          target,
+          excerpt: getExcerptFromElement(
+            verseContainer,
+            `${reference.chapter}:${reference.verse}`
+          ),
+        }
+      : null;
+  }, []);
 
   useEffect(() => {
     if (availablePanelTabs.includes(panelTab)) return;
@@ -328,9 +546,16 @@ export default function EpubReader({
               setLocationLabel(`${displayed.page}/${displayed.total}`);
             }
             const cfi = location?.start?.cfi;
+            const href = location?.start?.href;
             if (typeof cfi === 'string' && cfi.length > 0) {
               try {
-                window.localStorage.setItem(locationStorageKey, cfi);
+                window.localStorage.setItem(
+                  locationStorageKey,
+                  serializeStoredReaderLocation({
+                    cfi,
+                    ...(typeof href === 'string' && href.length > 0 ? { href } : {}),
+                  })
+                );
               } catch {}
               setCurrentCfi(cfi);
             }
@@ -379,9 +604,9 @@ export default function EpubReader({
           .filter((item) => typeof item?.cfiRange === 'string');
         if (!cancelled) setHighlights(storedHighlights);
 
-        const savedCfi = window.localStorage.getItem(locationStorageKey);
+        const savedLocation = parseStoredReaderLocation(window.localStorage.getItem(locationStorageKey));
         try {
-          await rendition.display(savedCfi || undefined);
+          await rendition.display(savedLocation?.cfi || savedLocation?.href || undefined);
         } catch {
           if (!cancelled) {
             await rendition.display(undefined).catch(() => undefined);
@@ -458,6 +683,22 @@ export default function EpubReader({
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, [refreshRenditionLayout]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (typeof document === 'undefined' || document.visibilityState !== 'hidden') return;
+      persistCurrentLocation();
+    };
+
+    window.addEventListener('pagehide', persistCurrentLocation);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('pagehide', persistCurrentLocation);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      persistCurrentLocation();
+    };
+  }, [persistCurrentLocation]);
 
   const moveBySpine = async (delta: -1 | 1) => {
     const rendition = renditionRef.current as any;
@@ -586,6 +827,18 @@ export default function EpubReader({
     setIsSearching(true);
     setSearchResults([]);
     try {
+      const ntReference = isNtContext ? parseNtReference(query) : null;
+      if (ntReference) {
+        const referenceSections = getBookSpineItems(ntReference.bookId);
+        for (const section of referenceSections) {
+          const match = await findNtReferenceInSection(section, ntReference);
+          if (!match) continue;
+          setSearchResults([match]);
+          setIsSearching(false);
+          return;
+        }
+      }
+
       const results: SearchResult[] = [];
       const spineItems: any[] = [];
       const spine = (bookRef.current as any).spine;
@@ -602,7 +855,7 @@ export default function EpubReader({
           if (typeof match?.cfi !== 'string') continue;
           results.push({
             id: `${section.href || section.idref || 's'}-${match.cfi}`,
-            cfi: match.cfi,
+            target: match.cfi,
             excerpt: typeof match?.excerpt === 'string' ? match.excerpt : query,
           });
           if (results.length >= 200) break;
@@ -617,7 +870,7 @@ export default function EpubReader({
   };
 
   const openSearchResult = async (item: SearchResult) => {
-    await renditionRef.current?.display(item.cfi);
+    await renditionRef.current?.display(item.target);
     setIsPanelOpen(false);
   };
 
@@ -949,7 +1202,7 @@ export default function EpubReader({
 
             {panelTab === 'search' && (
               <div className="space-y-2">
-                <div className="text-xs font-semibold">{isNtContext ? 'Buscar texto (capítulo/versículo según EPUB)' : 'Buscar texto'}</div>
+                <div className="text-xs font-semibold">{isNtContext ? 'Buscar texto o referencia bíblica' : 'Buscar texto'}</div>
                 <div className="flex gap-2">
                   <Input
                     value={searchQuery}
@@ -1069,6 +1322,7 @@ export default function EpubReader({
     </div>
   );
 }
+
 
 
 

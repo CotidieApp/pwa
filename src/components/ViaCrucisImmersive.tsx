@@ -1,7 +1,7 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { handleTouchNavigation } from '@/utils/touchNavigation';
+import { handleTouchNavigation, TOUCH_NAV_INTERACTIVE_SELECTORS } from '@/utils/touchNavigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, X, Image as ImageIcon, Cross, Sparkles, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -39,13 +39,6 @@ type ImmersiveViaCrucisProps = {
 export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps) {
   const { isDistractionFree, theme, arrowBubbleSize, navMode } = useSettings();
   const touchNavEnabled = navMode === 'touch';
-  const isInteractiveElement = (el: HTMLElement | null): boolean => {
-    if (!el) return false;
-
-    return !!el.closest(
-      'button, a, input, textarea, select, [role="button"], [data-no-touch-nav]'
-    );
-  };
 
   const navBubbleClass = {
     sm: "gap-1 p-1 pl-2 rounded-xl",
@@ -281,7 +274,6 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
     }
 
     // Stations Phase
-    const stationNumber = currentStationIndex + 1;
     const roman = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV"][currentStationIndex];
 
     let mainIcon: React.ReactNode = roman;
@@ -346,7 +338,9 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
     <div
       onClick={(e) => {
         if (!touchNavEnabled) return
-        handleTouchNavigation(e, handlePrev, handleNext)
+        handleTouchNavigation(e, handlePrev, handleNext, {
+          blockedSelectors: TOUCH_NAV_INTERACTIVE_SELECTORS,
+        })
       }}
       className={cn(
         "fixed inset-0 z-50 flex flex-col items-center justify-between pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] overflow-hidden",
@@ -468,3 +462,4 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
     </div>
   );
 }
+

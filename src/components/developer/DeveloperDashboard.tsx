@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { appVersion } from '@/lib/version';
 import WrappedStory from '@/components/WrappedStory';
+import MassStreakSparkPreview from '@/components/developer/MassStreakSparkPreview';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -158,6 +159,7 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('overview');
   const [showWrappedPreview, setShowWrappedPreview] = useState(false);
+  const [showMassStreakPreview, setShowMassStreakPreview] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const traceEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -467,12 +469,20 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
                   </CardContent>
                 </Card>
                 
-                <Button 
-                   className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
-                   onClick={() => setShowWrappedPreview(true)}
-                >
+                <div className="grid gap-3 md:grid-cols-2">
+                  <Button 
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+                    onClick={() => setShowWrappedPreview(true)}
+                  >
                     <Icon.Play className="mr-2 size-4" /> Iniciar Vista Previa Wrapped
-                </Button>
+                  </Button>
+                  <Button
+                    className="w-full bg-amber-500 text-slate-950 hover:bg-amber-400"
+                    onClick={() => setShowMassStreakPreview(true)}
+                  >
+                    <Icon.Flame className="mr-2 size-4" /> Probar Racha de Misa
+                  </Button>
+                </div>
               </div>
             )}
 
@@ -978,19 +988,21 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
         </div>
       </div>
       
-      {showWrappedPreview && (
-         <div className="fixed inset-0 z-50 bg-black">
-             <Button 
-                className="absolute top-4 right-4 z-50 bg-white text-black hover:bg-gray-200" 
-                onClick={() => setShowWrappedPreview(false)}
-             >
-                Salir de Vista Previa
-             </Button>
-             <WrappedStory onClose={() => setShowWrappedPreview(false)} />
-         </div>
-      )}
+        {showWrappedPreview && (
+           <div className="fixed inset-0 z-50 bg-black">
+               <Button 
+                  className="absolute top-4 right-4 z-50 bg-white text-black hover:bg-gray-200" 
+                 onClick={() => setShowWrappedPreview(false)}
+               >
+                  Salir de Vista Previa
+               </Button>
+              <WrappedStory onClose={() => setShowWrappedPreview(false)} />
+           </div>
+        )}
 
-      {selectedImage && (
+        {showMassStreakPreview && <MassStreakSparkPreview onClose={() => setShowMassStreakPreview(false)} />}
+  
+        {selectedImage && (
         <Dialog open={isImageViewerOpen} onOpenChange={setIsImageViewerOpen}>
           <DialogContent className="w-screen h-screen max-w-none p-0 bg-transparent border-none">
             <DialogTitle className="sr-only">Visor de imagen</DialogTitle>

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useCallback } from 'react';
 import Cropper, { Area } from 'react-easy-crop';
@@ -28,7 +28,7 @@ export default function ImageCropper({ imageSrc, onCropComplete, onCancel, isOpe
     setZoom(zoom);
   };
 
-  const onCropCompleteHandler = useCallback((croppedArea: Area, croppedAreaPixels: Area) => {
+  const onCropCompleteHandler = useCallback((_croppedArea: Area, croppedAreaPixels: Area) => {
     setCroppedAreaPixels(croppedAreaPixels);
   }, []);
 
@@ -92,3 +92,4 @@ export default function ImageCropper({ imageSrc, onCropComplete, onCancel, isOpe
     </Dialog>
   );
 }
+
