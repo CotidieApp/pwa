@@ -11,7 +11,8 @@ export const fixedNotifications: FixedNotificationEntry[] = [
   {
     date: '3/10 9:00', // Aniversario Cotidie
     title: '#{year-2025} aniversaio de Cotidie',
-    text: 'Conmemoramos el día en el que nació como un mero proyecto esta aplicación. ¡Gracias por formar parte de esta comunidad!'
+    text: 'Conmemoramos el día en el que nació como un mero proyecto esta aplicación. ¡Gracias por formar parte de esta comunidad!',
+    image: './icon.png'
   },
   {
     date: 'j1 9:00', // Recuerdo a las vocaciones

@@ -123,8 +123,6 @@ type Settings = {
   setHomeBackgroundId: (id: string | null) => void;
   autoRotateBackground: boolean;
   setAutoRotateBackground: (enabled: boolean) => void;
-  welcomeScreenEnabled: boolean;
-  setWelcomeScreenEnabled: (enabled: boolean) => void;
 
   allPrayers: Prayer[];
   userDevotions: Prayer[];
@@ -611,7 +609,6 @@ const FULL_BACKUP_KEYS = [
   'fontFamily',
   'homeBackgroundId',
   'autoRotateBackground',
-  'welcomeScreenEnabled',
   'lastBackgroundRotationDate',
   'hiddenPrayerIds',
   'editedPrayerIds',
@@ -703,7 +700,6 @@ const normalizeBackupState = (raw: any) => {
     fontFamily: typeof source.fontFamily === 'string' && source.fontFamily.trim().length > 0 ? source.fontFamily : 'literata',
     homeBackgroundId: normalizeNullableString(source.homeBackgroundId) ?? defaultHomeBackgroundId,
     autoRotateBackground: normalizeBoolean(source.autoRotateBackground, true),
-    welcomeScreenEnabled: normalizeBoolean(source.welcomeScreenEnabled, true),
     lastBackgroundRotationDate: normalizeNullableString(source.lastBackgroundRotationDate),
     hiddenPrayerIds: normalizeStringArray(source.hiddenPrayerIds),
     editedPrayerIds: normalizeStringArray(source.editedPrayerIds),
@@ -792,7 +788,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   const [homeBackgroundId, setHomeBackgroundId] = useState<string | null>(defaultHomeBackgroundId);
   const [autoRotateBackground, setAutoRotateBackground] = useState(true);
-  const [welcomeScreenEnabled, setWelcomeScreenEnabled] = useState(true);
   const [lastBackgroundRotationDate, setLastBackgroundRotationDate] = useState<string | null>(null);
 
   const [hiddenPrayerIds, setHiddenPrayerIds] = useState<string[]>([]);
@@ -975,7 +970,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setFontFamily(snapshot.fontFamily);
     setHomeBackgroundId(snapshot.homeBackgroundId);
     setAutoRotateBackground(snapshot.autoRotateBackground);
-    setWelcomeScreenEnabled(snapshot.welcomeScreenEnabled);
     setLastBackgroundRotationDate(snapshot.lastBackgroundRotationDate);
     setHiddenPrayerIds(snapshot.hiddenPrayerIds);
     setEditedPrayerIds(snapshot.editedPrayerIds);
@@ -1039,7 +1033,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         fontFamily,
         homeBackgroundId,
         autoRotateBackground,
-        welcomeScreenEnabled,
         lastBackgroundRotationDate,
         hiddenPrayerIds,
         editedPrayerIds,
@@ -1100,7 +1093,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       fontFamily,
       homeBackgroundId,
       autoRotateBackground,
-      welcomeScreenEnabled,
       lastBackgroundRotationDate,
       hiddenPrayerIds,
       editedPrayerIds,
@@ -1672,7 +1664,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setNavMode('bubble');
     setArrowBubbleSize('sm');
     setMovableFeastsEnabled(true);
-    setWelcomeScreenEnabled(true);
     // ... reset others as needed, but usually we keep user data
     toast({ title: 'Configuración restablecida.' });
   };
@@ -1697,7 +1688,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       pushDevLiveTrace({
         level: 'info',
         source: 'auth',
-        message: 'Sesion de desarrollador iniciada.',
+        message: 'Sesión de desarrollador iniciada.',
       });
       return true;
     }
@@ -3020,8 +3011,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         setHomeBackgroundId,
         autoRotateBackground,
         setAutoRotateBackground,
-        welcomeScreenEnabled,
-        setWelcomeScreenEnabled,
         allPrayers,
         userDevotions,
         addUserDevotion,
@@ -3153,11 +3142,6 @@ export const useSettings = () => {
   if (!ctx) throw new Error('useSettings must be used within SettingsProvider');
   return ctx;
 };
-
-
-
-
-
 
 
 

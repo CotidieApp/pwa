@@ -454,7 +454,7 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
                         <Label className="text-base">Notificación Test (5 min)</Label>
-                        <p className="text-xs text-slate-400">Solo modo desarrollador. Envía una notificación cada 5 minutos.</p>
+                        <p className="text-xs text-slate-400">Envía una notificación cada 5 minutos.</p>
                       </div>
                       <Switch checked={devTestNotificationEnabled} onCheckedChange={setDevTestNotificationEnabled} />
                     </div>

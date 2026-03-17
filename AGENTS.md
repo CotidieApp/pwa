@@ -2891,3 +2891,40 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 **Archivos Modificados:**
 - `src/components/AnnuumStory.tsx`
 - `AGENTS.md`
+
+### [2026-03-16 22:23] 152. Ajuste tipo Duolingo en preview de rachas de Misa
+**Planificación:**
+- Evitar que el preview adelante visualmente qué días futuros se van a quemar.
+- Hacer que el check aparezca solo después de que el fuego haya consumido un día.
+- Reforzar el arranque de cada racha para que la llama nazca en el primer día del tramo cuando no viene de uno anterior.
+
+**Ejecución:**
+- **Sin spoilers futuros**: se eliminó la previsualización del siguiente día en la racha; el calendario ya no dibuja conectores hacia celdas todavía no quemadas.
+- **Check post-consumo**: los días solo muestran check cuando ya pasaron de estado activo a estado quemado; mientras el fuego está encima, todavía no se marcan como completados.
+- **Encendido de racha**: la celda activa del inicio de cada segmento usa una ráfaga de ignición para que la llama parezca nacer ahí cuando comienza una nueva racha.
+- **Limpieza**: se retiró estado auxiliar que había quedado sin uso tras quitar la anticipación visual del siguiente día.
+- **Validación**: `node node_modules/typescript/bin/tsc --noEmit --pretty false` OK y `npm.cmd run build` OK.
+
+**Archivos Modificados:**
+- `src/components/developer/MassStreakSparkPreview.tsx`
+- `AGENTS.md`
+
+### [2026-03-16 22:33] 153. Eliminación de ajuste de bienvenida y reversión visual del splash
+**Planificación:**
+- Retirar la opción de desactivar la pantalla de bienvenida porque su flujo de arranque estaba introduciendo inconsistencias visuales.
+- Volver a un arranque lineal con splash fijo y eliminar el oscurecimiento agregado sobre el fondo.
+- Limpiar referencias residuales en ajustes, contexto y persistencia para no dejar código muerto.
+
+**Ejecución:**
+- **Arranque**: `page.tsx` volvió a un flujo simple; la app muestra el splash mientras termina la hidratación y durante la ventana inicial, sin bifurcaciones por preferencias guardadas.
+- **Splash**: `SplashScreen.tsx` ya no aplica el overlay oscuro sobre la imagen de fondo y se corrigió el lema visible a `Serviam cum gaudio magno!`.
+- **Ajustes**: se eliminó de `AppearanceSettings` el interruptor de pantalla de bienvenida.
+- **Contexto/Persistencia**: se retiró `welcomeScreenEnabled` del `SettingsContext`, del snapshot persistente y de los resets, dejando el feature fuera del estado de la app.
+- **Validación**: `node node_modules/typescript/bin/tsc --noEmit --pretty false` OK y `npm.cmd run build` OK.
+
+**Archivos Modificados:**
+- `src/app/page.tsx`
+- `src/components/main/SplashScreen.tsx`
+- `src/components/settings/AppearanceSettings.tsx`
+- `src/context/SettingsContext.tsx`
+- `AGENTS.md`

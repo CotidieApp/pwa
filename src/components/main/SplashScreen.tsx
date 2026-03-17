@@ -10,7 +10,6 @@ export default function SplashScreen() {
           className="h-full w-full bg-cover bg-center animate-in fade-in-0 duration-1000"
           style={{ backgroundImage: "var(--home-bg-image)" }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/30 to-black/65" />
       </div>
 
       <div className="relative flex flex-grow items-center justify-center">
@@ -19,7 +18,7 @@ export default function SplashScreen() {
             Cotidie
           </h1>
           <p className="mt-2 text-[clamp(1.15rem,4.8vw,1.65rem)] leading-snug italic text-white/90 [text-shadow:0_4px_16px_rgba(0,0,0,0.9)]">
-            Sérviam cum gaudio magno!
+            Serviam cum gaudio magno!
           </p>
         </div>
       </div>

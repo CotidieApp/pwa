@@ -36,8 +36,6 @@ export default function AppearanceSettings() {
     setHomeBackgroundId,
     autoRotateBackground,
     setAutoRotateBackground,
-    welcomeScreenEnabled,
-    setWelcomeScreenEnabled,
     planDeVidaTrackerEnabled,
     setPlanDeVidaTrackerEnabled,
     pinchToZoomEnabled,
@@ -232,18 +230,6 @@ export default function AppearanceSettings() {
             </div>
           </div>
           
-          <div className="flex items-center justify-between">
-            <Label htmlFor="welcome-screen-switch" className="flex flex-col gap-1 text-sm">
-              <span>Pantalla de bienvenida</span>
-              <span className="text-xs text-muted-foreground">Si la desactivas, la app abre directamente.</span>
-            </Label>
-            <Switch
-              id="welcome-screen-switch"
-              checked={welcomeScreenEnabled}
-              onCheckedChange={setWelcomeScreenEnabled}
-            />
-          </div>
-
           <div className="flex items-center justify-between">
             <Label htmlFor="plan-tracker-switch" className="flex flex-col gap-1 text-sm">
                <span>Rastreador de Plan de Vida</span>

@@ -141,10 +141,18 @@ function getStepDelay(nextEvent: EventDay, previousEvent: EventDay | null) {
   return delay;
 }
 
-function FireFx({ slow }: { slow: boolean }) {
+function FireFx({ slow, igniting }: { slow: boolean; igniting?: boolean }) {
   const duration = slow ? 1.35 : 0.8;
   return (
     <>
+      {igniting && (
+        <motion.span
+          className="absolute inset-[2%] rounded-[22px] bg-orange-400/20 blur-xl"
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: [0, 0.9, 0.18], scale: [0.8, 1.08, 1] }}
+          transition={{ duration: slow ? 1.2 : 0.8, ease: 'easeOut' }}
+        />
+      )}
       <motion.span
         className="absolute inset-[10%] rounded-full bg-amber-200/40 blur-2xl"
         animate={{ opacity: [0.3, 0.95, 0.36], scale: [0.85, 1.16, 0.94] }}
@@ -196,7 +204,6 @@ export default function MassStreakSparkPreview({ onClose, year = new Date().getF
   const simulation = useMemo(() => generateSimulation(year, seed), [seed, year]);
   const revealedEvents = useMemo(() => simulation.events.slice(0, revealedCount), [simulation.events, revealedCount]);
   const revealedKeys = useMemo(() => new Set(revealedEvents.map((event) => event.key)), [revealedEvents]);
-  const allEventKeys = useMemo(() => new Set(simulation.events.map((event) => event.key)), [simulation.events]);
   const activeEvent =
     simulation.events[Math.max(0, Math.min(revealedCount - 1, simulation.events.length - 1))] ?? simulation.events[0] ?? null;
   const currentMonthDate = activeEvent?.date ?? simulation.events[0]?.date ?? new Date(simulation.year, 0, 1);
@@ -341,43 +348,44 @@ export default function MassStreakSparkPreview({ onClose, year = new Date().getF
                         const key = toDateKey(day);
                         const outside = day.getMonth() !== currentMonth;
                         const visited = revealedKeys.has(key);
-                        const massDay = allEventKeys.has(key);
                         const active = activeEvent?.key === key && revealedCount > 0 && !isComplete;
-                        const futureMass = massDay && !visited;
                         const barrier = activeBarrierKey === key;
                         const prevKey = toDateKey(addDays(day, -1));
-                        const nextKey = toDateKey(addDays(day, 1));
                         const prevIndex = cellIndexByKey.get(prevKey);
-                        const nextIndex = cellIndexByKey.get(nextKey);
                         const row = Math.floor(index / 7);
                         const prevDirection = prevIndex != null && revealedKeys.has(prevKey) ? (Math.floor(prevIndex / 7) === row ? 'left' : 'top') : null;
-                        const nextDirection = active && nextIndex != null && allEventKeys.has(nextKey) ? (Math.floor(nextIndex / 7) === row ? 'right' : 'bottom') : null;
 
                         return (
                           <div key={key} className="relative aspect-square">
                             {prevDirection && <Connector direction={prevDirection} />}
-                            {nextDirection && <Connector direction={nextDirection} emphasized />}
 
                             <div
                               className={cn(
                                 'absolute inset-0 rounded-[18px] border transition-all',
                                 outside && 'border-transparent bg-transparent text-stone-300/60',
-                                !outside && !massDay && 'border-stone-300/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.52),rgba(245,245,244,0.7))] text-stone-700',
-                                futureMass && 'border-amber-300/70 bg-[linear-gradient(180deg,rgba(254,243,199,0.78),rgba(255,247,237,0.92))] text-amber-900',
+                                !outside && 'border-stone-300/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.52),rgba(245,245,244,0.7))] text-stone-700',
                                 visited && 'border-orange-950/55 bg-[linear-gradient(180deg,rgba(23,10,6,0.96),rgba(58,23,12,0.96)_55%,rgba(108,34,14,0.96))] text-amber-50 shadow-[0_12px_30px_rgba(124,45,18,0.24)]',
                                 active && 'border-amber-200/90 bg-[linear-gradient(180deg,rgba(35,12,6,0.96),rgba(79,27,13,0.98)_56%,rgba(139,45,12,0.98))] text-white shadow-[0_0_44px_rgba(249,115,22,0.34)]',
                               )}
                             >
                               {!outside && (
                                 <>
-                                  {futureMass && !barrier && <span className="absolute right-2 top-2 size-1.5 rounded-full bg-amber-400/80" />}
                                   {visited && !active && <span className="absolute inset-0 bg-[radial-gradient(circle_at_50%_115%,rgba(251,191,36,0.42),transparent_35%),linear-gradient(135deg,rgba(255,255,255,0.06),transparent_45%,rgba(0,0,0,0.24))]" />}
-                                  {active && <FireFx slow={activeEvent?.segmentLength === 1} />}
+                                  {active && <FireFx slow={activeEvent?.segmentLength === 1} igniting={activeEvent?.isSegmentStart} />}
                                   {barrier && <BarrierFx />}
                                   <span className={cn('absolute left-2 top-2 z-10 text-sm font-semibold', visited || active ? 'text-white' : 'text-stone-700')}>
                                     {format(day, 'd')}
                                   </span>
-                                  {massDay && !visited && !barrier && <span className="absolute bottom-2 left-2 rounded-full bg-white/70 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.16em] text-amber-900">Misa</span>}
+                                  {visited && !active && (
+                                    <motion.span
+                                      className="absolute bottom-2 right-2 z-10 inline-flex h-6 w-6 items-center justify-center rounded-full border border-emerald-200/35 bg-emerald-400/18 text-emerald-100 shadow-[0_0_14px_rgba(16,185,129,0.24)]"
+                                      initial={{ scale: 0.7, opacity: 0 }}
+                                      animate={{ scale: 1, opacity: 1 }}
+                                      transition={{ duration: 0.24, ease: 'easeOut' }}
+                                    >
+                                      <Icon.Check className="size-3.5" />
+                                    </motion.span>
+                                  )}
                                 </>
                               )}
                             </div>
