@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSettings } from '@/context/SettingsContext';
 import MainApp from '@/components/main/MainApp';
 import SplashScreen from '@/components/main/SplashScreen';
@@ -19,20 +19,42 @@ const readWelcomeScreenPreference = () => {
   }
 };
 
+function StartupBackdrop() {
+  return (
+    <div className="relative h-full w-full overflow-hidden bg-background">
+      <div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: 'var(--home-bg-image)' }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/25 to-black/55" />
+    </div>
+  );
+}
+
 export default function Page() {
-  const [showSplashScreen, setShowSplashScreen] = useState(readWelcomeScreenPreference);
+  const [initialWelcomePreference] = useState(readWelcomeScreenPreference);
+  const [showSplashScreen, setShowSplashScreen] = useState(initialWelcomePreference);
   const settings = useSettings();
-  const welcomeScreenEnabled = settings?.welcomeScreenEnabled ?? true;
+  const isSettingsLoaded = settings?.isLoaded ?? false;
+  const effectiveWelcomeScreenEnabled = isSettingsLoaded
+    ? settings.welcomeScreenEnabled
+    : initialWelcomePreference;
 
   useEffect(() => {
-    if (!welcomeScreenEnabled) {
+    if (!isSettingsLoaded) {
+      setShowSplashScreen(initialWelcomePreference);
+      return;
+    }
+
+    if (!effectiveWelcomeScreenEnabled) {
       setShowSplashScreen(false);
       return;
     }
 
+    setShowSplashScreen(true);
     const timer = setTimeout(() => setShowSplashScreen(false), 2500);
     return () => clearTimeout(timer);
-  }, [welcomeScreenEnabled]);
+  }, [effectiveWelcomeScreenEnabled, initialWelcomePreference, isSettingsLoaded]);
 
   useEffect(() => {
     const onUnhandledRejection = (event: PromiseRejectionEvent) => {
@@ -58,7 +80,11 @@ export default function Page() {
     };
   }, []);
 
-  if (welcomeScreenEnabled && showSplashScreen) {
+  if (!isSettingsLoaded) {
+    return effectiveWelcomeScreenEnabled ? <SplashScreen /> : <StartupBackdrop />;
+  }
+
+  if (effectiveWelcomeScreenEnabled && showSplashScreen) {
     return <SplashScreen />;
   }
 

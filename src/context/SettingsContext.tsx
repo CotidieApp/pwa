@@ -41,7 +41,7 @@ type FontSize = number;
 type ArrowBubbleSize = 'sm' | 'md' | 'lg';
 type NavMode = 'bubble' | 'touch';
 type OverlayPosition = { x: number; y: number };
-type OverlayPositions = { timer: OverlayPosition; planNav: OverlayPosition; wrappedBubble: OverlayPosition };
+type OverlayPositions = { timer: OverlayPosition; planNav: OverlayPosition; AnnuumBubble: OverlayPosition };
 export type DevTraceLevel = 'info' | 'warn' | 'error';
 export type DevTraceEvent = {
   id: string;
@@ -111,6 +111,7 @@ export type CustomPlan = {
 };
 
 type Settings = {
+  isLoaded: boolean;
   theme: Theme;
   setTheme: (t: Theme) => void;
   fontSize: FontSize;
@@ -269,8 +270,8 @@ type Settings = {
   removeCustomPlanPrayerAt: (slot: 1 | 2 | 3 | 4, index: number) => void;
   moveCustomPlanPrayer: (slot: 1 | 2 | 3 | 4, fromIndex: number, toIndex: number) => void;
 
-  forceWrappedSeason: boolean;
-  setForceWrappedSeason: (force: boolean) => void;
+  forceAnnuumSeason: boolean;
+  setForceAnnuumSeason: (force: boolean) => void;
 
   showZeroStats: boolean;
   setShowZeroStats: (show: boolean) => void;
@@ -285,8 +286,8 @@ type Settings = {
   globalUserStats: UserStats;
   incrementGlobalStat: (key: keyof UserStats, subKey?: string, options?: StatIncrementOptions) => void;
 
-  hasViewedWrapped: boolean;
-  setHasViewedWrapped: (viewed: boolean) => void;
+  hasViewedAnnuum: boolean;
+  setHasViewedAnnuum: (viewed: boolean) => void;
 };
 
 const SettingsContext = createContext<Settings | undefined>(undefined);
@@ -365,7 +366,7 @@ const defaultAlwaysShowPrayers = ['cartas'];
 const defaultOverlayPositions: OverlayPositions = {
   timer: { x: 12, y: 74 },
   planNav: { x: 12, y: 130 },
-  wrappedBubble: { x: 16, y: 48 },
+  AnnuumBubble: { x: 16, y: 48 },
 };
 
 const defaultUserStats: UserStats = {
@@ -475,7 +476,7 @@ const normalizeOverlayPositionValue = (raw: any, fallback: OverlayPosition): Ove
 const normalizeOverlayPositionsValue = (raw: any): OverlayPositions => ({
   timer: normalizeOverlayPositionValue(raw?.timer, defaultOverlayPositions.timer),
   planNav: normalizeOverlayPositionValue(raw?.planNav, defaultOverlayPositions.planNav),
-  wrappedBubble: normalizeOverlayPositionValue(raw?.wrappedBubble, defaultOverlayPositions.wrappedBubble),
+  AnnuumBubble: normalizeOverlayPositionValue(raw?.AnnuumBubble, defaultOverlayPositions.AnnuumBubble),
 });
 
 const normalizeDailyRemindersValue = (raw: any): DailyReminder[] => {
@@ -661,9 +662,9 @@ const FULL_BACKUP_KEYS = [
   'globalUserStats',
   'statsYear',
   'simulatedStats',
-  'forceWrappedSeason',
+  'forceAnnuumSeason',
   'showZeroStats',
-  'hasViewedWrapped',
+  'hasViewedAnnuum',
 ] as const;
 
 const stableSortValue = (value: any): any => {
@@ -753,9 +754,9 @@ const normalizeBackupState = (raw: any) => {
     globalUserStats: normalizeUserStatsValue(source.globalUserStats),
     statsYear: Math.floor(normalizeNumber(source.statsYear, new Date().getFullYear())),
     simulatedStats: source.simulatedStats == null ? null : normalizeUserStatsValue(source.simulatedStats),
-    forceWrappedSeason: normalizeBoolean(source.forceWrappedSeason),
+    forceAnnuumSeason: normalizeBoolean(source.forceAnnuumSeason),
     showZeroStats: normalizeBoolean(source.showZeroStats),
-    hasViewedWrapped: normalizeBoolean(source.hasViewedWrapped),
+    hasViewedAnnuum: normalizeBoolean(source.hasViewedAnnuum),
   };
 };
 
@@ -857,7 +858,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   
   const [lastSaintUpdate, setLastSaintUpdate] = useState<string | null>(null);
   
-  const [forceWrappedSeason, setForceWrappedSeason] = useState(false);
+  const [forceAnnuumSeason, setForceAnnuumSeason] = useState(false);
   
   const [simulatedQuoteId, setSimulatedQuoteId] = useState<string | null>(null);
 
@@ -875,7 +876,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [simulatedStats, setSimulatedStats] = useState<UserStats | null>(null);
 
   const [showZeroStats, setShowZeroStats] = useState(false);
-  const [hasViewedWrapped, setHasViewedWrapped] = useState(false);
+  const [hasViewedAnnuum, setHasViewedAnnuum] = useState(false);
 
   /* =======================
      LOCAL STORAGE (BLINDADO) & INDEXEDDB
@@ -963,7 +964,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     (raw: any): OverlayPositions => ({
       timer: normalizeOverlayPosition(raw?.timer, defaultOverlayPositions.timer),
       planNav: normalizeOverlayPosition(raw?.planNav, defaultOverlayPositions.planNav),
-      wrappedBubble: normalizeOverlayPosition(raw?.wrappedBubble, defaultOverlayPositions.wrappedBubble),
+      AnnuumBubble: normalizeOverlayPosition(raw?.AnnuumBubble, defaultOverlayPositions.AnnuumBubble),
     }),
     [normalizeOverlayPosition]
   );
@@ -1025,9 +1026,9 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setGlobalUserStats(snapshot.globalUserStats);
     setStatsYear(snapshot.statsYear);
     setSimulatedStats(snapshot.simulatedStats);
-    setForceWrappedSeason(snapshot.forceWrappedSeason);
+    setForceAnnuumSeason(snapshot.forceAnnuumSeason);
     setShowZeroStats(snapshot.showZeroStats);
-    setHasViewedWrapped(snapshot.hasViewedWrapped);
+    setHasViewedAnnuum(snapshot.hasViewedAnnuum);
   }, []);
 
   const backupSnapshot = useMemo(
@@ -1089,9 +1090,9 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         globalUserStats,
         statsYear,
         simulatedStats,
-        forceWrappedSeason,
+        forceAnnuumSeason,
         showZeroStats,
-        hasViewedWrapped,
+        hasViewedAnnuum,
       }),
     [
       theme,
@@ -1150,9 +1151,9 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       globalUserStats,
       statsYear,
       simulatedStats,
-      forceWrappedSeason,
+      forceAnnuumSeason,
       showZeroStats,
-      hasViewedWrapped,
+      hasViewedAnnuum,
     ]
   );
 
@@ -1203,7 +1204,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
               userStats: normalizeUserStatsValue(defaultUserStats),
               globalUserStats: normalizeUserStatsValue(hasSavedGlobalUserStats ? (s as any).globalUserStats : snapshot.userStats),
               statsYear: currentYear,
-              hasViewedWrapped: false,
+              hasViewedAnnuum: false,
             };
           }
 
@@ -2669,7 +2670,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         });
       };
 
-      const getWrappedSeasonStartForYear = (year: number) => {
+      const getAnnuumSeasonStartForYear = (year: number) => {
         const startWindow = new Date(year, 10, 27); // Nov 27
         const advent1 = new Date(startWindow);
         while (advent1.getDay() !== 0) {
@@ -2681,7 +2682,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       };
 
       const scheduleCotidieAnnuumStart = (year: number) => {
-        const start = getWrappedSeasonStartForYear(year);
+        const start = getAnnuumSeasonStartForYear(year);
         const fireAt = new Date(
           start.getFullYear(),
           start.getMonth(),
@@ -3008,6 +3009,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   return (
     <SettingsContext.Provider
       value={{
+        isLoaded,
         theme,
         setTheme,
         fontSize,
@@ -3133,12 +3135,12 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         updateUserStats,
         globalUserStats,
         incrementGlobalStat,
-        forceWrappedSeason,
-        setForceWrappedSeason,
+        forceAnnuumSeason,
+        setForceAnnuumSeason,
         showZeroStats,
         setShowZeroStats,
-        hasViewedWrapped,
-        setHasViewedWrapped,
+        hasViewedAnnuum,
+        setHasViewedAnnuum,
       }}
     >
       {children}

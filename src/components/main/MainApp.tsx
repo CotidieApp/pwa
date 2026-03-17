@@ -23,8 +23,8 @@ import SearchCamino from '@/components/SearchCamino';
 import { letanias as letaniasRosarioBase } from '@/lib/prayers/plan-de-vida/santo-rosario/letanias';
 import { cn } from '@/lib/utils';
 import { AnimatePresence } from 'framer-motion';
-import { isWrappedSeason } from '@/lib/movable-feasts';
-import WrappedStory from '../WrappedStory';
+import { isAnnuumSeason } from '@/lib/movable-feasts';
+import AnnuumStory from '../AnnuumStory';
 import Image from 'next/image';
 import DeveloperDashboard from '@/components/developer/DeveloperDashboard';
 import { useToast } from '@/hooks/use-toast';
@@ -69,7 +69,7 @@ export default function MainApp() {
   const [navState, setNavState] = useState<NavigationState>(() => getInitialNavState());
   const navStateRef = useRef(navState);
   const [isSearchVisible, setIsSearchVisible] = useState(false);
-  const [showWrapped, setShowWrapped] = useState(false);
+  const [showAnnuum, setShowAnnuum] = useState(false);
   const { toast, dismiss } = useToast();
   const [searchState, setSearchState] = useState(DEFAULT_CAMINO_SEARCH_STATE);
   const {
@@ -97,11 +97,11 @@ export default function MainApp() {
     createCustomPlan,
     incrementStat,
     simulatedDate,
-    forceWrappedSeason,
+    forceAnnuumSeason,
     overlayPositions,
     setOverlayPosition,
-    hasViewedWrapped,
-    setHasViewedWrapped,
+    hasViewedAnnuum,
+    setHasViewedAnnuum,
     pushDevLiveTrace,
     navMode,
   } = useSettings();
@@ -114,41 +114,41 @@ export default function MainApp() {
   const customPlanExitToastIdRef = useRef<string | null>(null);
   const rosaryMeditatedBackHandlerRef = useRef<(() => boolean) | null>(null);
 
-  const [isDraggingWrapped, setIsDraggingWrapped] = useState(false);
-  const wrappedDragStart = useRef({ x: 0, y: 0 });
-  const wrappedStartPos = useRef({ x: 0, y: 0 });
+  const [isDraggingAnnuum, setIsDraggingAnnuum] = useState(false);
+  const AnnuumDragStart = useRef({ x: 0, y: 0 });
+  const AnnuumStartPos = useRef({ x: 0, y: 0 });
 
-  const handleWrappedTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
-    setIsDraggingWrapped(true);
+  const handleAnnuumTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
+    setIsDraggingAnnuum(true);
     const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
-    wrappedDragStart.current = { x: clientX, y: clientY };
-    wrappedStartPos.current = { ...overlayPositions.wrappedBubble };
+    AnnuumDragStart.current = { x: clientX, y: clientY };
+    AnnuumStartPos.current = { ...overlayPositions.AnnuumBubble };
   };
 
-  const handleWrappedTouchMove = (e: React.TouchEvent | React.MouseEvent) => {
-    if (!isDraggingWrapped) return;
+  const handleAnnuumTouchMove = (e: React.TouchEvent | React.MouseEvent) => {
+    if (!isDraggingAnnuum) return;
     const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
 
-    const dx = clientX - wrappedDragStart.current.x;
-    const dy = clientY - wrappedDragStart.current.y;
+    const dx = clientX - AnnuumDragStart.current.x;
+    const dy = clientY - AnnuumDragStart.current.y;
 
-    setOverlayPosition('wrappedBubble', {
-      x: wrappedStartPos.current.x + dx,
-      y: wrappedStartPos.current.y + dy
+    setOverlayPosition('AnnuumBubble', {
+      x: AnnuumStartPos.current.x + dx,
+      y: AnnuumStartPos.current.y + dy
     });
   };
 
-  const handleWrappedTouchEnd = () => {
-    setIsDraggingWrapped(false);
+  const handleAnnuumTouchEnd = () => {
+    setIsDraggingAnnuum(false);
   };
 
   const isSeason = useMemo(() => {
-    if (forceWrappedSeason) return true;
+    if (forceAnnuumSeason) return true;
     const now = simulatedDate ? new Date(simulatedDate) : new Date();
-    return isWrappedSeason(now);
-  }, [simulatedDate, forceWrappedSeason]);
+    return isAnnuumSeason(now);
+  }, [simulatedDate, forceAnnuumSeason]);
 
   useEffect(() => {
     navStateRef.current = navState;
@@ -563,7 +563,7 @@ export default function MainApp() {
       case 'settings':
         return <Settings
           onOpenDeveloperDashboard={handleOpenDeveloperDashboard}
-          onShowWrapped={() => setShowWrapped(true)}
+          onShowAnnuum={() => setShowAnnuum(true)}
         />;
       case 'developer':
         return <DeveloperDashboard onBack={handleBack} />;
@@ -887,23 +887,23 @@ export default function MainApp() {
 
   return (
     <div className={cn("h-full w-full text-foreground relative", navState.activeView === 'home' ? "bg-transparent" : "bg-background")}>
-      {isSeason && !hasViewedWrapped && navState.activeView === 'home' && (
+      {isSeason && !hasViewedAnnuum && navState.activeView === 'home' && (
         <div
           className="absolute z-40 cursor-pointer animate-in fade-in zoom-in duration-500 hover:scale-110 transition-transform"
           style={{
-            top: overlayPositions.wrappedBubble?.y ?? 48,
-            left: overlayPositions.wrappedBubble?.x ?? 16,
+            top: overlayPositions.AnnuumBubble?.y ?? 48,
+            left: overlayPositions.AnnuumBubble?.x ?? 16,
             marginTop: 'env(safe-area-inset-top)',
             touchAction: 'none'
           }}
-          onClick={() => !isDraggingWrapped && setShowWrapped(true)}
-          onTouchStart={handleWrappedTouchStart}
-          onTouchMove={handleWrappedTouchMove}
-          onTouchEnd={handleWrappedTouchEnd}
-          onMouseDown={handleWrappedTouchStart}
-          onMouseMove={handleWrappedTouchMove}
-          onMouseUp={handleWrappedTouchEnd}
-          onMouseLeave={handleWrappedTouchEnd}
+          onClick={() => !isDraggingAnnuum && setShowAnnuum(true)}
+          onTouchStart={handleAnnuumTouchStart}
+          onTouchMove={handleAnnuumTouchMove}
+          onTouchEnd={handleAnnuumTouchEnd}
+          onMouseDown={handleAnnuumTouchStart}
+          onMouseMove={handleAnnuumTouchMove}
+          onMouseUp={handleAnnuumTouchEnd}
+          onMouseLeave={handleAnnuumTouchEnd}
         >
           <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-yellow-500 shadow-lg shadow-yellow-500/50 bg-black">
             <Image
@@ -1015,15 +1015,15 @@ export default function MainApp() {
       </AlertDialog>
 
       <AnimatePresence>
-        {showWrapped && (
-          <WrappedStory
+        {showAnnuum && (
+          <AnnuumStory
             onClose={() => {
-              setShowWrapped(false);
-              setHasViewedWrapped(true);
+              setShowAnnuum(false);
+              setHasViewedAnnuum(true);
             }}
-            originRect={overlayPositions.wrappedBubble ? {
-              top: overlayPositions.wrappedBubble.y,
-              left: overlayPositions.wrappedBubble.x,
+            originRect={overlayPositions.AnnuumBubble ? {
+              top: overlayPositions.AnnuumBubble.y,
+              left: overlayPositions.AnnuumBubble.x,
               width: 48,
               height: 48
             } : undefined}

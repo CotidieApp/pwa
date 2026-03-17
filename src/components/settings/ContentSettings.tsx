@@ -13,13 +13,13 @@ import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import { Prayer } from '@/lib/types';
 import { generateSaintsICS } from '@/lib/ics-generator';
-import { isWrappedSeason } from '@/lib/movable-feasts';
+import { isAnnuumSeason } from '@/lib/movable-feasts';
 
 interface ContentSettingsProps {
-  onShowWrapped?: () => void;
+  onShowAnnuum?: () => void;
 }
 
-export default function ContentSettings({ onShowWrapped }: ContentSettingsProps) {
+export default function ContentSettings({ onShowAnnuum }: ContentSettingsProps) {
   const {
     allPrayers,
     alwaysShowPrayers,
@@ -38,8 +38,8 @@ export default function ContentSettings({ onShowWrapped }: ContentSettingsProps)
     homeBackgroundId,
     autoRotateBackground,
     isDeveloperMode,
-    forceWrappedSeason,
-    hasViewedWrapped,
+    forceAnnuumSeason,
+    hasViewedAnnuum,
   } = useSettings();
 
   const { toast } = useToast();
@@ -231,14 +231,14 @@ export default function ContentSettings({ onShowWrapped }: ContentSettingsProps)
   };
 
   const isSeason = useMemo(() => {
-    if (forceWrappedSeason) return true;
+    if (forceAnnuumSeason) return true;
     const now = simulatedDate ? new Date(simulatedDate) : new Date();
-    return isWrappedSeason(now);
-  }, [simulatedDate, forceWrappedSeason]);
+    return isAnnuumSeason(now);
+  }, [simulatedDate, forceAnnuumSeason]);
 
   return (
     <div className="space-y-6 animate-in fade-in-0 duration-500">
-      {isSeason && hasViewedWrapped && onShowWrapped && (
+      {isSeason && hasViewedAnnuum && onShowAnnuum && (
         <Card className="bg-gradient-to-br from-yellow-500/10 to-amber-500/10 border-yellow-500/20">
             <CardHeader>
                 <CardTitle className="font-headline text-base flex items-center gap-2">
@@ -247,7 +247,7 @@ export default function ContentSettings({ onShowWrapped }: ContentSettingsProps)
             </CardHeader>
             <CardContent>
                 <Button 
-                    onClick={onShowWrapped} 
+                    onClick={onShowAnnuum} 
                     className="w-full bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-600 hover:to-amber-700 text-white border-0 shadow-lg shadow-yellow-500/20"
                 >
                     <Icon.Play className="mr-2 h-4 w-4 fill-current" />

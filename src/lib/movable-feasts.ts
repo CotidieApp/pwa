@@ -245,11 +245,11 @@ export const getMovableFeast = (currentDate: Date, easterDate: Date): SaintOfThe
   return null;
 };
 
-export const isWrappedSeason = (date: Date): boolean => {
+export const isAnnuumSeason = (date: Date): boolean => {
     const current = startOfDay(date);
     const year = current.getFullYear();
     
-    // 1. Calculate Christ the King (Start of Wrapped Season)
+    // 1. Calculate Christ the King (Start of Annuum Season)
     const { christTheKing } = getAdventDates(year);
     
     // 2. Check if we are in the "end of year" part (Nov/Dec)

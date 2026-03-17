@@ -127,7 +127,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `src/components/EpubReader.tsx`
 - `src/components/PersonalEpubLibrary.tsx`
 - `src/components/main/MainApp.tsx`
-- `src/components/WrappedStory.tsx`
+- `src/components/AnnuumStory.tsx`
 - `AGENTS.md`
 
 ### [2026-02-26 01:40] 113. Sync contador Angelus con “Angelus y Regina Coeli”
@@ -908,15 +908,15 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 
 ### [2026-02-17 12:30] 40. Integración de Cotidie Annuum y Mejoras de Exportación
 **Planificación:**
-- Integrar acceso al resumen anual ("Cotidie Wrapped") desde los ajustes.
+- Integrar acceso al resumen anual ("Cotidie Annuum") desde los ajustes.
 - Mejorar la exportación de planes personalizados usando APIs nativas de Android (Filesystem/Share).
-- Actualizar el Panel de Desarrollador con controles para probar el Wrapped y mejoras de UI.
+- Actualizar el Panel de Desarrollador con controles para probar el Annuum y mejoras de UI.
 
 **Ejecución:**
-- **Settings**: Se añadió `onShowWrapped` para pasar la navegación al componente `ContentSettings`.
+- **Settings**: Se añadió `onShowAnnuum` para pasar la navegación al componente `ContentSettings`.
 - **ContentSettings**: Se añadió el botón "Ver Cotidie Annuum" condicionado a la temporada y estado de visualización.
 - **CustomPlanView**: Se migró la exportación a `Filesystem` + `Share` de Capacitor para soporte nativo Android.
-- **DeveloperDashboard**: Se añadieron controles para forzar la temporada Wrapped y previsualizarla. Se mejoró la navegación lateral (tamaño de botones).
+- **DeveloperDashboard**: Se añadieron controles para forzar la temporada Annuum y previsualizarla. Se mejoró la navegación lateral (tamaño de botones).
 
 **Archivos Modificados:**
 - `src/components/Settings.tsx`
@@ -949,7 +949,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 
 **Ejecución:**
 - **Developer Dashboard**: Se tradujeron las claves de las estadí­sticas (que se mostraban en inglés como `daysActive`, etc.) a etiquetas legibles en español (`Dí­as Activo`, `Oraciones Abiertas`).
-- **Verificación**: Se confirmó que `WrappedStory.tsx`, `Settings.tsx` y sus subcomponentes ya se encuentran traducidos.
+- **Verificación**: Se confirmó que `AnnuumStory.tsx`, `Settings.tsx` y sus subcomponentes ya se encuentran traducidos.
 
 **Archivos Modificados:**
 - `src/components/developer/DeveloperDashboard.tsx`
@@ -1512,7 +1512,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - Implementar checks automáticos en "Plan de Vida" al rezar sub-oraciones.
 
 **Ejecución:**
-- **Temporada**: Se editó `src/lib/movable-feasts.ts` para eliminar enero de la lógica `isWrappedSeason`.
+- **Temporada**: Se editó `src/lib/movable-feasts.ts` para eliminar enero de la lógica `isAnnuumSeason`.
 - **Reinicio Anual**: En `src/context/SettingsContext.tsx`, se añadió lógica para detectar cambio de año, reiniciar `userStats` y migrar datos a `globalUserStats`.
 - **Racha Misa**: Se implementó `getLocalDateKey` en el contexto para usar fechas locales en lugar de UTC, solucionando el bug de la racha.
 - **Auto-Check**: Se modificó `incrementStat` para buscar recursivamente si una oración pertenece al Plan de Vida y marcarla automáticamente.
@@ -1768,7 +1768,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 ### [2026-02-22 16:45] 72. Notificación por inicio de temporada Cotidie Annuum (Planificación)
 **Planificación:**
 - Agregar notificación automática que dependa del inicio real de la temporada Cotidie Annuum (no de una fecha hardcodeada).
-- Calcular el inicio anual según la misma lógica litúrgica usada por Wrapped Season (Cristo Rey).
+- Calcular el inicio anual según la misma lógica litúrgica usada por Annuum Season (Cristo Rey).
 - Programar notificación con texto de invitación a explorar su año en Cotidie.
 
 **Ejecución:**
@@ -2415,7 +2415,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 
 **EjecuciÃ³n:**
 - **Limpieza de cÃ³digo muerto**:
-  - Se eliminaron imports, estados, handlers y helpers sin uso en mÃºltiples componentes (`MainApp`, `PrayerList`, `PrayerDetail`, `ContentSettings`, `AppearanceSettings`, `WrappedStory`, `RosaryImmersive`, `RosaryMeditated`, `SearchCamino`, `DeveloperSettings`, `CustomPlanView`, `AudioPlayer`, `ImageCropper`, `calendar`, etc.).
+  - Se eliminaron imports, estados, handlers y helpers sin uso en mÃºltiples componentes (`MainApp`, `PrayerList`, `PrayerDetail`, `ContentSettings`, `AppearanceSettings`, `AnnuumStory`, `RosaryImmersive`, `RosaryMeditated`, `SearchCamino`, `DeveloperSettings`, `CustomPlanView`, `AudioPlayer`, `ImageCropper`, `calendar`, etc.).
   - Se simplificÃ³ `ics-generator.ts` removiendo lÃ³gica/variables huÃ©rfanas y dejando una implementaciÃ³n mÃ¡s directa.
 - **SeparaciÃ³n por coherencia**:
   - Se extrajo `CartasIntro` desde `MainApp` a `src/components/main/CartasIntro.tsx`.
@@ -2442,7 +2442,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `src/components/RosaryMeditated.tsx`
 - `src/components/SearchCamino.tsx`
 - `src/components/ViaCrucisImmersive.tsx`
-- `src/components/WrappedStory.tsx`
+- `src/components/AnnuumStory.tsx`
 - `src/components/main/MainApp.tsx`
 - `src/components/main/CartasIntro.tsx`
 - `src/components/plans/CustomPlanView.tsx`
@@ -2529,7 +2529,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `src/components/settings/ContentSettings.tsx`
 - `src/components/settings/DeveloperSettings.tsx`
 - `src/components/ViaCrucisImmersive.tsx`
-- `src/components/WrappedStory.tsx`
+- `src/components/AnnuumStory.tsx`
 - `src/context/SettingsContext.tsx`
 - `src/lib/textFormatter.tsx`
 - `AGENTS.md`
@@ -2596,7 +2596,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 
 **Ejecucion:**
 - **PrayerDetail**: la imagen enlazada ya no desaparece en pantalla completa; ahora se mantiene visible y ocupa todo el ancho mientras el texto sigue centrado.
-- **Snapshot completo**: se agrego `getBackupSnapshot` en `SettingsContext` y se normalizo/exporto el estado completo, incluyendo timer, modo distraccion, planes, stats, modo dev, trazas dev, simulaciones y banderas de wrapped.
+- **Snapshot completo**: se agrego `getBackupSnapshot` en `SettingsContext` y se normalizo/exporto el estado completo, incluyendo timer, modo distraccion, planes, stats, modo dev, trazas dev, simulaciones y banderas de Annuum.
 - **Hidratacion/importacion**: se centralizo la aplicacion del snapshot completo para cargar/exportar/importar el mismo formato y restaurar esos campos adicionales.
 - **Importacion inteligente**: `importUserData` ahora distingue importacion completa, parcial y de plan personalizado; si el contenido ya coincide con lo existente, muestra aviso y no aplica cambios.
 - **Ajustes y planes**: `ContentSettings` y `CustomPlanView` ahora usan la respuesta de importacion para exportar el snapshot completo y reportar correctamente duplicados o archivos invalidos.
@@ -2857,4 +2857,37 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 
 **Archivos Modificados:**
 - `scripts/android-apk.mjs`
+- `AGENTS.md`
+
+### [2026-03-16 21:47] 150. Fix real de bienvenida desactivada + rediseño de fuego en preview Annuum
+**Planificación:**
+- Corregir el arranque para que, con la pantalla de bienvenida desactivada, la app no monte `MainApp` antes de terminar de hidratar ajustes.
+- Rehacer el preview de racha de Misa para que el fuego siga las rachas, se frene en huecos y cambie de mes con una transición de página más creíble.
+
+**Ejecución:**
+- **Arranque / bienvenida**: `page.tsx` ahora espera `isLoaded` del `SettingsContext` antes de montar `MainApp` cuando la bienvenida está desactivada; mientras tanto muestra solo un fondo de arranque sin branding, evitando el falso splash corto y el cambio de fondo al hidratar.
+- **Splash**: `SplashScreen.tsx` dejó de depender del contexto para resolver imagen; ahora usa directamente `--home-bg-image`, con overlay estable y texto corregido.
+- **SettingsContext**: se expuso `isLoaded` en el valor del contexto para permitir que la página tome decisiones de arranque con el estado real de carga.
+- **Preview Annuum**: `MassStreakSparkPreview` se rehizo con segmentos de racha, pausas largas en rachas de un solo día, detención tipo “muro” en huecos entre rachas, conectores de ascuas y animación tipo paso de página al cambiar de mes, manteniendo el acceso solo en modo desarrollador.
+- **Validación**: `node node_modules/typescript/bin/tsc --noEmit --pretty false` OK y `npm.cmd run build` OK.
+
+**Archivos Modificados:**
+- `src/app/page.tsx`
+- `src/components/main/SplashScreen.tsx`
+- `src/components/developer/MassStreakSparkPreview.tsx`
+- `src/context/SettingsContext.tsx`
+- `AGENTS.md`
+
+### [2026-03-16 22:01] 151. Fix de emojis mojibake en Cotidie Annuum
+**Planificación:**
+- Revisar si el cambio de nombre a Annuum dejó emojis desconfigurados en las slides del resumen anual.
+- Reemplazar secuencias mojibake por emojis Unicode estables ya usados correctamente en la app.
+
+**Ejecución:**
+- **Barrido**: se localizó el problema en `src/components/AnnuumStory.tsx`; no quedaron más secuencias `ðŸ` en `src`, `public` ni `scripts`.
+- **Reemplazos**: se corrigieron los emojis rotos de oración, amanecer, noche, campana, rosario, devociones creadas y celebración final.
+- **Validación**: `node node_modules/typescript/bin/tsc --noEmit --pretty false` OK y `npm.cmd run build` OK.
+
+**Archivos Modificados:**
+- `src/components/AnnuumStory.tsx`
 - `AGENTS.md`

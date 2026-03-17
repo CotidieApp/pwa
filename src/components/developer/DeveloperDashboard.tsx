@@ -13,7 +13,7 @@ import * as Icon from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { appVersion } from '@/lib/version';
-import WrappedStory from '@/components/WrappedStory';
+import AnnuumStory from '@/components/AnnuumStory';
 import MassStreakSparkPreview from '@/components/developer/MassStreakSparkPreview';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
@@ -121,8 +121,8 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
   const {
     resetSettings,
     hardResetApp,
-    forceWrappedSeason,
-    setForceWrappedSeason,
+    forceAnnuumSeason,
+    setForceAnnuumSeason,
     showZeroStats,
     setShowZeroStats,
     realUserStats,
@@ -158,7 +158,7 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
 
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('overview');
-  const [showWrappedPreview, setShowWrappedPreview] = useState(false);
+  const [showAnnuumPreview, setShowAnnuumPreview] = useState(false);
   const [showMassStreakPreview, setShowMassStreakPreview] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const traceEndRef = useRef<HTMLDivElement | null>(null);
@@ -437,10 +437,10 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
                   <CardContent className="grid gap-6">
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
-                        <Label className="text-base">Forzar Temporada Wrapped</Label>
+                        <Label className="text-base">Forzar Temporada Annuum</Label>
                         <p className="text-xs text-slate-400">Habilita la burbuja de resumen de fin de año.</p>
                       </div>
-                      <Switch checked={forceWrappedSeason} onCheckedChange={setForceWrappedSeason} />
+                      <Switch checked={forceAnnuumSeason} onCheckedChange={setForceAnnuumSeason} />
                     </div>
                     <Separator className="bg-slate-800" />
                     <div className="flex items-center justify-between">
@@ -472,9 +472,9 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
                 <div className="grid gap-3 md:grid-cols-2">
                   <Button 
                     className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
-                    onClick={() => setShowWrappedPreview(true)}
+                    onClick={() => setShowAnnuumPreview(true)}
                   >
-                    <Icon.Play className="mr-2 size-4" /> Iniciar Vista Previa Wrapped
+                    <Icon.Play className="mr-2 size-4" /> Iniciar Vista Previa Annuum
                   </Button>
                   <Button
                     className="w-full bg-amber-500 text-slate-950 hover:bg-amber-400"
@@ -988,15 +988,15 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
         </div>
       </div>
       
-        {showWrappedPreview && (
+        {showAnnuumPreview && (
            <div className="fixed inset-0 z-50 bg-black">
                <Button 
                   className="absolute top-4 right-4 z-50 bg-white text-black hover:bg-gray-200" 
-                 onClick={() => setShowWrappedPreview(false)}
+                 onClick={() => setShowAnnuumPreview(false)}
                >
                   Salir de Vista Previa
                </Button>
-              <WrappedStory onClose={() => setShowWrappedPreview(false)} />
+              <AnnuumStory onClose={() => setShowAnnuumPreview(false)} />
            </div>
         )}
 
