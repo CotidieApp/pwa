@@ -19,7 +19,6 @@ type EventDay = {
   isSegmentStart: boolean;
   isSegmentEnd: boolean;
   nextGapDays: number;
-  barrierKey: string | null;
 };
 type Simulation = { seed: number; year: number; events: EventDay[]; monthTotals: number[]; bestStreak: number };
 
@@ -27,9 +26,13 @@ const WEEKDAY_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 const MIN_STEP_MS = 180;
 const MAX_STEP_MS = 680;
 const SINGLE_DAY_MS = 1100;
+const WEEK_BURN_MS = 1350;
+const MONTH_BURN_MS = 1900;
+const MONTH_ASH_EXIT_MS = 1200;
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 const toDateKey = (date: Date) => format(date, 'yyyy-MM-dd');
+const toMonthKey = (date: Date) => format(date, 'yyyy-MM');
 const fromDateKey = (value: string) => {
   const [year, month, day] = value.split('-').map(Number);
   return new Date(year, month - 1, day);
@@ -53,6 +56,14 @@ function getMonthSundays(monthStart: Date) {
 function generateSimulation(year: number, seed: number): Simulation {
   const rand = mulberry32(seed);
   const selected = new Set<string>();
+  const fullMonth = 8 + Math.floor(rand() * 4);
+
+  eachDayOfInterval({
+    start: new Date(year, fullMonth, 1),
+    end: endOfMonth(new Date(year, fullMonth, 1)),
+  }).forEach((day) => {
+    selected.add(toDateKey(day));
+  });
 
   for (let month = 0; month < 12; month += 1) {
     const monthStart = new Date(year, month, 1);
@@ -75,6 +86,30 @@ function generateSimulation(year: number, seed: number): Simulation {
     for (let offset = 0; offset < length; offset += 1) {
       const date = addDays(start, offset);
       if (date.getFullYear() === year) selected.add(toDateKey(date));
+    }
+  }
+
+  const extraFullWeeks = 2 + Math.floor(rand() * 2);
+  for (let index = 0; index < extraFullWeeks; index += 1) {
+    const month = Math.floor(rand() * 12);
+    const monthStart = startOfMonth(new Date(year, month, 1));
+    const monthEnd = endOfMonth(monthStart);
+    const firstWeekStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+    const possibleWeekStarts: Date[] = [];
+
+    for (let cursor = firstWeekStart; cursor <= monthEnd; cursor = addDays(cursor, 7)) {
+      const weekEnd = addDays(cursor, 6);
+      if (weekEnd.getFullYear() !== year) continue;
+      possibleWeekStarts.push(cursor);
+    }
+
+    if (possibleWeekStarts.length === 0) continue;
+    const weekStart = possibleWeekStarts[Math.floor(rand() * possibleWeekStarts.length)];
+    for (let dayOffset = 0; dayOffset < 7; dayOffset += 1) {
+      const day = addDays(weekStart, dayOffset);
+      if (day.getFullYear() === year) {
+        selected.add(toDateKey(day));
+      }
     }
   }
 
@@ -116,7 +151,6 @@ function generateSimulation(year: number, seed: number): Simulation {
         isSegmentStart: segmentIndex === 0,
         isSegmentEnd,
         nextGapDays,
-        barrierKey: nextGapDays > 0 ? toDateKey(addDays(date, 1)) : null,
       };
     }),
   );
@@ -180,19 +214,61 @@ function FireFx({ slow, igniting }: { slow: boolean; igniting?: boolean }) {
   );
 }
 
-function BarrierFx() {
+function WeekBurnFx() {
   return (
     <>
-      <div className="absolute inset-[14%] rounded-[18px] border border-stone-500/65 bg-[linear-gradient(180deg,rgba(120,113,108,0.96),rgba(68,64,60,0.96))]" />
-      <div className="absolute inset-x-[22%] top-[30%] h-[6%] bg-stone-300/28" />
-      <div className="absolute inset-x-[16%] top-[46%] h-[6%] bg-stone-300/24" />
-      <div className="absolute inset-x-[24%] top-[62%] h-[6%] bg-stone-300/20" />
-      <motion.div
-        className="absolute inset-[8%] rounded-[20px] border border-orange-300/35 bg-orange-400/10 blur-[2px]"
-        animate={{ opacity: [0.18, 0.85, 0.2], scale: [0.95, 1.04, 0.97] }}
-        transition={{ duration: 0.75, repeat: Infinity, ease: 'easeInOut' }}
+      <motion.span
+        className="absolute inset-0 rounded-[18px] bg-[linear-gradient(90deg,rgba(249,115,22,0.08),rgba(251,191,36,0.42),rgba(249,115,22,0.08))]"
+        initial={{ opacity: 0, scaleX: 0.65 }}
+        animate={{ opacity: [0, 0.95, 0.28], scaleX: [0.65, 1.04, 1] }}
+        transition={{ duration: WEEK_BURN_MS / 1000, ease: 'easeOut' }}
+      />
+      <motion.span
+        className="absolute inset-x-[8%] top-[16%] h-[18%] rounded-full bg-amber-100/65 blur-lg"
+        animate={{ opacity: [0.12, 0.9, 0.1], scaleX: [0.8, 1.12, 1] }}
+        transition={{ duration: 0.85, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      <motion.span
+        className="absolute inset-x-[12%] bottom-[14%] h-[16%] rounded-full bg-orange-500/45 blur-xl"
+        animate={{ opacity: [0.1, 0.65, 0.08], scaleX: [0.9, 1.08, 0.96] }}
+        transition={{ duration: 0.72, repeat: Infinity, ease: 'easeInOut' }}
       />
     </>
+  );
+}
+
+function MonthBurnFx({ ashMode }: { ashMode: boolean }) {
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[30px]">
+      <motion.div
+        className="absolute inset-0 bg-[radial-gradient(circle_at_50%_100%,rgba(251,191,36,0.28),transparent_38%),linear-gradient(180deg,rgba(249,115,22,0.08),transparent_34%,rgba(249,115,22,0.18)_100%)]"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: ashMode ? [0.18, 0.9, 0.14] : [0.1, 0.55, 0.12] }}
+        transition={{ duration: ashMode ? 1.1 : 0.9, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      {[0, 1, 2, 3, 4, 5].map((index) => (
+        <motion.span
+          key={index}
+          className={cn(
+            "absolute bottom-[10%] left-1/2 rounded-full",
+            ashMode ? "size-2 bg-stone-300/80" : "size-2.5 bg-amber-100/80"
+          )}
+          initial={{ opacity: 0, x: 0, y: 0, scale: 0.8 }}
+          animate={{
+            opacity: [0, ashMode ? 0.95 : 1, 0],
+            x: [0, index % 2 === 0 ? 60 + index * 10 : -54 - index * 8],
+            y: [0, -110 - index * 8],
+            scale: ashMode ? [0.8, 1.05, 0.5] : [0.75, 1.1, 0.55],
+          }}
+          transition={{
+            duration: ashMode ? 1.6 : 1.1,
+            repeat: Infinity,
+            delay: index * 0.12,
+            ease: 'easeOut',
+          }}
+        />
+      ))}
+    </div>
   );
 }
 
@@ -200,14 +276,46 @@ export default function MassStreakSparkPreview({ onClose, year = new Date().getF
   const [seed, setSeed] = useState(() => Date.now());
   const [revealedCount, setRevealedCount] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
+  const [weekBurstKey, setWeekBurstKey] = useState<string | null>(null);
+  const [monthBurstKey, setMonthBurstKey] = useState<string | null>(null);
+  const [monthTransitionMode, setMonthTransitionMode] = useState<'page' | 'ash'>('page');
 
   const simulation = useMemo(() => generateSimulation(year, seed), [seed, year]);
   const revealedEvents = useMemo(() => simulation.events.slice(0, revealedCount), [simulation.events, revealedCount]);
   const revealedKeys = useMemo(() => new Set(revealedEvents.map((event) => event.key)), [revealedEvents]);
+  const fullWeekKeys = useMemo(() => {
+    const weekMap = new Map<string, string[]>();
+    simulation.events.forEach((event) => {
+      const weekKey = toDateKey(startOfWeek(event.date, { weekStartsOn: 1 }));
+      const keys = weekMap.get(weekKey) ?? [];
+      keys.push(event.key);
+      weekMap.set(weekKey, keys);
+    });
+    return new Map(
+      Array.from(weekMap.entries())
+        .filter(([, keys]) => new Set(keys).size === 7)
+        .map(([key, keys]) => [key, Array.from(new Set(keys)).sort()])
+    );
+  }, [simulation.events]);
+  const fullMonthKeys = useMemo(() => {
+    const monthMap = new Map<string, string[]>();
+    simulation.events.forEach((event) => {
+      const monthKey = toMonthKey(event.date);
+      const keys = monthMap.get(monthKey) ?? [];
+      keys.push(event.key);
+      monthMap.set(monthKey, keys);
+    });
+    return new Map(
+      Array.from(monthMap.entries())
+        .filter(([monthKey, keys]) => new Set(keys).size === endOfMonth(new Date(`${monthKey}-01T12:00:00`)).getDate())
+        .map(([key, keys]) => [key, Array.from(new Set(keys)).sort()])
+    );
+  }, [simulation.events]);
   const activeEvent =
     simulation.events[Math.max(0, Math.min(revealedCount - 1, simulation.events.length - 1))] ?? simulation.events[0] ?? null;
   const currentMonthDate = activeEvent?.date ?? simulation.events[0]?.date ?? new Date(simulation.year, 0, 1);
   const currentMonth = currentMonthDate.getMonth();
+  const currentMonthKey = toMonthKey(currentMonthDate);
   const monthGrid = useMemo(
     () =>
       eachDayOfInterval({
@@ -223,9 +331,9 @@ export default function MassStreakSparkPreview({ onClose, year = new Date().getF
   const currentDelay = activeEvent ? getStepDelay(activeEvent, revealedCount > 1 ? simulation.events[revealedCount - 2] : null) : 0;
   const currentMood =
     activeEvent?.segmentLength === 1
-      ? 'Fue solo un día: el fuego avanza más lento.'
+      ? 'Fue solo un dia: el fuego avanza mas lento.'
       : activeEvent?.isSegmentEnd && activeEvent.nextGapDays > 0
-        ? `La racha choca con un muro de ${activeEvent.nextGapDays} día${activeEvent.nextGapDays === 1 ? '' : 's'} sin Misa.`
+        ? `La racha se detiene ${activeEvent.nextGapDays} dia${activeEvent.nextGapDays === 1 ? '' : 's'} hasta la siguiente Misa.`
         : activeEvent?.isSegmentStart && activeEvent.segmentId > 0
           ? 'La llama vuelve a encenderse al comenzar una nueva racha.'
           : 'El fuego corre por la racha y acelera.';
@@ -233,6 +341,9 @@ export default function MassStreakSparkPreview({ onClose, year = new Date().getF
   useEffect(() => {
     setRevealedCount(0);
     setIsPlaying(true);
+    setWeekBurstKey(null);
+    setMonthBurstKey(null);
+    setMonthTransitionMode('page');
   }, [simulation]);
 
   useEffect(() => {
@@ -247,18 +358,64 @@ export default function MassStreakSparkPreview({ onClose, year = new Date().getF
   }, [onClose]);
 
   useEffect(() => {
+    if (revealedCount <= 0) return;
+
+    const currentRevealed = new Set(simulation.events.slice(0, revealedCount).map((event) => event.key));
+    const previousRevealed = new Set(simulation.events.slice(0, Math.max(0, revealedCount - 1)).map((event) => event.key));
+
+    const completedWeek = Array.from(fullWeekKeys.entries()).find(
+      ([, keys]) => keys.every((key) => currentRevealed.has(key)) && !keys.every((key) => previousRevealed.has(key))
+    );
+    if (completedWeek) {
+      setWeekBurstKey(completedWeek[0]);
+      const timeoutId = window.setTimeout(() => setWeekBurstKey((value) => (value === completedWeek[0] ? null : value)), WEEK_BURN_MS);
+      return () => window.clearTimeout(timeoutId);
+    }
+  }, [fullWeekKeys, revealedCount, simulation.events]);
+
+  useEffect(() => {
+    if (revealedCount <= 0) return;
+
+    const currentRevealed = new Set(simulation.events.slice(0, revealedCount).map((event) => event.key));
+    const previousRevealed = new Set(simulation.events.slice(0, Math.max(0, revealedCount - 1)).map((event) => event.key));
+
+    const completedMonth = Array.from(fullMonthKeys.entries()).find(
+      ([, keys]) => keys.every((key) => currentRevealed.has(key)) && !keys.every((key) => previousRevealed.has(key))
+    );
+    if (completedMonth) {
+      setMonthBurstKey(completedMonth[0]);
+      const timeoutId = window.setTimeout(() => setMonthBurstKey((value) => (value === completedMonth[0] ? null : value)), MONTH_BURN_MS);
+      return () => window.clearTimeout(timeoutId);
+    }
+  }, [fullMonthKeys, revealedCount, simulation.events]);
+
+  useEffect(() => {
+    if (monthTransitionMode === 'page') return;
+    if (monthBurstKey === currentMonthKey) return;
+    const timeoutId = window.setTimeout(() => setMonthTransitionMode('page'), 40);
+    return () => window.clearTimeout(timeoutId);
+  }, [currentMonthKey, monthBurstKey, monthTransitionMode]);
+
+  useEffect(() => {
     if (!isPlaying || isComplete || simulation.events.length === 0) return;
     const nextEvent = simulation.events[revealedCount];
     const previousEvent = revealedCount > 0 ? simulation.events[revealedCount - 1] : null;
+    const previousMonthKey = previousEvent ? toMonthKey(previousEvent.date) : null;
+    const crossingMonth = previousEvent && previousMonthKey !== toMonthKey(nextEvent.date);
+    const shouldAshTransition = Boolean(crossingMonth && previousMonthKey && fullMonthKeys.has(previousMonthKey));
+    const delay = getStepDelay(nextEvent, previousEvent) + (shouldAshTransition ? MONTH_ASH_EXIT_MS : 0);
+
+    if (shouldAshTransition && previousMonthKey) {
+      setMonthBurstKey(previousMonthKey);
+      setMonthTransitionMode('ash');
+    }
+
     const timeoutId = window.setTimeout(
       () => setRevealedCount((value) => Math.min(value + 1, simulation.events.length)),
-      getStepDelay(nextEvent, previousEvent),
+      delay,
     );
     return () => window.clearTimeout(timeoutId);
-  }, [isComplete, isPlaying, revealedCount, simulation.events]);
-
-  const activeBarrierKey =
-    activeEvent?.isSegmentEnd && activeEvent.barrierKey && cellIndexByKey.has(activeEvent.barrierKey) ? activeEvent.barrierKey : null;
+  }, [fullMonthKeys, isComplete, isPlaying, revealedCount, simulation.events]);
 
   return (
     <div className="fixed inset-0 z-[120] overflow-hidden bg-slate-950 text-slate-50">
@@ -318,13 +475,23 @@ export default function MassStreakSparkPreview({ onClose, year = new Date().getF
                 <AnimatePresence mode="wait" initial={false}>
                   <motion.div
                     key={format(currentMonthDate, 'yyyy-MM')}
-                    initial={{ opacity: 0.16, rotateY: -82, x: 72, scale: 0.98 }}
+                    initial={monthTransitionMode === 'ash' ? { opacity: 0.08, y: 18, scale: 0.96 } : { opacity: 0.16, rotateY: -82, x: 72, scale: 0.98 }}
                     animate={{ opacity: 1, rotateY: 0, x: 0, scale: 1 }}
-                    exit={{ opacity: 0.12, rotateY: 74, x: -64, scale: 0.985 }}
-                    transition={{ duration: 0.82, ease: [0.22, 1, 0.36, 1] }}
+                    exit={
+                      monthTransitionMode === 'ash'
+                        ? { opacity: 0, y: -22, scale: 0.92, filter: 'blur(8px) saturate(0.65)' }
+                        : { opacity: 0.12, rotateY: 74, x: -64, scale: 0.985 }
+                    }
+                    transition={{
+                      duration: monthTransitionMode === 'ash' ? 0.96 : 0.82,
+                      ease: monthTransitionMode === 'ash' ? 'easeOut' : [0.22, 1, 0.36, 1],
+                    }}
                     style={{ transformStyle: 'preserve-3d', transformOrigin: 'left center' }}
                     className="rounded-[30px] border border-stone-300/40 bg-[linear-gradient(180deg,rgba(255,251,235,0.95),rgba(255,247,237,0.92)_22%,rgba(254,243,199,0.88)_100%)] p-4 shadow-[0_36px_80px_rgba(15,23,42,0.34)] md:p-5"
                   >
+                    {monthBurstKey === currentMonthKey && (
+                      <MonthBurnFx ashMode={monthTransitionMode === 'ash'} />
+                    )}
                     <div className="mb-4 flex items-center justify-between rounded-2xl border border-stone-300/60 bg-white/45 px-4 py-3 text-stone-800">
                       <div>
                         <div className="text-[11px] uppercase tracking-[0.24em] text-stone-500">Mes</div>
@@ -349,7 +516,8 @@ export default function MassStreakSparkPreview({ onClose, year = new Date().getF
                         const outside = day.getMonth() !== currentMonth;
                         const visited = revealedKeys.has(key);
                         const active = activeEvent?.key === key && revealedCount > 0 && !isComplete;
-                        const barrier = activeBarrierKey === key;
+                        const weekKey = toDateKey(startOfWeek(day, { weekStartsOn: 1 }));
+                        const weekIgniting = weekBurstKey === weekKey && fullWeekKeys.has(weekKey);
                         const prevKey = toDateKey(addDays(day, -1));
                         const prevIndex = cellIndexByKey.get(prevKey);
                         const row = Math.floor(index / 7);
@@ -370,9 +538,9 @@ export default function MassStreakSparkPreview({ onClose, year = new Date().getF
                             >
                               {!outside && (
                                 <>
+                                  {weekIgniting && <WeekBurnFx />}
                                   {visited && !active && <span className="absolute inset-0 bg-[radial-gradient(circle_at_50%_115%,rgba(251,191,36,0.42),transparent_35%),linear-gradient(135deg,rgba(255,255,255,0.06),transparent_45%,rgba(0,0,0,0.24))]" />}
                                   {active && <FireFx slow={activeEvent?.segmentLength === 1} igniting={activeEvent?.isSegmentStart} />}
-                                  {barrier && <BarrierFx />}
                                   <span className={cn('absolute left-2 top-2 z-10 text-sm font-semibold', visited || active ? 'text-white' : 'text-stone-700')}>
                                     {format(day, 'd')}
                                   </span>

@@ -3,12 +3,13 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { handleTouchNavigation, TOUCH_NAV_INTERACTIVE_SELECTORS } from '@/utils/touchNavigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, X, Plus, Trash2, Settings2, Image as ImageIcon, Calendar, Pencil, BookOpen, Crown, Cross, Sparkles } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, X, Plus, Trash2, Settings2, Image as ImageIcon, Calendar, Pencil, BookOpen, Crown, Cross, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useSettings } from '@/context/SettingsContext';
 import { santoRosario } from '@/lib/prayers/plan-de-vida/santo-rosario';
 import { letanias as letaniasData } from '@/lib/prayers/plan-de-vida/santo-rosario/letanias';
+import type { Prayer } from '@/lib/types';
 
 const PRAYERS_TEXT = {
   padre_nuestro: `Padre nuestro, que estás en el cielo, santificado sea tu Nombre; venga a nosotros tu reino; hágase tu voluntad en la tierra como en el cielo. Danos hoy nuestro pan de cada día; perdona nuestras ofensas, como también nosotros perdonamos a los que nos ofenden; no nos dejes caer en la tentación, y líbranos del mal. Amén.`,
@@ -270,6 +271,19 @@ type ImmersiveRosaryProps = {
   onSwitchToMeditated?: () => void;
 };
 
+type RosaryIndexItem = {
+  id: string;
+  label: string;
+  active: boolean;
+  onSelect: () => void;
+  depth?: number;
+};
+
+type RosaryIndexSection = {
+  title: string;
+  items: RosaryIndexItem[];
+};
+
 const JACULATORIAS_STORAGE_KEY = 'rosary_jaculatorias';
 
 export default function RosaryImmersive({
@@ -323,6 +337,7 @@ export default function RosaryImmersive({
   const [jaculatorias, setJaculatorias] = useState<Jaculatoria[]>(DEFAULT_JACULATORIAS);
   const [showJaculatoriasMenu, setShowJaculatoriasMenu] = useState(false);
   const [newJaculatoria, setNewJaculatoria] = useState<Jaculatoria>({ v: '', r: '' });
+  const [showPrayerIndex, setShowPrayerIndex] = useState(false);
 
   const [showBackground, setShowBackground] = useState(true);
   const [navPos, setNavPos] = useState<{ x: number; y: number } | null>(null);
@@ -443,6 +458,18 @@ export default function RosaryImmersive({
     return rawTitle;
   }, [currentMysteryData.id, displayTitle, selectedMysteryType, currentMysteryIndex, initialTitle]);
 
+  const mysteryGroups = useMemo<Array<{ type: MysteryType; title: string; prayers: Prayer[] }>>(
+    () =>
+      (santoRosario.prayers ?? [])
+        .filter((group): group is Prayer & { id: string } => Boolean(group?.id?.startsWith('misterios-')))
+        .map((group) => ({
+          type: group.id.replace('misterios-', '') as MysteryType,
+          title: group.title,
+          prayers: group.prayers ?? [],
+        })),
+    []
+  );
+
   // Flatten sequence for CURRENT mystery
   const sequence = useMemo(() => {
     const seq: Array<{ type: string; label: string; index?: number }> = [];
@@ -458,6 +485,28 @@ export default function RosaryImmersive({
     seq.push({ type: 'jaculatoria', label: 'Jaculatoria' });
     return seq;
   }, [intentions.length]);
+
+  const sequenceIndexMap = useMemo(() => {
+    const map = {
+      reading: -1,
+      intro: -1,
+      padreNuestro: -1,
+      gloria: -1,
+      jaculatoria: -1,
+      aves: [] as number[],
+    };
+
+    sequence.forEach((step, index) => {
+      if (step.type === 'reading') map.reading = index;
+      if (step.type === 'intro') map.intro = index;
+      if (step.type === 'padre_nuestro') map.padreNuestro = index;
+      if (step.type === 'gloria') map.gloria = index;
+      if (step.type === 'jaculatoria') map.jaculatoria = index;
+      if (step.type === 'ave_maria') map.aves.push(index);
+    });
+
+    return map;
+  }, [sequence]);
 
   const preSteps = useMemo(() => PRE_ROSARY_STEPS, []);
 
@@ -777,6 +826,188 @@ export default function RosaryImmersive({
     setCurrentStepIndex(0);
   };
 
+  const openRosaryIndexSection = useCallback(() => {
+    setShowPrayerIndex((prev) => !prev);
+  }, []);
+
+  const jumpToPreStep = useCallback((index: number) => {
+    setMode('prayer');
+    setIsSalveActive(false);
+    setIsPostRosary(false);
+    setIsPreRosary(true);
+    setPreStepIndex(index);
+    setShowPrayerIndex(false);
+  }, []);
+
+  const jumpToMystery = useCallback((type: MysteryType, index: number) => {
+    setMode('prayer');
+    setSelectedMysteryType(type);
+    setIsSalveActive(false);
+    setIsPreRosary(false);
+    setPreStepIndex(0);
+    setIsPostRosary(false);
+    setPostStepIndex(0);
+    setCurrentMysteryIndex(index);
+    setCurrentStepIndex(0);
+    setShowPrayerIndex(false);
+  }, []);
+
+  const jumpToMysteryStep = useCallback((type: MysteryType, mysteryIndex: number, stepIndex: number) => {
+    setMode('prayer');
+    setSelectedMysteryType(type);
+    setIsSalveActive(false);
+    setIsPreRosary(false);
+    setPreStepIndex(0);
+    setIsPostRosary(false);
+    setPostStepIndex(0);
+    setCurrentMysteryIndex(mysteryIndex);
+    setCurrentStepIndex(stepIndex);
+    setShowPrayerIndex(false);
+  }, []);
+
+  const jumpToPostPrayer = useCallback((type: 'letanias' | 'jaculatorias' | 'salve') => {
+    setMode('prayer');
+    setIsPreRosary(false);
+    setPreStepIndex(0);
+    setIsPostRosary(true);
+    if (type === 'salve') {
+      setPostStepIndex(0);
+      setIsSalveActive(true);
+    } else {
+      const targetIndex = Math.max(0, postSteps.findIndex((step) => step.type === type));
+      setPostStepIndex(targetIndex);
+      setIsSalveActive(false);
+    }
+    setShowPrayerIndex(false);
+  }, [postSteps]);
+
+  const rosaryIndexSections = useMemo<RosaryIndexSection[]>(
+    () => [
+      {
+        title: 'Preparación',
+        items: preSteps.map((step, index) => ({
+          id: `pre-${index}`,
+          label: `${index + 1}. ${step.label}`,
+          active: isPreRosaryActive && preStepIndex === index,
+          onSelect: () => jumpToPreStep(index),
+        })),
+      },
+      ...mysteryGroups.map((group) => ({
+        title: group.title,
+        items: group.prayers.flatMap((prayer, index) => {
+          const mysteryLabel = FULL_MYSTERY_TITLES[prayer.id || ''] || prayer.title;
+          const isCurrentMystery =
+            !isPreRosaryActive &&
+            !isPostRosaryActive &&
+            !isSalveActive &&
+            selectedMysteryType === group.type &&
+            currentMysteryIndex === index;
+
+          const items: RosaryIndexItem[] = [
+            {
+              id: `${prayer.id || `${group.type}-${index}`}-destino`,
+              label: mysteryLabel,
+              active: isCurrentMystery && currentStepIndex === sequenceIndexMap.reading,
+              onSelect: () => jumpToMysteryStep(group.type, index, sequenceIndexMap.reading),
+            },
+          ];
+
+          if (sequenceIndexMap.intro !== -1) {
+            items.push({
+              id: `${prayer.id || `${group.type}-${index}`}-intro`,
+              label: 'Intención',
+              depth: 1,
+              active: isCurrentMystery && currentStepIndex === sequenceIndexMap.intro,
+              onSelect: () => jumpToMysteryStep(group.type, index, sequenceIndexMap.intro),
+            });
+          }
+
+          if (sequenceIndexMap.padreNuestro !== -1) {
+            items.push({
+              id: `${prayer.id || `${group.type}-${index}`}-padre`,
+              label: 'Padre Nuestro',
+              depth: 1,
+              active: isCurrentMystery && currentStepIndex === sequenceIndexMap.padreNuestro,
+              onSelect: () => jumpToMysteryStep(group.type, index, sequenceIndexMap.padreNuestro),
+            });
+          }
+
+          sequenceIndexMap.aves.forEach((aveStepIndex, aveIndex) => {
+            items.push({
+              id: `${prayer.id || `${group.type}-${index}`}-ave-${aveIndex + 1}`,
+              label: `Ave María ${aveIndex + 1}`,
+              depth: 1,
+              active: isCurrentMystery && currentStepIndex === aveStepIndex,
+              onSelect: () => jumpToMysteryStep(group.type, index, aveStepIndex),
+            });
+          });
+
+          if (sequenceIndexMap.gloria !== -1) {
+            items.push({
+              id: `${prayer.id || `${group.type}-${index}`}-gloria`,
+              label: 'Gloria',
+              depth: 1,
+              active: isCurrentMystery && currentStepIndex === sequenceIndexMap.gloria,
+              onSelect: () => jumpToMysteryStep(group.type, index, sequenceIndexMap.gloria),
+            });
+          }
+
+          if (sequenceIndexMap.jaculatoria !== -1) {
+            items.push({
+              id: `${prayer.id || `${group.type}-${index}`}-jaculatoria`,
+              label: 'Jaculatoria',
+              depth: 1,
+              active: isCurrentMystery && currentStepIndex === sequenceIndexMap.jaculatoria,
+              onSelect: () => jumpToMysteryStep(group.type, index, sequenceIndexMap.jaculatoria),
+            });
+          }
+
+          return items;
+        }),
+      })),
+      {
+        title: 'Cierre',
+        items: [
+          {
+            id: 'letanias',
+            label: 'Letanías',
+            active: isPostRosaryActive && !isSalveActive && currentPostStep?.type === 'letanias',
+            onSelect: () => jumpToPostPrayer('letanias'),
+          },
+          {
+            id: 'jaculatorias',
+            label: 'Jaculatorias',
+            active: isPostRosaryActive && !isSalveActive && currentPostStep?.type === 'jaculatorias',
+            onSelect: () => jumpToPostPrayer('jaculatorias'),
+          },
+          {
+            id: 'salve',
+            label: 'La Salve',
+            active: isSalveActive,
+            onSelect: () => jumpToPostPrayer('salve'),
+          },
+        ],
+      },
+    ],
+    [
+      currentMysteryIndex,
+      currentStepIndex,
+      currentPostStep?.type,
+      isPostRosaryActive,
+      isPreRosaryActive,
+      isSalveActive,
+      jumpToMysteryStep,
+      jumpToPostPrayer,
+      jumpToPreStep,
+      mysteryGroups,
+      postSteps,
+      preStepIndex,
+      preSteps,
+      sequenceIndexMap,
+      selectedMysteryType,
+    ]
+  );
+
   // --- SELECTION VIEW ---
   if (mode === 'selection') {
     return (
@@ -928,7 +1159,12 @@ export default function RosaryImmersive({
           )}
         </div>
 
-        <div className="flex flex-col items-center text-center max-w-[50%]">
+        <button
+          type="button"
+          data-no-touch-nav
+          className="flex max-w-[50%] flex-col items-center text-center rounded-xl px-2 py-1 transition-colors hover:bg-background/10"
+          onClick={openRosaryIndexSection}
+        >
           {/* Intentions (Smallest, Top) */}
           <AnimatePresence mode="wait">
             {!isPreRosaryActive && !isPostRosaryActive && (randomIntention || currentStep.type === 'intro') && (
@@ -944,11 +1180,14 @@ export default function RosaryImmersive({
           </AnimatePresence>
 
           {/* Mystery Group (Small) */}
-          <span className="text-xs font-semibold opacity-70 mb-0.5">{headerGroupLabel}</span>
+          <span className="mb-0.5 flex items-center gap-1 text-xs font-semibold opacity-70">
+            {headerGroupLabel}
+            <ChevronDown className={cn("size-3.5 transition-transform", showPrayerIndex && "rotate-180")} />
+          </span>
 
           {/* Mystery Name (Medium) */}
           <h2 className="text-sm font-bold leading-tight px-2 line-clamp-2">{headerTitle}</h2>
-        </div>
+        </button>
 
         <div className="flex gap-1">
           {/* Skip Pre-Rosary */}
@@ -989,6 +1228,70 @@ export default function RosaryImmersive({
 
       {/* Intentions Menu Overlay */}
       <AnimatePresence>
+        {showPrayerIndex && (
+          <motion.div
+            data-no-touch-nav
+            initial={{ opacity: 0, scale: 0.96, y: -8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: -8 }}
+            className="absolute left-4 right-4 top-16 z-50 mx-auto max-h-[min(70vh,540px)] max-w-lg overflow-hidden rounded-2xl border border-border bg-popover/95 shadow-2xl backdrop-blur"
+          >
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <div>
+                <h3 className="text-sm font-bold">Índice del Santo Rosario</h3>
+                <p className="text-xs text-muted-foreground">Salta a misterios, letanías y cierre.</p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setShowPrayerIndex(false)}>
+                <X className="size-4" />
+              </Button>
+            </div>
+
+            <div className="max-h-[min(70vh,540px)] overflow-y-auto px-4 py-3">
+              <div className="mb-4 grid grid-cols-2 gap-2">
+                {(['gozosos', 'luminosos', 'dolorosos', 'gloriosos'] as const).map((type) => (
+                  <Button
+                    key={type}
+                    variant={selectedMysteryType === type ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => jumpToMystery(type, 0)}
+                  >
+                    {MYSTERY_NAMES[type]}
+                  </Button>
+                ))}
+              </div>
+
+              <div className="space-y-4">
+                {rosaryIndexSections.map((section) => (
+                  <div key={section.title} className="space-y-2">
+                    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      {section.title}
+                    </div>
+                    <div className="space-y-1">
+                      {section.items.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          className={cn(
+                            "flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition-colors",
+                            item.depth === 1 && "pl-6",
+                            item.active
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted/40 hover:bg-muted"
+                          )}
+                          onClick={item.onSelect}
+                        >
+                          <span className="pr-3">{item.label}</span>
+                          {item.active && <span className="text-[11px] font-semibold uppercase tracking-[0.16em]">Actual</span>}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {showIntentionsMenu && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}

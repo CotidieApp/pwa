@@ -7,12 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.BitmapShader;
-import android.graphics.Canvas;
-import android.graphics.Paint;
-import android.graphics.Path;
-import android.graphics.RectF;
-import android.graphics.Shader;
+import android.view.View;
 import android.widget.RemoteViews;
 
 import com.benjamin.studio.MainActivity;
@@ -56,12 +51,7 @@ final class SaintWidgetUpdater {
             CropBias bias = resolveCropBiasForImageId(context, content.imageId);
             Bitmap cropped = cropToAspectWithBias(bmp, 1.5f, bias.horizontal, bias.vertical);
             if (cropped != bmp) bmp.recycle();
-
-            int radiusPx = dpToPx(context, 24);
-            Bitmap rounded = roundTopCorners(cropped, radiusPx);
-            if (rounded != cropped) cropped.recycle();
-
-            views.setImageViewBitmap(R.id.widget_saint_image, rounded);
+            views.setImageViewBitmap(R.id.widget_saint_image, cropped);
             views.setViewVisibility(R.id.widget_saint_image, android.view.View.VISIBLE);
         } else {
             views.setViewVisibility(R.id.widget_saint_image, android.view.View.GONE);
@@ -134,6 +124,12 @@ final class SaintWidgetUpdater {
         views.setTextViewText(R.id.widget_saint_bio, content.bio);
         views.setTextColor(R.id.widget_saint_name, content.titleTextColor);
         views.setTextColor(R.id.widget_saint_bio, content.bodyTextColor);
+        views.setInt(R.id.widget_saint_name, "setMaxLines", getNameMaxLines(content.name));
+        views.setInt(R.id.widget_saint_bio, "setMaxLines", getBioMaxLines(content.bio));
+        views.setViewVisibility(
+                R.id.widget_saint_bio,
+                content.bio == null || content.bio.trim().isEmpty() ? View.GONE : View.VISIBLE
+        );
 
         Intent intent = new Intent(context, MainActivity.class);
         intent.setAction(Intent.ACTION_VIEW);
@@ -144,11 +140,6 @@ final class SaintWidgetUpdater {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
         views.setOnClickPendingIntent(R.id.widget_root, pendingIntent);
-    }
-
-    private static int dpToPx(Context context, int dp) {
-        float density = context.getResources().getDisplayMetrics().density;
-        return Math.max(1, Math.round(dp * density));
     }
 
     private static Bitmap cropToAspectWithBias(Bitmap src, float targetAspect, float horizontalBias, float verticalBias) {
@@ -184,31 +175,17 @@ final class SaintWidgetUpdater {
         }
     }
 
-    private static Bitmap roundTopCorners(Bitmap src, int radiusPx) {
-        if (src == null) return null;
-        int w = src.getWidth();
-        int h = src.getHeight();
-        if (w <= 0 || h <= 0) return src;
+    private static int getNameMaxLines(String name) {
+        int length = name != null ? name.trim().length() : 0;
+        return length > 34 ? 2 : 1;
+    }
 
-        float r = Math.max(0f, Math.min(radiusPx, Math.min(w, h) / 2f));
-        if (r <= 0f) return src;
-
-        try {
-            Bitmap out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
-            Canvas canvas = new Canvas(out);
-
-            Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            Shader shader = new BitmapShader(src, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
-            paint.setShader(shader);
-
-            RectF rect = new RectF(0f, 0f, w, h);
-            Path path = new Path();
-            path.addRoundRect(rect, new float[] {r, r, r, r, 0f, 0f, 0f, 0f}, Path.Direction.CW);
-            canvas.drawPath(path, paint);
-            return out;
-        } catch (Exception ignored) {
-            return src;
-        }
+    private static int getBioMaxLines(String bio) {
+        int length = bio != null ? bio.trim().length() : 0;
+        if (length <= 0) return 1;
+        if (length <= 90) return 2;
+        if (length <= 160) return 3;
+        return 4;
     }
 
     private static final class CropBias {

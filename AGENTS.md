@@ -2928,3 +2928,65 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `src/components/settings/AppearanceSettings.tsx`
 - `src/context/SettingsContext.tsx`
 - `AGENTS.md`
+
+### [2026-03-18 10:56] 154. Ajustes de racha Misa, Rosario, memoria de idiomas y widget grande
+**Planificación:**
+- Quitar la muralla visual de la preview de racha de Misa y dejar una pausa simple entre rachas.
+- Ajustar UX en Home, plan personalizado, memoria de idiomas por oración y navegación interna del Rosario.
+- Mejorar el widget grande para que la imagen use mejor el espacio, llegue a las esquinas superiores y el texto ocupe altura variable.
+- Añadir edición condicional del calendario de Plan de Vida solo para desarrollador.
+
+**Ejecución:**
+- **Preview de racha**: `MassStreakSparkPreview` dejó de mostrar la muralla; al terminar una racha, el fuego simplemente se detiene hasta la siguiente Misa.
+- **Citas de santos**: en `HomePage` se redujo levemente el tiempo visible de las citas flotantes para que sigan siendo legibles pero no tan lentas.
+- **Plan personalizado**: en `MainApp` el aviso final ya no se encadena; si el aviso está activo y vuelves a avanzar, sale y se elimina al instante. Si retrocedes, el aviso también se limpia.
+- **Idiomas por oración**: en `PrayerDetail` la preferencia de idioma se resuelve por oración actual, evitando que el idioma escogido en una oración se fugue a otra.
+- **Imagen anclada**: la imagen de la oración pasó a ser `sticky`, manteniendo la apariencia general pero quedando visible mientras el texto sigue avanzando.
+- **Rosario**: en `RosaryImmersive` el bloque superior central se volvió botón y abre un índice desplegable con preparación, misterios de los cuatro grupos y cierre (Letanías, Jaculatorias y Salve).
+- **Calendario dev**: `PlanDeVidaCalendar` ahora muestra `Editar calendario` solo en modo desarrollador; al activarlo, tocar una celda marca/desmarca ese registro y se añadió `togglePlanDeVidaCalendarEntry` en `SettingsContext`.
+- **Widget grande**: `widget_saint_large.xml` y `SaintWidgetUpdater.java` se ajustaron para que la imagen ocupe el alto sobrante, el título/bio usen líneas variables según el contenido y la imagen ya no se redondee arriba, llegando a las esquinas superiores.
+- **Validación**: `node node_modules/typescript/bin/tsc --noEmit --pretty false` OK, `npm.cmd run build` OK y `.\gradlew.bat :app:compileDebugJavaWithJavac --console=plain` OK.
+
+**Archivos Modificados:**
+- `src/components/developer/MassStreakSparkPreview.tsx`
+- `src/components/home/HomePage.tsx`
+- `src/components/main/MainApp.tsx`
+- `src/components/PrayerDetail.tsx`
+- `src/components/RosaryImmersive.tsx`
+- `src/components/plans/PlanDeVidaCalendar.tsx`
+- `src/context/SettingsContext.tsx`
+- `android/app/src/main/res/layout/widget_saint_large.xml`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java`
+- `AGENTS.md`
+
+### [2026-03-18 11:13] 155. Índice detallado del Rosario inmersivo + fuego semanal/mensual en preview de rachas
+**Planificación:**
+- Ampliar el índice del Rosario inmersivo para permitir saltar no solo al misterio, sino también a subpasos concretos dentro de cada uno.
+- Añadir efectos visuales al preview de rachas cuando se completa una semana entera y cuando se completa un mes entero.
+- Hacer visible en la simulación de desarrollador al menos algún caso de semana y mes completos para probar las animaciones.
+
+**Ejecución:**
+- **Rosario inmersivo**: el índice de `RosaryImmersive` ahora incluye por cada misterio un destino principal con su nombre y saltos individuales a `Padre Nuestro`, `Ave María 1..10`, `Gloria` y `Jaculatoria`; si existe intención, también se puede saltar a ella.
+- **Jerarquía visual**: los subpasos del Rosario se muestran con sangría bajo el destino de cada misterio para distinguir mejor el nivel de navegación.
+- **Preview de rachas**: `MassStreakSparkPreview` ahora detecta semanas completas (lunes a domingo) y lanza un encendido grupal de esa semana.
+- **Mes completo**: cuando un mes queda completo, el preview lanza combustión de mes; si luego pasa al siguiente mes, abandona el giro tipo página y usa una salida tipo ceniza.
+- **Simulación**: la generación de datos del preview incluye al menos un mes completo y semanas completas adicionales para que el efecto pueda verse sin depender de la suerte del seed.
+- **Validación**: `node node_modules/typescript/bin/tsc --noEmit --pretty false` OK y `npm.cmd run build` OK.
+
+**Archivos Modificados:**
+- `src/components/RosaryImmersive.tsx`
+- `src/components/developer/MassStreakSparkPreview.tsx`
+- `AGENTS.md`
+
+### [2026-03-18 11:15] 156. Limpieza de etiqueta en índice del Rosario inmersivo
+**Planificación:**
+- Quitar el prefijo `Destino:` delante del nombre del misterio en el índice del Rosario inmersivo.
+- Mantener intacta la navegación a ese punto del misterio.
+
+**Ejecución:**
+- **Índice del Rosario**: en `RosaryImmersive` el ítem principal de cada misterio ahora muestra solo el nombre del misterio, sin texto adicional delante.
+- **Validación**: `node node_modules/typescript/bin/tsc --noEmit --pretty false` OK.
+
+**Archivos Modificados:**
+- `src/components/RosaryImmersive.tsx`
+- `AGENTS.md`

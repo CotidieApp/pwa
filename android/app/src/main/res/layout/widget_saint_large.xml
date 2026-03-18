@@ -20,8 +20,8 @@
         <ImageView
             android:id="@+id/widget_saint_image"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:adjustViewBounds="true"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:scaleType="centerCrop" />
 
         <LinearLayout
@@ -38,7 +38,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:ellipsize="end"
-                android:maxLines="1"
+                android:maxLines="2"
                 android:textSize="14sp"
                 android:textStyle="bold" />
 
@@ -48,7 +48,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
                 android:ellipsize="end"
-                android:maxLines="2"
+                android:maxLines="4"
                 android:textSize="12sp" />
         </LinearLayout>
     </LinearLayout>

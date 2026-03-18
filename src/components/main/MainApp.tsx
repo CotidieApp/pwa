@@ -113,6 +113,13 @@ export default function MainApp() {
   } | null>(null);
   const customPlanExitToastIdRef = useRef<string | null>(null);
   const rosaryMeditatedBackHandlerRef = useRef<(() => boolean) | null>(null);
+  const clearCustomPlanExitPrompt = useCallback(() => {
+    customPlanExitAdvanceRef.current = null;
+    if (customPlanExitToastIdRef.current) {
+      dismiss(customPlanExitToastIdRef.current);
+      customPlanExitToastIdRef.current = null;
+    }
+  }, [dismiss]);
 
   const [isDraggingAnnuum, setIsDraggingAnnuum] = useState(false);
   const AnnuumDragStart = useRef({ x: 0, y: 0 });
@@ -154,12 +161,8 @@ export default function MainApp() {
     navStateRef.current = navState;
   }, [navState]);
   useEffect(() => {
-    customPlanExitAdvanceRef.current = null;
-    if (customPlanExitToastIdRef.current) {
-      dismiss(customPlanExitToastIdRef.current);
-      customPlanExitToastIdRef.current = null;
-    }
-  }, [dismiss, navState.activeView, navState.customPlanPrayerSlot, navState.customPlanPrayerIndex]);
+    clearCustomPlanExitPrompt();
+  }, [clearCustomPlanExitPrompt, navState.activeView, navState.customPlanPrayerSlot, navState.customPlanPrayerIndex]);
   useNavPersistence(navStateRef);
 
   useEffect(() => {
@@ -802,14 +805,16 @@ export default function MainApp() {
     customPlanValidPosition !== -1;
 
   const goToCustomPlanPrev = useCallback(() => {
+    clearCustomPlanExitPrompt();
     if (!hasCustomPlanPrayerNav || customPlanPrevIndex === null || navState.customPlanPrayerSlot === null) return;
     handleOpenCustomPlanPrayerAt(navState.customPlanPrayerSlot as 1 | 2 | 3 | 4, customPlanPrevIndex);
-  }, [customPlanPrevIndex, handleOpenCustomPlanPrayerAt, hasCustomPlanPrayerNav, navState.customPlanPrayerSlot]);
+  }, [clearCustomPlanExitPrompt, customPlanPrevIndex, handleOpenCustomPlanPrayerAt, hasCustomPlanPrayerNav, navState.customPlanPrayerSlot]);
 
   const goToCustomPlanNext = useCallback(() => {
     if (!hasCustomPlanPrayerNav || navState.customPlanPrayerSlot === null || navState.customPlanPrayerIndex === null) return;
 
     if (customPlanNextIndex !== null) {
+      clearCustomPlanExitPrompt();
       handleOpenCustomPlanPrayerAt(navState.customPlanPrayerSlot as 1 | 2 | 3 | 4, customPlanNextIndex);
       return;
     }
@@ -819,35 +824,24 @@ export default function MainApp() {
     const slot = navState.customPlanPrayerSlot as 1 | 2 | 3 | 4;
     const index = navState.customPlanPrayerIndex;
 
-    if (
-      pendingExit &&
-      pendingExit.slot === slot &&
-      pendingExit.index === index &&
-      pendingExit.expiresAt > now
-    ) {
-      customPlanExitAdvanceRef.current = null;
-      if (customPlanExitToastIdRef.current) {
-        dismiss(customPlanExitToastIdRef.current);
-        customPlanExitToastIdRef.current = null;
-      }
+    if (pendingExit && pendingExit.slot === slot && pendingExit.index === index && pendingExit.expiresAt > now) {
+      clearCustomPlanExitPrompt();
       replaceNavState(initialState);
       return;
     }
 
+    clearCustomPlanExitPrompt();
     customPlanExitAdvanceRef.current = {
       slot,
       index,
       expiresAt: now + CUSTOM_PLAN_EXIT_CONFIRM_MS,
     };
-    if (customPlanExitToastIdRef.current) {
-      dismiss(customPlanExitToastIdRef.current);
-    }
     customPlanExitToastIdRef.current = toast({
       title: 'Vuelve a avanzar para salir',
       description: 'Si avanzas otra vez, volverás a la pantalla principal.',
       duration: CUSTOM_PLAN_EXIT_CONFIRM_MS,
     }).id;
-  }, [customPlanNextIndex, dismiss, handleOpenCustomPlanPrayerAt, hasCustomPlanPrayerNav, navState.customPlanPrayerIndex, navState.customPlanPrayerSlot, replaceNavState, toast]);
+  }, [clearCustomPlanExitPrompt, customPlanNextIndex, handleOpenCustomPlanPrayerAt, hasCustomPlanPrayerNav, navState.customPlanPrayerIndex, navState.customPlanPrayerSlot, replaceNavState, toast]);
 
   const canEditCurrentPrayer =
     navState.activeView === 'prayer' &&
@@ -1033,8 +1027,6 @@ export default function MainApp() {
     </div>
   );
 }
-
-
 
 
 

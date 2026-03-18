@@ -26,6 +26,8 @@ interface EasterEggQuote {
   author: string;
 }
 
+const SAINT_QUOTE_BALLOON_MS = 13000;
+
 export default function HomePage({ onSelectCategory, onOpenCustomPlan, onCreateCustomPlan }: HomePageProps) {
   const settings = useSettings();
 
@@ -106,7 +108,7 @@ export default function HomePage({ onSelectCategory, onOpenCustomPlan, onCreateC
         setEasterEggQuotes((prev) =>
           prev.filter((q) => q.id !== newQuote.id)
         );
-      }, 15000);
+      }, SAINT_QUOTE_BALLOON_MS);
     }
   }, [userQuotes, shownEasterEggQuoteIds, registerEasterEggQuote, settings]);
 

@@ -199,6 +199,7 @@ type Settings = {
   setPlanDeVidaTrackerEnabled: (enabled: boolean) => void;
   planDeVidaProgress: string[];
   togglePlanDeVidaItem: (id: string, force?: boolean, skipStatIncrement?: boolean, eventDateKey?: string | null) => void;
+  togglePlanDeVidaCalendarEntry: (dateKey: string, id: string) => void;
   resetPlanDeVidaProgress: () => void;
   planDeVidaCalendar: Record<string, string[]>;
 
@@ -2075,6 +2076,45 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
      });
   };
 
+  const togglePlanDeVidaCalendarEntry = (dateKey: string, id: string) => {
+    if (!dateKey || !id) return;
+
+    const currentDateKey = getPastoralDayKey(simulatedDate ? new Date(simulatedDate) : new Date());
+    let nextChecked = false;
+
+    setPlanDeVidaCalendar((prevCalendar) => {
+      const existing = Array.isArray(prevCalendar[dateKey]) ? prevCalendar[dateKey] : [];
+      nextChecked = !existing.includes(id);
+
+      if (nextChecked) {
+        return { ...prevCalendar, [dateKey]: [...existing, id] };
+      }
+
+      const nextList = existing.filter((item) => item !== id);
+      if (nextList.length === 0) {
+        const { [dateKey]: _removed, ...rest } = prevCalendar;
+        return rest;
+      }
+      return { ...prevCalendar, [dateKey]: nextList };
+    });
+
+    if (dateKey === currentDateKey) {
+      setPlanDeVidaProgress((prev) => {
+        if (nextChecked) {
+          return prev.includes(id) ? prev : [...prev, id];
+        }
+        return prev.filter((item) => item !== id);
+      });
+    }
+
+    pushDevLiveTrace({
+      level: 'info',
+      source: 'plan-de-vida',
+      message: nextChecked ? 'Check de calendario marcado.' : 'Check de calendario desmarcado.',
+      data: `id=${id}; date=${dateKey}`,
+    });
+  };
+
   useEffect(() => {
     if (!isLoaded) return;
     if (!Capacitor.isNativePlatform()) return;
@@ -3068,6 +3108,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         setPlanDeVidaTrackerEnabled,
         planDeVidaProgress,
         togglePlanDeVidaItem,
+        togglePlanDeVidaCalendarEntry,
         resetPlanDeVidaProgress,
         planDeVidaCalendar,
         isDistractionFree,
@@ -3142,7 +3183,6 @@ export const useSettings = () => {
   if (!ctx) throw new Error('useSettings must be used within SettingsProvider');
   return ctx;
 };
-
 
 
 

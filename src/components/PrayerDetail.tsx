@@ -469,12 +469,16 @@ const PrayerContent = ({
   const [selectedLang, setSelectedLang] = useState('');
 
   useEffect(() => {
+    setSelectedLang('');
+  }, [prayer.id]);
+
+  useEffect(() => {
     if (!prayer.content || typeof prayer.content !== 'object') return;
     const contentObj = prayer.content as Record<string, string>;
     const preferredLang =
       (prayer.id ? prayerLanguagePreferences[prayer.id] : undefined) ??
       (prayer.id === 'preces' ? 'latín' : 'español');
-    const resolvedLang = resolveVariantKey(contentObj, selectedLang || preferredLang);
+    const resolvedLang = resolveVariantKey(contentObj, preferredLang);
     if (resolvedLang && resolvedLang !== selectedLang) {
       setSelectedLang(resolvedLang);
     }
@@ -578,7 +582,7 @@ export default function PrayerDetail({
       {prayer.imageUrl && (
         <div
           className={cn(
-            'relative overflow-hidden',
+            'relative overflow-hidden sticky top-0 z-0',
             isDistractionFree
               ? 'mb-8 left-1/2 w-screen max-w-none -translate-x-1/2 rounded-none'
               : 'mb-4 rounded-lg'

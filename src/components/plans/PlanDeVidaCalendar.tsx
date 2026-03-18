@@ -37,11 +37,17 @@ const collectPlanDeVidaPrayers = (list: Prayer[]): Array<{ id: string; title: st
 };
 
 export default function PlanDeVidaCalendar() {
-  const { planDeVidaCalendar, allPrayers } = useSettings();
+  const {
+    planDeVidaCalendar,
+    allPrayers,
+    isDeveloperMode,
+    togglePlanDeVidaCalendarEntry,
+  } = useSettings();
   const [activeMonth, setActiveMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
+  const [isEditMode, setIsEditMode] = useState(false);
 
   const year = activeMonth.getFullYear();
   const monthIndex = activeMonth.getMonth();
@@ -81,17 +87,28 @@ export default function PlanDeVidaCalendar() {
         <div className="mt-2 text-xs text-muted-foreground text-center">
           Checks registrados: {monthCheckedCount}
         </div>
+        {isDeveloperMode && (
+          <div className="mt-3 flex justify-center">
+            <Button
+              variant={isEditMode ? "default" : "outline"}
+              size="sm"
+              onClick={() => setIsEditMode((prev) => !prev)}
+            >
+              {isEditMode ? "Salir de edición" : "Editar calendario"}
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="overflow-auto rounded-lg border border-border bg-card/70">
         <table className="min-w-max border-collapse text-xs">
           <thead>
             <tr>
-              <th className="sticky left-0 z-20 bg-card border-b border-r border-border px-3 py-2 text-left min-w-[180px]">
+              <th className="sticky left-0 z-20 min-w-[180px] border-b border-r border-border bg-card px-3 py-2 text-left">
                 Sección / oración
               </th>
               {days.map((day) => (
-                <th key={day} className="border-b border-r border-border px-2 py-2 text-center min-w-[34px]">
+                <th key={day} className="min-w-[34px] border-b border-r border-border px-2 py-2 text-center">
                   {day}
                 </th>
               ))}
@@ -100,7 +117,7 @@ export default function PlanDeVidaCalendar() {
           <tbody>
             {rows.map((row) => (
               <tr key={row.id}>
-                <td className="sticky left-0 z-10 bg-card border-b border-r border-border px-3 py-2 font-medium">
+                <td className="sticky left-0 z-10 border-b border-r border-border bg-card px-3 py-2 font-medium">
                   {row.title}
                 </td>
                 {days.map((day) => {
@@ -112,7 +129,17 @@ export default function PlanDeVidaCalendar() {
                       className={`border-b border-r border-border px-2 py-2 text-center ${checked ? "bg-primary/20" : ""}`}
                       title={checked ? "Registrado" : "Sin registro"}
                     >
-                      {checked ? "✓" : ""}
+                      {isEditMode && isDeveloperMode ? (
+                        <button
+                          type="button"
+                          className={`flex h-6 w-full items-center justify-center rounded-sm transition-colors ${checked ? "text-primary" : "text-muted-foreground hover:bg-muted/60"}`}
+                          onClick={() => togglePlanDeVidaCalendarEntry(key, row.id)}
+                        >
+                          {checked ? "✓" : ""}
+                        </button>
+                      ) : (
+                        checked ? "✓" : ""
+                      )}
                     </td>
                   );
                 })}
