@@ -1,0 +1,148 @@
+%PDF-1.4
+%âãÏÓ
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Count 1 /Kids [3 0 R] >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 792 612] /Resources << /Font << /F1 4 0 R /F2 5 0 R /F3 6 0 R >> >> /Contents 7 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>
+endobj
+7 0 obj
+<< /Length 12535 >>
+stream
+0.960 0.950 0.920 rg 0.00 0.00 792.00 612.00 re f
+BT /F1 20 Tf 0.080 0.150 0.200 rg 1 0 0 1 24.00 584.00 Tm (Cotidie) Tj ET
+BT /F2 8.2 Tf 0.300 0.380 0.450 rg 1 0 0 1 24.00 570.00 Tm (One-page repo summary based only on repository evidence.) Tj ET
+BT /F3 7 Tf 0.330 0.400 0.480 rg 1 0 0 1 447.00 580.00 Tm (v4.4.15 | Next.js 15 | React 18 | Capacitor 8 | PWA + Android) Tj ET
+1 w 1.000 1.000 1.000 rg 0.840 0.880 0.910 RG 24.00 284.00 366.00 248.00 re B
+0.620 0.420 0.060 rg 24.00 527.00 366.00 5.00 re f
+BT /F1 11.4 Tf 0.080 0.150 0.200 rg 1 0 0 1 36.00 514.00 Tm (Español) Tj ET
+BT /F3 6.65 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 501.00 Tm (Qué es: Cotidie es una app católica de oración y lectura espiritual, hecha con) Tj ET
+BT /F3 6.65 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 492.75 Tm (Next.js + Capacitor y publicada como PWA / Android.) Tj ET
+BT /F3 6.65 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 483.50 Tm (Para quién: Católicos que quieren una rutina diaria de oración en el teléfono.) Tj ET
+BT /F1 7.8 Tf 0.620 0.420 0.060 rg 1 0 0 1 36.00 473.25 Tm (Qué hace) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 463.25 Tm (- Biblioteca única de Devociones, Plan de Vida y Oraciones.) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 455.35 Tm (- Rosario y Via Crucis en modos inmersivos.) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 447.45 Tm (- EPUB del Nuevo Testamento con índice, búsqueda, marcadores y subrayados.) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 439.55 Tm (- EPUBs personales guardados localmente en el dispositivo.) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 431.65 Tm (- Oraciones, devociones, cartas y 4 planes personalizados.) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 423.75 Tm (- Temporizador, recordatorios diarios, fiestas y acciones rápidas en notificaciones.) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 415.85 Tm (- Santo/frase del día, calendario de checks, estadísticas y Cotidie Annuum.) Tj ET
+BT /F1 7.8 Tf 0.620 0.420 0.060 rg 1 0 0 1 36.00 405.95 Tm (Cómo funciona) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 395.95 Tm (- UI: page.tsx abre splash + MainApp; MainApp cambia entre inicio, categorías, oración,) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 388.05 Tm (  ajustes y lectores.) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 380.15 Tm (- Estado/datos: SettingsContext reúne catálogo, stats, recordatorios, santos, temas y) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 372.25 Tm (  planes; persiste con IndexedDB \(persistence.ts\) + localStorage.) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 364.35 Tm (- Nativo: Capacitor + Android \(MainActivity, receivers, widgets\) manejan imports,) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 356.45 Tm (  acciones de notificación, recuperación WebView y widgets del santo.) Tj ET
+BT /F1 7.8 Tf 0.620 0.420 0.060 rg 1 0 0 1 36.00 346.55 Tm (Cómo correr) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 336.55 Tm (- npm install) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 328.65 Tm (- npm run dev) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 320.75 Tm (- Abre la URL local que imprima Next. Guía detallada / comando Android nativo: Not found) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 312.85 Tm (  in repo.) Tj ET
+1 w 1.000 1.000 1.000 rg 0.840 0.880 0.910 RG 402.00 284.00 366.00 248.00 re B
+0.140 0.370 0.550 rg 402.00 527.00 366.00 5.00 re f
+BT /F1 11.4 Tf 0.080 0.150 0.200 rg 1 0 0 1 414.00 514.00 Tm (English) Tj ET
+BT /F3 6.65 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 501.00 Tm (What it is: Cotidie is a Catholic prayer and spiritual reading app built with Next.js) Tj ET
+BT /F3 6.65 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 492.75 Tm (+ Capacitor and shipped as a PWA / Android app.) Tj ET
+BT /F3 6.65 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 483.50 Tm (Who it's for: Catholics who want a daily prayer routine on a phone.) Tj ET
+BT /F1 7.8 Tf 0.140 0.370 0.550 rg 1 0 0 1 414.00 473.25 Tm (What it does) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 463.25 Tm (- One library for Devotions, Daily Plan, and Prayers.) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 455.35 Tm (- Immersive Rosary and Way of the Cross modes.) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 447.45 Tm (- New Testament EPUB reader with TOC, search, bookmarks, and highlights.) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 439.55 Tm (- Personal EPUB uploads stored locally on the device.) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 431.65 Tm (- User prayers, devotions, letters, and 4 custom plans.) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 423.75 Tm (- Timer, daily reminders, feast notifications, and quick actions.) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 415.85 Tm (- Saint/quote of the day, check calendar, stats, and Cotidie Annuum recap.) Tj ET
+BT /F1 7.8 Tf 0.140 0.370 0.550 rg 1 0 0 1 414.00 405.95 Tm (How it works) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 395.95 Tm (- UI: page.tsx loads splash + MainApp; MainApp switches) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 388.05 Tm (  home/category/prayer/settings/reader views.) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 380.15 Tm (- State/data: SettingsContext joins catalog, stats, reminders, saints, themes, and) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 372.25 Tm (  plans; persists with IndexedDB \(persistence.ts\) + localStorage.) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 364.35 Tm (- Native: Capacitor + Android \(MainActivity, receivers, widgets\) handle imports,) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 356.45 Tm (  notification actions, WebView recovery, and saint widgets.) Tj ET
+BT /F1 7.8 Tf 0.140 0.370 0.550 rg 1 0 0 1 414.00 346.55 Tm (How to run) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 336.55 Tm (- npm install) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 328.65 Tm (- npm run dev) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 320.75 Tm (- Open the local URL printed by Next. Detailed onboarding / Android native run command:) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 312.85 Tm (  Not found in repo.) Tj ET
+1 w 1.000 1.000 1.000 rg 0.840 0.880 0.910 RG 24.00 24.00 366.00 248.00 re B
+0.180 0.480 0.270 rg 24.00 267.00 366.00 5.00 re f
+BT /F1 11.4 Tf 0.080 0.150 0.200 rg 1 0 0 1 36.00 254.00 Tm (Italiano) Tj ET
+BT /F3 6.65 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 241.00 Tm (Che cos'è: Cotidie è un'app cattolica per preghiera e lettura spirituale, costruita) Tj ET
+BT /F3 6.65 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 232.75 Tm (con Next.js + Capacitor e distribuita come PWA / app Android.) Tj ET
+BT /F3 6.65 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 223.50 Tm (Per chi: Cattolici che vogliono una routine quotidiana di preghiera sul telefono.) Tj ET
+BT /F1 7.8 Tf 0.180 0.480 0.270 rg 1 0 0 1 36.00 213.25 Tm (Cosa fa) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 203.25 Tm (- Un'unica libreria per Devozioni, Piano di Vita e Preghiere.) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 195.35 Tm (- Rosario e Via Crucis in modalità immersive.) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 187.45 Tm (- Lettore EPUB del Nuovo Testamento con indice, ricerca, segnalibri e sottolineature.) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 179.55 Tm (- EPUB personali salvati localmente sul dispositivo.) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 171.65 Tm (- Preghiere, devozioni, lettere e 4 piani personalizzati.) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 163.75 Tm (- Timer, promemoria giornalieri, feste e azioni rapide dalle notifiche.) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 155.85 Tm (- Santo/frase del giorno, calendario dei check, statistiche e riepilogo Cotidie Annuum.) Tj ET
+BT /F1 7.8 Tf 0.180 0.480 0.270 rg 1 0 0 1 36.00 145.95 Tm (Come funziona) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 135.95 Tm (- UI: page.tsx carica splash + MainApp; MainApp gestisce viste) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 128.05 Tm (  home/categoria/preghiera/impostazioni/reader.) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 120.15 Tm (- Stato/dati: SettingsContext unisce catalogo, statistiche, promemoria, santi, temi e) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 112.25 Tm (  piani; persistenza via IndexedDB \(persistence.ts\) + localStorage.) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 104.35 Tm (- Nativo: Capacitor + Android \(MainActivity, receiver, widget\) gestiscono importazioni,) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 96.45 Tm (  azioni delle notifiche, recupero WebView e widget del santo.) Tj ET
+BT /F1 7.8 Tf 0.180 0.480 0.270 rg 1 0 0 1 36.00 86.55 Tm (Come avviare) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 76.55 Tm (- npm install) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 68.65 Tm (- npm run dev) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 60.75 Tm (- Apri l'URL locale stampato da Next. Onboarding dettagliato / comando Android nativo:) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 36.00 52.85 Tm (  Not found in repo.) Tj ET
+1 w 1.000 1.000 1.000 rg 0.840 0.880 0.910 RG 402.00 24.00 366.00 248.00 re B
+0.250 0.320 0.410 rg 402.00 267.00 366.00 5.00 re f
+BT /F1 11.4 Tf 0.080 0.150 0.200 rg 1 0 0 1 414.00 254.00 Tm (Français) Tj ET
+BT /F3 6.65 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 241.00 Tm (Ce que c'est: Cotidie est une application catholique de prière et de lecture) Tj ET
+BT /F3 6.65 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 232.75 Tm (spirituelle, construite avec Next.js + Capacitor et livrée en PWA / app Android.) Tj ET
+BT /F3 6.65 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 223.50 Tm (Pour qui: Des catholiques qui veulent une routine quotidienne de prière sur mobile.) Tj ET
+BT /F1 7.8 Tf 0.250 0.320 0.410 rg 1 0 0 1 414.00 213.25 Tm (Ce qu'elle fait) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 203.25 Tm (- Une seule bibliothèque pour Dévotions, Plan de Vie et Prières.) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 195.35 Tm (- Chapelet et Chemin de Croix en modes immersifs.) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 187.45 Tm (- Lecteur EPUB du Nouveau Testament avec sommaire, recherche, signets et surlignages.) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 179.55 Tm (- EPUB personnels stockés localement sur l'appareil.) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 171.65 Tm (- Prières, dévotions, lettres et 4 plans personnalisés.) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 163.75 Tm (- Minuteur, rappels quotidiens, fêtes et actions rapides depuis les notifications.) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 155.85 Tm (- Saint/citation du jour, calendrier des checks, statistiques et récap Cotidie Annuum.) Tj ET
+BT /F1 7.8 Tf 0.250 0.320 0.410 rg 1 0 0 1 414.00 145.95 Tm (Comment ça marche) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 135.95 Tm (- UI: page.tsx charge le splash + MainApp; MainApp bascule entre) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 128.05 Tm (  accueil/catégorie/prière/réglages/lecteur.) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 120.15 Tm (- État/données: SettingsContext regroupe catalogue, stats, rappels, saints, thèmes et) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 112.25 Tm (  plans; persistance via IndexedDB \(persistence.ts\) + localStorage.) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 104.35 Tm (- Natif: Capacitor + Android \(MainActivity, receivers, widgets\) gèrent imports, actions) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 96.45 Tm (  de notification, récupération WebView et widgets du saint.) Tj ET
+BT /F1 7.8 Tf 0.250 0.320 0.410 rg 1 0 0 1 414.00 86.55 Tm (Comment lancer) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 76.55 Tm (- npm install) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 68.65 Tm (- npm run dev) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 60.75 Tm (- Ouvrez l'URL locale affichée par Next. Onboarding détaillé / commande Android native:) Tj ET
+BT /F3 6.45 Tf 0.180 0.230 0.280 rg 1 0 0 1 414.00 52.85 Tm (  Not found in repo.) Tj ET
+endstream
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000121 00000 n 
+0000000267 00000 n 
+0000000369 00000 n 
+0000000466 00000 n 
+0000000561 00000 n 
+trailer
+<< /Size 8 /Root 1 0 R >>
+startxref
+13149
+%%EOF

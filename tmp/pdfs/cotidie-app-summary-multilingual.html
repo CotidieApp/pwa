@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Cotidie - One Page Repo Summary</title>
+    <style>
+      @page {
+        size: letter landscape;
+        margin: 0;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 11in;
+        height: 8.5in;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      body {
+        font-family: "Segoe UI", Arial, sans-serif;
+        background: linear-gradient(135deg, #f4efe7 0%, #fffdf8 50%, #eef3f8 100%);
+        color: #12212c;
+      }
+
+      .page {
+        width: 11in;
+        height: 8.5in;
+        padding: 0.34in 0.38in 0.34in;
+        display: flex;
+        flex-direction: column;
+        gap: 0.14in;
+      }
+
+      .hero {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 18px;
+      }
+
+      .hero-left h1 {
+        margin: 0;
+        font: 700 23pt Georgia, "Times New Roman", serif;
+        letter-spacing: 0.2px;
+      }
+
+      .hero-left p {
+        margin: 3px 0 0;
+        font-size: 8.8pt;
+        line-height: 1.25;
+        color: #415466;
+      }
+
+      .hero-right {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 6px;
+        max-width: 4.5in;
+      }
+
+      .chip {
+        padding: 4px 9px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid #d7e0e8;
+        font-size: 7.5pt;
+        color: #314252;
+      }
+
+      .grid {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        gap: 0.14in;
+      }
+
+      .card {
+        min-height: 0;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.95);
+        border: 1px solid #d8e1e8;
+        border-radius: 15px;
+        padding: 0.15in 0.17in 0.14in;
+        box-shadow: 0 10px 24px rgba(26, 43, 56, 0.08);
+      }
+
+      .card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 8px;
+        padding-bottom: 6px;
+        margin-bottom: 5px;
+        border-bottom: 3px solid var(--accent);
+      }
+
+      .lang {
+        font: 700 11.3pt Georgia, "Times New Roman", serif;
+        color: #162532;
+      }
+
+      .title-line {
+        margin-top: 1px;
+        font-size: 7.2pt;
+        letter-spacing: 0.16em;
+        color: #617282;
+        text-transform: uppercase;
+      }
+
+      .accent-pill {
+        border-radius: 999px;
+        background: var(--accent);
+        color: #ffffff;
+        font-size: 7.2pt;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        padding: 4px 8px;
+        line-height: 1;
+      }
+
+      .meta {
+        margin: 0 0 4px;
+        font-size: 7.75pt;
+        line-height: 1.18;
+      }
+
+      .label {
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #365169;
+        margin-right: 4px;
+      }
+
+      .section-title {
+        margin-top: 7px;
+        margin-bottom: 3px;
+        font-size: 7.35pt;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #365169;
+      }
+
+      ul {
+        margin: 0;
+        padding-left: 13px;
+      }
+
+      li {
+        margin: 0 0 2px;
+        font-size: 7.55pt;
+        line-height: 1.18;
+      }
+
+      code {
+        font-family: Consolas, "Courier New", monospace;
+        font-size: 6.95pt;
+        background: #eef3f7;
+        border: 1px solid #dce6ef;
+        border-radius: 4px;
+        padding: 0 3px;
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header class="hero">
+        <div class="hero-left">
+          <h1>Cotidie</h1>
+          <p>One-page repo summary based only on repository evidence.</p>
+        </div>
+        <div class="hero-right">
+          <span class="chip">v4.4.15</span>
+          <span class="chip">Next.js 15</span>
+          <span class="chip">React 18</span>
+          <span class="chip">Capacitor 8</span>
+          <span class="chip">PWA + Android</span>
+        </div>
+      </header>
+
+      <section class="grid">
+        
+  <article class="card">
+    <div class="card-top" style="--accent:#9f6a0f">
+      <div>
+        <div class="lang">Español</div>
+        <div class="title-line">ES</div>
+      </div>
+      <div class="accent-pill">ES</div>
+    </div>
+
+    <p class="meta"><span class="label">What it is</span> Cotidie es una app católica de oración y lectura espiritual, hecha con Next.js + Capacitor y publicada como PWA / Android.</p>
+    <p class="meta"><span class="label">Who it's for</span> Católicos que quieren una rutina diaria de oración en el teléfono.</p>
+
+    <div class="section-title">What it does</div>
+    <ul><li>Biblioteca única de Devociones, Plan de Vida y Oraciones.</li><li>Rosario y Via Crucis en modos inmersivos.</li><li>EPUB del Nuevo Testamento con índice, búsqueda, marcadores y subrayados.</li><li>EPUBs personales guardados localmente en el dispositivo.</li><li>Oraciones, devociones, cartas y 4 planes personalizados.</li><li>Temporizador, recordatorios diarios y acciones rápidas en notificaciones.</li><li>Santo/frase del día, calendario de checks, estadísticas y Cotidie Annuum.</li></ul>
+
+    <div class="section-title">How it works</div>
+    <ul><li><code>page.tsx</code> carga splash + <code>MainApp</code>; <code>MainApp</code> cambia entre inicio, categorías, oración, ajustes y lectores.</li><li><code>SettingsContext</code> reúne catálogo, stats, recordatorios, santos, temas y planes; persiste con IndexedDB (<code>persistence.ts</code>) + <code>localStorage</code>.</li><li>Capacitor + Android (<code>MainActivity</code>, receivers, widgets) manejan imports, acciones de notificación, recuperación WebView y widgets del santo.</li></ul>
+
+    <div class="section-title">How to run</div>
+    <ul><li><code>npm install</code></li><li><code>npm run dev</code></li><li>Abre la URL local que imprima Next. Guía detallada / comando Android nativo: Not found in repo.</li></ul>
+  </article>
+
+  <article class="card">
+    <div class="card-top" style="--accent:#245f8d">
+      <div>
+        <div class="lang">English</div>
+        <div class="title-line">EN</div>
+      </div>
+      <div class="accent-pill">EN</div>
+    </div>
+
+    <p class="meta"><span class="label">What it is</span> Cotidie is a Catholic prayer and spiritual reading app built with Next.js + Capacitor and shipped as a PWA / Android app.</p>
+    <p class="meta"><span class="label">Who it's for</span> Catholics who want a daily prayer routine on a phone.</p>
+
+    <div class="section-title">What it does</div>
+    <ul><li>One library for Devotions, Daily Plan, and Prayers.</li><li>Immersive Rosary and Way of the Cross modes.</li><li>New Testament EPUB reader with TOC, search, bookmarks, and highlights.</li><li>Personal EPUB uploads stored locally on the device.</li><li>User prayers, devotions, letters, and 4 custom plans.</li><li>Timer, daily reminders, and notification quick actions.</li><li>Saint/quote of the day, check calendar, stats, and Cotidie Annuum recap.</li></ul>
+
+    <div class="section-title">How it works</div>
+    <ul><li><code>page.tsx</code> loads splash + <code>MainApp</code>; <code>MainApp</code> switches home/category/prayer/settings/reader views.</li><li><code>SettingsContext</code> joins catalog, stats, reminders, saints, themes, and plans; persists with IndexedDB (<code>persistence.ts</code>) + <code>localStorage</code>.</li><li>Capacitor + Android (<code>MainActivity</code>, receivers, widgets) handle imports, notification actions, WebView recovery, and saint widgets.</li></ul>
+
+    <div class="section-title">How to run</div>
+    <ul><li><code>npm install</code></li><li><code>npm run dev</code></li><li>Open the local URL printed by Next. Detailed onboarding / Android native run command: Not found in repo.</li></ul>
+  </article>
+
+  <article class="card">
+    <div class="card-top" style="--accent:#2f7a45">
+      <div>
+        <div class="lang">Italiano</div>
+        <div class="title-line">IT</div>
+      </div>
+      <div class="accent-pill">IT</div>
+    </div>
+
+    <p class="meta"><span class="label">What it is</span> Cotidie è un'app cattolica per preghiera e lettura spirituale, costruita con Next.js + Capacitor e distribuita come PWA / app Android.</p>
+    <p class="meta"><span class="label">Who it's for</span> Cattolici che vogliono una routine quotidiana di preghiera sul telefono.</p>
+
+    <div class="section-title">What it does</div>
+    <ul><li>Un'unica libreria per Devozioni, Piano di Vita e Preghiere.</li><li>Rosario e Via Crucis in modalità immersive.</li><li>Lettore EPUB del Nuovo Testamento con indice, ricerca, segnalibri e sottolineature.</li><li>EPUB personali salvati localmente sul dispositivo.</li><li>Preghiere, devozioni, lettere e 4 piani personalizzati.</li><li>Timer, promemoria giornalieri e azioni rapide dalle notifiche.</li><li>Santo/frase del giorno, calendario dei check, statistiche e riepilogo Cotidie Annuum.</li></ul>
+
+    <div class="section-title">How it works</div>
+    <ul><li><code>page.tsx</code> carica splash + <code>MainApp</code>; <code>MainApp</code> gestisce viste home/categoria/preghiera/impostazioni/reader.</li><li><code>SettingsContext</code> unisce catalogo, statistiche, promemoria, santi, temi e piani; persistenza via IndexedDB (<code>persistence.ts</code>) + <code>localStorage</code>.</li><li>Capacitor + Android (<code>MainActivity</code>, receiver, widget) gestiscono importazioni, azioni notification, recupero WebView e widget del santo.</li></ul>
+
+    <div class="section-title">How to run</div>
+    <ul><li><code>npm install</code></li><li><code>npm run dev</code></li><li>Apri l'URL locale stampato da Next. Onboarding dettagliato / comando Android nativo: Not found in repo.</li></ul>
+  </article>
+
+  <article class="card">
+    <div class="card-top" style="--accent:#3f5168">
+      <div>
+        <div class="lang">Français</div>
+        <div class="title-line">FR</div>
+      </div>
+      <div class="accent-pill">FR</div>
+    </div>
+
+    <p class="meta"><span class="label">What it is</span> Cotidie est une application catholique de prière et de lecture spirituelle, construite avec Next.js + Capacitor et livrée en PWA / app Android.</p>
+    <p class="meta"><span class="label">Who it's for</span> Des catholiques qui veulent une routine quotidienne de prière sur mobile.</p>
+
+    <div class="section-title">What it does</div>
+    <ul><li>Une seule bibliothèque pour Dévotions, Plan de Vie et Prières.</li><li>Chapelet et Chemin de Croix en modes immersifs.</li><li>Lecteur EPUB du Nouveau Testament avec sommaire, recherche, signets et surlignages.</li><li>EPUB personnels stockés localement sur l'appareil.</li><li>Prières, dévotions, lettres et 4 plans personnalisés.</li><li>Minuteur, rappels quotidiens et actions rapides depuis les notifications.</li><li>Saint/citation du jour, calendrier des checks, statistiques et récap Cotidie Annuum.</li></ul>
+
+    <div class="section-title">How it works</div>
+    <ul><li><code>page.tsx</code> charge le splash + <code>MainApp</code>; <code>MainApp</code> bascule entre accueil/catégorie/prière/réglages/lecteur.</li><li><code>SettingsContext</code> regroupe catalogue, stats, rappels, saints, thèmes et plans; persistance via IndexedDB (<code>persistence.ts</code>) + <code>localStorage</code>.</li><li>Capacitor + Android (<code>MainActivity</code>, receivers, widgets) gèrent imports, actions de notification, récupération WebView et widgets du saint.</li></ul>
+
+    <div class="section-title">How to run</div>
+    <ul><li><code>npm install</code></li><li><code>npm run dev</code></li><li>Ouvrez l'URL locale affichée par Next. Onboarding détaillé / commande Android native: Not found in repo.</li></ul>
+  </article>
+
+      </section>
+    </main>
+  </body>
+</html>

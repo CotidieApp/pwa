@@ -2990,3 +2990,72 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 **Archivos Modificados:**
 - `src/components/RosaryImmersive.tsx`
 - `AGENTS.md`
+### [2026-03-18 22:17] 157. Corrección de tilde en Ángelus
+**Planificación:**
+- Corregir textos visibles donde seguía apareciendo 'Angelus' sin tilde.
+- Mantener consistente la grafía 'Ángelus' en UI.
+
+**Ejecución:**
+- **Annuum**: se corrigió la etiqueta visible a 'Ángelus / Regina Caeli'.
+- **Panel desarrollador**: se corrigió la métrica visible a 'Ángelus'.
+- **Validación**: `node node_modules\\typescript\\bin\\tsc --noEmit --pretty false` sin errores.
+
+**Archivos Modificados:**
+- `src/components/AnnuumStory.tsx`
+- `src/components/developer/DeveloperDashboard.tsx`
+- `AGENTS.md`
+
+### [2026-03-18 13:58] 158. PDF resumen repo (4 idiomas, 1 página)
+**Planificación:**
+- Revisar el repo para resumir propósito, usuario objetivo, funciones, arquitectura y arranque mínimo usando solo evidencia local.
+- Generar un PDF de una sola página en español, inglés, italiano y francés, en ese orden.
+- Validar que el archivo resultante tenga una sola página y contenido extraíble legible.
+
+**Ejecución:**
+- **Inspección repo**: se revisaron `package.json`, `next.config.mjs`, `capacitor.config.ts`, `src/app/*`, `src/components/main/MainApp.tsx`, `src/context/SettingsContext.tsx`, `src/lib/data.tsx`, `src/lib/persistence.ts`, bindings nativos y clases Android para resumir la app sin usar fuentes externas.
+- **Generador PDF**: se añadió `scripts/generate_app_summary_pdf.mjs`, que genera un PDF de una página directamente en Node, sin dependencias externas.
+- **Entrega**: se generó `output/pdf/cotidie-app-summary-multilingual.pdf`.
+- **Validación**: se comprobó la paginación con herramientas Poppler y se extrajo texto para confirmar que el contenido principal quedó presente en el PDF.
+
+**Archivos Modificados:**
+- `scripts/generate_app_summary_pdf.mjs`
+- `AGENTS.md`
+
+### [2026-03-18 14:08] 159. PDF de presentación para usuarios comunes (4 idiomas)
+**Planificación:**
+- Crear un PDF similar al resumen anterior, pero orientado a usuarios no técnicos.
+- Explicar qué es Cotidie y por qué conviene instalarla en español, inglés, italiano y francés.
+- Mantener el resultado en una sola página y validar el archivo final.
+
+**Ejecución:**
+- **Contenido usuario final**: se redactó una versión no técnica centrada en valor práctico, hábitos de oración, contenido disponible y perfil de usuario ideal.
+- **Generador PDF**: se añadió `scripts/generate_user_install_pitch_pdf.mjs` para producir el PDF multilingüe de una sola página directamente en Node.
+- **Entrega**: se generó `output/pdf/cotidie-user-install-pitch-multilingual.pdf`.
+- **Validación**: se verificó con Poppler que el archivo tiene 1 página y texto extraíble en los cuatro idiomas.
+
+**Archivos Modificados:**
+- `scripts/generate_user_install_pitch_pdf.mjs`
+- `AGENTS.md`
+### [2026-03-18 23:31] 158. Sync calendario Plan de Vida + índices inmersivos + cáliz de Misa
+**Planificación:**
+- Sincronizar la edición manual del calendario de Plan de Vida con los conteos persistentes usados por la app y Cotidie Annuum.
+- Limitar el índice del Rosario a los misterios activos y dar al Vía Crucis inmersivo un índice equivalente.
+- Endurecer la salida del plan personalizado, fijar las imágenes de oración y ampliar la preview de rachas con safe area y variante de cáliz.
+
+**Ejecución:**
+- **Calendario Plan de Vida**: `togglePlanDeVidaCalendarEntry` ahora recalcula y aplica la contribución del calendario sobre `prayersOpenedHistory`, `prayerDaysCount`, `planDeVidaCompletedHistory`, `totalPrayersOpened`, `massDaysCount`, `rosaryCount`, `angelusCount`, `examinationCount` y la referencia de racha de Misa cuando corresponde.
+- **Rosario inmersivo**: el índice quedó restringido al bloque actual de misterios (gozosos/luminosos/dolorosos/gloriosos) y se eliminó código muerto asociado al salto amplio de grupos.
+- **Vía Crucis inmersivo**: se añadió botón-índice en el encabezado con overlay navegable para introducción, estaciones con subpasos y cierre.
+- **Plan personalizado**: el doble avance final ahora depende de un prompt activo real; el segundo avance dentro del plazo sale a Inicio y limpia el aviso.
+- **Imágenes en oraciones**: se ajustó el `sticky` para fijar la imagen en su misma altura visual y eliminar el deslizamiento corto al empezar el scroll.
+- **Preview de rachas**: se añadió modo alternativo `Cáliz` con pelotas de fuego entrando al cáliz, selector entre vistas y padding por `safe-area-inset-*` para que la simulación no quede bajo barras del dispositivo.
+- **Validación**: `node node_modules\\typescript\\bin\\tsc --noEmit --pretty false` OK y `npm.cmd run build` OK.
+
+**Archivos Modificados:**
+- `src/context/SettingsContext.tsx`
+- `src/components/RosaryImmersive.tsx`
+- `src/components/ViaCrucisImmersive.tsx`
+- `src/components/main/MainApp.tsx`
+- `src/components/PrayerDetail.tsx`
+- `src/components/developer/MassStreakSparkPreview.tsx`
+- `AGENTS.md`

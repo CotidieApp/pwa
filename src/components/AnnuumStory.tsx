@@ -584,7 +584,7 @@ function AngelusSlide({ userStats }: { userStats: UserStats }) {
              <motion.div className="text-6xl">🔔</motion.div>
             <h2 className="text-3xl font-bold">La hora del Ángel</h2>
             <div className="text-8xl font-black text-yellow-200">{userStats.angelusCount}</div>
-            <p className="text-xl">Angelus / Regina Caeli</p>
+            <p className="text-xl">Ángelus / Regina Caeli</p>
             <p className="italic opacity-80">¡Puntualidad mariana!</p>
         </div>
     )
@@ -830,4 +830,3 @@ function OutroSlide() {
     </div>
   );
 }
-

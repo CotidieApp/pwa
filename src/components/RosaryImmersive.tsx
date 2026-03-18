@@ -469,6 +469,10 @@ export default function RosaryImmersive({
         })),
     []
   );
+  const currentMysteryGroup = useMemo(
+    () => mysteryGroups.find((group) => group.type === selectedMysteryType) ?? null,
+    [mysteryGroups, selectedMysteryType]
+  );
 
   // Flatten sequence for CURRENT mystery
   const sequence = useMemo(() => {
@@ -839,19 +843,6 @@ export default function RosaryImmersive({
     setShowPrayerIndex(false);
   }, []);
 
-  const jumpToMystery = useCallback((type: MysteryType, index: number) => {
-    setMode('prayer');
-    setSelectedMysteryType(type);
-    setIsSalveActive(false);
-    setIsPreRosary(false);
-    setPreStepIndex(0);
-    setIsPostRosary(false);
-    setPostStepIndex(0);
-    setCurrentMysteryIndex(index);
-    setCurrentStepIndex(0);
-    setShowPrayerIndex(false);
-  }, []);
-
   const jumpToMysteryStep = useCallback((type: MysteryType, mysteryIndex: number, stepIndex: number) => {
     setMode('prayer');
     setSelectedMysteryType(type);
@@ -892,79 +883,79 @@ export default function RosaryImmersive({
           onSelect: () => jumpToPreStep(index),
         })),
       },
-      ...mysteryGroups.map((group) => ({
-        title: group.title,
-        items: group.prayers.flatMap((prayer, index) => {
+      ...(currentMysteryGroup ? [{
+        title: currentMysteryGroup.title,
+        items: currentMysteryGroup.prayers.flatMap((prayer, index) => {
           const mysteryLabel = FULL_MYSTERY_TITLES[prayer.id || ''] || prayer.title;
           const isCurrentMystery =
             !isPreRosaryActive &&
             !isPostRosaryActive &&
             !isSalveActive &&
-            selectedMysteryType === group.type &&
+            selectedMysteryType === currentMysteryGroup.type &&
             currentMysteryIndex === index;
 
           const items: RosaryIndexItem[] = [
             {
-              id: `${prayer.id || `${group.type}-${index}`}-destino`,
+              id: `${prayer.id || `${currentMysteryGroup.type}-${index}`}-destino`,
               label: mysteryLabel,
               active: isCurrentMystery && currentStepIndex === sequenceIndexMap.reading,
-              onSelect: () => jumpToMysteryStep(group.type, index, sequenceIndexMap.reading),
+              onSelect: () => jumpToMysteryStep(currentMysteryGroup.type, index, sequenceIndexMap.reading),
             },
           ];
 
           if (sequenceIndexMap.intro !== -1) {
             items.push({
-              id: `${prayer.id || `${group.type}-${index}`}-intro`,
+              id: `${prayer.id || `${currentMysteryGroup.type}-${index}`}-intro`,
               label: 'Intención',
               depth: 1,
               active: isCurrentMystery && currentStepIndex === sequenceIndexMap.intro,
-              onSelect: () => jumpToMysteryStep(group.type, index, sequenceIndexMap.intro),
+              onSelect: () => jumpToMysteryStep(currentMysteryGroup.type, index, sequenceIndexMap.intro),
             });
           }
 
           if (sequenceIndexMap.padreNuestro !== -1) {
             items.push({
-              id: `${prayer.id || `${group.type}-${index}`}-padre`,
+              id: `${prayer.id || `${currentMysteryGroup.type}-${index}`}-padre`,
               label: 'Padre Nuestro',
               depth: 1,
               active: isCurrentMystery && currentStepIndex === sequenceIndexMap.padreNuestro,
-              onSelect: () => jumpToMysteryStep(group.type, index, sequenceIndexMap.padreNuestro),
+              onSelect: () => jumpToMysteryStep(currentMysteryGroup.type, index, sequenceIndexMap.padreNuestro),
             });
           }
 
           sequenceIndexMap.aves.forEach((aveStepIndex, aveIndex) => {
             items.push({
-              id: `${prayer.id || `${group.type}-${index}`}-ave-${aveIndex + 1}`,
+              id: `${prayer.id || `${currentMysteryGroup.type}-${index}`}-ave-${aveIndex + 1}`,
               label: `Ave María ${aveIndex + 1}`,
               depth: 1,
               active: isCurrentMystery && currentStepIndex === aveStepIndex,
-              onSelect: () => jumpToMysteryStep(group.type, index, aveStepIndex),
+              onSelect: () => jumpToMysteryStep(currentMysteryGroup.type, index, aveStepIndex),
             });
           });
 
           if (sequenceIndexMap.gloria !== -1) {
             items.push({
-              id: `${prayer.id || `${group.type}-${index}`}-gloria`,
+              id: `${prayer.id || `${currentMysteryGroup.type}-${index}`}-gloria`,
               label: 'Gloria',
               depth: 1,
               active: isCurrentMystery && currentStepIndex === sequenceIndexMap.gloria,
-              onSelect: () => jumpToMysteryStep(group.type, index, sequenceIndexMap.gloria),
+              onSelect: () => jumpToMysteryStep(currentMysteryGroup.type, index, sequenceIndexMap.gloria),
             });
           }
 
           if (sequenceIndexMap.jaculatoria !== -1) {
             items.push({
-              id: `${prayer.id || `${group.type}-${index}`}-jaculatoria`,
+              id: `${prayer.id || `${currentMysteryGroup.type}-${index}`}-jaculatoria`,
               label: 'Jaculatoria',
               depth: 1,
               active: isCurrentMystery && currentStepIndex === sequenceIndexMap.jaculatoria,
-              onSelect: () => jumpToMysteryStep(group.type, index, sequenceIndexMap.jaculatoria),
+              onSelect: () => jumpToMysteryStep(currentMysteryGroup.type, index, sequenceIndexMap.jaculatoria),
             });
           }
 
           return items;
         }),
-      })),
+      }] : []),
       {
         title: 'Cierre',
         items: [
@@ -999,7 +990,7 @@ export default function RosaryImmersive({
       jumpToMysteryStep,
       jumpToPostPrayer,
       jumpToPreStep,
-      mysteryGroups,
+      currentMysteryGroup,
       postSteps,
       preStepIndex,
       preSteps,
@@ -1239,7 +1230,7 @@ export default function RosaryImmersive({
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
               <div>
                 <h3 className="text-sm font-bold">Índice del Santo Rosario</h3>
-                <p className="text-xs text-muted-foreground">Salta a misterios, letanías y cierre.</p>
+                <p className="text-xs text-muted-foreground">Salta a la introducción, los misterios actuales y el cierre.</p>
               </div>
               <Button variant="ghost" size="icon" onClick={() => setShowPrayerIndex(false)}>
                 <X className="size-4" />
@@ -1247,19 +1238,6 @@ export default function RosaryImmersive({
             </div>
 
             <div className="max-h-[min(70vh,540px)] overflow-y-auto px-4 py-3">
-              <div className="mb-4 grid grid-cols-2 gap-2">
-                {(['gozosos', 'luminosos', 'dolorosos', 'gloriosos'] as const).map((type) => (
-                  <Button
-                    key={type}
-                    variant={selectedMysteryType === type ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => jumpToMystery(type, 0)}
-                  >
-                    {MYSTERY_NAMES[type]}
-                  </Button>
-                ))}
-              </div>
-
               <div className="space-y-4">
                 {rosaryIndexSections.map((section) => (
                   <div key={section.title} className="space-y-2">

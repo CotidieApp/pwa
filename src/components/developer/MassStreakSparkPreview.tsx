@@ -272,10 +272,127 @@ function MonthBurnFx({ ashMode }: { ashMode: boolean }) {
   );
 }
 
+function ChalicePreview({
+  revealedCount,
+  total,
+  activeKey,
+  currentMood,
+  isComplete,
+}: {
+  revealedCount: number;
+  total: number;
+  activeKey: string | null;
+  currentMood: string;
+  isComplete: boolean;
+}) {
+  const fillRatio = total === 0 ? 0 : Math.max(0, Math.min(1, revealedCount / total));
+  const clipId = 'mass-streak-chalice-fill';
+
+  return (
+    <div className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(251,191,36,0.12),transparent_34%),linear-gradient(180deg,rgba(15,23,42,0.96),rgba(2,6,23,0.98))] p-6 shadow-[0_28px_120px_rgba(2,6,23,0.45)] md:p-8">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(249,115,22,0.16),transparent_26%),radial-gradient(circle_at_50%_100%,rgba(245,158,11,0.18),transparent_35%)]" />
+
+      <div className="relative flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <div className="text-xs uppercase tracking-[0.28em] text-slate-400">Alternativa visual</div>
+          <h2 className="mt-2 text-3xl font-semibold text-white">Cáliz encendido</h2>
+          <p className="mt-1 max-w-2xl text-sm text-slate-300">{currentMood}</p>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <MetricPill label="Entraron" value={`${revealedCount}`} icon={Icon.Flame} />
+          <MetricPill label="Meta" value={`${total}`} icon={Icon.Target} />
+          <MetricPill label="Llenado" value={`${Math.round(fillRatio * 100)}%`} icon={Icon.Gauge} />
+        </div>
+      </div>
+
+      <div className="relative mt-8 min-h-[520px]">
+        <AnimatePresence mode="popLayout" initial={false}>
+          {activeKey && !isComplete && (
+            <motion.div
+              key={activeKey}
+              className="pointer-events-none absolute left-[8%] top-[10%] z-20"
+              initial={{ opacity: 0, x: -30, y: -10, scale: 0.5 }}
+              animate={{ opacity: [0, 1, 1, 0], x: [0, 110, 210], y: [0, 38, 250], scale: [0.5, 1.1, 0.45] }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.9, ease: [0.2, 0.9, 0.2, 1] }}
+            >
+              <div className="relative size-10 rounded-full bg-gradient-to-br from-yellow-100 via-amber-300 to-orange-600 shadow-[0_0_32px_rgba(249,115,22,0.55)]">
+                <div className="absolute inset-[18%] rounded-full bg-white/70 blur-sm" />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div className="absolute inset-x-0 bottom-0 mx-auto flex max-w-3xl flex-col items-center">
+          <div className="relative h-[420px] w-[280px]">
+            <motion.div
+              className="absolute inset-x-[20%] top-[8%] h-10 rounded-full bg-orange-300/18 blur-2xl"
+              animate={{ opacity: [0.24, 0.85, 0.28], scaleX: [0.9, 1.08, 0.94] }}
+              transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+            />
+            <svg viewBox="0 0 320 420" className="absolute inset-0 h-full w-full drop-shadow-[0_30px_60px_rgba(0,0,0,0.42)]">
+              <defs>
+                <clipPath id={clipId}>
+                  <path d="M72 42h176c-10 82-32 141-62 176v41h30c8 0 14 6 14 14v12H90v-12c0-8 6-14 14-14h30v-41C104 183 82 124 72 42Z" />
+                </clipPath>
+                <linearGradient id="chalice-metal" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stopColor="rgba(254,243,199,0.98)" />
+                  <stop offset="45%" stopColor="rgba(251,191,36,0.95)" />
+                  <stop offset="100%" stopColor="rgba(180,83,9,0.98)" />
+                </linearGradient>
+                <linearGradient id="chalice-fire" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stopColor="rgba(255,251,235,0.96)" />
+                  <stop offset="40%" stopColor="rgba(251,191,36,0.92)" />
+                  <stop offset="100%" stopColor="rgba(234,88,12,0.96)" />
+                </linearGradient>
+              </defs>
+
+              <g clipPath={`url(#${clipId})`}>
+                <rect x="64" y={260 - fillRatio * 200} width="192" height={fillRatio * 200 + 26} fill="url(#chalice-fire)" />
+                <rect x="64" y={246 - fillRatio * 190} width="192" height="24" fill="rgba(255,251,235,0.28)" />
+              </g>
+
+              <path
+                d="M72 42h176c-10 82-32 141-62 176v41h30c8 0 14 6 14 14v12H90v-12c0-8 6-14 14-14h30v-41C104 183 82 124 72 42Z"
+                fill="rgba(120,53,15,0.12)"
+                stroke="url(#chalice-metal)"
+                strokeWidth="12"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M120 285h80v38h34v18H86v-18h34Z"
+                fill="rgba(120,53,15,0.18)"
+                stroke="url(#chalice-metal)"
+                strokeWidth="12"
+                strokeLinejoin="round"
+              />
+              <ellipse cx="160" cy="42" rx="88" ry="12" fill="rgba(255,251,235,0.42)" />
+            </svg>
+
+            <div className="absolute inset-x-0 top-[22%] flex flex-col items-center text-center">
+              <div className="text-[11px] uppercase tracking-[0.3em] text-amber-100/70">Días con Misa</div>
+              <div className="mt-3 text-6xl font-black text-white">{revealedCount}</div>
+            </div>
+          </div>
+
+          <div className="mt-6 max-w-xl text-center">
+            <p className="text-base text-slate-200">
+              {isComplete
+                ? `${revealedCount} pelotas de fuego terminaron entrando al cáliz.`
+                : 'Cada pelota de fuego representa un día del año en que el usuario asistió a Misa.'}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function MassStreakSparkPreview({ onClose, year = new Date().getFullYear() }: Props) {
   const [seed, setSeed] = useState(() => Date.now());
   const [revealedCount, setRevealedCount] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
+  const [visualMode, setVisualMode] = useState<'calendar' | 'chalice'>('calendar');
   const [weekBurstKey, setWeekBurstKey] = useState<string | null>(null);
   const [monthBurstKey, setMonthBurstKey] = useState<string | null>(null);
   const [monthTransitionMode, setMonthTransitionMode] = useState<'page' | 'ash'>('page');
@@ -331,9 +448,9 @@ export default function MassStreakSparkPreview({ onClose, year = new Date().getF
   const currentDelay = activeEvent ? getStepDelay(activeEvent, revealedCount > 1 ? simulation.events[revealedCount - 2] : null) : 0;
   const currentMood =
     activeEvent?.segmentLength === 1
-      ? 'Fue solo un dia: el fuego avanza mas lento.'
+      ? 'Fue solo un día: el fuego avanza más lento.'
       : activeEvent?.isSegmentEnd && activeEvent.nextGapDays > 0
-        ? `La racha se detiene ${activeEvent.nextGapDays} dia${activeEvent.nextGapDays === 1 ? '' : 's'} hasta la siguiente Misa.`
+        ? `La racha se detiene ${activeEvent.nextGapDays} día${activeEvent.nextGapDays === 1 ? '' : 's'} hasta la siguiente Misa.`
         : activeEvent?.isSegmentStart && activeEvent.segmentId > 0
           ? 'La llama vuelve a encenderse al comenzar una nueva racha.'
           : 'El fuego corre por la racha y acelera.';
@@ -418,10 +535,10 @@ export default function MassStreakSparkPreview({ onClose, year = new Date().getF
   }, [fullMonthKeys, isComplete, isPlaying, revealedCount, simulation.events]);
 
   return (
-    <div className="fixed inset-0 z-[120] overflow-hidden bg-slate-950 text-slate-50">
+    <div className="fixed inset-0 z-[120] overflow-hidden bg-slate-950 px-[max(0px,env(safe-area-inset-left))] pt-[max(0px,env(safe-area-inset-top))] pr-[max(0px,env(safe-area-inset-right))] pb-[max(0px,env(safe-area-inset-bottom))] text-slate-50">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(251,191,36,0.14),transparent_34%),radial-gradient(circle_at_18%_80%,rgba(249,115,22,0.16),transparent_28%),linear-gradient(180deg,#020617_0%,#0f172a_42%,#020617_100%)]" />
 
-      <div className="relative flex h-full flex-col">
+      <div className="relative flex h-full min-h-0 flex-col">
         <header className="border-b border-white/10 px-4 py-4 md:px-8">
           <div className="mx-auto flex max-w-7xl flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
@@ -430,10 +547,26 @@ export default function MassStreakSparkPreview({ onClose, year = new Date().getF
                 Vista previa de desarrollador
               </div>
               <h1 className="mt-3 font-headline text-2xl font-semibold text-white md:text-3xl">Annuum: fuego de rachas de Misa</h1>
-              <p className="mt-1 max-w-3xl text-sm text-slate-300">Fuego por rachas, pausa en huecos y cambio de mes como página.</p>
+              <p className="mt-1 max-w-3xl text-sm text-slate-300">Fuego por rachas, pausa en huecos, cambio de mes y alternativa de cáliz.</p>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex rounded-2xl border border-white/10 bg-white/[0.04] p-1">
+                <Button
+                  variant={visualMode === 'calendar' ? 'secondary' : 'ghost'}
+                  onClick={() => setVisualMode('calendar')}
+                  className="text-slate-100 hover:text-white"
+                >
+                  Calendario
+                </Button>
+                <Button
+                  variant={visualMode === 'chalice' ? 'secondary' : 'ghost'}
+                  onClick={() => setVisualMode('chalice')}
+                  className="text-slate-100 hover:text-white"
+                >
+                  Cáliz
+                </Button>
+              </div>
               <Button variant="outline" onClick={() => setSeed((value) => value + 1)} className="border-white/15 bg-white/5 text-slate-100 hover:bg-white/10 hover:text-white">
                 <Icon.Shuffle className="mr-2 size-4" />
                 Regenerar
@@ -456,7 +589,9 @@ export default function MassStreakSparkPreview({ onClose, year = new Date().getF
 
         <div className="flex-1 overflow-auto px-4 py-6 md:px-8">
           <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[minmax(0,1.42fr)_360px]">
-            <section className="rounded-[32px] border border-white/10 bg-white/[0.04] p-5 shadow-[0_28px_120px_rgba(2,6,23,0.45)] backdrop-blur md:p-6">
+            <section className="min-w-0">
+              {visualMode === 'calendar' ? (
+                <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-5 shadow-[0_28px_120px_rgba(2,6,23,0.45)] backdrop-blur md:p-6">
               <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                 <div>
                   <div className="text-xs uppercase tracking-[0.28em] text-slate-400">Calendario en combustión</div>
@@ -564,6 +699,16 @@ export default function MassStreakSparkPreview({ onClose, year = new Date().getF
                   </motion.div>
                 </AnimatePresence>
               </div>
+                </div>
+              ) : (
+                <ChalicePreview
+                  revealedCount={revealedCount}
+                  total={simulation.events.length}
+                  activeKey={activeEvent?.key ?? null}
+                  currentMood={currentMood}
+                  isComplete={isComplete}
+                />
+              )}
             </section>
 
             <aside className="space-y-4">

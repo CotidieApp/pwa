@@ -582,10 +582,10 @@ export default function PrayerDetail({
       {prayer.imageUrl && (
         <div
           className={cn(
-            'relative overflow-hidden sticky top-0 z-0',
+            'relative overflow-hidden sticky z-0',
             isDistractionFree
-              ? 'mb-8 left-1/2 w-screen max-w-none -translate-x-1/2 rounded-none'
-              : 'mb-4 rounded-lg'
+              ? 'mb-8 top-20 left-1/2 w-screen max-w-none -translate-x-1/2 rounded-none'
+              : 'mb-4 top-4 rounded-lg'
           )}
           style={{ height: isDistractionFree ? 'min(42vh, 420px)' : '200px' }}
         >

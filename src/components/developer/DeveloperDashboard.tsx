@@ -521,7 +521,7 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
                                 nightDaysCount: 'Días Oración Noche',
                                 totalPrayersOpened: 'Oraciones Abiertas',
                                 rosaryCount: 'Rosarios',
-                                angelusCount: 'Angelus',
+  angelusCount: 'Ángelus',
                                 examinationCount: 'Examen Conciencia',
                                 saintQuotesOpened: 'Citas Santos',
                                 lettersWritten: 'Cartas Escritas',

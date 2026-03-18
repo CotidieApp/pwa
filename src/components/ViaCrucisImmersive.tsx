@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { handleTouchNavigation, TOUCH_NAV_INTERACTIVE_SELECTORS } from '@/utils/touchNavigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, X, Image as ImageIcon, Cross, Sparkles, Heart } from 'lucide-react';
@@ -36,6 +36,19 @@ type ImmersiveViaCrucisProps = {
   onClose: () => void;
 };
 
+type ViaCrucisIndexItem = {
+  id: string;
+  label: string;
+  depth?: number;
+  active: boolean;
+  onSelect: () => void;
+};
+
+type ViaCrucisIndexSection = {
+  title: string;
+  items: ViaCrucisIndexItem[];
+};
+
 export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps) {
   const { isDistractionFree, theme, arrowBubbleSize, navMode } = useSettings();
   const touchNavEnabled = navMode === 'touch';
@@ -61,6 +74,7 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
   // State
   const [currentStationIndex, setCurrentStationIndex] = useState(0); // 0-13 for stations
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [showPrayerIndex, setShowPrayerIndex] = useState(false);
 
   // Phases: Intro -> Stations -> Outro
   // We can manage this with a single "phase" state or flags.
@@ -179,6 +193,7 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
   }, [phase, currentStationIndex]);
 
   const isDark = theme === 'dark' || isDistractionFree;
+  const stationDisplayTitle = useCallback((title?: string) => title?.split('. ')[1] || title || 'Estación', []);
 
   // Progress Calculation
   const totalSteps = 1 + (stationsData.length * STATION_SEQUENCE.length) + outroData.length;
@@ -243,6 +258,104 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
       }
     }
   };
+
+  const openPrayerIndex = useCallback(() => {
+    setShowPrayerIndex((prev) => !prev);
+  }, []);
+
+  const jumpToIntro = useCallback(() => {
+    setPhase('intro');
+    setCurrentStationIndex(0);
+    setCurrentStepIndex(0);
+    setOutroStepIndex(0);
+    setShowPrayerIndex(false);
+  }, []);
+
+  const jumpToStationStep = useCallback((stationIndex: number, stepIndex: number) => {
+    setPhase('stations');
+    setCurrentStationIndex(stationIndex);
+    setCurrentStepIndex(stepIndex);
+    setOutroStepIndex(0);
+    setShowPrayerIndex(false);
+  }, []);
+
+  const jumpToOutroStep = useCallback((index: number) => {
+    setPhase('outro');
+    setOutroStepIndex(index);
+    setShowPrayerIndex(false);
+  }, []);
+
+  const currentHeaderGroupLabel =
+    phase === 'intro'
+      ? 'Introducción'
+      : phase === 'outro'
+        ? 'Cierre'
+        : `Estación ${["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV"][currentStationIndex]}`;
+
+  const currentHeaderTitle =
+    phase === 'intro'
+      ? introData?.title || 'Vía Crucis'
+      : phase === 'outro'
+        ? outroData[outroStepIndex]?.title || 'Cierre'
+        : stationDisplayTitle(currentStation?.title);
+
+  const viaCrucisIndexSections = useMemo<ViaCrucisIndexSection[]>(() => {
+    const sections: ViaCrucisIndexSection[] = [];
+
+    if (introData) {
+      sections.push({
+        title: 'Introducción',
+        items: [
+          {
+            id: 'intro',
+            label: introData.title,
+            active: phase === 'intro',
+            onSelect: jumpToIntro,
+          },
+        ],
+      });
+    }
+
+    sections.push({
+      title: 'Estaciones',
+      items: stationsData.flatMap((station, stationIndex) => {
+        const stationLabel = stationDisplayTitle(station.title);
+        const isCurrentStation = phase === 'stations' && currentStationIndex === stationIndex;
+        return [
+          {
+            id: `${station.id}-main`,
+            label: stationLabel,
+            active: isCurrentStation && currentStepIndex === 1,
+            onSelect: () => jumpToStationStep(stationIndex, 1),
+          },
+          ...STATION_SEQUENCE.filter((step) => step.type !== 'meditacion').map((step) => {
+            const stepIndex = STATION_SEQUENCE.findIndex((candidate) => candidate.type === step.type);
+            return {
+            id: `${station.id}-${step.type}-${stepIndex}`,
+            label: step.label,
+            depth: 1,
+            active: isCurrentStation && currentStepIndex === stepIndex,
+            onSelect: () => jumpToStationStep(stationIndex, stepIndex),
+            };
+          }),
+        ];
+      }),
+    });
+
+    if (outroData.length > 0) {
+      sections.push({
+        title: 'Cierre',
+        items: outroData.map((prayer, index) => ({
+          id: prayer.id || `outro-${index}`,
+          label: prayer.title,
+          active: phase === 'outro' && outroStepIndex === index,
+          onSelect: () => jumpToOutroStep(index),
+        })),
+      });
+    }
+
+    return sections;
+  }, [currentStationIndex, currentStepIndex, introData, jumpToIntro, jumpToOutroStep, jumpToStationStep, outroData, outroStepIndex, phase, stationDisplayTitle, stationsData]);
 
   // Render Content
   const renderContent = () => {
@@ -367,9 +480,18 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
       {/* Top Bar */}
       <div className="w-full flex justify-between items-start p-4 relative z-20">
         <div className="w-10" /> {/* Spacer */}
-        <div className="text-center">
-          <h1 className="font-bold text-lg">Vía Crucis</h1>
-        </div>
+        <button
+          type="button"
+          data-no-touch-nav
+          onClick={openPrayerIndex}
+          className="mx-3 flex min-w-0 max-w-[240px] flex-1 flex-col items-center rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-center transition-colors hover:bg-black/30"
+        >
+          <span className="mb-0.5 flex items-center gap-1 text-xs font-semibold opacity-70">
+            {currentHeaderGroupLabel}
+            <ChevronRight className={cn("size-3.5 rotate-90 transition-transform", showPrayerIndex && "-rotate-90")} />
+          </span>
+          <h1 className="text-sm font-bold leading-tight line-clamp-2">{currentHeaderTitle}</h1>
+        </button>
         <div className="flex gap-1">
           <Button variant="ghost" size="icon" onClick={() => setShowBackground(!showBackground)}>
             <ImageIcon className={cn("size-5", !showBackground && "opacity-30")} />
@@ -379,6 +501,59 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
           </Button>
         </div>
       </div>
+
+      <AnimatePresence>
+        {showPrayerIndex && (
+          <motion.div
+            data-no-touch-nav
+            initial={{ opacity: 0, scale: 0.96, y: -8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: -8 }}
+            className="absolute left-4 right-4 top-16 z-50 mx-auto max-h-[min(70vh,540px)] max-w-lg overflow-hidden rounded-2xl border border-border bg-popover/95 shadow-2xl backdrop-blur"
+          >
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <div>
+                <h3 className="text-sm font-bold">Índice del Vía Crucis</h3>
+                <p className="text-xs text-muted-foreground">Salta a la introducción, estaciones y cierre.</p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setShowPrayerIndex(false)}>
+                <X className="size-4" />
+              </Button>
+            </div>
+
+            <div className="max-h-[min(70vh,540px)] overflow-y-auto px-4 py-3">
+              <div className="space-y-4">
+                {viaCrucisIndexSections.map((section) => (
+                  <div key={section.title} className="space-y-2">
+                    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      {section.title}
+                    </div>
+                    <div className="space-y-1">
+                      {section.items.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          className={cn(
+                            "flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition-colors",
+                            item.depth === 1 && "pl-6",
+                            item.active
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted/40 hover:bg-muted"
+                          )}
+                          onClick={item.onSelect}
+                        >
+                          <span className="pr-3">{item.label}</span>
+                          {item.active && <span className="text-[11px] font-semibold uppercase tracking-[0.16em]">Actual</span>}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col items-center justify-center w-full px-6 relative z-10 min-h-0">

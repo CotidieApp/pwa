@@ -857,6 +857,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [forceAnnuumSeason, setForceAnnuumSeason] = useState(false);
   
   const [simulatedQuoteId, setSimulatedQuoteId] = useState<string | null>(null);
+  const planDeVidaCalendarRef = useRef<Record<string, string[]>>({});
 
   const [customPlans, setCustomPlans] = useState<Array<CustomPlan | null>>([null, null, null, null]);
 
@@ -873,6 +874,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   const [showZeroStats, setShowZeroStats] = useState(false);
   const [hasViewedAnnuum, setHasViewedAnnuum] = useState(false);
+
+  useEffect(() => {
+    planDeVidaCalendarRef.current = planDeVidaCalendar;
+  }, [planDeVidaCalendar]);
 
   /* =======================
      LOCAL STORAGE (BLINDADO) & INDEXEDDB
@@ -2027,6 +2032,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setUserStats((prev) => applyPlanDeVidaAggregateIncrement(prev, id));
     setGlobalUserStats((prev) => applyPlanDeVidaAggregateIncrement(prev, id));
   };
+
   const togglePlanDeVidaItem = (id: string, force?: boolean, skipStatIncrement?: boolean, eventDateKey?: string | null) => {
      const eventDate = parseEventDateFromDateKey(eventDateKey) ?? (simulatedDate ? new Date(simulatedDate) : new Date());
      const dateKey = eventDateKey ?? getPastoralDayKey(eventDate);
@@ -2080,23 +2086,27 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     if (!dateKey || !id) return;
 
     const currentDateKey = getPastoralDayKey(simulatedDate ? new Date(simulatedDate) : new Date());
-    let nextChecked = false;
+    const previousCalendar = planDeVidaCalendarRef.current;
+    const existing = Array.isArray(previousCalendar[dateKey]) ? previousCalendar[dateKey] : [];
+    const nextChecked = !existing.includes(id);
 
-    setPlanDeVidaCalendar((prevCalendar) => {
-      const existing = Array.isArray(prevCalendar[dateKey]) ? prevCalendar[dateKey] : [];
-      nextChecked = !existing.includes(id);
-
-      if (nextChecked) {
-        return { ...prevCalendar, [dateKey]: [...existing, id] };
-      }
-
+    let nextCalendar: Record<string, string[]>;
+    if (nextChecked) {
+      nextCalendar = { ...previousCalendar, [dateKey]: [...existing, id] };
+    } else {
       const nextList = existing.filter((item) => item !== id);
       if (nextList.length === 0) {
-        const { [dateKey]: _removed, ...rest } = prevCalendar;
-        return rest;
+        const { [dateKey]: _removed, ...rest } = previousCalendar;
+        nextCalendar = rest;
+      } else {
+        nextCalendar = { ...previousCalendar, [dateKey]: nextList };
       }
-      return { ...prevCalendar, [dateKey]: nextList };
-    });
+    }
+
+    planDeVidaCalendarRef.current = nextCalendar;
+    setPlanDeVidaCalendar(nextCalendar);
+    setUserStats((prev) => applyPlanDeVidaCalendarStatsSync(prev, previousCalendar, nextCalendar));
+    setGlobalUserStats((prev) => applyPlanDeVidaCalendarStatsSync(prev, previousCalendar, nextCalendar));
 
     if (dateKey === currentDateKey) {
       setPlanDeVidaProgress((prev) => {
@@ -2319,6 +2329,133 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     const keys = ['angelus', subKey];
     return Array.from(new Set(keys));
   };
+
+  const buildPlanDeVidaCalendarStatsSummary = useCallback((calendar: Record<string, string[]>) => {
+    let summary: UserStats = {
+      ...defaultUserStats,
+      prayersOpenedHistory: {},
+      prayerDaysCount: {},
+      prayerLastOpened: {},
+      prayerLastIncrementTimestamp: {},
+      planDeVidaCompletedHistory: {},
+    };
+
+    const orderedDates = Object.keys(calendar).sort((a, b) => a.localeCompare(b));
+    orderedDates.forEach((dateKey) => {
+      const eventDate = parseEventDateFromDateKey(dateKey);
+      if (!eventDate) return;
+
+      const ids = Array.from(new Set((calendar[dateKey] ?? []).filter((value): value is string => typeof value === 'string' && value.length > 0))).sort();
+      ids.forEach((id) => {
+        summary = applyPlanDeVidaAggregateIncrement(summary, id);
+        summary = applyPrayerOpenIncrement({
+          prev: summary,
+          subKey: id,
+          eventDate,
+          allPrayers,
+          getPrayerById,
+          getRootPlanDeVidaId,
+          getPastoralDayKey,
+          getPastoralDayDate,
+          getLocalDateKey,
+          isAngelusStatKey,
+          getAngelusStatKeys,
+          updateTimestamp: false,
+        });
+      });
+    });
+
+    return summary;
+  }, [allPrayers, getPrayerById, getRootPlanDeVidaId]);
+
+  const mergeDateKey = (currentValue: string | undefined, previousCalendarValue: string | undefined, nextCalendarValue: string | undefined) => {
+    if (!currentValue) return nextCalendarValue;
+    if (currentValue === previousCalendarValue) return nextCalendarValue;
+    if (!nextCalendarValue) return currentValue;
+    return currentValue.localeCompare(nextCalendarValue) >= 0 ? currentValue : nextCalendarValue;
+  };
+
+  const applyPlanDeVidaCalendarStatsSync = useCallback((
+    stats: UserStats,
+    previousCalendar: Record<string, string[]>,
+    nextCalendar: Record<string, string[]>
+  ): UserStats => {
+    const previousSummary = buildPlanDeVidaCalendarStatsSummary(previousCalendar);
+    const nextSummary = buildPlanDeVidaCalendarStatsSummary(nextCalendar);
+
+    const nextStats: UserStats = {
+      ...stats,
+      prayersOpenedHistory: { ...stats.prayersOpenedHistory },
+      prayerDaysCount: { ...stats.prayerDaysCount },
+      prayerLastOpened: { ...stats.prayerLastOpened },
+      planDeVidaCompletedHistory: { ...stats.planDeVidaCompletedHistory },
+    };
+
+    const numericKeys: Array<
+      'totalPrayersOpened' |
+      'massDaysCount' |
+      'rosaryCount' |
+      'angelusCount' |
+      'examinationCount' |
+      'planDeVidaCompletedTotal'
+    > = [
+      'totalPrayersOpened',
+      'massDaysCount',
+      'rosaryCount',
+      'angelusCount',
+      'examinationCount',
+      'planDeVidaCompletedTotal',
+    ];
+
+    numericKeys.forEach((key) => {
+      nextStats[key] = Math.max(0, (stats[key] || 0) - (previousSummary[key] || 0) + (nextSummary[key] || 0));
+    });
+
+    const mergeCountMap = (
+      target: Record<string, number>,
+      previousMap: Record<string, number>,
+      nextMap: Record<string, number>
+    ) => {
+      const keys = new Set([...Object.keys(previousMap), ...Object.keys(nextMap)]);
+      keys.forEach((key) => {
+        const baseValue = target[key] || 0;
+        const mergedValue = Math.max(0, baseValue - (previousMap[key] || 0) + (nextMap[key] || 0));
+        if (mergedValue > 0) {
+          target[key] = mergedValue;
+          return;
+        }
+        delete target[key];
+      });
+    };
+
+    mergeCountMap(nextStats.prayersOpenedHistory, previousSummary.prayersOpenedHistory, nextSummary.prayersOpenedHistory);
+    mergeCountMap(nextStats.prayerDaysCount, previousSummary.prayerDaysCount, nextSummary.prayerDaysCount);
+    mergeCountMap(nextStats.planDeVidaCompletedHistory, previousSummary.planDeVidaCompletedHistory, nextSummary.planDeVidaCompletedHistory);
+
+    const lastOpenedKeys = new Set([
+      ...Object.keys(previousSummary.prayerLastOpened),
+      ...Object.keys(nextSummary.prayerLastOpened),
+    ]);
+    lastOpenedKeys.forEach((key) => {
+      const mergedValue = mergeDateKey(
+        nextStats.prayerLastOpened[key],
+        previousSummary.prayerLastOpened[key],
+        nextSummary.prayerLastOpened[key]
+      );
+      if (mergedValue) {
+        nextStats.prayerLastOpened[key] = mergedValue;
+        return;
+      }
+      delete nextStats.prayerLastOpened[key];
+    });
+
+    if ((stats.lastMassDate ?? null) === (previousSummary.lastMassDate ?? null) || !stats.lastMassDate) {
+      nextStats.lastMassDate = nextSummary.lastMassDate;
+      nextStats.massStreak = nextSummary.massStreak;
+    }
+
+    return nextStats;
+  }, [buildPlanDeVidaCalendarStatsSummary]);
 
   const incrementGlobalStat = (key: keyof UserStats, subKey?: string, options?: StatIncrementOptions) => {
     setGlobalUserStats(prev => {
@@ -3183,11 +3320,6 @@ export const useSettings = () => {
   if (!ctx) throw new Error('useSettings must be used within SettingsProvider');
   return ctx;
 };
-
-
-
-
-
 
 
 

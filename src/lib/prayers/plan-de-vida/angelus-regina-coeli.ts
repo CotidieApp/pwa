@@ -2,7 +2,7 @@ import type { Prayer } from '@/lib/types';
 
 export const angelusReginaCoeli: Prayer = {
   id: 'angelus-regina-coeli',
-  title: 'Angelus y Regina Coeli',
+  title: 'Ángelus y Regina Coeli',
   categoryId: 'plan-de-vida',
   content: {
     angelus: `V. El ángel del Señor anunció a María.
@@ -10,21 +10,21 @@ R. Y concibió por obra y gracia del Espíritu Santo.
 
 Dios te salve, María, llena eres de gracia, el Señor es contigo, bendita tú eres entre todas las mujeres y bendito es el fruto de tu vientre, Jesús.
 Santa María, Madre de Dios, ruega por nosotros pecadores, ahora y en la hora de nuestra muerte.
-Amen.
+Amén.
 
 V. He aquí la esclava del Señor.
 R. Hágase en mí según tu palabra.
 
 Dios te salve, María, llena eres de gracia, el Señor es contigo, bendita tú eres entre todas las mujeres y bendito es el fruto de tu vientre, Jesús.
 Santa María, Madre de Dios, ruega por nosotros pecadores, ahora y en la hora de nuestra muerte.
-Amen.
+Amén.
 
 V. Y el Verbo de Dios se hizo carne.
 R. Y habitó entre nosotros.
 
 Dios te salve, María, llena eres de gracia, el Señor es contigo, bendita tú eres entre todas las mujeres y bendito es el fruto de tu vientre, Jesús.
 Santa María, Madre de Dios, ruega por nosotros pecadores, ahora y en la hora de nuestra muerte.
-Amen.
+Amén.
 
 V. Ruega por nosotros, santa Madre de Dios.
 R. Para que seamos dignos de alcanzar las promesas de Nuestro Señor Jesucristo.

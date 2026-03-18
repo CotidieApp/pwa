@@ -112,9 +112,14 @@ export default function MainApp() {
     expiresAt: number;
   } | null>(null);
   const customPlanExitToastIdRef = useRef<string | null>(null);
+  const customPlanExitTimeoutRef = useRef<number | null>(null);
   const rosaryMeditatedBackHandlerRef = useRef<(() => boolean) | null>(null);
   const clearCustomPlanExitPrompt = useCallback(() => {
     customPlanExitAdvanceRef.current = null;
+    if (customPlanExitTimeoutRef.current !== null) {
+      window.clearTimeout(customPlanExitTimeoutRef.current);
+      customPlanExitTimeoutRef.current = null;
+    }
     if (customPlanExitToastIdRef.current) {
       dismiss(customPlanExitToastIdRef.current);
       customPlanExitToastIdRef.current = null;
@@ -824,7 +829,14 @@ export default function MainApp() {
     const slot = navState.customPlanPrayerSlot as 1 | 2 | 3 | 4;
     const index = navState.customPlanPrayerIndex;
 
-    if (pendingExit && pendingExit.slot === slot && pendingExit.index === index && pendingExit.expiresAt > now) {
+    const hasActiveExitPrompt =
+      customPlanExitToastIdRef.current !== null &&
+      pendingExit &&
+      pendingExit.slot === slot &&
+      pendingExit.index === index &&
+      pendingExit.expiresAt > now;
+
+    if (hasActiveExitPrompt) {
       clearCustomPlanExitPrompt();
       replaceNavState(initialState);
       return;
@@ -836,12 +848,20 @@ export default function MainApp() {
       index,
       expiresAt: now + CUSTOM_PLAN_EXIT_CONFIRM_MS,
     };
+    customPlanExitTimeoutRef.current = window.setTimeout(() => {
+      customPlanExitAdvanceRef.current = null;
+      if (customPlanExitToastIdRef.current) {
+        dismiss(customPlanExitToastIdRef.current);
+        customPlanExitToastIdRef.current = null;
+      }
+      customPlanExitTimeoutRef.current = null;
+    }, CUSTOM_PLAN_EXIT_CONFIRM_MS);
     customPlanExitToastIdRef.current = toast({
       title: 'Vuelve a avanzar para salir',
       description: 'Si avanzas otra vez, volverás a la pantalla principal.',
       duration: CUSTOM_PLAN_EXIT_CONFIRM_MS,
     }).id;
-  }, [clearCustomPlanExitPrompt, customPlanNextIndex, handleOpenCustomPlanPrayerAt, hasCustomPlanPrayerNav, navState.customPlanPrayerIndex, navState.customPlanPrayerSlot, replaceNavState, toast]);
+  }, [clearCustomPlanExitPrompt, customPlanNextIndex, dismiss, handleOpenCustomPlanPrayerAt, hasCustomPlanPrayerNav, navState.customPlanPrayerIndex, navState.customPlanPrayerSlot, replaceNavState, toast]);
 
   const canEditCurrentPrayer =
     navState.activeView === 'prayer' &&
@@ -1027,7 +1047,6 @@ export default function MainApp() {
     </div>
   );
 }
-
 
 
 
