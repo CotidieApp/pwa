@@ -10,6 +10,7 @@ import { useSettings } from '@/context/SettingsContext';
 import { santoRosario } from '@/lib/prayers/plan-de-vida/santo-rosario';
 import { letanias as letaniasData } from '@/lib/prayers/plan-de-vida/santo-rosario/letanias';
 import type { Prayer } from '@/lib/types';
+import ImmersivePrayerIndexOverlay, { type ImmersiveIndexItem, type ImmersiveIndexSection } from '@/components/immersive/ImmersivePrayerIndexOverlay';
 
 const PRAYERS_TEXT = {
   padre_nuestro: `Padre nuestro, que estás en el cielo, santificado sea tu Nombre; venga a nosotros tu reino; hágase tu voluntad en la tierra como en el cielo. Danos hoy nuestro pan de cada día; perdona nuestras ofensas, como también nosotros perdonamos a los que nos ofenden; no nos dejes caer en la tentación, y líbranos del mal. Amén.`,
@@ -269,19 +270,6 @@ type ImmersiveRosaryProps = {
   mysteryContent?: string;
   onClose: (targetId?: string) => void;
   onSwitchToMeditated?: () => void;
-};
-
-type RosaryIndexItem = {
-  id: string;
-  label: string;
-  active: boolean;
-  onSelect: () => void;
-  depth?: number;
-};
-
-type RosaryIndexSection = {
-  title: string;
-  items: RosaryIndexItem[];
 };
 
 const JACULATORIAS_STORAGE_KEY = 'rosary_jaculatorias';
@@ -872,7 +860,7 @@ export default function RosaryImmersive({
     setShowPrayerIndex(false);
   }, [postSteps]);
 
-  const rosaryIndexSections = useMemo<RosaryIndexSection[]>(
+  const rosaryIndexSections = useMemo<ImmersiveIndexSection[]>(
     () => [
       {
         title: 'Preparación',
@@ -894,7 +882,7 @@ export default function RosaryImmersive({
             selectedMysteryType === currentMysteryGroup.type &&
             currentMysteryIndex === index;
 
-          const items: RosaryIndexItem[] = [
+          const items: ImmersiveIndexItem[] = [
             {
               id: `${prayer.id || `${currentMysteryGroup.type}-${index}`}-destino`,
               label: mysteryLabel,
@@ -1217,59 +1205,16 @@ export default function RosaryImmersive({
         </div>
       </div>
 
+      <ImmersivePrayerIndexOverlay
+        open={showPrayerIndex}
+        title="Índice del Santo Rosario"
+        description="Salta a la introducción, los misterios actuales y el cierre."
+        sections={rosaryIndexSections}
+        onClose={() => setShowPrayerIndex(false)}
+      />
+
       {/* Intentions Menu Overlay */}
       <AnimatePresence>
-        {showPrayerIndex && (
-          <motion.div
-            data-no-touch-nav
-            initial={{ opacity: 0, scale: 0.96, y: -8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: -8 }}
-            className="absolute left-4 right-4 top-16 z-50 mx-auto max-h-[min(70vh,540px)] max-w-lg overflow-hidden rounded-2xl border border-border bg-popover/95 shadow-2xl backdrop-blur"
-          >
-            <div className="flex items-center justify-between border-b border-border px-4 py-3">
-              <div>
-                <h3 className="text-sm font-bold">Índice del Santo Rosario</h3>
-                <p className="text-xs text-muted-foreground">Salta a la introducción, los misterios actuales y el cierre.</p>
-              </div>
-              <Button variant="ghost" size="icon" onClick={() => setShowPrayerIndex(false)}>
-                <X className="size-4" />
-              </Button>
-            </div>
-
-            <div className="max-h-[min(70vh,540px)] overflow-y-auto px-4 py-3">
-              <div className="space-y-4">
-                {rosaryIndexSections.map((section) => (
-                  <div key={section.title} className="space-y-2">
-                    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                      {section.title}
-                    </div>
-                    <div className="space-y-1">
-                      {section.items.map((item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          className={cn(
-                            "flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition-colors",
-                            item.depth === 1 && "pl-6",
-                            item.active
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted/40 hover:bg-muted"
-                          )}
-                          onClick={item.onSelect}
-                        >
-                          <span className="pr-3">{item.label}</span>
-                          {item.active && <span className="text-[11px] font-semibold uppercase tracking-[0.16em]">Actual</span>}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        )}
-
         {showIntentionsMenu && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}

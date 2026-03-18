@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useSettings } from '@/context/SettingsContext';
 import { viaCrucis } from '@/lib/prayers/plan-de-vida/via-crucis';
+import ImmersivePrayerIndexOverlay, { type ImmersiveIndexSection } from '@/components/immersive/ImmersivePrayerIndexOverlay';
 
 // Standard Prayers Text
 const PRAYERS_TEXT = {
@@ -34,19 +35,6 @@ const VIA_CRUCIS_BACKGROUND_IMAGES = [
 
 type ImmersiveViaCrucisProps = {
   onClose: () => void;
-};
-
-type ViaCrucisIndexItem = {
-  id: string;
-  label: string;
-  depth?: number;
-  active: boolean;
-  onSelect: () => void;
-};
-
-type ViaCrucisIndexSection = {
-  title: string;
-  items: ViaCrucisIndexItem[];
 };
 
 export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps) {
@@ -299,8 +287,8 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
         ? outroData[outroStepIndex]?.title || 'Cierre'
         : stationDisplayTitle(currentStation?.title);
 
-  const viaCrucisIndexSections = useMemo<ViaCrucisIndexSection[]>(() => {
-    const sections: ViaCrucisIndexSection[] = [];
+  const viaCrucisIndexSections = useMemo<ImmersiveIndexSection[]>(() => {
+    const sections: ImmersiveIndexSection[] = [];
 
     if (introData) {
       sections.push({
@@ -502,58 +490,13 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
         </div>
       </div>
 
-      <AnimatePresence>
-        {showPrayerIndex && (
-          <motion.div
-            data-no-touch-nav
-            initial={{ opacity: 0, scale: 0.96, y: -8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: -8 }}
-            className="absolute left-4 right-4 top-16 z-50 mx-auto max-h-[min(70vh,540px)] max-w-lg overflow-hidden rounded-2xl border border-border bg-popover/95 shadow-2xl backdrop-blur"
-          >
-            <div className="flex items-center justify-between border-b border-border px-4 py-3">
-              <div>
-                <h3 className="text-sm font-bold">Índice del Vía Crucis</h3>
-                <p className="text-xs text-muted-foreground">Salta a la introducción, estaciones y cierre.</p>
-              </div>
-              <Button variant="ghost" size="icon" onClick={() => setShowPrayerIndex(false)}>
-                <X className="size-4" />
-              </Button>
-            </div>
-
-            <div className="max-h-[min(70vh,540px)] overflow-y-auto px-4 py-3">
-              <div className="space-y-4">
-                {viaCrucisIndexSections.map((section) => (
-                  <div key={section.title} className="space-y-2">
-                    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                      {section.title}
-                    </div>
-                    <div className="space-y-1">
-                      {section.items.map((item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          className={cn(
-                            "flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition-colors",
-                            item.depth === 1 && "pl-6",
-                            item.active
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted/40 hover:bg-muted"
-                          )}
-                          onClick={item.onSelect}
-                        >
-                          <span className="pr-3">{item.label}</span>
-                          {item.active && <span className="text-[11px] font-semibold uppercase tracking-[0.16em]">Actual</span>}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ImmersivePrayerIndexOverlay
+        open={showPrayerIndex}
+        title="Índice del Vía Crucis"
+        description="Salta a la introducción, estaciones y cierre."
+        sections={viaCrucisIndexSections}
+        onClose={() => setShowPrayerIndex(false)}
+      />
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col items-center justify-center w-full px-6 relative z-10 min-h-0">

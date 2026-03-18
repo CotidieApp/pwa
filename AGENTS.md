@@ -3036,6 +3036,58 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 **Archivos Modificados:**
 - `scripts/generate_user_install_pitch_pdf.mjs`
 - `AGENTS.md`
+
+### [2026-03-18 14:24] 160. PDF promocional para Instagram
+**Planificación:**
+- Crear una pieza PDF vertical, simple y llamativa, pensada para promocionar Cotidie en Instagram.
+- Usar funciones visibles del proyecto para el mensaje promocional, excluyendo modo desarrollador y resumen anual.
+- Entregar un archivo listo para compartir y validar que tenga una sola página.
+
+**Ejecución:**
+- **Contenido promo**: se redactó una pieza en español enfocada en oración diaria, Plan de Vida, Rosario, Via Crucis, Nuevo Testamento, EPUBs personales, recordatorios, santo/frase del día y planes personalizados.
+- **Diseño**: se añadió `scripts/generate_instagram_promo_pdf.mjs`, que genera un póster vertical con hero, bloques de beneficios, cápsulas de funciones y CTA “Instálala desde el link del perfil”.
+- **Entrega**: se generó `output/pdf/cotidie-instagram-promo.pdf`.
+- **Validación**: se comprobó con Poppler que el archivo tiene 1 página.
+
+**Archivos Modificados:**
+- `scripts/generate_instagram_promo_pdf.mjs`
+- `AGENTS.md`
+
+### [2026-03-18 15:54] 161. Variante cuadrada 1080x1080 para Instagram post
+**Planificación:**
+- Crear una variante cuadrada del promo de Instagram, pensada para post 1:1.
+- Mantener el foco en funciones visibles para usuarios finales y CTA de instalación desde el perfil.
+- Entregarla como PDF separado y validar tamaño/paginación.
+
+**Ejecución:**
+- **Diseño square**: se añadió `scripts/generate_instagram_square_post_pdf.mjs` con layout 1080x1080, hero más compacto, tres bloques de beneficios, cápsulas de funciones y CTA inferior.
+- **Contenido**: se mantuvo el mensaje en español, sin mencionar modo desarrollador ni resumen anual.
+- **Entrega**: se generó `output/pdf/cotidie-instagram-post-square.pdf`.
+- **Validación**: se comprobó con Poppler que el archivo tiene 1 página y tamaño 1080 x 1080 pts.
+
+**Archivos Modificados:**
+- `scripts/generate_instagram_square_post_pdf.mjs`
+- `AGENTS.md`
+
+### [2026-03-18 15:54] 162. Tres variantes square con logo e imagenes para Instagram
+**Planificación:**
+- Crear las tres variantes pendientes para post cuadrado 1080x1080: minimalista, premium/catolico clasico y anuncio pagado.
+- Incluir el logo real de la app y usar imagenes existentes del proyecto.
+- Entregar los tres PDFs por separado y validar que cada uno tenga 1 pagina.
+
+**Ejecución:**
+- **Assets reales**: se usaron `public/icons/icon.jpg` como logo y fotos `holy-family.jpeg`, `sacred-heart.jpeg`, `eucharist.jpeg` y `crucifixion.jpeg`.
+- **Generador unico**: se añadió `scripts/generate_instagram_image_variants_pdf.mjs`, con incrustacion directa de JPEGs dentro del PDF.
+- **Variantes**:
+  - `cotidie-instagram-post-square-minimal.pdf`
+  - `cotidie-instagram-post-square-classic.pdf`
+  - `cotidie-instagram-post-square-ads.pdf`
+- **Contenido**: se mantuvo foco en funciones visibles al usuario final; no se mencionan modo desarrollador ni resumen anual.
+- **Validación**: se comprobaron con Poppler el tamaño square y la paginación de los tres archivos.
+
+**Archivos Modificados:**
+- `scripts/generate_instagram_image_variants_pdf.mjs`
+- `AGENTS.md`
 ### [2026-03-18 23:31] 158. Sync calendario Plan de Vida + índices inmersivos + cáliz de Misa
 **Planificación:**
 - Sincronizar la edición manual del calendario de Plan de Vida con los conteos persistentes usados por la app y Cotidie Annuum.
@@ -3058,4 +3110,22 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `src/components/main/MainApp.tsx`
 - `src/components/PrayerDetail.tsx`
 - `src/components/developer/MassStreakSparkPreview.tsx`
+- `AGENTS.md`
+### [2026-03-19 00:14] 159. Calendario mensual visible + scroll de índices + overlay compartido
+**Planificación:**
+- Mostrar en el calendario de Plan de Vida solo las oraciones con presencia en el mes, excepto en modo edición de desarrollador.
+- Corregir el scroll de los índices inmersivos para que el último elemento sea accesible.
+- Reducir tamaño de archivos largos extrayendo UI repetida a componentes menores.
+
+**Ejecución:**
+- **Plan de Vida**: `PlanDeVidaCalendar` ahora filtra filas por presencia mensual fuera de edición; en edición dev mantiene la tabla completa. También se reescribió el archivo para limpiar mojibake y dejar una versión más estable.
+- **Índices inmersivos**: se extrajo un overlay compartido `ImmersivePrayerIndexOverlay` y se reutilizó en Rosario y Vía Crucis. El contenedor interior pasó a `flex-1` con `min-h-0`, scroll real y `padding-bottom`, corrigiendo que el último elemento quedara cortado.
+- **Reducción de tamaño**: `RosaryImmersive.tsx` bajó a 1488 líneas y `ViaCrucisImmersive.tsx` a 583 líneas, moviendo la UI repetida a `src/components/immersive/ImmersivePrayerIndexOverlay.tsx`.
+- **Validación**: `node node_modules\\typescript\\bin\\tsc --noEmit --pretty false` OK y `npm.cmd run build` OK.
+
+**Archivos Modificados:**
+- `src/components/plans/PlanDeVidaCalendar.tsx`
+- `src/components/RosaryImmersive.tsx`
+- `src/components/ViaCrucisImmersive.tsx`
+- `src/components/immersive/ImmersivePrayerIndexOverlay.tsx`
 - `AGENTS.md`
