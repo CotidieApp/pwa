@@ -2,6 +2,45 @@
 
 Historial de intervenciones del asistente en el repo.
 
+### [2026-03-23 19:18] 141. Widget chico 2x2 con jerarquia tipografica proporcional
+**Planificacion:**
+- Corregir la interpretacion anterior y mantener el widget pequeno como un widget 2x2.
+- Hacer que el nombre del santo quede siempre mas grande que el detalle, en negrita y alineado al margen izquierdo.
+- Ajustar el crecimiento del texto para que, al ampliarse el widget, nombre y detalle escalen de forma proporcional sin perder jerarquia.
+
+**Ejecucion:**
+- **Tamano del widget**: `android/app/src/main/res/xml/widget_saint_small.xml` paso a declarar el widget pequeno como `2x2`, con altura minima y de redimensionado acordes.
+- **Layout**: `android/app/src/main/res/layout/widget_saint_small.xml` mantuvo el bloque de texto alineado al inicio y reforzo la jerarquia visual del nombre del santo con mayor tamano base y negrita, dejando el detalle debajo con peso para ocupar el espacio restante.
+- **Escalado proporcional**: `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java` ahora calcula un factor de crecimiento por ancho y alto disponibles, aplica ese crecimiento primero al detalle y deriva el tamano del nombre con una proporcion fija superior, asegurando que el santo siempre quede mas grande que la descripcion.
+
+**Validacion:**
+- `.\gradlew.bat :app:compileDebugJavaWithJavac` OK.
+
+**Archivos Modificados:**
+- `android/app/src/main/res/xml/widget_saint_small.xml`
+- `android/app/src/main/res/layout/widget_saint_small.xml`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java`
+- `AGENTS.md`
+
+### [2026-03-23 19:05] 140. Widget chico alineado como el grande, sin imagen
+**Planificacion:**
+- Devolver el widget pequeno a una estructura visual equivalente al widget grande, pero sin bloque de imagen.
+- Quitar el centrado y la auto-maquetacion agresiva que desordenaban el texto del widget pequeno.
+- Mantener un ajuste nativo simple por altura para no romper el redimensionado.
+
+**Ejecucion:**
+- **Layout pequeno**: `android/app/src/main/res/layout/widget_saint_small.xml` paso a usar el mismo bloque de texto del widget grande: padding 12/10/12/12, titulo arriba, descripcion debajo y ambos alineados al inicio.
+- **Alineacion**: se eliminaron `center_vertical` y `center_horizontal`; el nombre y la bio ahora usan `gravity/textAlignment` hacia el inicio para quedar ordenados al margen izquierdo.
+- **Sizing nativo**: `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java` dejo atras la estimacion compleja por caracteres. Ahora el widget pequeno solo ajusta tamanos y lineas en tres rangos de altura, manteniendo una presentacion mas estable y parecida al widget grande.
+
+**Validacion:**
+- `.\gradlew.bat :app:compileDebugJavaWithJavac` OK.
+
+**Archivos Modificados:**
+- `android/app/src/main/res/layout/widget_saint_small.xml`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java`
+- `AGENTS.md`
+
 ### [2026-03-23 18:50] 139. Selector con flecha para `crear respaldo` y textos con tildes
 **Planificacion:**
 - Reemplazar el prompt interactivo por numero con un selector navegable con flechas y Enter.

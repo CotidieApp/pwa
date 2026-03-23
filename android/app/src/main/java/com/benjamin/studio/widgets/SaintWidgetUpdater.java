@@ -191,75 +191,41 @@ final class SaintWidgetUpdater {
         return 4;
     }
 
-    private static boolean hasText(String value) {
-        return value != null && !value.trim().isEmpty();
-    }
-
-    private static int estimateLineCount(String text, int charsPerLine) {
-        if (!hasText(text)) return 0;
-        int safeCharsPerLine = Math.max(6, charsPerLine);
-        String[] rawLines = text.split("\\r?\\n");
-        int total = 0;
-        for (String rawLine : rawLines) {
-            String line = rawLine != null ? rawLine.trim() : "";
-            if (line.isEmpty()) {
-                total += 1;
-                continue;
-            }
-            total += Math.max(1, (int) Math.ceil((double) line.length() / (double) safeCharsPerLine));
-        }
-        return total;
-    }
-
     private static void applySmallSizing(RemoteViews views, Bundle options, SaintWidgetContent content) {
         int minWidthDp = options != null
                 ? Math.max(140, options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 140))
                 : 140;
         int minHeightDp = options != null
-                ? Math.max(48, options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 48))
-                : 48;
+                ? Math.max(110, options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 110))
+                : 110;
+        boolean hasBio = content.bio != null && !content.bio.trim().isEmpty();
+        float widthFactor = clamp((minWidthDp - 140f) / 140f, 0f, 1.35f);
+        float heightFactor = clamp((minHeightDp - 110f) / 120f, 0f, 1.35f);
+        float growthFactor = 1f + (widthFactor * 0.22f) + (heightFactor * 0.30f);
 
-        float widthFactor = clamp((minWidthDp - 140f) / 160f, 0f, 1f);
-        float heightFactor = clamp((minHeightDp - 48f) / 120f, 0f, 1f);
-        boolean compactHeight = minHeightDp < 74;
-        boolean hasBio = hasText(content.bio);
+        float bioSizeSp = clamp(11.5f * growthFactor, 11.5f, 16f);
+        float titleSizeSp = clamp(bioSizeSp * 1.28f, 14.5f, 20f);
+        int titleLines = minHeightDp >= 180 ? 3 : 2;
+        int bioLines = minHeightDp >= 220 ? 8 : (minHeightDp >= 160 ? 6 : 4);
 
-        float titleSizeSp = clamp(13f + (widthFactor * 5f) + (heightFactor * 5f), compactHeight ? 8f : 9f, 24f);
-        float bioSizeSp = clamp(10f + (widthFactor * 3f) + (heightFactor * 4f), compactHeight ? 7f : 8f, 18f);
-
-        int titleCharsPerLine = Math.max(10, Math.round(minWidthDp / (compactHeight ? 10.5f : 9.5f)));
-        int bioCharsPerLine = Math.max(12, Math.round(minWidthDp / (compactHeight ? 8.5f : 7f)));
-
-        int titleLines = clamp(
-                estimateLineCount(content.name, titleCharsPerLine),
-                1,
-                minHeightDp >= 110 ? 4 : 3
-        );
-        int bioLines = hasBio
-                ? clamp(
-                        estimateLineCount(content.bio, bioCharsPerLine) + (minHeightDp >= 110 ? 1 : 0),
-                        1,
-                        minHeightDp >= 110 ? 14 : 10
-                )
-                : 0;
+        if (!hasBio) {
+            titleSizeSp = clamp(titleSizeSp * 1.08f, 15f, 21f);
+            titleLines = minHeightDp >= 180 ? 4 : 3;
+        }
 
         views.setTextViewTextSize(R.id.widget_saint_name, TypedValue.COMPLEX_UNIT_SP, titleSizeSp);
-        views.setInt(R.id.widget_saint_name, "setMaxLines", Math.max(1, titleLines));
+        views.setInt(R.id.widget_saint_name, "setMaxLines", Math.max(getNameMaxLines(content.name), titleLines));
 
         if (!hasBio) {
             views.setViewVisibility(R.id.widget_saint_bio, View.GONE);
         } else {
             views.setViewVisibility(R.id.widget_saint_bio, View.VISIBLE);
             views.setTextViewTextSize(R.id.widget_saint_bio, TypedValue.COMPLEX_UNIT_SP, bioSizeSp);
-            views.setInt(R.id.widget_saint_bio, "setMaxLines", bioLines);
+            views.setInt(R.id.widget_saint_bio, "setMaxLines", Math.max(getBioMaxLines(content.bio), bioLines));
         }
     }
 
     private static float clamp(float value, float min, float max) {
-        return Math.max(min, Math.min(max, value));
-    }
-
-    private static int clamp(int value, int min, int max) {
         return Math.max(min, Math.min(max, value));
     }
 
