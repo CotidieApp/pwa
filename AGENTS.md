@@ -1,6 +1,225 @@
 # Registro de Actividad de Agentes (AGENTS.md)
 
+Historial de intervenciones del asistente en el repo.
+
+### [2026-03-23 18:50] 139. Selector con flecha para `crear respaldo` y textos con tildes
+**Planificacion:**
+- Reemplazar el prompt interactivo por numero con un selector navegable con flechas y Enter.
+- Corregir las tildes faltantes en los textos visibles del respaldo y del comando de PowerShell.
+
+**Ejecucion:**
+- **Selector TTY**: `scripts/create-backup.mjs` ahora usa un menu interactivo con flecha (`>`) sobre la opcion seleccionada y confirmacion con Enter cuando la terminal soporta modo interactivo.
+- **Fallback**: si la entrada no es TTY, el script conserva un fallback por numero para no romper automatizaciones o pipes.
+- **Tildes**: se corrigieron mensajes visibles como `opción`, `está`, `Conéctalo`, `según` y las cadenas equivalentes del instalador PowerShell.
+- **PowerShell**: se corrigio tambien la rama textual de `imágenes` y se reinstalo el perfil con el bloque actualizado.
+
+**Validacion:**
+- `node --check scripts/create-backup.mjs` OK.
+- `node scripts/create-backup.mjs --help` OK con los textos acentuados.
+- `cmd /c "echo 3| node scripts/create-backup.mjs --prompt"` OK sobre el fallback no TTY.
+- `powershell -ExecutionPolicy Bypass -File scripts/install-powershell-commands.ps1` OK.
+- El selector con flechas requiere TTY real; en esta sesion automatizada no se pudo recorrer manualmente con teclas, pero la ruta interactiva y la de fallback quedaron implementadas.
+
+**Archivos Modificados:**
+- `scripts/create-backup.mjs`
+- `scripts/install-powershell-commands.ps1`
+- `AGENTS.md`
+
+### [2026-03-23 18:35] 138. Nombre versionado del backup y prompt forzado
+**Planificacion:**
+- Hacer que el archivo de respaldo use la version actual de la app en el nombre.
+- Evitar que `crear respaldo` pueda resolver un destino sin antes abrir el selector cuando se ejecuta sin argumento.
+
+**Ejecucion:**
+- **Nombre versionado**: `scripts/create-backup.mjs` ahora lee `package.json` y genera el archivo como `cotidie-backup-vN.N.N.zip`.
+- **Prompt explicito**: se agrego soporte `--prompt/--interactive` al script.
+- **PowerShell**: `scripts/install-powershell-commands.ps1` ahora pasa `--prompt` cuando el usuario ejecuta `crear respaldo` sin modo, forzando la eleccion previa entre `Disco`, `Drive` y `Documentos`.
+
+**Validacion:**
+- `node --check scripts/create-backup.mjs` OK.
+- `node scripts/create-backup.mjs --help` OK, mostrando `cotidie-backup-v4.4.20.zip`.
+- `crear respaldo documentos` OK fuera del sandbox, generando `C:\Users\balca\Documentos\Cotidie\cotidie-backup-v4.4.20.zip`.
+- `crear respaldo` OK fuera del sandbox con selector previo; al elegir `3`, genero el ZIP versionado en `Documentos`.
+
+**Archivos Modificados:**
+- `scripts/create-backup.mjs`
+- `scripts/install-powershell-commands.ps1`
+- `AGENTS.md`
+
+### [2026-03-23 18:20] 137. `crear respaldo` pasa a ZIP unico por destino
+**Planificacion:**
+- Cambiar el respaldo para que deje un unico archivo `.zip` en la carpeta elegida, en vez de copiar el arbol de archivos sueltos.
+- Mantener la seguridad reciente: no vaciar la carpeta destino y solo reemplazar el archivo de respaldo del mismo nombre.
+- Confirmar que el flujo interactivo sigue pidiendo elegir entre `Disco`, `Drive` y `Documentos` antes de continuar.
+
+**Ejecucion:**
+- **ZIP de respaldo**: `scripts/create-backup.mjs` ahora recopila los archivos del proyecto permitidos por las exclusiones y genera `cotidie-backup.zip`.
+- **Destino**: el ZIP se guarda dentro de la carpeta elegida (`Disco`, `Drive` o `Documentos`) en vez de poblarla con copias sueltas del repo.
+- **Reemplazo acotado**: solo se reemplaza `cotidie-backup.zip` si ya existe; el resto del contenido del destino no se toca.
+- **Utilidad compartida**: se extrajo la logica de armado ZIP a `scripts/lib/zip-utils.mjs` y `scripts/create-images-archive.mjs` paso a reutilizarla.
+
+**Validacion:**
+- `node --check scripts/lib/zip-utils.mjs` OK.
+- `node --check scripts/create-images-archive.mjs` OK.
+- `node --check scripts/create-backup.mjs` OK.
+- `cmd /c "echo 1| node scripts/create-backup.mjs"` OK mostrando primero el selector `Disco / Drive / Documentos`.
+- `crear respaldo documentos` OK fuera del sandbox, generando `C:\Users\balca\Documentos\Cotidie\cotidie-backup.zip`.
+- Lectura del ZIP de respaldo por `System.IO.Compression.ZipFile` OK (`Entries=596`).
+
+**Archivos Modificados:**
+- `scripts/create-backup.mjs`
+- `scripts/create-images-archive.mjs`
+- `scripts/lib/zip-utils.mjs`
+- `AGENTS.md`
+
+### [2026-03-23 18:05] 136. Copia de referencia de `create-backup.mjs` previa al fix incremental
+**Ejecucion:**
+- Se agrego `output/reference/create-backup.before-incremental.mjs` como copia separada de la version inmediatamente anterior de `scripts/create-backup.mjs`, la que vaciaba el destino completo antes de copiar.
+- No se restauro esa version como activa ni se reconfiguro el comando para usarla.
+
+**Archivos Modificados:**
+- `output/reference/create-backup.before-incremental.mjs`
+- `AGENTS.md`
+
+### [2026-03-23 17:55] 135. Respaldo incremental sin vaciar el destino
+**Planificacion:**
+- Corregir la logica de `crear respaldo` para que no vuelva a eliminar todo el directorio destino.
+- Mantener el reemplazo solo cuando exista colision real de nombre entre origen y destino.
+
+**Ejecucion:**
+- **Copia incremental**: en `scripts/create-backup.mjs` se elimino el borrado previo del directorio destino completo.
+- **Colisiones**: ahora el respaldo agrega contenido y solo elimina el elemento existente cuando hay choque de nombre con tipo incompatible (`archivo` vs `carpeta`) o para reemplazar la entrada concreta correspondiente.
+- **Mensajes**: el flujo paso de "Limpiando respaldo existente..." a "Actualizando respaldo..." para reflejar el nuevo comportamiento.
+
+**Archivos Modificados:**
+- `scripts/create-backup.mjs`
+- `AGENTS.md`
+
+### [2026-03-23 17:40] 134. Selector interactivo de `crear respaldo` en orden Disco, Drive y Documentos
+**Planificacion:**
+- Ajustar el modo interactivo de `crear respaldo` para que las opciones visibles queden exactamente como `Disco`, `Drive` y `Documentos`.
+- Mantener intacta la resolucion posterior de cada destino.
+
+**Ejecucion:**
+- **Selector**: se reordeno el prompt interactivo de `scripts/create-backup.mjs` para mostrar `1) Disco`, `2) Drive`, `3) Documentos`.
+- **Continuacion**: el script solo sigue con el respaldo despues de que el usuario elige una de esas tres opciones; los alias por palabra (`disco`, `drive`, `documentos`) siguen siendo validos.
+
+**Archivos Modificados:**
+- `scripts/create-backup.mjs`
+- `AGENTS.md`
+
+
+### [2026-03-23 17:25] 133. `crear imagenes` pasa a ZIP y `documentos` queda visible
+**Planificacion:**
+- Cambiar la interfaz visible de `crear respaldo` para usar `documentos` en vez de `documents`.
+- Reemplazar el uso incorrecto de `crear imagenes`, que seguia enlazado a PDFs promocionales, por un ZIP con las imagenes reales de la app.
+- Evitar que `crear imagenes` acepte argumentos ambiguos.
+
+**Ejecucion:**
+- **Respaldo**: se ajusto el selector interactivo y los textos del comando para mostrar `documentos` como nombre del modo.
+- **ZIP de imagenes**: se agrego `scripts/create-images-archive.mjs`, que recorre `public`, `android/app/src/main/assets/public` y `android/app/src/main/res`, empaqueta todas las imagenes (`png`, `jpg`, `jpeg`, `webp`, `gif`, `svg`) y genera `output/images/cotidie-app-images.zip`.
+- **PowerShell**: `crear imagenes` y `crear imágenes` ahora apuntan al script nuevo; si se les pasan argumentos, responden con `Uso: crear imagenes`.
+
+**Validacion:**
+- `node --check scripts/create-images-archive.mjs` OK.
+- `node scripts/create-images-archive.mjs` OK, creando `output/images/cotidie-app-images.zip` con 201 entradas.
+- Lectura del ZIP por `System.IO.Compression.ZipFile` OK (`Entries=201`).
+- `crear imagenes` OK fuera del sandbox.
+- `crear respaldo documentos` OK fuera del sandbox.
+
+**Archivos Modificados:**
+- `scripts/create-images-archive.mjs`
+- `scripts/install-powershell-commands.ps1`
+- `scripts/create-backup.mjs`
+- `AGENTS.md`
+
 Este archivo documenta todas las intervenciones realizadas por el asistente (Trae AI), detallando planes, ejecuciones y archivos modificados para mantener un historial claro de cambios y facilitar la depuración.
+
+### [2026-03-23 17:11] 132. Fix doble toque final en Plan Personalizado
+**Planificación:**
+- Revisar la confirmación de salida al final de la secuencia del Plan Personalizado para entender por qué el segundo toque volvía a mostrar avisos en lugar de cerrar.
+- Corregir la persistencia del estado pendiente de salida sin alterar la navegación normal entre oraciones del plan.
+
+**Ejecución:**
+- **Diagnóstico**: el prompt de salida dependía de `dismiss` de `useToast`; como esa referencia cambia en cada render, el primer toast provocaba un re-render que limpiaba inmediatamente `customPlanExitAdvanceRef`.
+- **Fix de estabilidad**: en `MainApp` se añadió `dismissToastRef` para conservar una referencia estable al cierre del toast y se actualizaron `clearCustomPlanExitPrompt` y el timeout de expiración para usar esa referencia.
+- **Resultado**: el segundo toque dentro de la ventana de confirmación ya reutiliza el estado pendiente correcto y vuelve al menú principal en vez de disparar una segunda notificación.
+- **Validación**: `npx.cmd tsc --noEmit --pretty false` OK. `npm.cmd run build` OK.
+
+**Archivos Modificados:**
+- `src/components/main/MainApp.tsx`
+- `AGENTS.md`
+
+### [2026-03-23 01:10] 131. Redefinicion de destinos de `crear respaldo`
+**Planificacion:**
+- Ajustar el script de backup y el comando PowerShell `crear respaldo` a los tres destinos corregidos por el usuario: `drive`, `documents` y `disco`.
+- Mantener un solo mensaje de error para cualquier destino no utilizable.
+- Evitar cualquier limpieza destructiva sobre la raiz de `Documentos`.
+
+**Ejecucion:**
+- **Script de respaldo**: se reconstruyo `scripts/create-backup.mjs` con selector interactivo y modos `--drive`, `--documents` y `--disk`.
+- **Drive**: el modo `drive` ahora apunta a `H:\Mi unidad\Cotidie`.
+- **Documents**: para no limpiar la raiz `C:\Users\balca\Documentos`, el respaldo se deja en la carpeta dedicada `C:\Users\balca\Documentos\Cotidie`.
+- **Disco**: el modo `disk/disco` ahora prueba `B:\Cotidie` y luego `J:\Cotidie`, creando la carpeta si falta cuando la unidad existe.
+- **Error unificado**: si cualquiera de los tres destinos no es usable, el script devuelve el mismo mensaje de error ya configurado.
+- **PowerShell / npm**: `crear respaldo drive|documents|disco` y los scripts npm quedaron alineados con los nuevos flags.
+
+**Validacion:**
+- `node --check scripts/create-backup.mjs` OK.
+- `node scripts/create-backup.mjs --help` OK.
+- `Get-Command crear` OK fuera del sandbox.
+- `crear respaldo drive` OK fuera del sandbox, creando el respaldo en `H:\Mi unidad\Cotidie`.
+- `crear respaldo documents` OK fuera del sandbox, creando el respaldo en `C:\Users\balca\Documentos\Cotidie`.
+- `crear respaldo disco` OK fuera del sandbox, devolviendo el error unificado con `B:\` y `J:\` ausentes.
+
+**Archivos Modificados:**
+- `scripts/create-backup.mjs`
+- `scripts/install-powershell-commands.ps1`
+- `package.json`
+- `AGENTS.md`
+
+### [2026-03-23 00:40] 130. Reparación real de comandos PowerShell `crear respaldo` y `crear imagenes`
+**Planificación:**
+- Verificar si los comandos globales de PowerShell seguían funcionando después de los cambios recientes en backups.
+- Reinstalar su definición de forma robusta para Windows PowerShell y PowerShell 7, evitando diferencias entre `Documents` y `Documentos`.
+- Alinear `crear respaldo` con el nuevo selector de destino y hacer que `crear imagenes` use el generador actual del repo.
+
+**Ejecución:**
+- **Diagnóstico**: `crear respaldo` y `crear imagenes` no existían en una sesión limpia porque faltaba el perfil activo de PowerShell y además la política de ejecución impedía cargar perfiles.
+- **Instalador dedicado**: se añadió `scripts/install-powershell-commands.ps1`, que inserta/actualiza un bloque administrado `Cotidie Commands` en los perfiles candidatos de Windows PowerShell y PowerShell 7 (`Documents` y `Documentos`).
+- **Setup Windows**: `scripts/setup-windows-dev.ps1` ahora invoca ese instalador y deja visible en salida que los comandos disponibles son `crear respaldo` y `crear imagenes`.
+- **Comando `crear respaldo`**: quedó enlazado a `scripts/create-backup.mjs`, con soporte de modo opcional (`documents`, `documentos`, `drive`, `disco`, `actual`) y sin envolver el error real del script cuando falla el disco configurado.
+- **Comando `crear imagenes`**: quedó enlazado a `scripts/generate_instagram_image_variants_pdf.mjs`, que genera las tres variantes square de Instagram en `output/pdf`.
+- **Política PowerShell**: se habilitó `CurrentUser = RemoteSigned` para permitir la carga del perfil del usuario.
+- **Validación**:
+  - `Get-Command crear` OK fuera del sandbox.
+  - `crear imagenes` OK fuera del sandbox.
+  - `crear respaldo drive` OK fuera del sandbox, mostrando solo `Error: el disco J: no está conectado. Conéctalo e intenta de nuevo.` cuando `J:\` no existe.
+  - No se validó aquí el prompt interactivo puro de `crear respaldo` sin argumento porque esta sesión no permite responder interactivamente al selector del script.
+
+**Archivos Modificados:**
+- `scripts/install-powershell-commands.ps1`
+- `scripts/setup-windows-dev.ps1`
+- `AGENTS.md`
+
+### [2026-03-23 00:20] 129. Script de backup con elección de destino y validación de disco configurado
+**Planificación:**
+- Adaptar el script de respaldo del proyecto a los destinos vigentes sin perder el error actual cuando falte el disco configurado.
+- Permitir elegir entre `Documents/Cotidie Backup` y el disco configurado actualmente.
+- Mantener el respaldo limpio, excluyendo artefactos generados recientes (`output`, caches Android/Gradle, APKs, temporales).
+
+**Ejecución:**
+- **Script de respaldo**: `scripts/create-backup.mjs` pasó a soportar modo interactivo con elección de destino y flags no interactivos (`--documents`, `--configured-drive`, `--help`).
+- **Destino Documents**: ahora resuelve `Documents/Cotidie Backup/CotidieApp` y crea la carpeta automáticamente si no existe.
+- **Disco configurado**: se conservó el destino actual `J:\BENJA\CotidieApp`; si se elige ese modo y `J:\` no está disponible, el script sigue emitiendo exactamente `Error: el disco J: no está conectado. Conéctalo e intenta de nuevo.`.
+- **Limpieza del backup**: se ampliaron exclusiones para escenarios actuales (`.gradle`, `.android-user-home`, `.idea`, `output`) además de APKs, builds, logs, caches y temporales.
+- **NPM scripts**: se agregó `npm run backup` para el flujo con elección y `npm run backup:documents` para el destino fijo en Documents; `npm run backup:drive` quedó forzado al disco configurado.
+- **Validación**: `node --check scripts/create-backup.mjs` OK. `node scripts/create-backup.mjs --help` OK. `node scripts/create-backup.mjs --configured-drive` devolvió el error esperado con `J:\` ausente. No se ejecutó `--documents` para no generar un respaldo externo real durante la validación.
+
+**Archivos Modificados:**
+- `scripts/create-backup.mjs`
+- `package.json`
+- `AGENTS.md`
 
 ### [2026-03-23 00:00] 128. Fix exportación de respaldo, widget chico, retorno de Letanías y cierre final de plan
 **Planificación:**

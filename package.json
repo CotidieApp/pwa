@@ -1,12 +1,15 @@
 {
   "name": "cotidie",
-  "version": "4.4.20",
+  "version": "4.4.21",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "lint": "eslint src --ext .js,.jsx,.ts,.tsx",
     "build": "tsc --noEmit && next build",
-    "backup:drive": "node scripts/create-backup.mjs",
+    "backup": "node scripts/create-backup.mjs",
+    "backup:documents": "node scripts/create-backup.mjs --documents",
+    "backup:drive": "node scripts/create-backup.mjs --drive",
+    "backup:disk": "node scripts/create-backup.mjs --disk",
     "android:apk": "node scripts/android-apk.mjs",
     "postinstall": "node scripts/patch-local-notifications.js && node scripts/patch-next-export-workers.js",
     "start": "node server.js"

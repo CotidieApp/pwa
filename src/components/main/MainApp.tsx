@@ -71,6 +71,7 @@ export default function MainApp() {
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [showAnnuum, setShowAnnuum] = useState(false);
   const { toast, dismiss } = useToast();
+  const dismissToastRef = useRef(dismiss);
   const [searchState, setSearchState] = useState(DEFAULT_CAMINO_SEARCH_STATE);
   const {
     allPrayers,
@@ -121,10 +122,10 @@ export default function MainApp() {
       customPlanExitTimeoutRef.current = null;
     }
     if (customPlanExitToastIdRef.current) {
-      dismiss(customPlanExitToastIdRef.current);
+      dismissToastRef.current(customPlanExitToastIdRef.current);
       customPlanExitToastIdRef.current = null;
     }
-  }, [dismiss]);
+  }, []);
 
   const [isDraggingAnnuum, setIsDraggingAnnuum] = useState(false);
   const AnnuumDragStart = useRef({ x: 0, y: 0 });
@@ -165,6 +166,9 @@ export default function MainApp() {
   useEffect(() => {
     navStateRef.current = navState;
   }, [navState]);
+  useEffect(() => {
+    dismissToastRef.current = dismiss;
+  }, [dismiss]);
   useEffect(() => {
     clearCustomPlanExitPrompt();
   }, [clearCustomPlanExitPrompt, navState.activeView, navState.customPlanPrayerSlot, navState.customPlanPrayerIndex]);
@@ -848,7 +852,7 @@ export default function MainApp() {
     customPlanExitTimeoutRef.current = window.setTimeout(() => {
       customPlanExitAdvanceRef.current = null;
       if (customPlanExitToastIdRef.current) {
-        dismiss(customPlanExitToastIdRef.current);
+        dismissToastRef.current(customPlanExitToastIdRef.current);
         customPlanExitToastIdRef.current = null;
       }
       customPlanExitTimeoutRef.current = null;
@@ -858,7 +862,7 @@ export default function MainApp() {
       description: 'Si avanzas otra vez, volverás a la pantalla principal.',
       duration: CUSTOM_PLAN_EXIT_CONFIRM_MS,
     }).id;
-  }, [clearCustomPlanExitPrompt, dismiss, toast]);
+  }, [clearCustomPlanExitPrompt, toast]);
 
   const goToCustomPlanNext = useCallback(() => {
     if (!hasCustomPlanPrayerNav || navState.customPlanPrayerSlot === null || navState.customPlanPrayerIndex === null) return;
@@ -1074,7 +1078,6 @@ export default function MainApp() {
     </div>
   );
 }
-
 
 
 

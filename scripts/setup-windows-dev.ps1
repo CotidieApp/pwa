@@ -3,6 +3,7 @@ $ErrorActionPreference = "Stop"
 $rootDir = Split-Path -Parent $PSScriptRoot
 $androidDir = Join-Path $rootDir "android"
 $localPropertiesPath = Join-Path $androidDir "local.properties"
+$installPowerShellCommandsScript = Join-Path $PSScriptRoot "install-powershell-commands.ps1"
 
 function Test-Command {
   param([Parameter(Mandatory = $true)][string]$Name)
@@ -109,9 +110,16 @@ if ($androidSdkRoot) {
   Write-Warning "No se detecto Android SDK. Abre Android Studio y completa la instalacion del SDK, luego vuelve a ejecutar este script para regenerar android/local.properties."
 }
 
+if (Test-Path $installPowerShellCommandsScript) {
+  & $installPowerShellCommandsScript
+} else {
+  Write-Warning "No se encontro $installPowerShellCommandsScript para instalar los comandos de PowerShell."
+}
+
 Write-Host ""
 Write-Host "Siguientes pasos sugeridos:"
 Write-Host "1. Cierra y abre de nuevo la terminal para refrescar PATH."
 Write-Host "2. Ejecuta: npm install"
 Write-Host "3. Ejecuta: npx cap sync android"
 Write-Host "4. Si compilaras Android, abre Android Studio al menos una vez para instalar SDK Platform y Build Tools."
+Write-Host "5. Comandos de PowerShell: crear respaldo, crear imagenes"
