@@ -107,6 +107,10 @@ final class SaintWidgetContentFactory {
             if (resolvePlaceholderAssetPath("christmas-image") != null) {
                 imageId = "christmas-image";
             }
+        } else if (month == 3 && day == 19) {
+            if (resolvePlaceholderAssetPath("sanjose-image") != null) {
+                imageId = "sanjose-image";
+            }
         } else {
             String saintName = saint != null ? saint.name : "";
             String saintType = saint != null ? saint.type : "";
@@ -200,6 +204,7 @@ final class SaintWidgetContentFactory {
         map.put("sanfranciscodesales-image", "public/images/san-francisco.jpeg");
         map.put("sanagustindehipona-image", "public/images/san-agustin.jpeg");
         map.put("santotomasdeaquino-image", "public/images/santo-tomas.jpeg");
+        map.put("sanjose-image", "public/images/san-jose.jpg");
         map.put("nativity-image", "public/images/nativity.jpeg");
         map.put("christmas-image", "public/images/christmas-image.png");
         cachedPlaceholderAssetPaths = map;

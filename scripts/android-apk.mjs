@@ -17,6 +17,7 @@ const readText = (filePath) => fs.readFileSync(filePath, "utf8");
 const writeText = (filePath, contents) => fs.writeFileSync(filePath, contents, "utf8");
 const readJson = (filePath) => JSON.parse(readText(filePath));
 const writeJson = (filePath, data) => writeText(filePath, JSON.stringify(data, null, 2) + "\n");
+const resolveExistingPath = (...candidates) => candidates.find((candidate) => candidate && fs.existsSync(candidate)) ?? null;
 
 const ensureSemver = (value) => {
   if (typeof value !== "string" || !/^\d+\.\d+\.\d+$/.test(value)) {
@@ -45,8 +46,13 @@ const buildCommandEnv = () => {
   env.GRADLE_USER_HOME = gradleUserHome;
 
   if (!env.JAVA_HOME) {
-    const candidate = "C:\\Program Files\\Android\\Android Studio\\jbr";
-    if (fs.existsSync(candidate)) {
+    const candidate = resolveExistingPath(
+      process.env.JAVA_HOME,
+      "C:\\Program Files\\Android\\Android Studio\\jbr",
+      "C:\\Program Files (x86)\\Android\\Android Studio\\jbr",
+      path.join(process.env.LOCALAPPDATA || "", "Programs", "Android Studio", "jbr")
+    );
+    if (candidate) {
       env.JAVA_HOME = candidate;
       const pathKey = Object.keys(env).find((key) => key.toLowerCase() === "path") || "Path";
       env[pathKey] = `${candidate}\\bin;${env[pathKey] || ""}`;
@@ -82,9 +88,11 @@ const runCommand = (command, commandArgs, cwd) => {
 };
 
 const resolveGitCommand = () =>
-  fs.existsSync("C:\\Program Files\\Git\\cmd\\git.exe")
-    ? "C:\\Program Files\\Git\\cmd\\git.exe"
-    : "git";
+  resolveExistingPath(
+    process.env.GIT_EXE,
+    "C:\\Program Files\\Git\\cmd\\git.exe",
+    "C:\\Program Files (x86)\\Git\\cmd\\git.exe"
+  ) || "git";
 
 const runNodeScript = (scriptPath, scriptArgs, cwd) => {
   runCommand(process.execPath, [scriptPath, ...scriptArgs], cwd);
@@ -126,8 +134,67 @@ const resolveCapacitorCliPath = () => {
   throw new Error("No se encontro la CLI local de Capacitor en node_modules.");
 };
 
-const resolveDriveApkDir = () =>
-  process.env.COTIDIE_APK_DRIVE_DIR || "H:\\Mi Unidad\\Cotidie\\APK Installer";
+const getWindowsDriveRoots = () => {
+  const roots = [];
+  for (let i = 67; i <= 90; i++) {
+    const root = `${String.fromCharCode(i)}:\\`;
+    if (fs.existsSync(root)) {
+      roots.push(root);
+    }
+  }
+  return roots;
+};
+
+const resolveDriveApkDir = () => {
+  const explicit = process.env.COTIDIE_APK_DRIVE_DIR;
+  if (explicit) {
+    return {
+      dir: explicit,
+      source: "env",
+      isDrivePath: true,
+    };
+  }
+
+  const homeDir = process.env.USERPROFILE || process.env.HOME || "";
+  const knownFolderCandidates = [
+    path.join(homeDir, "My Drive", "Cotidie", "APK Installer"),
+    path.join(homeDir, "Mi unidad", "Cotidie", "APK Installer"),
+    path.join(homeDir, "Google Drive", "My Drive", "Cotidie", "APK Installer"),
+    path.join(homeDir, "Google Drive", "Mi unidad", "Cotidie", "APK Installer"),
+  ];
+
+  for (const candidate of knownFolderCandidates) {
+    if (candidate && fs.existsSync(candidate)) {
+      return {
+        dir: candidate,
+        source: "google-drive-known-folder",
+        isDrivePath: true,
+      };
+    }
+  }
+
+  for (const root of getWindowsDriveRoots()) {
+    const driveCandidates = [
+      path.join(root, "My Drive", "Cotidie", "APK Installer"),
+      path.join(root, "Mi unidad", "Cotidie", "APK Installer"),
+    ];
+    for (const candidate of driveCandidates) {
+      if (fs.existsSync(candidate)) {
+        return {
+          dir: candidate,
+          source: "google-drive-mounted-volume",
+          isDrivePath: true,
+        };
+      }
+    }
+  }
+
+  return {
+    dir: path.join(rootDir, "output", "apk-archive"),
+    source: "local-fallback",
+    isDrivePath: false,
+  };
+};
 
 const ensureGitIndexUnlocked = () => {
   const lockPath = path.join(rootDir, ".git", "index.lock");
@@ -144,13 +211,25 @@ const ensureGitIndexUnlocked = () => {
 };
 
 const copyApkToDrive = (apkPath, version) => {
-  const driveDir = resolveDriveApkDir();
+  const destination = resolveDriveApkDir();
+  const driveDir = destination.dir;
   fs.mkdirSync(driveDir, { recursive: true });
   fs.accessSync(driveDir, fs.constants.W_OK);
 
   const driveApkPath = path.join(driveDir, `cotidie-installer-v${version}.apk`);
   fs.copyFileSync(apkPath, driveApkPath);
-  console.log(`APK copiado a Drive en: ${driveApkPath}`);
+  if (destination.isDrivePath) {
+    console.log(`APK copiado a Drive en: ${driveApkPath}`);
+  } else {
+    console.warn(
+      [
+        "No se detecto una carpeta de Google Drive. ",
+        "Se dejo una copia local en: ",
+        driveApkPath,
+        ". Si quieres copiarla a Drive automaticamente, define COTIDIE_APK_DRIVE_DIR.",
+      ].join("")
+    );
+  }
   return driveApkPath;
 };
 

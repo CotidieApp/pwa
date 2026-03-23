@@ -2,6 +2,7 @@ export type NavigationState = {
   activeView: string
   selectedCategoryId: string | null
   prayerPathIds: string[]
+  rosaryReturnMode: 'selection' | null
   editingPrayerId: string | null
   addFormMode: 'devotion' | 'entry' | 'letter' | 'predefined' | null
   selectedCustomPlanSlot: 1 | 2 | 3 | 4 | null
@@ -36,6 +37,7 @@ export const initialState: NavigationState = {
   activeView: 'home',
   selectedCategoryId: null,
   prayerPathIds: [],
+  rosaryReturnMode: null,
   editingPrayerId: null,
   addFormMode: null,
   selectedCustomPlanSlot: null,
@@ -57,12 +59,14 @@ export const normalizeNavState = (raw: any): NavigationState => {
   const prayerPathIds = Array.isArray(raw?.prayerPathIds)
     ? raw.prayerPathIds.filter((id: unknown) => typeof id === 'string')
     : [];
+  const rosaryReturnMode = raw?.rosaryReturnMode === 'selection' ? 'selection' : null;
 
   return {
     ...initialState,
     activeView,
     selectedCategoryId,
     prayerPathIds,
+    rosaryReturnMode,
   };
 };
 

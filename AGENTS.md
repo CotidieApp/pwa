@@ -2,6 +2,101 @@
 
 Este archivo documenta todas las intervenciones realizadas por el asistente (Trae AI), detallando planes, ejecuciones y archivos modificados para mantener un historial claro de cambios y facilitar la depuración.
 
+### [2026-03-23 00:00] 128. Fix exportación de respaldo, widget chico, retorno de Letanías y cierre final de plan
+**Planificación:**
+- Corregir la exportación de respaldo completa para que no falle al compartir/guardar en Android.
+- Ajustar el widget chico para que no esconda la bio y aproveche todo el alto disponible sin repartirlo en mitades rígidas.
+- Hacer que Letanías, al abrirse desde el acceso directo del menú de Santo Rosario, vuelva al propio menú del Rosario al retroceder.
+- Blindar la detección de la última lámina navegable del Plan Personalizado para que el doble avance cierre correctamente aunque existan IDs inválidos o faltantes.
+
+**Ejecución:**
+- **Exportación de datos**: el respaldo nativo pasó a escribirse en `Directory.Cache` antes de compartirlo, manteniendo BOM UTF-8 y nombre de archivo fechado; así se evita el fallo de exportación ligado a `Documents`/scoped storage.
+- **Widget chico**: se cambió el layout para que el nombre use solo la altura necesaria y la descripción reciba el resto, se quitaron truncados por `ellipsize`, se bajó el mínimo de auto-size y se estiman líneas según ancho/alto para no ocultar texto.
+- **Letanías / Rosario**: se añadió contexto de retorno en navegación (`rosaryReturnMode`) para que, si Letanías se abrió desde el botón directo del Rosario, el back regrese al menú del Santo Rosario en vez de caer en una vista intermedia incorrecta.
+- **Plan Personalizado**: la navegación válida ahora se calcula solo con oraciones realmente resolubles en `allPrayers`; así el “último slide” es el último realmente navegable y la confirmación por doble avance vuelve a salir a inicio.
+- **Validación**: `npm.cmd run build` OK. `.\gradlew.bat :app:compileDebugJavaWithJavac` OK.
+
+**Archivos Modificados:**
+- `src/components/settings/ContentSettings.tsx`
+- `src/components/main/navigation.ts`
+- `src/components/main/MainApp.tsx`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java`
+- `android/app/src/main/res/layout/widget_saint_small.xml`
+- `AGENTS.md`
+
+### [2026-03-20 12:40] 127. Ajuste widget chico, export UTF-8 y salida final de plan
+**Planificación:**
+- Restaurar la descripción del widget pequeño y mejorar la adaptación real del texto al espacio disponible.
+- Reforzar la confirmación de salida al final del Plan Personalizado.
+- Corregir la codificación de los respaldos/exportaciones para preservar tildes y ñ.
+
+**Ejecución:**
+- **Widget chico**: se reajustó el cálculo nativo de líneas/tamaños para no ocultar la bio por defecto y se redistribuyó el layout para dar espacio real al nombre y descripción.
+- **Plan Personalizado**: se extrajo el armado de confirmación de salida a una rutina dedicada, manteniendo la validación por `slot/index` y ventana temporal.
+- **Respaldos / planes exportados**: se añadió BOM UTF-8 (`\uFEFF`) al export web y al archivo nativo, y se limpió ese BOM al importar para que `JSON.parse` siga funcionando.
+- **Validación**: `npm.cmd run build` OK.
+
+**Archivos Modificados:**
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java`
+- `android/app/src/main/res/layout/widget_saint_small.xml`
+- `src/components/main/MainApp.tsx`
+- `src/components/settings/ContentSettings.tsx`
+- `src/components/plans/CustomPlanView.tsx`
+- `AGENTS.md`
+
+### [2026-03-20 12:20] 126. Fix salida por doble avance en Plan Personalizado
+**Planificación:**
+- Corregir el cierre al final del Plan Personalizado para que el segundo avance/doble click funcione de forma consistente.
+- Eliminar la dependencia innecesaria del estado del toast en la confirmación de salida.
+
+**Ejecución:**
+- **Plan Personalizado**: se simplificó `hasActiveExitPrompt` para que dependa solo del estado pendiente (`slot`, `index`, `expiresAt`) y no de que el toast siga registrado.
+- **Resultado**: el segundo avance dentro de la ventana de confirmación vuelve a cerrar correctamente hacia inicio, incluso si el toast no participa en la validación.
+- **Validación**: `npm.cmd run build` OK.
+
+**Archivos Modificados:**
+- `src/components/main/MainApp.tsx`
+- `AGENTS.md`
+
+### [2026-03-20 12:05] 125. Detección robusta de carpeta Drive en build de APK
+**Planificación:**
+- Evitar que el script de compilación de APK “copie a Drive” solo a un fallback local silencioso cuando no exista una carpeta real de Google Drive.
+- Detectar rutas típicas de Google Drive Desktop en Windows y priorizar una ruta explícita por variable de entorno.
+
+**Ejecución:**
+- **APK script**: se añadió detección de `COTIDIE_APK_DRIVE_DIR` como prioridad.
+- **Google Drive Desktop**: se añadieron candidatos automáticos para carpetas tipo `My Drive` / `Mi unidad`, tanto en el perfil del usuario como en unidades montadas de Windows.
+- **Fallback local**: si no se detecta Drive, el script sigue copiando a `output/apk-archive`, pero ahora lo informa explícitamente como copia local y no como copia a Drive.
+- **Validación**: `node --check scripts/android-apk.mjs` OK.
+
+**Archivos Modificados:**
+- `scripts/android-apk.mjs`
+- `AGENTS.md`
+
+### [2026-03-20 11:30] 124. San José, acciones de notificación, variantes persistentes y widget chico adaptable
+**Planificación:**
+- Vincular el Santo del día del 19/03 con la imagen local de San José ya usada en la app.
+- Quitar botones de notificación en avisos informativos que no abren una oración rezable.
+- Corregir el bucle al alternar idioma/versión en oraciones con variantes y persistir la elección por oración.
+- Hacer que el widget chico ajuste tipografía y líneas según el espacio disponible y reaccione al redimensionado.
+
+**Ejecución:**
+- **San José**: se añadió placeholder `sanjose-image` y se mapeó explícitamente el 19/03 en la app y en el widget Android para usar `/images/san-jose.jpg`.
+- **Notificaciones**: `actionTypeId` ahora se aplica solo a recordatorios con `target.type === 'prayer'`; las notificaciones informativas o sin destino rezable ya no muestran botones.
+- **Variantes de oración**: en `PrayerDetail` se eliminó la realimentación entre estado local y preferencias persistidas; la variante inicial se resuelve por oración y la preferencia solo se guarda cuando el usuario cambia manualmente.
+- **Widget chico**: se añadió cálculo nativo de tamaño de texto y número de líneas según `OPTION_APPWIDGET_MIN_WIDTH/HEIGHT`, y actualización al cambiar opciones del widget.
+- **Validación**: `npm.cmd run build` OK. La compilación Java de Android quedó bloqueada por rutas de sandbox de `.android`/Gradle, no por un error de compilación confirmado del código modificado.
+
+**Archivos Modificados:**
+- `src/lib/placeholder-images.json`
+- `src/context/SettingsContext.tsx`
+- `src/components/PrayerDetail.tsx`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetContentFactory.java`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetSmallProvider.java`
+- `android/app/src/main/res/xml/widget_saint_small.xml`
+- `AGENTS.md`
+
 ### [2026-02-26 00:00] 104. Lectura Espiritual: subsecciones + fix PWA _document
 **Planificación:**
 - Separar “Lectura Espiritual” en subsecciones “Predeterminadas” y “Personales”.
@@ -3128,4 +3223,37 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `src/components/RosaryImmersive.tsx`
 - `src/components/ViaCrucisImmersive.tsx`
 - `src/components/immersive/ImmersivePrayerIndexOverlay.tsx`
+- `AGENTS.md`
+### [2026-03-19 23:48] 123. Adaptacion a nueva PC + bootstrap de entorno Windows
+**Planificacion:**
+- Detectar rutas absolutas del equipo anterior que rompen el build o la automatizacion al mover el proyecto a otra PC.
+- Volver portable la configuracion Android/Gradle y el flujo de generacion de APK.
+- Anadir un script de preparacion para reinstalar herramientas base y regenerar `android/local.properties` en el nuevo entorno.
+
+**Ejecucion:**
+- **Gradle Android**: se elimino la dependencia fija de `org.gradle.java.home` en `android/gradle.properties` para que use `JAVA_HOME` o el JBR detectado localmente.
+- **APK script**: `scripts/android-apk.mjs` ahora detecta `JAVA_HOME` y Git desde variables de entorno o rutas comunes, y deja de depender por defecto de `H:\\Mi Unidad\\...`; el archivo de salida local pasa a `output/apk-archive` salvo override con `COTIDIE_APK_DRIVE_DIR`.
+- **Bootstrap Windows**: se agrego `scripts/setup-windows-dev.ps1` y el script npm `setup:windows` para instalar/verificar Node.js LTS, Git, Android Studio y VS Code con `winget`, ademas de regenerar `android/local.properties` cuando el SDK este disponible.
+- **Documentacion**: se actualizo `README.md` con el flujo minimo para preparar una PC nueva.
+
+**Archivos Modificados:**
+- `android/gradle.properties`
+- `scripts/android-apk.mjs`
+- `scripts/setup-windows-dev.ps1`
+- `package.json`
+- `README.md`
+- `AGENTS.md`
+### [2026-03-20 09:20] 124. Readaptacion por cambio de ubicacion del proyecto
+**Planificacion:**
+- Detectar la nueva ruta operativa del proyecto tras el cambio de entorno.
+- Evitar fallos de herramientas o sesiones que siguieran apuntando a la ruta anterior en OneDrive.
+- Validar que el build funcione tanto desde la ruta activa como desde la ruta historica.
+
+**Ejecucion:**
+- **Ruta activa**: se verifico que la copia operativa actual del proyecto es `C:\\Users\\balca\\Desktop\\CotidieApp`.
+- **Compatibilidad**: se creo una union de directorio en `C:\\Users\\balca\\OneDrive\\Desktop\\CotidieApp` apuntando a la copia activa del Escritorio para mantener compatibilidad con procesos o scripts que aun usen la ruta antigua.
+- **Verificacion**: `npm run build` se ejecuto correctamente entrando por la ruta antigua, confirmando que el cambio de ubicacion ya no rompe el flujo.
+- **Android SDK**: sigue faltando `C:\\Users\\balca\\AppData\\Local\\Android\\Sdk`; la app web/build queda operativa, pero para compilar Android nativo aun hace falta completar el SDK desde Android Studio.
+
+**Archivos Modificados:**
 - `AGENTS.md`

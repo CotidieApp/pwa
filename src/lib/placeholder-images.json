@@ -147,6 +147,12 @@
       "imageHint": "Santo Tomás Aquino"
     },
     {
+      "id": "sanjose-image",
+      "description": "Imagen de San JosÃ©",
+      "imageUrl": "/images/san-jose.jpg",
+      "imageHint": "San JosÃ©"
+    },
+    {
       "id": "nativity-image",
       "description": "Nacimiento de Jesús",
       "imageUrl": "/images/nativity.jpeg",

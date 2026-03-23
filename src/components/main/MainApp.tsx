@@ -282,8 +282,21 @@ export default function MainApp() {
 
   const handleBack = useCallback(() => {
     const currentState = navStateRef.current;
+    const currentPrayerId = currentState.prayerPathIds[currentState.prayerPathIds.length - 1] ?? null;
 
     if (currentState.activeView === 'home') {
+      return;
+    }
+
+    if (
+      currentState.activeView === 'prayer' &&
+      currentPrayerId === 'letanias' &&
+      currentState.rosaryReturnMode === 'selection'
+    ) {
+      replaceNavState({
+        ...initialState,
+        activeView: 'rosary',
+      });
       return;
     }
 
@@ -581,7 +594,9 @@ export default function MainApp() {
         return <RosaryImmersive
           onClose={(targetId) => {
             if (targetId) {
-              handleOpenPrayerById(targetId);
+              handleOpenPrayerById(targetId, {
+                rosaryReturnMode: targetId === 'letanias' ? 'selection' : null,
+              });
             } else {
               setNavState({ ...initialState, activeView: 'category', selectedCategoryId: 'plan-de-vida' });
             }
@@ -673,10 +688,13 @@ export default function MainApp() {
     }
   };
 
-  const handleOpenPrayerById = useCallback((id: string, options?: { countOpen?: boolean }) => {
+  const handleOpenPrayerById = useCallback((id: string, options?: { countOpen?: boolean; rosaryReturnMode?: 'selection' | null }) => {
     const pathIds = getPrayerPathIds(id, allPrayers);
     if (!pathIds) return;
-    setNavState(buildPrayerNavState(pathIds));
+    setNavState({
+      ...buildPrayerNavState(pathIds),
+      rosaryReturnMode: options?.rosaryReturnMode ?? null,
+    });
     if (options?.countOpen !== false) {
       incrementStat('prayersOpenedHistory', id);
     }
@@ -720,6 +738,15 @@ export default function MainApp() {
     pushDevLiveTrace,
   });
 
+  const resolveCustomPlanNavigationTarget = useCallback((id: string | null | undefined) => {
+    if (!id) return null;
+    const resolvedId = resolvePlanPrayerId(id);
+    if (!resolvedId) return null;
+    const pathIds = getPrayerPathIds(resolvedId, allPrayers);
+    if (!pathIds) return null;
+    return { resolvedId, pathIds };
+  }, [allPrayers]);
+
   const handleOpenCustomPlanPrayerAt = useCallback((slot: 1 | 2 | 3 | 4, index: number): boolean => {
     const plan = customPlans[slot - 1];
     const prayerIds = plan?.prayerIds ?? [];
@@ -729,16 +756,13 @@ export default function MainApp() {
 
     const tryOpenAt = (candidateIndex: number): boolean => {
       const id = prayerIds[candidateIndex];
-      if (!id) return false;
-      const resolvedId = resolvePlanPrayerId(id);
-      if (!resolvedId) return false;
-      const pathIds = getPrayerPathIds(resolvedId, allPrayers);
-      if (!pathIds) return false;
+      const target = resolveCustomPlanNavigationTarget(id);
+      if (!target) return false;
 
-      incrementStat('prayersOpenedHistory', resolvedId);
+      incrementStat('prayersOpenedHistory', target.resolvedId);
 
       setNavState({
-        ...buildPrayerNavState(pathIds),
+        ...buildPrayerNavState(target.pathIds),
         customPlanPrayerSlot: slot,
         customPlanPrayerIndex: candidateIndex,
       });
@@ -756,7 +780,7 @@ export default function MainApp() {
     }
 
     return false;
-  }, [allPrayers, buildPrayerNavState, customPlans, incrementStat]);
+  }, [buildPrayerNavState, customPlans, incrementStat, resolveCustomPlanNavigationTarget]);
 
   const handleOpenCustomPlan = useCallback((slot: 1 | 2 | 3 | 4, options?: { edit?: boolean; openFirstPrayer?: boolean }) => {
     if (options?.openFirstPrayer) {
@@ -790,11 +814,10 @@ export default function MainApp() {
     const prayerIds = plan?.prayerIds ?? [];
     const indices: number[] = [];
     for (let i = 0; i < prayerIds.length; i++) {
-      const resolvedId = resolvePlanPrayerId(prayerIds[i]);
-      if (resolvedId) indices.push(i);
+      if (resolveCustomPlanNavigationTarget(prayerIds[i])) indices.push(i);
     }
     return indices;
-  }, [customPlans, navState.customPlanPrayerSlot, resolvePlanPrayerId]);
+  }, [customPlans, navState.customPlanPrayerSlot, resolveCustomPlanNavigationTarget]);
   const customPlanValidPosition =
     navState.customPlanPrayerIndex === null ? -1 : customPlanValidIndices.indexOf(navState.customPlanPrayerIndex);
   const customPlanPrevIndex = customPlanValidPosition > 0 ? customPlanValidIndices[customPlanValidPosition - 1] : null;
@@ -815,33 +838,7 @@ export default function MainApp() {
     handleOpenCustomPlanPrayerAt(navState.customPlanPrayerSlot as 1 | 2 | 3 | 4, customPlanPrevIndex);
   }, [clearCustomPlanExitPrompt, customPlanPrevIndex, handleOpenCustomPlanPrayerAt, hasCustomPlanPrayerNav, navState.customPlanPrayerSlot]);
 
-  const goToCustomPlanNext = useCallback(() => {
-    if (!hasCustomPlanPrayerNav || navState.customPlanPrayerSlot === null || navState.customPlanPrayerIndex === null) return;
-
-    if (customPlanNextIndex !== null) {
-      clearCustomPlanExitPrompt();
-      handleOpenCustomPlanPrayerAt(navState.customPlanPrayerSlot as 1 | 2 | 3 | 4, customPlanNextIndex);
-      return;
-    }
-
-    const now = Date.now();
-    const pendingExit = customPlanExitAdvanceRef.current;
-    const slot = navState.customPlanPrayerSlot as 1 | 2 | 3 | 4;
-    const index = navState.customPlanPrayerIndex;
-
-    const hasActiveExitPrompt =
-      customPlanExitToastIdRef.current !== null &&
-      pendingExit &&
-      pendingExit.slot === slot &&
-      pendingExit.index === index &&
-      pendingExit.expiresAt > now;
-
-    if (hasActiveExitPrompt) {
-      clearCustomPlanExitPrompt();
-      replaceNavState(initialState);
-      return;
-    }
-
+  const armCustomPlanExitPrompt = useCallback((slot: 1 | 2 | 3 | 4, index: number, now: number) => {
     clearCustomPlanExitPrompt();
     customPlanExitAdvanceRef.current = {
       slot,
@@ -861,7 +858,37 @@ export default function MainApp() {
       description: 'Si avanzas otra vez, volverás a la pantalla principal.',
       duration: CUSTOM_PLAN_EXIT_CONFIRM_MS,
     }).id;
-  }, [clearCustomPlanExitPrompt, customPlanNextIndex, dismiss, handleOpenCustomPlanPrayerAt, hasCustomPlanPrayerNav, navState.customPlanPrayerIndex, navState.customPlanPrayerSlot, replaceNavState, toast]);
+  }, [clearCustomPlanExitPrompt, dismiss, toast]);
+
+  const goToCustomPlanNext = useCallback(() => {
+    if (!hasCustomPlanPrayerNav || navState.customPlanPrayerSlot === null || navState.customPlanPrayerIndex === null) return;
+
+    if (customPlanNextIndex !== null) {
+      clearCustomPlanExitPrompt();
+      handleOpenCustomPlanPrayerAt(navState.customPlanPrayerSlot as 1 | 2 | 3 | 4, customPlanNextIndex);
+      return;
+    }
+
+    const now = Date.now();
+    const pendingExit = customPlanExitAdvanceRef.current;
+    const slot = navState.customPlanPrayerSlot as 1 | 2 | 3 | 4;
+    const index = navState.customPlanPrayerIndex;
+
+    const hasActiveExitPrompt = Boolean(
+      pendingExit &&
+      pendingExit.slot === slot &&
+      pendingExit.index === index &&
+      pendingExit.expiresAt > now
+    );
+
+    if (hasActiveExitPrompt) {
+      clearCustomPlanExitPrompt();
+      replaceNavState(initialState);
+      return;
+    }
+
+    armCustomPlanExitPrompt(slot, index, now);
+  }, [armCustomPlanExitPrompt, clearCustomPlanExitPrompt, customPlanNextIndex, handleOpenCustomPlanPrayerAt, hasCustomPlanPrayerNav, navState.customPlanPrayerIndex, navState.customPlanPrayerSlot, replaceNavState]);
 
   const canEditCurrentPrayer =
     navState.activeView === 'prayer' &&
@@ -1047,12 +1074,6 @@ export default function MainApp() {
     </div>
   );
 }
-
-
-
-
-
-
 
 
 

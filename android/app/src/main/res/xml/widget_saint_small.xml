@@ -6,7 +6,7 @@
     android:minWidth="140dp"
     android:minResizeHeight="48dp"
     android:minResizeWidth="140dp"
-    android:resizeMode="horizontal"
+    android:resizeMode="horizontal|vertical"
     android:targetCellHeight="1"
     android:targetCellWidth="2"
     android:updatePeriodMillis="0"

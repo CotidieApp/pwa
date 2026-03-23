@@ -466,31 +466,21 @@ const PrayerContent = ({
     }
   }, [searchState?.activeIndex, searchState?.term]);
 
-  const [selectedLang, setSelectedLang] = useState('');
-
-  useEffect(() => {
-    setSelectedLang('');
-  }, [prayer.id]);
-
-  useEffect(() => {
-    if (!prayer.content || typeof prayer.content !== 'object') return;
+  const getPreferredVariant = useCallback(() => {
+    if (!prayer.content || typeof prayer.content !== 'object') return '';
     const contentObj = prayer.content as Record<string, string>;
     const preferredLang =
       (prayer.id ? prayerLanguagePreferences[prayer.id] : undefined) ??
       (prayer.id === 'preces' ? 'latín' : 'español');
-    const resolvedLang = resolveVariantKey(contentObj, preferredLang);
-    if (resolvedLang && resolvedLang !== selectedLang) {
-      setSelectedLang(resolvedLang);
-    }
-  }, [prayer.content, prayer.id, prayerLanguagePreferences, selectedLang]);
+    return resolveVariantKey(contentObj, preferredLang);
+  }, [prayer.content, prayer.id, prayerLanguagePreferences]);
+
+  const [selectedLang, setSelectedLang] = useState(() => getPreferredVariant());
 
   useEffect(() => {
-    if (!prayer.id || !prayer.content || typeof prayer.content !== 'object') return;
-    const contentObj = prayer.content as Record<string, string>;
-    const resolvedLang = resolveVariantKey(contentObj, selectedLang);
-    if (!resolvedLang) return;
-    setPrayerLanguagePreference(prayer.id, resolvedLang);
-  }, [prayer.id, prayer.content, selectedLang, setPrayerLanguagePreference]);
+    const nextLang = getPreferredVariant();
+    setSelectedLang((prev) => (prev === nextLang ? prev : nextLang));
+  }, [getPreferredVariant]);
 
   if (typeof prayer.content === 'string') {
     const { term = '', activeIndex = -1 } = searchState || {};
@@ -519,7 +509,13 @@ const PrayerContent = ({
     const otherLabel = otherLang ? formatVariantLabel(otherLang) : '';
 
     const toggleLang = () => {
-      if (otherLang) setSelectedLang(otherLang);
+      if (!otherLang) return;
+      const nextLang = resolveVariantKey(contentObj, otherLang);
+      if (!nextLang) return;
+      setSelectedLang(nextLang);
+      if (prayer.id) {
+        setPrayerLanguagePreference(prayer.id, nextLang);
+      }
     };
 
     return (

@@ -2692,6 +2692,9 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         return resource;
       };
 
+      const getNotificationActionTypeId = (target?: { type?: string } | null) =>
+        target?.type === 'prayer' ? NOTIFICATION_ACTION_TYPE_ID : undefined;
+
       const notifications: Array<any> = [];
       for (const r of active) {
         const message =
@@ -2712,7 +2715,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
             body: message,
             channelId: 'cotidie-reminders',
             smallIcon: icon,
-            actionTypeId: NOTIFICATION_ACTION_TYPE_ID,
+            actionTypeId: getNotificationActionTypeId(r.target),
             schedule: {
               at: fireAt,
               allowWhileIdle: true,
@@ -2751,7 +2754,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
               smallIcon: icon,
               largeIcon: imageDrawable ?? undefined,
               attachments: imagePath ? [imagePath] : undefined,
-              actionTypeId: NOTIFICATION_ACTION_TYPE_ID,
               schedule: {
                 at: next,
                 allowWhileIdle: true,
@@ -2786,7 +2788,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
             smallIcon: icon,
             largeIcon: devImageDrawable,
             attachments: [devImagePath],
-            actionTypeId: NOTIFICATION_ACTION_TYPE_ID,
             schedule: {
               on: { minute },
               allowWhileIdle: true,
@@ -2825,7 +2826,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           channelId: 'cotidie-reminders',
           smallIcon: icon,
           largeIcon: icon,
-          actionTypeId: NOTIFICATION_ACTION_TYPE_ID,
           schedule: {
             at: fireAt,
             allowWhileIdle: true,
@@ -2869,7 +2869,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           body: formatTemplate('Tu resumen anual ya está disponible. Descubre cómo fue tu camino de oración este año en Cotidie.', fireAt),
           channelId: 'cotidie-reminders',
           smallIcon: icon,
-          actionTypeId: NOTIFICATION_ACTION_TYPE_ID,
           schedule: {
             at: fireAt,
             allowWhileIdle: true,
@@ -2904,7 +2903,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           channelId: 'cotidie-reminders',
           smallIcon: icon,
           largeIcon: icon,
-          actionTypeId: NOTIFICATION_ACTION_TYPE_ID,
           schedule: {
             at: fireAt,
             allowWhileIdle: true,
@@ -3134,12 +3132,16 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     if (currentMonth === 12 && (currentDay === 24 || currentDay === 25)) {
       const christmasImage = PlaceHolderImages.find((img) => img.id === 'christmas-image') || null;
       image = christmasImage || dayImage;
+    } else if (currentMonth === 3 && currentDay === 19) {
+      const sanJoseImage = PlaceHolderImages.find((img) => img.id === 'sanjose-image') || null;
+      image = sanJoseImage || dayImage;
     } else {
       const saintImageBySubstring: Array<{match: string; id: string}> = [
         { match: 'Alberto Hurtado', id: 'sanalbertohurtado-image' },
         { match: 'Francisco de Sales', id: 'sanfranciscodesales-image' },
         { match: 'Agustín, obispo y doctor', id: 'sanagustindehipona-image' },
         { match: 'Santo Tomás de Aquino', id: 'santotomasdeaquino-image' },
+        { match: 'San José Obrero', id: 'sanjose-image' },
         { match: 'Benjamín', id: 'sanbenjamin-image' },
         { match: 'Natividad del Señor', id: 'nativity-image' },
       ];
@@ -3320,7 +3322,6 @@ export const useSettings = () => {
   if (!ctx) throw new Error('useSettings must be used within SettingsProvider');
   return ctx;
 };
-
 
 
 

@@ -15,6 +15,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:gravity="center_vertical"
         android:orientation="vertical"
         android:paddingLeft="8dp"
         android:paddingRight="8dp"
@@ -24,29 +25,28 @@
         <TextView
             android:id="@+id/widget_saint_name"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:autoSizeMaxTextSize="18sp"
-            android:autoSizeMinTextSize="10sp"
+            android:layout_height="wrap_content"
+            android:autoSizeMaxTextSize="24sp"
+            android:autoSizeMinTextSize="7sp"
             android:autoSizeStepGranularity="1sp"
             android:autoSizeTextType="uniform"
-            android:ellipsize="end"
-            android:gravity="center_vertical"
-            android:maxLines="3"
+            android:gravity="center_horizontal|bottom"
+            android:includeFontPadding="false"
+            android:maxLines="4"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/widget_saint_bio"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="2"
-            android:layout_marginTop="2dp"
-            android:autoSizeMaxTextSize="14sp"
-            android:autoSizeMinTextSize="9sp"
+            android:layout_weight="1"
+            android:layout_marginTop="4dp"
+            android:autoSizeMaxTextSize="18sp"
+            android:autoSizeMinTextSize="6sp"
             android:autoSizeStepGranularity="1sp"
             android:autoSizeTextType="uniform"
-            android:ellipsize="end"
-            android:gravity="center_vertical"
-            android:maxLines="6" />
+            android:gravity="center_horizontal|top"
+            android:includeFontPadding="false"
+            android:maxLines="12" />
     </LinearLayout>
 </FrameLayout>

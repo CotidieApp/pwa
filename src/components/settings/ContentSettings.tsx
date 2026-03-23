@@ -65,22 +65,19 @@ export default function ContentSettings({ onShowAnnuum }: ContentSettingsProps) 
 
   const handleExport = async () => {
     try {
-      const hasPermission = await requestStoragePermissionIfNeeded();
-      if (!hasPermission) {
-        toast({ variant: 'destructive', title: 'Permiso denegado', description: 'No se pudo acceder al almacenamiento.' });
-        return;
-      }
-
       const dataToExport = getBackupSnapshot();
       const dataStr = JSON.stringify(dataToExport, null, 2);
+      const utf8DataStr = `\uFEFF${dataStr}`;
+      const backupDate = new Date().toISOString().split('T')[0] || 'backup';
+      const fileName = `cotidie_backup_${backupDate}.ctd`;
       
       // Web Fallback
       if (!Capacitor.isNativePlatform()) {
-        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const dataBlob = new Blob([utf8DataStr], { type: 'application/json;charset=utf-8' });
         const url = URL.createObjectURL(dataBlob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = 'cotidie_backup.ctd';
+        link.download = fileName;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -89,25 +86,16 @@ export default function ContentSettings({ onShowAnnuum }: ContentSettingsProps) 
         return;
       }
 
-      // Android Native Export
-      try {
-        await Filesystem.mkdir({
-            path: 'Cotidie',
-            directory: Directory.Documents,
-            recursive: true
-        });
-      } catch (e) { /* ignore */ }
-
       await Filesystem.writeFile({
-          path: `Cotidie/cotidie_backup_${new Date().toISOString().split('T')[0]}.ctd`,
-          data: dataStr,
-          directory: Directory.Documents,
+          path: fileName,
+          data: utf8DataStr,
+          directory: Directory.Cache,
           encoding: Encoding.UTF8
       });
       
       const fileResult = await Filesystem.getUri({
-          path: `Cotidie/cotidie_backup_${new Date().toISOString().split('T')[0]}.ctd`,
-          directory: Directory.Documents
+          path: fileName,
+          directory: Directory.Cache
       });
 
       await Share.share({
@@ -204,7 +192,7 @@ export default function ContentSettings({ onShowAnnuum }: ContentSettingsProps) 
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const text = e.target?.result as string;
+        const text = (e.target?.result as string).replace(/^\uFEFF/, '');
         const data = JSON.parse(text);
         const result = importUserData(data, { silent: true });
 
@@ -386,9 +374,6 @@ export default function ContentSettings({ onShowAnnuum }: ContentSettingsProps) 
     </div>
   );
 }
-
-
-
 
 
 

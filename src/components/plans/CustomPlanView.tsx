@@ -101,11 +101,12 @@ export default function CustomPlanView({ slot, onOpenPrayerId, onOpenPlanPrayerA
   const handleExport = async () => {
     if (!plan) return;
     const data = JSON.stringify(plan, null, 2);
+    const utf8Data = `\uFEFF${data}`;
     const fileName = `${plan.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.ctd`;
 
     try {
         if (!Capacitor.isNativePlatform()) {
-            const blob = new Blob([data], { type: 'application/json' });
+            const blob = new Blob([utf8Data], { type: 'application/json;charset=utf-8' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -123,7 +124,7 @@ export default function CustomPlanView({ slot, onOpenPrayerId, onOpenPlanPrayerA
             // and ensure we can share the file URI immediately.
             await Filesystem.writeFile({
                 path: fileName,
-                data: data,
+                data: utf8Data,
                 directory: Directory.Cache,
                 encoding: Encoding.UTF8
             });
@@ -154,7 +155,7 @@ export default function CustomPlanView({ slot, onOpenPrayerId, onOpenPlanPrayerA
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
-        const text = event.target?.result as string;
+        const text = (event.target?.result as string).replace(/^\uFEFF/, '');
         const imported = JSON.parse(text) as CustomPlan;
         const result = importUserData(imported, { silent: true, preferredCustomPlanSlot: slot });
 
