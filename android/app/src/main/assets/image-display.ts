@@ -39,6 +39,7 @@ export const prayerImagePreference: Record<string, ImageDisplay> = {
   sanfranciscodesales: "center",
   sanagustindehipona: "center",
   santotomasdeaquino: "center",
+  "devocion-san-jose": "center",
   "ofrecimiento-obras": "center",
   "oracion-manana": "center",
   "santa-misa": "center",

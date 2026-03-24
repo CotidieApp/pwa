@@ -19,6 +19,34 @@ import java.util.Map;
 final class SaintWidgetContentFactory {
     private static Map<Integer, SaintEntry> cachedSaints;
     private static Map<String, String> cachedPlaceholderAssetPaths;
+    private static final DevotionImageEntry[] DEVOTION_IMAGE_ENTRIES = new DevotionImageEntry[] {
+            new DevotionImageEntry("sanjosemaria", "public/images/san-josemaria.jpeg",
+                    new String[] {"san josemaria escriva", "san josemaria escriva de balaguer"}),
+            new DevotionImageEntry("sanjuanpabloii", "public/images/san-juan-pablo-ii.jpeg",
+                    new String[] {"san juan pablo ii"}),
+            new DevotionImageEntry("sanbenjamin", "public/images/san-benjamin.jpeg",
+                    new String[] {"san benjamin diacono y martir"}),
+            new DevotionImageEntry("sanjuanbautista", "public/images/san-juan-bautista.jpeg",
+                    new String[] {"natividad de san juan bautista", "martirio de san juan bautista"}),
+            new DevotionImageEntry("sanpedro", "public/images/san-pedro.jpeg",
+                    new String[] {"catedra de san pedro", "santos pedro y pablo", "san pedro apostol"}),
+            new DevotionImageEntry("sancarloacutis", "public/images/san-carlo-acutis.jpeg",
+                    new String[] {"san carlo acutis"}),
+            new DevotionImageEntry("santateresadelosandes", "public/images/santa-teresa-andes.jpeg",
+                    new String[] {"santa teresa de los andes"}),
+            new DevotionImageEntry("sanalbertohurtado", "public/images/san-alberto.jpeg",
+                    new String[] {"san alberto hurtado"}),
+            new DevotionImageEntry("beatoalvaro", "public/images/beato-alvaro.jpeg",
+                    new String[] {"beato alvaro del portillo"}),
+            new DevotionImageEntry("sanfranciscodesales", "public/images/san-francisco.jpeg",
+                    new String[] {"san francisco de sales"}),
+            new DevotionImageEntry("sanagustindehipona", "public/images/san-agustin.jpeg",
+                    new String[] {"san agustin obispo y doctor de la iglesia", "san agustin de hipona"}),
+            new DevotionImageEntry("santotomasdeaquino", "public/images/santo-tomas.jpeg",
+                    new String[] {"santo tomas de aquino"}),
+            new DevotionImageEntry("devocion-san-jose", "public/images/san-jose.jpg",
+                    new String[] {"san jose esposo de la virgen maria", "san jose obrero"})
+    };
 
     static SaintWidgetContent forNow(Context context) {
         Calendar now = Calendar.getInstance();
@@ -101,60 +129,43 @@ final class SaintWidgetContentFactory {
         int month = now.get(Calendar.MONTH) + 1;
         int day = now.get(Calendar.DAY_OF_MONTH);
         String dayImageId = "saintoftheday-" + toJsDayIndex(now.get(Calendar.DAY_OF_WEEK));
-        String imageId = dayImageId;
 
         if (month == 12 && (day == 24 || day == 25)) {
-            if (resolvePlaceholderAssetPath("christmas-image") != null) {
-                imageId = "christmas-image";
+            String christmasPath = resolvePlaceholderAssetPath("christmas-image");
+            if (christmasPath != null) {
+                return new SelectedImage("christmas-image", christmasPath);
             }
-        } else if (month == 3 && day == 19) {
-            if (resolvePlaceholderAssetPath("sanjose-image") != null) {
-                imageId = "sanjose-image";
-            }
-        } else {
-            String saintName = saint != null ? saint.name : "";
-            String saintType = saint != null ? saint.type : "";
-            String[][] saintImageBySubstring = new String[][] {
-                    {"Alberto Hurtado", "sanalbertohurtado-image"},
-                    {"Francisco de Sales", "sanfranciscodesales-image"},
-                    {"Agustin, obispo y doctor", "sanagustindehipona-image"},
-                    {"Agust?n, obispo y doctor", "sanagustindehipona-image"},
-                    {"Santo Tomas de Aquino", "santotomasdeaquino-image"},
-                    {"Santo Tom?s de Aquino", "santotomasdeaquino-image"},
-                    {"Benjamin", "sanbenjamin-image"},
-                    {"Benjam?n", "sanbenjamin-image"},
-                    {"Natividad del Senor", "nativity-image"},
-                    {"Natividad del Se?or", "nativity-image"}
-            };
+        }
 
-            boolean isMarian = saintType != null && saintType.equalsIgnoreCase("marian");
-            if (!isMarian && saintName != null && !saintName.isEmpty()) {
-                String loweredName = saintName.toLowerCase(Locale.getDefault());
-                isMarian = loweredName.contains("nuestra senora")
-                        || loweredName.contains("nuestra se?ora")
-                        || loweredName.contains("virgen maria")
-                        || loweredName.contains("virgen mar?a")
-                        || loweredName.contains("inmaculada concepcion")
-                        || loweredName.contains("inmaculada concepci?n")
-                        || loweredName.contains("asuncion de la virgen")
-                        || loweredName.contains("asunci?n de la virgen")
-                        || loweredName.contains("presentacion de la virgen")
-                        || loweredName.contains("presentaci?n de la virgen")
-                        || loweredName.contains("natividad de la virgen")
-                        || loweredName.contains("visitacion de la virgen")
-                        || loweredName.contains("visitaci?n de la virgen");
-            }
+        SelectedImage devotionImage = resolveDevotionImage(saint);
+        if (devotionImage != null) {
+            return devotionImage;
+        }
 
-            if (isMarian) {
-                imageId = "saintoftheday-6";
-            } else if (saintName != null && !saintName.isEmpty()) {
-                for (String[] entry : saintImageBySubstring) {
-                    if (saintName.contains(entry[0]) && resolvePlaceholderAssetPath(entry[1]) != null) {
-                        imageId = entry[1];
-                        break;
-                    }
-                }
-            }
+        String saintName = saint != null ? saint.name : "";
+        String saintType = saint != null ? saint.type : "";
+        String imageId = dayImageId;
+
+        boolean isMarian = saintType != null && saintType.equalsIgnoreCase("marian");
+        if (!isMarian && saintName != null && !saintName.isEmpty()) {
+            String loweredName = saintName.toLowerCase(Locale.getDefault());
+            isMarian = loweredName.contains("nuestra senora")
+                    || loweredName.contains("nuestra se?ora")
+                    || loweredName.contains("virgen maria")
+                    || loweredName.contains("virgen mar?a")
+                    || loweredName.contains("inmaculada concepcion")
+                    || loweredName.contains("inmaculada concepci?n")
+                    || loweredName.contains("asuncion de la virgen")
+                    || loweredName.contains("asunci?n de la virgen")
+                    || loweredName.contains("presentacion de la virgen")
+                    || loweredName.contains("presentaci?n de la virgen")
+                    || loweredName.contains("natividad de la virgen")
+                    || loweredName.contains("visitacion de la virgen")
+                    || loweredName.contains("visitaci?n de la virgen");
+        }
+
+        if (isMarian) {
+            imageId = "saintoftheday-6";
         }
 
         String assetPath = resolvePlaceholderAssetPath(imageId);
@@ -163,6 +174,22 @@ final class SaintWidgetContentFactory {
             assetPath = resolvePlaceholderAssetPath(dayImageId);
         }
         return new SelectedImage(imageId, assetPath);
+    }
+
+    private static SelectedImage resolveDevotionImage(SaintEntry saint) {
+        if (saint == null || saint.name == null || saint.name.trim().isEmpty()) {
+            return null;
+        }
+
+        String normalizedSaintName = normalizeLiturgicalText(saint.name);
+        for (DevotionImageEntry entry : DEVOTION_IMAGE_ENTRIES) {
+            for (String alias : entry.aliases) {
+                if (normalizedSaintName.contains(alias)) {
+                    return new SelectedImage(entry.id, entry.assetPath);
+                }
+            }
+        }
+        return null;
     }
 
     private static int toJsDayIndex(int dayOfWeek) {
@@ -312,7 +339,8 @@ final class SaintWidgetContentFactory {
             .replace("Ã¼", "u");
 
         normalized = Normalizer.normalize(normalized, Normalizer.Form.NFD);
-        return normalized.replaceAll("\\p{M}+", "");
+        normalized = normalized.replaceAll("\\p{M}+", "");
+        return normalized.replaceAll("[^a-z0-9]+", " ").trim();
     }
 
     private static boolean isPenitentialSeason(Calendar current, Calendar easter) {
@@ -500,6 +528,18 @@ final class SaintWidgetContentFactory {
         SelectedImage(String id, String assetPath) {
             this.id = id != null ? id : "";
             this.assetPath = assetPath != null ? assetPath : "";
+        }
+    }
+
+    private static final class DevotionImageEntry {
+        final String id;
+        final String assetPath;
+        final String[] aliases;
+
+        DevotionImageEntry(String id, String assetPath, String[] aliases) {
+            this.id = id != null ? id : "";
+            this.assetPath = assetPath != null ? assetPath : "";
+            this.aliases = aliases != null ? aliases : new String[0];
         }
     }
 

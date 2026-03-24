@@ -73,21 +73,12 @@ final class SaintWidgetUpdater {
         Map<String, CropBias> map = new HashMap<>();
         try {
             String source = readAssetText(context, "image-display.ts");
-            String key = "export const placeholderImagePreference";
-            int start = source.indexOf(key);
-            if (start >= 0) {
-                int open = source.indexOf('{', start);
-                int close = source.indexOf("};", open);
-                if (open > 0 && close > open) {
-                    String objectBody = source.substring(open + 1, close);
-                    Pattern p = Pattern.compile("\"([^\"]+)\"\\s*:\\s*\"(top|center|bottom|extra)\"");
-                    Matcher m = p.matcher(objectBody);
-                    while (m.find()) {
-                        String id = m.group(1);
-                        String pref = m.group(2);
-                        map.put(id, toCropBias(pref));
-                    }
-                }
+            Pattern p = Pattern.compile("\"([^\"]+)\"\\s*:\\s*\"(top|center|bottom|extra)\"");
+            Matcher m = p.matcher(source);
+            while (m.find()) {
+                String id = m.group(1);
+                String pref = m.group(2);
+                map.put(id, toCropBias(pref));
             }
         } catch (Exception ignored) {
         }

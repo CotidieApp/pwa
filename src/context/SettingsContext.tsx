@@ -27,6 +27,7 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { catholicQuotes } from '@/lib/quotes';
 import { allowedDevCredentials } from '@/lib/dev-credentials';
 import saintsDataRaw from '@/lib/saints-data.json';
+import { resolveDevotionDayImage } from '@/lib/devotion-day-images';
 import { getMovableFeast, getEasterDate } from '@/lib/movable-feasts';
 import { persistence } from '@/lib/persistence';
 import { fixedNotifications, type FixedNotificationEntry } from '@/lib/fixed-notifications';
@@ -3132,33 +3133,19 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     if (currentMonth === 12 && (currentDay === 24 || currentDay === 25)) {
       const christmasImage = PlaceHolderImages.find((img) => img.id === 'christmas-image') || null;
       image = christmasImage || dayImage;
-    } else if (currentMonth === 3 && currentDay === 19) {
-      const sanJoseImage = PlaceHolderImages.find((img) => img.id === 'sanjose-image') || null;
-      image = sanJoseImage || dayImage;
     } else {
-      const saintImageBySubstring: Array<{match: string; id: string}> = [
-        { match: 'Alberto Hurtado', id: 'sanalbertohurtado-image' },
-        { match: 'Francisco de Sales', id: 'sanfranciscodesales-image' },
-        { match: 'Agustín, obispo y doctor', id: 'sanagustindehipona-image' },
-        { match: 'Santo Tomás de Aquino', id: 'santotomasdeaquino-image' },
-        { match: 'San José Obrero', id: 'sanjose-image' },
-        { match: 'Benjamín', id: 'sanbenjamin-image' },
-        { match: 'Natividad del Señor', id: 'nativity-image' },
-      ];
-
       const marianNamePattern =
         /(Nuestra Señora|Virgen María|Inmaculada Concepción|Asunción de la Virgen|Presentación de la Virgen|Natividad de la Virgen|Visitación de la Virgen)/i;
       const marianImage = PlaceHolderImages.find((img) => img.id === 'saintoftheday-6') || dayImage;
+      const devotionImage = resolveDevotionDayImage(effectiveSaint);
       const isMarian = Boolean(
         (effectiveSaint as any)?.type === 'marian' || (effectiveSaint?.name && marianNamePattern.test(effectiveSaint.name))
       );
 
-      if (isMarian) {
+      if (devotionImage) {
+        image = devotionImage;
+      } else if (isMarian) {
         image = marianImage;
-      } else if (effectiveSaint && effectiveSaint.name) {
-        const found = saintImageBySubstring.find(entry => effectiveSaint.name.includes(entry.match));
-        const mapped = found ? PlaceHolderImages.find(img => img.id === found.id) : null;
-        image = mapped || dayImage;
       }
     }
 
@@ -3322,7 +3309,6 @@ export const useSettings = () => {
   if (!ctx) throw new Error('useSettings must be used within SettingsProvider');
   return ctx;
 };
-
 
 
 
