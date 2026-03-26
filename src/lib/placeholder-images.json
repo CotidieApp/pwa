@@ -163,6 +163,12 @@
       "description": "Navidad",
       "imageUrl": "/images/christmas-image.png",
       "imageHint": "christmas nativity"
+    },
+    {
+      "id": "annunciation-overlay-image",
+      "description": "Anunciación del Señor",
+      "imageUrl": "/images/rosario/gozoso-1.jpg",
+      "imageHint": "annunciation mary angel"
     }
   ]
 }

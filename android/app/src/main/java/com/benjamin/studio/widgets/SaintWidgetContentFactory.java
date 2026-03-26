@@ -19,6 +19,8 @@ import java.util.Map;
 final class SaintWidgetContentFactory {
     private static Map<Integer, SaintEntry> cachedSaints;
     private static Map<String, String> cachedPlaceholderAssetPaths;
+    private static Map<String, String> cachedOfficialLiturgicalColors;
+    private static final String ANNUNCIATION_OVERLAY_ASSET_PATH = "public/images/rosario/gozoso-1.jpg";
     private static final DevotionImageEntry[] DEVOTION_IMAGE_ENTRIES = new DevotionImageEntry[] {
             new DevotionImageEntry("sanjosemaria", "public/images/san-josemaria.jpeg",
                     new String[] {"san josemaria escriva", "san josemaria escriva de balaguer"}),
@@ -63,7 +65,7 @@ final class SaintWidgetContentFactory {
         String bio = saint != null && saint.bio != null ? saint.bio : "";
         SelectedImage selectedImage = pickSaintImage(context, saint, now);
 
-        int backgroundColor = getLiturgicalColor(saint, now, easter);
+        int backgroundColor = getLiturgicalColor(context, saint, now, easter);
         boolean lightBg = isLightColor(backgroundColor);
         int titleTextColor = lightBg ? Color.parseColor("#1E293B") : Color.WHITE;
         int bodyTextColor = lightBg ? Color.parseColor("#334155") : Color.argb(230, 255, 255, 255);
@@ -71,8 +73,10 @@ final class SaintWidgetContentFactory {
         return new SaintWidgetContent(
                 name,
                 bio,
+                selectedImage.prayerId,
                 selectedImage.id,
                 selectedImage.assetPath,
+                selectedImage.overlayAssetPath,
                 backgroundColor,
                 titleTextColor,
                 bodyTextColor
@@ -129,6 +133,7 @@ final class SaintWidgetContentFactory {
         int month = now.get(Calendar.MONTH) + 1;
         int day = now.get(Calendar.DAY_OF_MONTH);
         String dayImageId = "saintoftheday-" + toJsDayIndex(now.get(Calendar.DAY_OF_WEEK));
+        boolean isAnnunciationDay = month == 3 && day == 25;
 
         if (month == 12 && (day == 24 || day == 25)) {
             String christmasPath = resolvePlaceholderAssetPath("christmas-image");
@@ -173,7 +178,7 @@ final class SaintWidgetContentFactory {
             imageId = dayImageId;
             assetPath = resolvePlaceholderAssetPath(dayImageId);
         }
-        return new SelectedImage(imageId, assetPath);
+        return new SelectedImage(imageId, assetPath, isAnnunciationDay ? ANNUNCIATION_OVERLAY_ASSET_PATH : "", "");
     }
 
     private static SelectedImage resolveDevotionImage(SaintEntry saint) {
@@ -185,7 +190,7 @@ final class SaintWidgetContentFactory {
         for (DevotionImageEntry entry : DEVOTION_IMAGE_ENTRIES) {
             for (String alias : entry.aliases) {
                 if (normalizedSaintName.contains(alias)) {
-                    return new SelectedImage(entry.id, entry.assetPath);
+                    return new SelectedImage(entry.id, entry.assetPath, "", entry.id);
                 }
             }
         }
@@ -238,60 +243,85 @@ final class SaintWidgetContentFactory {
         return cachedPlaceholderAssetPaths;
     }
 
-    private static int getLiturgicalColor(SaintEntry saint, Calendar current, Calendar easter) {
-        if (saint == null) return Color.parseColor("#225722");
+    private static synchronized Map<String, String> ensureOfficialLiturgicalColorsLoaded(Context context) {
+        if (cachedOfficialLiturgicalColors != null) return cachedOfficialLiturgicalColors;
 
-        String title = normalizeLiturgicalText(saint.title);
-        String type = normalizeLiturgicalText(saint.type);
-        String name = normalizeLiturgicalText(saint.name);
+        Map<String, String> map = new HashMap<>();
+        try {
+            String[] assetNames = context.getAssets().list("");
+            if (assetNames != null) {
+                for (String assetName : assetNames) {
+                    if (assetName == null
+                            || !assetName.startsWith("liturgical-colors-chile-")
+                            || !assetName.endsWith(".json")) {
+                        continue;
+                    }
 
-        int gold = Color.parseColor("#B8860B");
-        int red = Color.parseColor("#8B0000");
-        int white = Color.parseColor("#F8F9FA");
-        int purple = Color.parseColor("#5A2A69");
-        int green = Color.parseColor("#225722");
-        int blue = Color.parseColor("#3A5F7A");
+                    String json = readAssetText(context, assetName);
+                    JSONObject root = new JSONObject(json);
+                    JSONObject days = root.optJSONObject("days");
+                    if (days == null) continue;
 
-        if (title.contains("solemnidad") || name.contains("senor") || name.contains("cristo rey") || title.contains("fiesta del senor")) {
-            if (name.contains("pasion") || name.contains("viernes santo") || name.contains("cruz")) {
-                return applySeasonOverride(red, title, name, current, easter, purple);
+                    JSONArray keys = days.names();
+                    if (keys == null) continue;
+
+                    for (int i = 0; i < keys.length(); i++) {
+                        String dateKey = keys.optString(i, "");
+                        if (dateKey == null || dateKey.trim().isEmpty()) continue;
+                        JSONObject day = days.optJSONObject(dateKey);
+                        if (day == null) continue;
+                        String appColor = day.optString("appColor", "");
+                        if (appColor == null || appColor.trim().isEmpty()) continue;
+                        map.put(dateKey, appColor);
+                    }
+                }
             }
-            return applySeasonOverride(gold, title, name, current, easter, purple);
+        } catch (Exception ignored) {
         }
 
-        if (name.contains("viernes santo") ||
-            name.contains("pentecostes") ||
-            name.contains("espiritu santo") ||
-            name.contains("pasion") ||
-            type.contains("martyr") || type.contains("martir") || name.contains("martir") ||
-            type.contains("apostle") || type.contains("apostol") ||
-            type.contains("evangelist") || type.contains("evangelista")) {
+        cachedOfficialLiturgicalColors = map;
+        return cachedOfficialLiturgicalColors;
+    }
 
-            if (name.contains("juan") && name.contains("evangelista")) {
-                return applySeasonOverride(white, title, name, current, easter, purple);
-            }
-            return applySeasonOverride(red, title, name, current, easter, purple);
-        }
+    private static String getOfficialLiturgicalColorName(Context context, Calendar current) {
+        String dateKey = String.format(
+                Locale.US,
+                "%04d-%02d-%02d",
+                current.get(Calendar.YEAR),
+                current.get(Calendar.MONTH) + 1,
+                current.get(Calendar.DAY_OF_MONTH)
+        );
+        return ensureOfficialLiturgicalColorsLoaded(context).get(dateKey);
+    }
 
-        if (type.contains("marian") || name.contains("virgen") || name.contains("inmaculada") || name.contains("asuncion") || name.contains("madre de dios")) {
-            return applySeasonOverride(blue, title, name, current, easter, purple);
-        }
+    private static Integer mapOfficialLiturgicalColor(String colorName) {
+        if (colorName == null || colorName.trim().isEmpty()) return null;
+        String normalized = normalizeLiturgicalText(colorName);
+        if (normalized.equals("blanco")) return Color.parseColor("#F8F9FA");
+        if (normalized.equals("rojo")) return Color.parseColor("#8B0000");
+        if (normalized.equals("verde")) return Color.parseColor("#225722");
+        if (normalized.equals("morado")) return Color.parseColor("#5A2A69");
+        if (normalized.equals("rosado")) return Color.parseColor("#D07A93");
+        if (normalized.equals("negro")) return Color.parseColor("#111827");
+        if (normalized.equals("azul")) return Color.parseColor("#5C83C6");
+        if (normalized.equals("celeste")) return Color.parseColor("#7DB7E8");
+        return null;
+    }
 
-        if (type.contains("virgin") || type.contains("virgen")) {
-            return applySeasonOverride(green, title, name, current, easter, purple);
-        }
+    private static int getLiturgicalColor(Context context, SaintEntry saint, Calendar current, Calendar easter) {
+        Integer protectedColor = LiturgicalColorRules.getSpecialDateLiturgicalColor(current, easter);
+        if (protectedColor != null) return protectedColor;
 
-        if (type.contains("confessor") ||
-            type.contains("doctor") ||
-            type.contains("pope") || type.contains("papa") ||
-            type.contains("bishop") || type.contains("obispo") ||
-            type.contains("religious") || type.contains("religioso") ||
-            type.contains("abbot") || type.contains("abad") ||
-            title.contains("fiesta") || title.contains("memoria")) {
-            return applySeasonOverride(white, title, name, current, easter, purple);
-        }
+        Integer officialColor = mapOfficialLiturgicalColor(getOfficialLiturgicalColorName(context, current));
+        if (officialColor != null) return officialColor;
 
-        return applySeasonOverride(green, title, name, current, easter, purple);
+        return LiturgicalColorRules.getGeneralLiturgicalColor(
+                saint != null ? saint.title : "",
+                saint != null ? saint.type : "",
+                saint != null ? saint.name : "",
+                current,
+                easter
+        );
     }
 
     private static boolean isLightColor(int color) {
@@ -302,27 +332,30 @@ final class SaintWidgetContentFactory {
         return luma > 0.60;
     }
 
-    private static int applySeasonOverride(
-        int baseColor,
-        String title,
-        String name,
-        Calendar current,
-        Calendar easter,
-        int purple
-    ) {
-        if (isPenitentialSeason(current, easter) && !keepsOwnColorInPenitentialSeason(title, name)) {
-            return purple;
-        }
-        return baseColor;
-    }
-
     private static boolean keepsOwnColorInPenitentialSeason(String title, String name) {
         return title.contains("solemnidad")
+            || title.contains("fiesta")
             || title.contains("fiesta del senor")
+            || name.contains("jueves santo")
             || name.contains("viernes santo")
             || name.contains("pasion del senor")
             || name.contains("pentecostes")
             || name.contains("domingo de ramos");
+    }
+
+    private static boolean isMarianCelebration(String type, String name) {
+        if (type.contains("marian")) return true;
+        return name.contains("nuestra senora")
+                || name.contains("santa maria")
+                || name.contains("virgen maria")
+                || name.contains("madre de dios")
+                || name.contains("inmaculada")
+                || name.contains("asuncion de la virgen")
+                || name.contains("presentacion de la virgen")
+                || name.contains("natividad de la virgen")
+                || name.contains("visitacion de la virgen")
+                || name.contains("virgen del ")
+                || name.contains("virgen de ");
     }
 
     private static String normalizeLiturgicalText(String value) {
@@ -343,20 +376,31 @@ final class SaintWidgetContentFactory {
         return normalized.replaceAll("[^a-z0-9]+", " ").trim();
     }
 
-    private static boolean isPenitentialSeason(Calendar current, Calendar easter) {
+    private static boolean isAdventSeason(Calendar current) {
         Calendar day = startOfDay(current);
         int year = day.get(Calendar.YEAR);
-
         Map<String, Calendar> adventDates = getAdventDates(year);
         Calendar adventStart = adventDates.get("advent1");
         Calendar adventEnd = Calendar.getInstance();
         adventEnd.set(year, Calendar.DECEMBER, 24, 0, 0, 0);
         adventEnd.set(Calendar.MILLISECOND, 0);
+        return adventStart != null && isWithinInclusive(day, adventStart, adventEnd);
+    }
 
-        if (adventStart != null && isWithinInclusive(day, adventStart, adventEnd)) {
-            return true;
-        }
+    private static boolean isPrivilegedAdventWeekday(Calendar current) {
+        Calendar day = startOfDay(current);
+        int year = day.get(Calendar.YEAR);
+        Calendar start = Calendar.getInstance();
+        start.set(year, Calendar.DECEMBER, 17, 0, 0, 0);
+        start.set(Calendar.MILLISECOND, 0);
+        Calendar end = Calendar.getInstance();
+        end.set(year, Calendar.DECEMBER, 24, 0, 0, 0);
+        end.set(Calendar.MILLISECOND, 0);
+        return isWithinInclusive(day, start, end);
+    }
 
+    private static boolean isLentSeason(Calendar current, Calendar easter) {
+        Calendar day = startOfDay(current);
         Calendar ashWednesday = addDays(easter, -46);
         Calendar holySaturday = addDays(easter, -1);
         return isWithinInclusive(day, ashWednesday, holySaturday);
@@ -524,10 +568,18 @@ final class SaintWidgetContentFactory {
     private static final class SelectedImage {
         final String id;
         final String assetPath;
+        final String overlayAssetPath;
+        final String prayerId;
 
         SelectedImage(String id, String assetPath) {
+            this(id, assetPath, "", "");
+        }
+
+        SelectedImage(String id, String assetPath, String overlayAssetPath, String prayerId) {
             this.id = id != null ? id : "";
             this.assetPath = assetPath != null ? assetPath : "";
+            this.overlayAssetPath = overlayAssetPath != null ? overlayAssetPath : "";
+            this.prayerId = prayerId != null ? prayerId : "";
         }
     }
 

@@ -8,6 +8,9 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.Rect;
 import android.util.TypedValue;
 import android.view.View;
 import android.widget.RemoteViews;
@@ -53,7 +56,11 @@ final class SaintWidgetUpdater {
             CropBias bias = resolveCropBiasForImageId(context, content.imageId);
             Bitmap cropped = cropToAspectWithBias(bmp, 1.5f, bias.horizontal, bias.vertical);
             if (cropped != bmp) bmp.recycle();
-            views.setImageViewBitmap(R.id.widget_saint_image, cropped);
+            Bitmap composited = composeOverlayBitmap(context, cropped, content.overlayImageAssetPath);
+            if (composited != cropped) {
+                cropped.recycle();
+            }
+            views.setImageViewBitmap(R.id.widget_saint_image, composited);
             views.setViewVisibility(R.id.widget_saint_image, android.view.View.VISIBLE);
         } else {
             views.setViewVisibility(R.id.widget_saint_image, android.view.View.GONE);
@@ -73,11 +80,11 @@ final class SaintWidgetUpdater {
         Map<String, CropBias> map = new HashMap<>();
         try {
             String source = readAssetText(context, "image-display.ts");
-            Pattern p = Pattern.compile("\"([^\"]+)\"\\s*:\\s*\"(top|center|bottom|extra)\"");
+            Pattern p = Pattern.compile("(?:\"([^\"]+)\"|([A-Za-z0-9_]+))\\s*:\\s*\"(top|center|bottom|extra)\"");
             Matcher m = p.matcher(source);
             while (m.find()) {
-                String id = m.group(1);
-                String pref = m.group(2);
+                String id = m.group(1) != null ? m.group(1) : m.group(2);
+                String pref = m.group(3);
                 map.put(id, toCropBias(pref));
             }
         } catch (Exception ignored) {
@@ -127,6 +134,11 @@ final class SaintWidgetUpdater {
 
         Intent intent = new Intent(context, MainActivity.class);
         intent.setAction(Intent.ACTION_VIEW);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        if (content.prayerId != null && !content.prayerId.trim().isEmpty()) {
+            intent.putExtra("cotidie_target_type", "prayer");
+            intent.putExtra("cotidie_target_id", content.prayerId);
+        }
         PendingIntent pendingIntent = PendingIntent.getActivity(
                 context,
                 0,
@@ -134,6 +146,34 @@ final class SaintWidgetUpdater {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
         views.setOnClickPendingIntent(R.id.widget_root, pendingIntent);
+    }
+
+    private static Bitmap composeOverlayBitmap(Context context, Bitmap base, String overlayAssetPath) {
+        if (base == null || overlayAssetPath == null || overlayAssetPath.trim().isEmpty()) return base;
+
+        Bitmap overlay = loadAssetBitmap(context, overlayAssetPath, 720, 720);
+        if (overlay == null) return base;
+
+        try {
+            Bitmap composed = base.copy(Bitmap.Config.ARGB_8888, true);
+            if (composed == null) return base;
+
+            Canvas canvas = new Canvas(composed);
+            Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+            int margin = Math.max(16, Math.round(composed.getWidth() * 0.03f));
+            int targetWidth = Math.max(180, Math.round(composed.getWidth() * 0.37f));
+            float aspect = overlay.getWidth() > 0 ? (float) overlay.getHeight() / (float) overlay.getWidth() : 1f;
+            int targetHeight = Math.max(180, Math.round(targetWidth * aspect));
+            int left = margin;
+            int top = Math.max(margin, composed.getHeight() - targetHeight - margin);
+            Rect target = new Rect(left, top, left + targetWidth, top + targetHeight);
+            canvas.drawBitmap(overlay, null, target, paint);
+            return composed;
+        } catch (Exception ignored) {
+            return base;
+        } finally {
+            overlay.recycle();
+        }
     }
 
     private static Bitmap cropToAspectWithBias(Bitmap src, float targetAspect, float horizontalBias, float verticalBias) {

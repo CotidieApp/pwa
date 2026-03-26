@@ -242,7 +242,7 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
         </CardHeader>
         <CardContent>
           <div className="text-sm text-foreground space-y-3">
-            <p className="font-semibold text-base">Elstrella Co</p>
+            <p className="font-semibold text-base">Benjamín Alcalde G.</p>
             <div className="flex items-center gap-3 text-muted-foreground">
               <button
                 type="button"
@@ -259,7 +259,7 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
               <button
                 type="button"
                 className="inline-flex items-center justify-center rounded-sm -m-1 p-1 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                aria-label="Llamar al número del desarrollador"
+                aria-label="Llamar al número de contacto"
                 title="Llamar"
                 onClick={handleDeveloperPhoneIconClick}
               >
@@ -271,7 +271,7 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
               <button
                 type="button"
                 className="inline-flex items-center justify-center rounded-sm -m-1 p-1 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                aria-label="Abrir Instagram del desarrollador"
+                aria-label="Abrir Instagram de la aplicación"
                 title="Abrir Instagram"
                 onClick={handleDeveloperInstagramIconClick}
               >
@@ -298,7 +298,7 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
           <AlertDialogHeader>
             <AlertDialogTitle>Acceso de Desarrollador</AlertDialogTitle>
             <AlertDialogDescription>
-              Introduce tus credenciales para habilitar el modo desarrollador.
+              Introduzca las credenciales para habilitar el modo desarrollador.
             </AlertDialogDescription>
           </AlertDialogHeader>
               <div className="grid gap-4 py-4">
@@ -352,7 +352,6 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
         <CardContent className="text-xs text-muted-foreground space-y-2">
           <p><strong>Cotidie</strong> - Versión {appVersion}</p>
           <p><em>Sérviam cum gaudio magno!</em></p>
-          <p>Esta aplicación fue desarrollada en constante colaboración con IA.</p>
           <p>© 2025 - {new Date().getFullYear()} Cotidie. Todos los derechos reservados.</p>
           <p>"Mirad al Señor con ojos atentos, y descubriréis en Él el rostro mismo de Dios."</p>
         </CardContent>
@@ -363,6 +362,8 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
         <p>APK Android con Capacitor y arquitectura modular con 25+ componentes</p>
         <p>Persistencia local con Context API y localStorage</p>
         <p>PNG, JPEG guardadas como data URI</p>
+        <p></p>
+        <p>Esta aplicación fue desarrollada en constante colaboración con IA.</p>
       </div>
     </div>
   );

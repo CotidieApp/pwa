@@ -27,7 +27,7 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { catholicQuotes } from '@/lib/quotes';
 import { allowedDevCredentials } from '@/lib/dev-credentials';
 import saintsDataRaw from '@/lib/saints-data.json';
-import { resolveDevotionDayImage } from '@/lib/devotion-day-images';
+import { resolveDevotionDayMatch } from '@/lib/devotion-day-images';
 import { getMovableFeast, getEasterDate } from '@/lib/movable-feasts';
 import { persistence } from '@/lib/persistence';
 import { fixedNotifications, type FixedNotificationEntry } from '@/lib/fixed-notifications';
@@ -36,6 +36,24 @@ import { applyPlanDeVidaAggregateIncrement, applyPrayerOpenIncrement } from '@/c
 
 const saintsData = saintsDataRaw as { saints: SaintOfTheDay[] };
 const NOTIFICATION_ACTION_TYPE_ID = 'cotidie-prayer-actions';
+const FORCED_DAILY_QUOTES: Record<string, Quote> = {
+  '06-26': {
+    id: 'forced-quote-06-26',
+    text: 'Que busques a Cristo, que encuentres a Cristo, que ames a Cristo.',
+    author: 'San Josemaría Escrivá',
+  },
+  '10-22': {
+    id: 'forced-quote-10-22',
+    text: 'No tengáis miedo de mirarlo a Él ¡Mirad al Señor!',
+    author: 'San Juan Pablo II',
+  },
+};
+
+const getForcedDailyQuote = (date: Date): Quote | null => {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return FORCED_DAILY_QUOTES[`${month}-${day}`] ?? null;
+};
 
 type Theme = 'light' | 'dark';
 type FontSize = number;
@@ -848,7 +866,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [saintOfTheDay, setSaintOfTheDay] = useState<SaintOfTheDay | null>(null);
   const [saintOfTheDayImage, setSaintOfTheDayImage] =
     useState<ImagePlaceholder | null>(null);
-  const [saintOfTheDayPrayerId] = useState<string | null>(null);
+  const [saintOfTheDayPrayerId, setSaintOfTheDayPrayerId] = useState<string | null>(null);
   
   const [overriddenFixedSaint] = useState<SaintOfTheDay | null>(null);
   const [overriddenFixedSaintImage] = useState<ImagePlaceholder | null>(null);
@@ -2175,6 +2193,14 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const now = simulatedDate ? new Date(simulatedDate) : new Date();
     const dateKey = now.toISOString().slice(0, 10);
+    const forcedQuote = getForcedDailyQuote(now);
+    if (forcedQuote) {
+      if (lastQuoteDate === dateKey && quoteOfTheDay?.id === forcedQuote.id) return;
+      setQuoteOfTheDay(forcedQuote);
+      setLastQuoteDate(dateKey);
+      return;
+    }
+
     if (lastQuoteDate === dateKey && quoteOfTheDay) return;
     const start = new Date(now.getFullYear(), 0, 0);
     const diff = now.getTime() - start.getTime();
@@ -3128,6 +3154,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     const dow = now.getDay(); // 0..6
     const dayImageId = `saintoftheday-${dow}`;
     const dayImage = PlaceHolderImages.find(img => img.id === dayImageId) || null;
+    const devotionMatch = resolveDevotionDayMatch(effectiveSaint);
 
     let image = dayImage;
     if (currentMonth === 12 && (currentDay === 24 || currentDay === 25)) {
@@ -3137,17 +3164,17 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       const marianNamePattern =
         /(Nuestra Señora|Virgen María|Inmaculada Concepción|Asunción de la Virgen|Presentación de la Virgen|Natividad de la Virgen|Visitación de la Virgen)/i;
       const marianImage = PlaceHolderImages.find((img) => img.id === 'saintoftheday-6') || dayImage;
-      const devotionImage = resolveDevotionDayImage(effectiveSaint);
       const isMarian = Boolean(
         (effectiveSaint as any)?.type === 'marian' || (effectiveSaint?.name && marianNamePattern.test(effectiveSaint.name))
       );
 
-      if (devotionImage) {
-        image = devotionImage;
+      if (devotionMatch?.image) {
+        image = devotionMatch.image;
       } else if (isMarian) {
         image = marianImage;
       }
     }
+    const prayerId = devotionMatch?.prayerId ?? null;
 
     const sameSaint =
       saintOfTheDay?.name === effectiveSaint?.name &&
@@ -3155,13 +3182,15 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     const sameImage =
       saintOfTheDayImage?.id === image?.id &&
       saintOfTheDayImage?.imageUrl === image?.imageUrl;
+    const samePrayerId = saintOfTheDayPrayerId === prayerId;
 
-    if (lastSaintUpdate === dateKey && sameSaint && sameImage) return;
+    if (lastSaintUpdate === dateKey && sameSaint && sameImage && samePrayerId) return;
 
     setSaintOfTheDay(effectiveSaint || null);
     setSaintOfTheDayImage(image || null);
+    setSaintOfTheDayPrayerId(prayerId);
     setLastSaintUpdate(dateKey);
-  }, [simulatedDate, lastSaintUpdate, movableFeastsEnabled, saintOfTheDay, saintOfTheDayImage]);
+  }, [simulatedDate, lastSaintUpdate, movableFeastsEnabled, saintOfTheDay, saintOfTheDayImage, saintOfTheDayPrayerId]);
 
   return (
     <SettingsContext.Provider
@@ -3309,10 +3338,6 @@ export const useSettings = () => {
   if (!ctx) throw new Error('useSettings must be used within SettingsProvider');
   return ctx;
 };
-
-
-
-
 
 
 

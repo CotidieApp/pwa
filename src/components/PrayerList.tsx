@@ -23,6 +23,7 @@ import { Checkbox } from './ui/checkbox';
 type PrayerListProps = {
   prayers: Prayer[];
   onSelectPrayer: (prayer: Prayer) => void;
+  onOpenPrayerById?: (id: string) => void;
   onRemovePrayer?: (id: string) => void;
   onEditPrayer?: (prayer: Prayer) => void;
   showAddButton?: boolean;
@@ -37,6 +38,7 @@ type PrayerListProps = {
 export default function PrayerList({
   prayers,
   onSelectPrayer,
+  onOpenPrayerById,
   onRemovePrayer,
   onEditPrayer,
   showAddButton = false,
@@ -99,7 +101,9 @@ export default function PrayerList({
   return (
     <div className="space-y-3 pb-4">
       {/* Santo del día arriba solo en devociones */}
-      {categoryId === 'devociones' && prayerPathLength === 0 && <SaintOfTheDayCard />}
+      {categoryId === 'devociones' && prayerPathLength === 0 && (
+        <SaintOfTheDayCard onOpenPrayerById={onOpenPrayerById} />
+      )}
 
       {/* Lista de oraciones */}
       {filteredPrayers.length > 0 ? (

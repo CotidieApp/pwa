@@ -20,6 +20,10 @@ import org.json.JSONObject;
 
 public class MainActivity extends BridgeActivity {
     private static final String PENDING_IMPORT_KEY = "cotidie_pending_import";
+    private static final String PENDING_NAVIGATION_KEY = "cotidie_pending_navigation";
+    private static final String EXTRA_NAV_TARGET_TYPE = "cotidie_target_type";
+    private static final String EXTRA_NAV_TARGET_ID = "cotidie_target_id";
+    private static final String EXTRA_NAV_ROUTE = "cotidie_route";
     private static final int MAX_FLUSH_RETRIES = 12;
     private static final int MAX_IMPORT_BYTES = 15 * 1024 * 1024;
     private static final String WEBVIEW_PREFS = "cotidie_webview_stability";
@@ -30,7 +34,9 @@ public class MainActivity extends BridgeActivity {
     private static final int MAX_RENDER_RESTARTS = 2;
     private boolean isInForeground = false;
     private String pendingImportPayload = null;
+    private String pendingNavigationPayload = null;
     private int pendingFlushRetries = 0;
+    private int pendingNavigationFlushRetries = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,6 +47,7 @@ public class MainActivity extends BridgeActivity {
         if (getIntent() != null && getIntent().getBooleanExtra(RECOVERY_MODE_EXTRA, false)) {
             showRecoveryScreen();
         }
+        handleNavigationIntent(getIntent());
         handleImportIntent(getIntent());
     }
 
@@ -48,6 +55,7 @@ public class MainActivity extends BridgeActivity {
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
+        handleNavigationIntent(intent);
         handleImportIntent(intent);
     }
 
@@ -55,6 +63,7 @@ public class MainActivity extends BridgeActivity {
     public void onResume() {
         super.onResume();
         isInForeground = true;
+        flushPendingNavigationToWebView();
         flushPendingImportToWebView();
     }
 
@@ -86,6 +95,37 @@ public class MainActivity extends BridgeActivity {
 
         pendingImportPayload = payload;
         flushPendingImportToWebView();
+    }
+
+    private void handleNavigationIntent(Intent intent) {
+        if (intent == null) return;
+
+        String route = intent.getStringExtra(EXTRA_NAV_ROUTE);
+        String targetType = intent.getStringExtra(EXTRA_NAV_TARGET_TYPE);
+        String targetId = intent.getStringExtra(EXTRA_NAV_TARGET_ID);
+
+        if ((route == null || route.trim().isEmpty())
+                && (targetType == null || targetType.trim().isEmpty() || targetId == null || targetId.trim().isEmpty())) {
+            return;
+        }
+
+        try {
+            JSONObject payload = new JSONObject();
+            if (route != null && !route.trim().isEmpty()) {
+                payload.put("type", "route");
+                payload.put("route", route.trim());
+            } else {
+                payload.put("type", targetType.trim());
+                payload.put("id", targetId.trim());
+            }
+            pendingNavigationPayload = payload.toString();
+            flushPendingNavigationToWebView();
+        } catch (Exception ignored) {
+        }
+
+        intent.removeExtra(EXTRA_NAV_ROUTE);
+        intent.removeExtra(EXTRA_NAV_TARGET_TYPE);
+        intent.removeExtra(EXTRA_NAV_TARGET_ID);
     }
 
     private boolean isSupportedImportUri(Uri uri) {
@@ -131,10 +171,34 @@ public class MainActivity extends BridgeActivity {
         runOnUiThread(() -> bridge.getWebView().evaluateJavascript(js, null));
     }
 
+    private void flushPendingNavigationToWebView() {
+        if (pendingNavigationPayload == null || pendingNavigationPayload.trim().isEmpty()) return;
+        if (bridge == null || bridge.getWebView() == null) {
+            scheduleNavigationFlushRetry();
+            return;
+        }
+
+        final String payload = pendingNavigationPayload;
+        pendingNavigationPayload = null;
+
+        String js = "try{localStorage.setItem('" + PENDING_NAVIGATION_KEY + "',"
+                + JSONObject.quote(payload)
+                + ");window.dispatchEvent(new Event('cotidie-pending-navigation'));}catch(e){}";
+
+        pendingNavigationFlushRetries = 0;
+        runOnUiThread(() -> bridge.getWebView().evaluateJavascript(js, null));
+    }
+
     private void scheduleFlushRetry() {
         if (pendingFlushRetries >= MAX_FLUSH_RETRIES) return;
         pendingFlushRetries += 1;
         new Handler(Looper.getMainLooper()).postDelayed(this::flushPendingImportToWebView, 350);
+    }
+
+    private void scheduleNavigationFlushRetry() {
+        if (pendingNavigationFlushRetries >= MAX_FLUSH_RETRIES) return;
+        pendingNavigationFlushRetries += 1;
+        new Handler(Looper.getMainLooper()).postDelayed(this::flushPendingNavigationToWebView, 350);
     }
 
     private void configureWebViewStability() {

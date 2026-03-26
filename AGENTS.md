@@ -2,6 +2,120 @@
 
 Historial de intervenciones del asistente en el repo.
 
+### [2026-03-26 14:58] 206. Base indefinida de colores liturgicos y precarga 2027
+**Planificacion:**
+- Dejar una base permanente para resolver el color liturgico en cualquier año, sin depender solo de tablas anuales.
+- Mantener la capa anual chilena cuando exista y sumar una precarga del año siguiente para que el APK quede cubierto de inmediato.
+- Alinear web y widget Android con la misma precedencia: fechas mayores protegidas, tabla anual si existe y base general como fallback.
+
+**Ejecucion:**
+- **Motor general**: se rehizo `src/lib/liturgical-color-rules.ts` para calcular el color por precedencia liturgica en cualquier año, incluyendo domingos de tiempos fuertes, Semana Santa, Pascua, Ascension dominical chilena, Pentecostes, Trinidad, Corpus Christi dominical chileno, Sagrado Corazon, Inmaculado Corazon, Sagrada Familia, Bautismo del Senor y traslados de solemnidades como San Jose, Anunciacion e Inmaculada cuando no se celebran en su fecha fija.
+- **Politica de memorias**: la base ya no blanquea automaticamente `Memoria libre`; por defecto la trata como feria, lo que evita poner blanco en dias ordinarios opcionales. Las memorias obligatorias, fiestas y solemnidades conservan su color propio salvo supresion en dias privilegiados.
+- **Capa anual web**: se agrego `src/lib/liturgical-color-shared.ts` y se reescribio `src/lib/official-liturgical-calendar.ts` para soportar varios anos (`2026` y `2027`). `src/lib/getLiturgicalColor.ts` ahora resuelve en este orden: fecha mayor protegida, tabla anual cargada y base general.
+- **Precarga 2027**: se genero `src/lib/liturgical-colors-chile-2027.json` como snapshot embebido de la nueva base reforzada con el calendario chileno. Queda disponible offline para el APK aunque hoy no exista aun un ordo diario chileno completo publicado para 2027.
+- **Widget Android**: se agrego `android/app/src/main/java/com/benjamin/studio/widgets/LiturgicalColorRules.java` con la misma logica de fallback. `SaintWidgetContentFactory.java` ahora protege primero las fechas mayores, luego lee cualquier asset `liturgical-colors-chile-*.json` disponible y finalmente usa la base general. `android/app/build.gradle` paso a copiar todos esos JSON al empaquetado nativo.
+
+**Validacion:**
+- `npm.cmd run build` OK.
+- `.\gradlew.bat :app:compileDebugJavaWithJavac` OK usando `ANDROID_USER_HOME` y `GRADLE_USER_HOME` locales dentro del repo.
+
+**Archivos Modificados:**
+- `src/lib/liturgical-color-shared.ts`
+- `src/lib/liturgical-color-rules.ts`
+- `src/lib/getLiturgicalColor.ts`
+- `src/lib/official-liturgical-calendar.ts`
+- `src/lib/liturgical-colors-chile-2027.json`
+- `android/app/build.gradle`
+- `android/app/src/main/java/com/benjamin/studio/widgets/LiturgicalColorRules.java`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetContentFactory.java`
+- `AGENTS.md`
+
+### [2026-03-26 13:24] 205. Tabla oficial CECh 2026 para colores liturgicos y blanco forzado en Difuntos
+**Planificacion:**
+- Reemplazar la heuristica de colores por una tabla dia a dia basada en la fuente oficial chilena disponible.
+- Compartir esa misma fuente entre web y widget Android para evitar divergencias.
+- Aplicar la preferencia del usuario de mostrar blanco en la Conmemoracion de los Fieles Difuntos, aunque la tabla oficial traiga `Morado o Negro`.
+
+**Ejecucion:**
+- **Fuente oficial**: se genero `src/lib/liturgical-colors-chile-2026.json` a partir de los PDFs oficiales de `Nuestra Liturgia` de la CECh: `2025-Navidad`, `2026-Ordinario-I`, `2026-Cuaresma`, `2026-Semana-Santa`, `2026-Pascual`, `2026-Ordinario-II`, `2026-Adviento` y `2026-Navidad`.
+- **Cobertura real**: la tabla cubre los 365 dias de 2026 con color oficial dia por dia, incluyendo casos con opciones como `Verde o Blanco` o `Morado o Blanco`.
+- **Criterio de app**: cuando la CECh ofrece varias opciones, la app toma la primera del ordo para no blanquear automaticamente memorias opcionales; en `02/11` se fuerza `Blanco` por peticion explicita del usuario.
+- **Web**: `src/lib/official-liturgical-calendar.ts` centraliza la lectura de la tabla y `getLiturgicalColor.ts` ahora consulta primero esa fuente oficial antes de cualquier fallback heuristico.
+- **Widget Android**: `android/app/build.gradle` copia el JSON a assets y `SaintWidgetContentFactory.java` lo carga para usar exactamente el mismo color oficial que la web en 2026.
+- **Contraste**: `SaintOfTheDayCard.tsx` paso a calcular luminosidad del color real para ajustar el texto tambien si en el futuro entraran colores claros distintos del blanco.
+
+**Validacion:**
+- Generacion de tabla oficial 2026: OK (`365` dias).
+- `npm.cmd run build` OK.
+- `.\gradlew.bat :app:compileDebugJavaWithJavac` OK usando `ANDROID_USER_HOME` y `GRADLE_USER_HOME` locales dentro del repo.
+
+**Archivos Modificados:**
+- `src/lib/liturgical-colors-chile-2026.json`
+- `src/lib/official-liturgical-calendar.ts`
+- `src/lib/getLiturgicalColor.ts`
+- `src/components/saints/SaintOfTheDayCard.tsx`
+- `android/app/build.gradle`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetContentFactory.java`
+- `AGENTS.md`
+
+### [2026-03-26 11:22] 204. Colores liturgicos canonicos, Anunciacion con gozoso-1 y parser nativo de image-display
+**Planificacion:**
+- Corregir la heuristica de colores liturgicos para seguir la norma del Misal Romano y quitar colores no normativos usados por la app y el widget.
+- Reemplazar el overlay creado para la Anunciacion por la imagen ya existente `gozoso-1.jpg`, eliminando el archivo sobrante.
+- Ajustar el parser nativo de `image-display.ts` para que lea tambien claves JS sin comillas, no solo las que llevan guiones.
+
+**Ejecucion:**
+- **Norma liturgica**: `src/lib/getLiturgicalColor.ts` y `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetContentFactory.java` dejaron de usar `gold` y `blue`, y pasaron a una logica basada en la IGMR 346-347: blanco, rojo, verde y morado segun celebracion, tiempo y excepciones propias.
+- **Memorias en tiempos fuertes**: se corrigio el tratamiento de Adviento y Cuaresma para no moradear todo Adviento indiscriminadamente; ahora las memorias se mantienen con su color antes del 17 de diciembre y solo vuelven a morado en los dias privilegiados o en Cuaresma, salvo fiestas/solemnidades que conservan su color.
+- **Deteccion mariana**: `src/lib/liturgical-color-rules.ts` se alineo con el texto ya normalizado sin tildes para no fallar por comparaciones inconsistentes.
+- **Anunciacion**: el overlay del `25/03` paso a reutilizar `/images/rosario/gozoso-1.jpg` en web y `public/images/rosario/gozoso-1.jpg` en Android; se elimino `public/images/annunciation-overlay.png`.
+- **Parser de encuadre**: `SaintWidgetUpdater.java` ahora acepta tanto claves con comillas como identificadores JS sin comillas en `image-display.ts`, asi que el encuadre nativo ya no depende de que el id tenga guiones.
+- **Tarjeta web**: `SaintOfTheDayCard.tsx` se limpio para tratar como fondo claro solo el blanco canonico actual.
+
+**Validacion:**
+- `npm.cmd run build` OK.
+- `.\gradlew.bat :app:compileDebugJavaWithJavac` OK usando `ANDROID_USER_HOME` y `GRADLE_USER_HOME` locales dentro del repo.
+
+**Archivos Modificados:**
+- `src/lib/getLiturgicalColor.ts`
+- `src/lib/liturgical-color-rules.ts`
+- `src/components/saints/SaintOfTheDayCard.tsx`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetContentFactory.java`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java`
+- `AGENTS.md`
+
+### [2026-03-26 09:39] 203. Anunciacion sobrepuesta, frases forzadas y tap a devociones desde cartel/widget
+**Planificacion:**
+- Forzar las frases del dia pedidas para `26/06` y `22/10` sin perder el resto de la rotacion diaria.
+- Hacer que el cartel del dia y los widgets abran la devocion correspondiente cuando el santoral del dia coincida con una devocion existente.
+- Superponer una imagen propia de la Anunciacion sobre la imagen semanal del `25/03`, tanto en el cartel web como en el widget grande.
+
+**Ejecucion:**
+- **Frases forzadas**: `SettingsContext` ahora prioriza un mapa fijo por fecha para `26/06` y `22/10`, antes del pool rotativo de citas.
+- **Match de devocion**: `src/lib/devotion-day-images.ts` paso a devolver no solo la imagen, sino tambien el `prayerId` de la devocion asociada al santo del dia.
+- **Cartel del dia**: `SaintOfTheDayCard` ahora detecta ese `prayerId`, vuelve clickeable toda la tarjeta cuando existe devocion y abre directamente la devocion correspondiente.
+- **Anunciacion**: se agrego `public/images/annunciation-overlay.png` como overlay nuevo; el cartel del `25/03` la muestra sobre la imagen propia del dia de la semana.
+- **Widget Android**: `SaintWidgetContentFactory` y `SaintWidgetUpdater` ahora propagan `prayerId`, componen el overlay de Anunciacion en el widget grande y mandan extras nativos a `MainActivity` para abrir la devocion al tocar el widget.
+- **Puente nativo-web**: `MainActivity` y `MainApp` agregaron una cola de navegacion pendiente via `localStorage`/evento para que el tap del widget abra la vista correcta tambien con la app fria.
+
+**Validacion:**
+- `npm.cmd run build` OK.
+- `.\gradlew.bat :app:compileDebugJavaWithJavac` OK fuera del sandbox, usando `ANDROID_USER_HOME` y `GRADLE_USER_HOME` locales dentro del repo para validar los cambios nativos contra el SDK instalado.
+
+**Archivos Modificados:**
+- `src/lib/devotion-day-images.ts`
+- `src/lib/placeholder-images.json`
+- `src/context/SettingsContext.tsx`
+- `src/components/PrayerList.tsx`
+- `src/components/main/MainApp.tsx`
+- `src/components/saints/SaintOfTheDayCard.tsx`
+- `android/app/src/main/java/com/benjamin/studio/MainActivity.java`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetContent.java`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetContentFactory.java`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java`
+- `public/images/annunciation-overlay.png`
+- `AGENTS.md`
+
 ### [2026-03-23 22:05] 202. Verificacion completa de devociones con imagen y correccion a San Josemaria
 **Planificacion:**
 - Confirmar si el resolver nuevo cubria todas las devociones del repo que ya tienen imagen propia.

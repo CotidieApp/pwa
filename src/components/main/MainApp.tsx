@@ -49,6 +49,7 @@ const getInitialNavState = (): NavigationState => {
 };
 
 const PENDING_IMPORT_STORAGE_KEY = 'cotidie_pending_import';
+const PENDING_NAVIGATION_STORAGE_KEY = 'cotidie_pending_navigation';
 const CUSTOM_PLAN_EXIT_CONFIRM_MS = 3000;
 const DEFAULT_CAMINO_SEARCH_STATE = {
   term: '',
@@ -112,6 +113,7 @@ export default function MainApp() {
     index: number;
     expiresAt: number;
   } | null>(null);
+  const lastProcessedPendingNavigationRef = useRef<string | null>(null);
   const customPlanExitToastIdRef = useRef<string | null>(null);
   const customPlanExitTimeoutRef = useRef<number | null>(null);
   const rosaryMeditatedBackHandlerRef = useRef<(() => boolean) | null>(null);
@@ -555,6 +557,7 @@ export default function MainApp() {
       <PrayerList
         prayers={prayerListSource}
         onSelectPrayer={handleSelectPrayer}
+        onOpenPrayerById={handleOpenPrayerById}
         onRemovePrayer={
           selectedCategory.id === 'devociones'
             ? removeUserDevotion
@@ -659,6 +662,7 @@ export default function MainApp() {
               <PrayerList
                 prayers={currentPrayer.prayers}
                 onSelectPrayer={handleSelectPrayer}
+                onOpenPrayerById={handleOpenPrayerById}
                 categoryId={currentPrayer.id || ''}
                 prayerPathLength={prayerPath.length}
               />
@@ -728,6 +732,41 @@ export default function MainApp() {
       }
     }
   }, [allPrayers, handleOpenPrayerById]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const consumePendingNavigation = () => {
+      try {
+        const raw = window.localStorage.getItem(PENDING_NAVIGATION_STORAGE_KEY);
+        if (!raw || raw === lastProcessedPendingNavigationRef.current) return;
+
+        lastProcessedPendingNavigationRef.current = raw;
+        window.localStorage.removeItem(PENDING_NAVIGATION_STORAGE_KEY);
+
+        const parsed = JSON.parse(raw);
+        if (parsed?.type === 'prayer' && typeof parsed.id === 'string') {
+          handleOpenPrayerById(parsed.id);
+          return;
+        }
+        if (parsed?.type === 'category' && typeof parsed.id === 'string') {
+          handleOpenCategoryById(parsed.id);
+          return;
+        }
+        if (parsed?.type === 'route' && typeof parsed.route === 'string') {
+          handleRouteNavigation(parsed.route);
+        }
+      } catch {
+        window.localStorage.removeItem(PENDING_NAVIGATION_STORAGE_KEY);
+      }
+    };
+
+    consumePendingNavigation();
+    window.addEventListener('cotidie-pending-navigation', consumePendingNavigation);
+    return () => {
+      window.removeEventListener('cotidie-pending-navigation', consumePendingNavigation);
+    };
+  }, [handleOpenCategoryById, handleOpenPrayerById, handleRouteNavigation]);
 
   useNotificationActionBinding({
     togglePlanDeVidaItem,
@@ -1078,6 +1117,3 @@ export default function MainApp() {
     </div>
   );
 }
-
-
-

@@ -6,5 +6,6 @@ export type DevCredential = {
 export const allowedDevCredentials: DevCredential[] = [
   { user: 'Benhaman', pass: 'ezequieldicehola' },
   { user: 'diosesbueno', pass: 'todoeltiempo' },
+  { user: 'papanatas', pass: 'diantremanzana' },
 ];
 

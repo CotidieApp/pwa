@@ -21,6 +21,11 @@ type DevotionDayImageEntry = {
   aliases: string[];
 };
 
+type DevotionDayMatch = {
+  prayerId: string;
+  image: ImagePlaceholder;
+};
+
 const normalizeSaintDayText = (value: string) =>
   value
     .toLowerCase()
@@ -86,7 +91,7 @@ const devotionDayImageEntries = devotionPrayersWithImages
   .map((prayer) => buildDevotionDayImageEntry(prayer, devotionAliasesByPrayerId[prayer.id!]))
   .filter((entry): entry is DevotionDayImageEntry => entry !== null);
 
-export function resolveDevotionDayImage(saint: Pick<SaintOfTheDay, 'name'> | null | undefined): ImagePlaceholder | null {
+export function resolveDevotionDayMatch(saint: Pick<SaintOfTheDay, 'name'> | null | undefined): DevotionDayMatch | null {
   if (!saint?.name) return null;
 
   const normalizedSaintName = normalizeSaintDayText(saint.name);
@@ -97,9 +102,20 @@ export function resolveDevotionDayImage(saint: Pick<SaintOfTheDay, 'name'> | nul
   if (!match) return null;
 
   return {
-    id: match.id,
-    description: match.description,
-    imageUrl: match.imageUrl,
-    imageHint: match.imageHint,
+    prayerId: match.id,
+    image: {
+      id: match.id,
+      description: match.description,
+      imageUrl: match.imageUrl,
+      imageHint: match.imageHint,
+    },
   };
+}
+
+export function resolveDevotionDayImage(saint: Pick<SaintOfTheDay, 'name'> | null | undefined): ImagePlaceholder | null {
+  return resolveDevotionDayMatch(saint)?.image ?? null;
+}
+
+export function resolveDevotionDayPrayerId(saint: Pick<SaintOfTheDay, 'name'> | null | undefined): string | null {
+  return resolveDevotionDayMatch(saint)?.prayerId ?? null;
 }

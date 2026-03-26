@@ -123,7 +123,7 @@ const resolveNpmCliPath = () => {
   if (fs.existsSync(bundled)) {
     return bundled;
   }
-  throw new Error("No se encontro npm-cli.js junto a la instalacion actual de Node.");
+  throw new Error("No se encontró npm-cli.js junto a la instalación actual de Node.");
 };
 
 const resolveCapacitorCliPath = () => {
@@ -131,7 +131,7 @@ const resolveCapacitorCliPath = () => {
   if (fs.existsSync(bundled)) {
     return bundled;
   }
-  throw new Error("No se encontro la CLI local de Capacitor en node_modules.");
+  throw new Error("No se encontró la CLI local de Capacitor en node_modules.");
 };
 
 const getWindowsDriveRoots = () => {
@@ -205,8 +205,8 @@ const ensureGitIndexUnlocked = () => {
   const stats = fs.statSync(lockPath);
   const stampedAt = new Date(stats.mtimeMs).toLocaleString("es-CL");
   throw new Error(
-    `Git esta bloqueado por ${lockPath} (ultima modificacion: ${stampedAt}). ` +
-      "Cierra cualquier proceso git/editor pendiente, elimina ese archivo si quedo stale y vuelve a ejecutar el comando."
+    `Git está bloqueado por ${lockPath} (última modificación: ${stampedAt}). ` +
+      "Cierra cualquier proceso git/editor pendiente, elimina ese archivo si quedó stale y vuelve a ejecutar el comando."
   );
 };
 
@@ -223,10 +223,10 @@ const copyApkToDrive = (apkPath, version) => {
   } else {
     console.warn(
       [
-        "No se detecto una carpeta de Google Drive. ",
-        "Se dejo una copia local en: ",
+        "No se detectó una carpeta de Google Drive. ",
+        "Se dejó una copia local en: ",
         driveApkPath,
-        ". Si quieres copiarla a Drive automaticamente, define COTIDIE_APK_DRIVE_DIR.",
+        ". Si quieres copiarla a Drive automáticamente, define COTIDIE_APK_DRIVE_DIR.",
       ].join("")
     );
   }
@@ -299,7 +299,7 @@ if (process.platform === "win32") {
 const apkDir = path.join(rootDir, "android", "app", "build", "outputs", "apk", "debug");
 const srcApk = path.join(apkDir, "app-debug.apk");
 if (!fs.existsSync(srcApk)) {
-  throw new Error("No se encontro app-debug.apk.");
+  throw new Error("No se encontró app-debug.apk.");
 }
 
 try {
@@ -307,7 +307,7 @@ try {
   for (const file of files) {
     if (file.startsWith("cotidie-installer-v") && file.endsWith(".apk")) {
       fs.unlinkSync(path.join(rootDir, file));
-      console.log(`Eliminado APK anterior: ${file}`);
+      console.log(`Eliminado exitosamente APK anterior: ${file}`);
     }
   }
 } catch (error) {

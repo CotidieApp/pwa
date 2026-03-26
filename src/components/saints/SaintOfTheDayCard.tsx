@@ -1,19 +1,37 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import Image from 'next/image';
 import { Eye } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSettings } from '@/context/SettingsContext';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { resolveDevotionDayPrayerId } from '@/lib/devotion-day-images';
 import { cn } from '@/lib/utils';
 import { getLiturgicalColor } from '@/lib/getLiturgicalColor';
 import { renderText } from '@/lib/textFormatter';
 import { getImageObjectPosition } from '@/lib/image-display';
 
-export default function SaintOfTheDayCard() {
+type SaintOfTheDayCardProps = {
+  onOpenPrayerById?: (id: string) => void;
+};
+
+const isLightHexColor = (color: string) => {
+  const match = color.match(/^#([0-9a-f]{6})$/i);
+  if (!match) return false;
+  const value = match[1];
+  const r = parseInt(value.slice(0, 2), 16) / 255;
+  const g = parseInt(value.slice(2, 4), 16) / 255;
+  const b = parseInt(value.slice(4, 6), 16) / 255;
+  const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return luma > 0.6;
+};
+
+export default function SaintOfTheDayCard({ onOpenPrayerById }: SaintOfTheDayCardProps) {
   const {
     saintOfTheDay,
     saintOfTheDayImage,
+    saintOfTheDayPrayerId,
     overriddenFixedSaint,
     overriddenFixedSaintImage,
     simulatedDate,
@@ -27,13 +45,44 @@ export default function SaintOfTheDayCard() {
 
   if (!activeSaint) return null;
 
+  const now = simulatedDate ? new Date(simulatedDate) : new Date();
+  const isAnnunciationDay = now.getMonth() === 2 && now.getDate() === 25;
+  const annunciationOverlayImage = isAnnunciationDay
+    ? PlaceHolderImages.find((img) => img.id === 'annunciation-overlay-image') || null
+    : null;
+  const activePrayerId = showFixed
+    ? resolveDevotionDayPrayerId(activeSaint)
+    : saintOfTheDayPrayerId ?? resolveDevotionDayPrayerId(activeSaint);
+  const isClickable = Boolean(activePrayerId && onOpenPrayerById);
   const color = getLiturgicalColor(activeSaint, simulatedDate);
-  const isLightColor = color === '#D4AF37' || color === '#F8F9FA' || color === '#B8860B';
+  const isLightColor = isLightHexColor(color);
   const textColor = isLightColor ? 'text-slate-800' : 'text-white';
   const objectPosition = getImageObjectPosition(activeImage?.id);
 
+  const handleOpen = () => {
+    if (!activePrayerId || !onOpenPrayerById) return;
+    onOpenPrayerById(activePrayerId);
+  };
+
   return (
-    <Card className={cn('shadow-md mb-4 overflow-hidden relative', textColor)} style={{ backgroundColor: color }}>
+    <Card
+      className={cn(
+        'shadow-md mb-4 overflow-hidden relative',
+        textColor,
+        isClickable && 'cursor-pointer transition-colors hover:bg-accent/20'
+      )}
+      style={{ backgroundColor: color }}
+      onClick={isClickable ? handleOpen : undefined}
+      onKeyDown={isClickable ? (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          handleOpen();
+        }
+      } : undefined}
+      role={isClickable ? 'button' : undefined}
+      tabIndex={isClickable ? 0 : undefined}
+      aria-label={isClickable ? `Abrir ${activeSaint.name}` : undefined}
+    >
       {activeImage && (
         <div className="relative w-full aspect-[3/2]">
           <Image
@@ -46,12 +95,36 @@ export default function SaintOfTheDayCard() {
             data-ai-hint={activeImage.imageHint}
             priority
           />
+          {annunciationOverlayImage && (
+            <div className="absolute bottom-3 left-3 z-10 w-[42%] max-w-[11rem] min-w-[6.5rem] overflow-hidden rounded-2xl border border-white/45 bg-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.4)] backdrop-blur-[1px]">
+              <div className="relative aspect-square">
+                <Image
+                  src={annunciationOverlayImage.imageUrl}
+                  alt={annunciationOverlayImage.description || 'Anunciación del Señor'}
+                  fill
+                  sizes="180px"
+                  className="object-cover"
+                  priority
+                />
+              </div>
+            </div>
+          )}
           {overriddenFixedSaint && (
             <button
-              className="absolute bottom-2 right-2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full backdrop-blur-sm transition-all active:scale-95 z-10"
-              onPointerDown={() => setIsPeeking(true)}
-              onPointerUp={() => setIsPeeking(false)}
-              onPointerLeave={() => setIsPeeking(false)}
+              className="absolute bottom-2 right-2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full backdrop-blur-sm transition-all active:scale-95 z-20"
+              onClick={(event) => event.stopPropagation()}
+              onPointerDown={(event) => {
+                event.stopPropagation();
+                setIsPeeking(true);
+              }}
+              onPointerUp={(event) => {
+                event.stopPropagation();
+                setIsPeeking(false);
+              }}
+              onPointerLeave={(event) => {
+                event.stopPropagation();
+                setIsPeeking(false);
+              }}
               aria-label="Ver santo fijo"
             >
               <Eye className="size-5" />
