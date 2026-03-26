@@ -34,7 +34,7 @@ export const salmoII: Prayer = {
 Bienaventurados serán los que hayan puesto en El su confianza.
 
 Gloria al Padre, y al Hijo, y al Espíritu Santo.
-Como era en el principio, ahora y siempre, por siglos de los siglos.
+Como era en el principio, ahora y siempre, por los siglos de los siglos.
 Amén.
 
 Ant. Su reinado es sempiterno; y todos los reyes le servirán y le acatarán (T.P. Aleluya).
