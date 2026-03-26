@@ -2,6 +2,22 @@
 
 Historial de intervenciones del asistente en el repo.
 
+### [2026-03-26 15:10] 207. Version visible al cierre de compilacion APK
+**Planificacion:**
+- Ajustar el cierre exitoso de `android:apk` para que, despues del mensaje que indica que el codigo ya se subio y deberia verse en Vercel, informe tambien la version compilada.
+- Mantener intacto el resto del flujo de build, sync, generacion de APK y push.
+
+**Ejecucion:**
+- **Mensaje final**: en `scripts/android-apk.mjs` se agrego un `console.log` adicional inmediatamente despues de `Exito: el codigo se ha subido y Vercel deberia estar actualizando la PWA.`.
+- **Version reportada**: el nuevo cierre muestra `Version compilada: v{nextVersion}.`, reutilizando la misma version ya resuelta por el script para nombrar el APK y el commit.
+
+**Validacion:**
+- `node --check scripts/android-apk.mjs` OK.
+
+**Archivos Modificados:**
+- `scripts/android-apk.mjs`
+- `AGENTS.md`
+
 ### [2026-03-26 14:58] 206. Base indefinida de colores liturgicos y precarga 2027
 **Planificacion:**
 - Dejar una base permanente para resolver el color liturgico en cualquier año, sin depender solo de tablas anuales.

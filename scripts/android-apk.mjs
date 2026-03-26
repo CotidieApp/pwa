@@ -353,6 +353,7 @@ if (!skipPush) {
     console.log("Subiendo cambios a GitHub...");
     runCommand(gitCommand, ["push"], rootDir);
     console.log("Exito: el codigo se ha subido y Vercel deberia estar actualizando la PWA.");
+    console.log(`Version compilada: v${nextVersion}.`);
   } catch (error) {
     console.error("No se pudo completar la sincronizacion automatica con Git.");
     console.error(`Error: ${error.message}`);
