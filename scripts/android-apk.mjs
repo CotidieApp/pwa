@@ -21,7 +21,7 @@ const resolveExistingPath = (...candidates) => candidates.find((candidate) => ca
 
 const ensureSemver = (value) => {
   if (typeof value !== "string" || !/^\d+\.\d+\.\d+$/.test(value)) {
-    throw new Error(`Version invalida: ${String(value)}`);
+    throw new Error(`Versión inválida: ${String(value)}`);
   }
   return value;
 };
@@ -320,12 +320,12 @@ console.log(`APK generado exitosamente en: ${dstApk}`);
 copyApkToDrive(dstApk, nextVersion);
 
 if (skipPush) {
-  console.log("\nAviso: se omitio el git push.");
-  console.log("La APK local queda actualizada, pero la PWA/Vercel no se actualizara hasta subir los cambios a origin/main.");
+  console.log("\nAviso: se omitió el git push.");
+  console.log("La APK local queda actualizada, pero la PWA/Vercel no se actualizará hasta subir los cambios a origin/main.");
 }
 
 if (!skipPush) {
-  console.log("\n--- Iniciando sincronizacion automatica con Vercel (Git) ---");
+  console.log("\n--- Iniciando sincronización automática con Vercel (Git) ---");
   try {
     const gitCommand = resolveGitCommand();
 
@@ -344,7 +344,7 @@ if (!skipPush) {
       }
 
       if (commitResult.status !== 0) {
-        console.log("Git commit no realizo cambios (probablemente nothing to commit).");
+        console.log("Git commit no realizó cambios (probablemente nothing to commit).");
       }
     } catch (error) {
       console.warn("Advertencia en git commit:", error.message);
@@ -352,10 +352,10 @@ if (!skipPush) {
 
     console.log("Subiendo cambios a GitHub...");
     runCommand(gitCommand, ["push"], rootDir);
-    console.log("Exito: el codigo se ha subido y Vercel deberia estar actualizando la PWA.");
-    console.log(`Version compilada: v${nextVersion}.`);
+    console.log("Éxito: el código se ha subido y Vercel debería estar actualizando la PWA.");
+    console.log(`Versión compilada: v${nextVersion}.`);
   } catch (error) {
-    console.error("No se pudo completar la sincronizacion automatica con Git.");
+    console.error("No se pudo completar la sincronización automática con Git.");
     console.error(`Error: ${error.message}`);
     console.error("Por favor, ejecuta 'git push' manualmente si deseas actualizar la web.");
   }

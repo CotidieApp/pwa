@@ -2,36 +2,88 @@
 
 Historial de intervenciones del asistente en el repo.
 
-### [2026-03-26 15:10] 207. Version visible al cierre de compilacion APK
-**Planificacion:**
-- Ajustar el cierre exitoso de `android:apk` para que, despues del mensaje que indica que el codigo ya se subio y deberia verse en Vercel, informe tambien la version compilada.
-- Mantener intacto el resto del flujo de build, sync, generacion de APK y push.
+### [2026-03-26 15:48] 210. Pasada editorial completa del historial de `AGENTS.md`
+**Planificación:**
+- Hacer una pasada puramente editorial sobre todo el historial para corregir tildes, ortografía y formulación en texto narrativo sin alterar rutas, nombres de archivos, comandos ni fragmentos entre backticks.
+- Revisar después los residuos típicos y corregir sobreajustes puntuales antes de cerrar.
 
-**Ejecucion:**
-- **Mensaje final**: en `scripts/android-apk.mjs` se agrego un `console.log` adicional inmediatamente despues de `Exito: el codigo se ha subido y Vercel deberia estar actualizando la PWA.`.
-- **Version reportada**: el nuevo cierre muestra `Version compilada: v{nextVersion}.`, reutilizando la misma version ya resuelta por el script para nombrar el APK y el commit.
+**Ejecución:**
+- **Ortografía general**: se corrigieron acentos ausentes en títulos, planes, ejecuciones y validaciones a lo largo del historial completo (`litúrgico`, `heurística`, `validación`, `generación`, `versión`, `día`, `devoción`, `Anunciación`, `Vía Crucis`, etc.).
+- **Formulación repetida**: se normalizaron pretéritos y expresiones muy repetidas del registro (`se agregó`, `se generó`, `se corrigió`, `se reescribió`, `pasó a`, `quedó`, `además`, `según`, `catálogo`, `búsqueda`, `confirmación`, etc.).
+- **Criterio de seguridad**: se preservaron literales técnicos y comandos cuando estaban entre backticks; por eso siguen apareciendo formas como `crear imagenes`, `v{version}` o IDs/paths sin “embellecimiento” editorial.
+- **Ajuste fino**: se corrigió una sobrecorrección puntual (`rehízo` -> `rehizo`) y se revisaron los nombres propios para no deformar formas intencionales como `San Josemaria`.
 
-**Validacion:**
+**Validación:**
+- Revisión manual por muestras de bloques viejos y nuevos: OK.
+- Barrido automático de residuos típicos de ortografía sin tilde en texto narrativo: reducido a literales técnicos preservados o casos dentro de backticks.
+
+**Archivos Modificados:**
+- `AGENTS.md`
+
+### [2026-03-26 15:24] 209. Normalización UTF-8 legible de `AGENTS.md`
+**Planificación:**
+- Reparar el mojibake histórico de `AGENTS.md` para que el archivo vuelva a quedar en texto plano legible con tildes correctas.
+- Normalizar también las cabeceras repetidas del historial (`Planificación`, `Ejecución`, `Validación`) sin alterar rutas, nombres de archivos ni fragmentos técnicos entre backticks.
+
+**Ejecución:**
+- **Encoding**: se corrigieron secuencias corruptas heredadas de acentos, símbolos y palabras partidas, dejándolas en UTF-8 legible.
+- **Cabeceras**: se normalizaron las etiquetas repetidas de sección para que queden como `Planificación`, `Ejecución` y `Validación` en todo el archivo.
+- **Legibilidad**: se reescribieron referencias textuales a secuencias mojibake para que el historial quede legible sin mostrar basura visual innecesaria.
+- **Alcance**: se preservó el contenido histórico y solo se corrigieron texto corrupto y formas ortográficas repetidas de bajo riesgo.
+
+**Validación:**
+- Revisión automática sin residuos de mojibake conocidos ni caracteres de control problemáticos en `AGENTS.md`: OK.
+
+**Archivos Modificados:**
+- `AGENTS.md`
+
+### [2026-03-26 15:13] 208. Tildes en mensajes de `android:apk`
+**Planificación:**
+- Confirmar si los acentos en `scripts/android-apk.mjs` podían romper el flujo de compilación.
+- Corregir los mensajes visibles del script para que usen tildes y signos correctos sin alterar comandos, flags, rutas ni claves internas.
+
+**Ejecución:**
+- **Compatibilidad UTF-8**: se confirmó que Node no tiene problema con acentos en este script mientras el archivo permanezca en UTF-8, como ya ocurre en el repo.
+- **Mensajes visibles**: se actualizaron cadenas del flujo de `android:apk` como `Versión inválida`, `se omitió`, `actualizará`, `sincronización automática`, `realizó`, `Éxito`, `código`, `debería` y `Versión compilada`.
+- **Alcance**: no se tocaron identificadores, rutas, flags ni nombres internos como `local-fallback`, para evitar churn innecesario en partes no visibles o más sensibles.
+
+**Validación:**
 - `node --check scripts/android-apk.mjs` OK.
 
 **Archivos Modificados:**
 - `scripts/android-apk.mjs`
 - `AGENTS.md`
 
-### [2026-03-26 14:58] 206. Base indefinida de colores liturgicos y precarga 2027
-**Planificacion:**
-- Dejar una base permanente para resolver el color liturgico en cualquier año, sin depender solo de tablas anuales.
+### [2026-03-26 15:10] 207. Versión visible al cierre de compilación APK
+**Planificación:**
+- Ajustar el cierre exitoso de `android:apk` para que, después del mensaje que indica que el código ya se subió y debería verse en Vercel, informe también la versión compilada.
+- Mantener intacto el resto del flujo de build, sync, generación de APK y push.
+
+**Ejecución:**
+- **Mensaje final**: en `scripts/android-apk.mjs` se agregó un `console.log` adicional inmediatamente después de `Éxito: el código se ha subido y Vercel debería estar actualizando la PWA.`.
+- **Versión reportada**: el nuevo cierre muestra `Versión compilada: v{nextVersion}.`, reutilizando la misma versión ya resuelta por el script para nombrar el APK y el commit.
+
+**Validación:**
+- `node --check scripts/android-apk.mjs` OK.
+
+**Archivos Modificados:**
+- `scripts/android-apk.mjs`
+- `AGENTS.md`
+
+### [2026-03-26 14:58] 206. Base indefinida de colores litúrgicos y precarga 2027
+**Planificación:**
+- Dejar una base permanente para resolver el color litúrgico en cualquier año, sin depender solo de tablas anuales.
 - Mantener la capa anual chilena cuando exista y sumar una precarga del año siguiente para que el APK quede cubierto de inmediato.
 - Alinear web y widget Android con la misma precedencia: fechas mayores protegidas, tabla anual si existe y base general como fallback.
 
-**Ejecucion:**
-- **Motor general**: se rehizo `src/lib/liturgical-color-rules.ts` para calcular el color por precedencia liturgica en cualquier año, incluyendo domingos de tiempos fuertes, Semana Santa, Pascua, Ascension dominical chilena, Pentecostes, Trinidad, Corpus Christi dominical chileno, Sagrado Corazon, Inmaculado Corazon, Sagrada Familia, Bautismo del Senor y traslados de solemnidades como San Jose, Anunciacion e Inmaculada cuando no se celebran en su fecha fija.
-- **Politica de memorias**: la base ya no blanquea automaticamente `Memoria libre`; por defecto la trata como feria, lo que evita poner blanco en dias ordinarios opcionales. Las memorias obligatorias, fiestas y solemnidades conservan su color propio salvo supresion en dias privilegiados.
-- **Capa anual web**: se agrego `src/lib/liturgical-color-shared.ts` y se reescribio `src/lib/official-liturgical-calendar.ts` para soportar varios anos (`2026` y `2027`). `src/lib/getLiturgicalColor.ts` ahora resuelve en este orden: fecha mayor protegida, tabla anual cargada y base general.
-- **Precarga 2027**: se genero `src/lib/liturgical-colors-chile-2027.json` como snapshot embebido de la nueva base reforzada con el calendario chileno. Queda disponible offline para el APK aunque hoy no exista aun un ordo diario chileno completo publicado para 2027.
-- **Widget Android**: se agrego `android/app/src/main/java/com/benjamin/studio/widgets/LiturgicalColorRules.java` con la misma logica de fallback. `SaintWidgetContentFactory.java` ahora protege primero las fechas mayores, luego lee cualquier asset `liturgical-colors-chile-*.json` disponible y finalmente usa la base general. `android/app/build.gradle` paso a copiar todos esos JSON al empaquetado nativo.
+**Ejecución:**
+- **Motor general**: se rehizo `src/lib/liturgical-color-rules.ts` para calcular el color por precedencia litúrgica en cualquier año, incluyendo domingos de tiempos fuertes, Semana Santa, Pascua, Ascensión dominical chilena, Pentecostés, Trinidad, Corpus Christi dominical chileno, Sagrado Corazón, Inmaculado Corazón, Sagrada Familia, Bautismo del Señor y traslados de solemnidades como San José, Anunciación e Inmaculada cuando no se celebran en su fecha fija.
+- **Política de memorias**: la base ya no blanquea automáticamente `Memoria libre`; por defecto la trata como feria, lo que evita poner blanco en días ordinarios opcionales. Las memorias obligatorias, fiestas y solemnidades conservan su color propio salvo supresión en días privilegiados.
+- **Capa anual web**: se agregó `src/lib/liturgical-color-shared.ts` y se reescribió `src/lib/official-liturgical-calendar.ts` para soportar varios años (`2026` y `2027`). `src/lib/getLiturgicalColor.ts` ahora resuelve en este orden: fecha mayor protegida, tabla anual cargada y base general.
+- **Precarga 2027**: se generó `src/lib/liturgical-colors-chile-2027.json` como snapshot embebido de la nueva base reforzada con el calendario chileno. Queda disponible offline para el APK aunque hoy no exista aún un ordo diario chileno completo publicado para 2027.
+- **Widget Android**: se agregó `android/app/src/main/java/com/benjamin/studio/widgets/LiturgicalColorRules.java` con la misma lógica de fallback. `SaintWidgetContentFactory.java` ahora protege primero las fechas mayores, luego lee cualquier asset `liturgical-colors-chile-*.json` disponible y finalmente usa la base general. `android/app/build.gradle` pasó a copiar todos esos JSON al empaquetado nativo.
 
-**Validacion:**
+**Validación:**
 - `npm.cmd run build` OK.
 - `.\gradlew.bat :app:compileDebugJavaWithJavac` OK usando `ANDROID_USER_HOME` y `GRADLE_USER_HOME` locales dentro del repo.
 
@@ -46,22 +98,22 @@ Historial de intervenciones del asistente en el repo.
 - `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetContentFactory.java`
 - `AGENTS.md`
 
-### [2026-03-26 13:24] 205. Tabla oficial CECh 2026 para colores liturgicos y blanco forzado en Difuntos
-**Planificacion:**
-- Reemplazar la heuristica de colores por una tabla dia a dia basada en la fuente oficial chilena disponible.
+### [2026-03-26 13:24] 205. Tabla oficial CECh 2026 para colores litúrgicos y blanco forzado en Difuntos
+**Planificación:**
+- Reemplazar la heurística de colores por una tabla día a día basada en la fuente oficial chilena disponible.
 - Compartir esa misma fuente entre web y widget Android para evitar divergencias.
-- Aplicar la preferencia del usuario de mostrar blanco en la Conmemoracion de los Fieles Difuntos, aunque la tabla oficial traiga `Morado o Negro`.
+- Aplicar la preferencia del usuario de mostrar blanco en la Conmemoración de los Fieles Difuntos, aunque la tabla oficial traiga `Morado o Negro`.
 
-**Ejecucion:**
-- **Fuente oficial**: se genero `src/lib/liturgical-colors-chile-2026.json` a partir de los PDFs oficiales de `Nuestra Liturgia` de la CECh: `2025-Navidad`, `2026-Ordinario-I`, `2026-Cuaresma`, `2026-Semana-Santa`, `2026-Pascual`, `2026-Ordinario-II`, `2026-Adviento` y `2026-Navidad`.
-- **Cobertura real**: la tabla cubre los 365 dias de 2026 con color oficial dia por dia, incluyendo casos con opciones como `Verde o Blanco` o `Morado o Blanco`.
-- **Criterio de app**: cuando la CECh ofrece varias opciones, la app toma la primera del ordo para no blanquear automaticamente memorias opcionales; en `02/11` se fuerza `Blanco` por peticion explicita del usuario.
-- **Web**: `src/lib/official-liturgical-calendar.ts` centraliza la lectura de la tabla y `getLiturgicalColor.ts` ahora consulta primero esa fuente oficial antes de cualquier fallback heuristico.
+**Ejecución:**
+- **Fuente oficial**: se generó `src/lib/liturgical-colors-chile-2026.json` a partir de los PDFs oficiales de `Nuestra Liturgia` de la CECh: `2025-Navidad`, `2026-Ordinario-I`, `2026-Cuaresma`, `2026-Semana-Santa`, `2026-Pascual`, `2026-Ordinario-II`, `2026-Adviento` y `2026-Navidad`.
+- **Cobertura real**: la tabla cubre los 365 días de 2026 con color oficial día por día, incluyendo casos con opciones como `Verde o Blanco` o `Morado o Blanco`.
+- **Criterio de app**: cuando la CECh ofrece varias opciones, la app toma la primera del ordo para no blanquear automáticamente memorias opcionales; en `02/11` se fuerza `Blanco` por petición explícita del usuario.
+- **Web**: `src/lib/official-liturgical-calendar.ts` centraliza la lectura de la tabla y `getLiturgicalColor.ts` ahora consulta primero esa fuente oficial antes de cualquier fallback heurístico.
 - **Widget Android**: `android/app/build.gradle` copia el JSON a assets y `SaintWidgetContentFactory.java` lo carga para usar exactamente el mismo color oficial que la web en 2026.
-- **Contraste**: `SaintOfTheDayCard.tsx` paso a calcular luminosidad del color real para ajustar el texto tambien si en el futuro entraran colores claros distintos del blanco.
+- **Contraste**: `SaintOfTheDayCard.tsx` pasó a calcular luminosidad del color real para ajustar el texto también si en el futuro entraran colores claros distintos del blanco.
 
-**Validacion:**
-- Generacion de tabla oficial 2026: OK (`365` dias).
+**Validación:**
+- Generación de tabla oficial 2026: OK (`365` días).
 - `npm.cmd run build` OK.
 - `.\gradlew.bat :app:compileDebugJavaWithJavac` OK usando `ANDROID_USER_HOME` y `GRADLE_USER_HOME` locales dentro del repo.
 
@@ -74,21 +126,21 @@ Historial de intervenciones del asistente en el repo.
 - `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetContentFactory.java`
 - `AGENTS.md`
 
-### [2026-03-26 11:22] 204. Colores liturgicos canonicos, Anunciacion con gozoso-1 y parser nativo de image-display
-**Planificacion:**
-- Corregir la heuristica de colores liturgicos para seguir la norma del Misal Romano y quitar colores no normativos usados por la app y el widget.
-- Reemplazar el overlay creado para la Anunciacion por la imagen ya existente `gozoso-1.jpg`, eliminando el archivo sobrante.
-- Ajustar el parser nativo de `image-display.ts` para que lea tambien claves JS sin comillas, no solo las que llevan guiones.
+### [2026-03-26 11:22] 204. Colores litúrgicos canónicos, Anunciación con gozoso-1 y parser nativo de image-display
+**Planificación:**
+- Corregir la heurística de colores litúrgicos para seguir la norma del Misal Romano y quitar colores no normativos usados por la app y el widget.
+- Reemplazar el overlay creado para la Anunciación por la imagen ya existente `gozoso-1.jpg`, eliminando el archivo sobrante.
+- Ajustar el parser nativo de `image-display.ts` para que lea también claves JS sin comillas, no solo las que llevan guiones.
 
-**Ejecucion:**
-- **Norma liturgica**: `src/lib/getLiturgicalColor.ts` y `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetContentFactory.java` dejaron de usar `gold` y `blue`, y pasaron a una logica basada en la IGMR 346-347: blanco, rojo, verde y morado segun celebracion, tiempo y excepciones propias.
-- **Memorias en tiempos fuertes**: se corrigio el tratamiento de Adviento y Cuaresma para no moradear todo Adviento indiscriminadamente; ahora las memorias se mantienen con su color antes del 17 de diciembre y solo vuelven a morado en los dias privilegiados o en Cuaresma, salvo fiestas/solemnidades que conservan su color.
-- **Deteccion mariana**: `src/lib/liturgical-color-rules.ts` se alineo con el texto ya normalizado sin tildes para no fallar por comparaciones inconsistentes.
-- **Anunciacion**: el overlay del `25/03` paso a reutilizar `/images/rosario/gozoso-1.jpg` en web y `public/images/rosario/gozoso-1.jpg` en Android; se elimino `public/images/annunciation-overlay.png`.
+**Ejecución:**
+- **Norma litúrgica**: `src/lib/getLiturgicalColor.ts` y `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetContentFactory.java` dejaron de usar `gold` y `blue`, y pasaron a una lógica basada en la IGMR 346-347: blanco, rojo, verde y morado según celebración, tiempo y excepciones propias.
+- **Memorias en tiempos fuertes**: se corrigió el tratamiento de Adviento y Cuaresma para no moradear todo Adviento indiscriminadamente; ahora las memorias se mantienen con su color antes del 17 de diciembre y solo vuelven a morado en los días privilegiados o en Cuaresma, salvo fiestas/solemnidades que conservan su color.
+- **Deteccion mariana**: `src/lib/liturgical-color-rules.ts` se alineó con el texto ya normalizado sin tildes para no fallar por comparaciones inconsistentes.
+- **Anunciación**: el overlay del `25/03` pasó a reutilizar `/images/rosario/gozoso-1.jpg` en web y `public/images/rosario/gozoso-1.jpg` en Android; se eliminó `public/images/annunciation-overlay.png`.
 - **Parser de encuadre**: `SaintWidgetUpdater.java` ahora acepta tanto claves con comillas como identificadores JS sin comillas en `image-display.ts`, asi que el encuadre nativo ya no depende de que el id tenga guiones.
-- **Tarjeta web**: `SaintOfTheDayCard.tsx` se limpio para tratar como fondo claro solo el blanco canonico actual.
+- **Tarjeta web**: `SaintOfTheDayCard.tsx` se limpió para tratar como fondo claro solo el blanco canónico actual.
 
-**Validacion:**
+**Validación:**
 - `npm.cmd run build` OK.
 - `.\gradlew.bat :app:compileDebugJavaWithJavac` OK usando `ANDROID_USER_HOME` y `GRADLE_USER_HOME` locales dentro del repo.
 
@@ -100,21 +152,21 @@ Historial de intervenciones del asistente en el repo.
 - `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java`
 - `AGENTS.md`
 
-### [2026-03-26 09:39] 203. Anunciacion sobrepuesta, frases forzadas y tap a devociones desde cartel/widget
-**Planificacion:**
-- Forzar las frases del dia pedidas para `26/06` y `22/10` sin perder el resto de la rotacion diaria.
-- Hacer que el cartel del dia y los widgets abran la devocion correspondiente cuando el santoral del dia coincida con una devocion existente.
-- Superponer una imagen propia de la Anunciacion sobre la imagen semanal del `25/03`, tanto en el cartel web como en el widget grande.
+### [2026-03-26 09:39] 203. Anunciación sobrepuesta, frases forzadas y tap a devociones desde cartel/widget
+**Planificación:**
+- Forzar las frases del día pedidas para `26/06` y `22/10` sin perder el resto de la rotación diaria.
+- Hacer que el cartel del día y los widgets abran la devoción correspondiente cuando el santoral del día coincida con una devoción existente.
+- Superponer una imagen propia de la Anunciación sobre la imagen semanal del `25/03`, tanto en el cartel web como en el widget grande.
 
-**Ejecucion:**
+**Ejecución:**
 - **Frases forzadas**: `SettingsContext` ahora prioriza un mapa fijo por fecha para `26/06` y `22/10`, antes del pool rotativo de citas.
-- **Match de devocion**: `src/lib/devotion-day-images.ts` paso a devolver no solo la imagen, sino tambien el `prayerId` de la devocion asociada al santo del dia.
-- **Cartel del dia**: `SaintOfTheDayCard` ahora detecta ese `prayerId`, vuelve clickeable toda la tarjeta cuando existe devocion y abre directamente la devocion correspondiente.
-- **Anunciacion**: se agrego `public/images/annunciation-overlay.png` como overlay nuevo; el cartel del `25/03` la muestra sobre la imagen propia del dia de la semana.
-- **Widget Android**: `SaintWidgetContentFactory` y `SaintWidgetUpdater` ahora propagan `prayerId`, componen el overlay de Anunciacion en el widget grande y mandan extras nativos a `MainActivity` para abrir la devocion al tocar el widget.
-- **Puente nativo-web**: `MainActivity` y `MainApp` agregaron una cola de navegacion pendiente via `localStorage`/evento para que el tap del widget abra la vista correcta tambien con la app fria.
+- **Match de devoción**: `src/lib/devotion-day-images.ts` pasó a devolver no solo la imagen, sino también el `prayerId` de la devoción asociada al santo del día.
+- **Cartel del día**: `SaintOfTheDayCard` ahora detecta ese `prayerId`, vuelve clickeable toda la tarjeta cuando existe devoción y abre directamente la devoción correspondiente.
+- **Anunciación**: se agregó `public/images/annunciation-overlay.png` como overlay nuevo; el cartel del `25/03` la muestra sobre la imagen propia del día de la semana.
+- **Widget Android**: `SaintWidgetContentFactory` y `SaintWidgetUpdater` ahora propagan `prayerId`, componen el overlay de Anunciación en el widget grande y mandan extras nativos a `MainActivity` para abrir la devoción al tocar el widget.
+- **Puente nativo-web**: `MainActivity` y `MainApp` agregaron una cola de navegación pendiente vía `localStorage`/evento para que el tap del widget abra la vista correcta también con la app fría.
 
-**Validacion:**
+**Validación:**
 - `npm.cmd run build` OK.
 - `.\gradlew.bat :app:compileDebugJavaWithJavac` OK fuera del sandbox, usando `ANDROID_USER_HOME` y `GRADLE_USER_HOME` locales dentro del repo para validar los cambios nativos contra el SDK instalado.
 
@@ -132,19 +184,19 @@ Historial de intervenciones del asistente en el repo.
 - `public/images/annunciation-overlay.png`
 - `AGENTS.md`
 
-### [2026-03-23 22:05] 202. Verificacion completa de devociones con imagen y correccion a San Josemaria
-**Planificacion:**
-- Confirmar si el resolver nuevo cubria todas las devociones del repo que ya tienen imagen propia.
+### [2026-03-23 22:05] 202. Verificación completa de devociones con imagen y corrección a San Josemaria
+**Planificación:**
+- Confirmar si el resolver nuevo cubría todas las devociones del repo que ya tienen imagen propia.
 - Corregir el nombre visible del santoral del 26/06 para usar `San Josemaria` como una sola palabra.
 
-**Ejecucion:**
-- **Cobertura verificada**: se reviso el catalogo real de `public/images` y las devociones con `imageUrl`. El resolver web ahora construye su tabla desde todas las devociones importadas con imagen y lanza error si alguna queda sin aliases en `src/lib/devotion-day-images.ts`.
-- **San Josemaria**: se corrigio el nombre del santoral fijo del 26/06 en `src/lib/saints-data.json` y en `android/app/src/main/assets/saints-data.json` para que muestre `San Josemaria Escrivá de Balaguer, presbítero`.
-- **Widget**: se alinearon tambien los aliases nativos del widget para priorizar `San Josemaria` como forma principal.
+**Ejecución:**
+- **Cobertura verificada**: se revisó el catálogo real de `public/images` y las devociones con `imageUrl`. El resolver web ahora construye su tabla desde todas las devociones importadas con imagen y lanza error si alguna queda sin aliases en `src/lib/devotion-day-images.ts`.
+- **San Josemaria**: se corrigió el nombre del santoral fijo del 26/06 en `src/lib/saints-data.json` y en `android/app/src/main/assets/saints-data.json` para que muestre `San Josemaria Escrivá de Balaguer, presbítero`.
+- **Widget**: se alinearon también los aliases nativos del widget para priorizar `San Josemaria` como forma principal.
 
-**Validacion:**
+**Validación:**
 - `npm.cmd run build` OK.
-- `.\gradlew.bat :app:compileDebugJavaWithJavac` OK usando `GRADLE_USER_HOME` local dentro del repo por la restriccion del sandbox.
+- `.\gradlew.bat :app:compileDebugJavaWithJavac` OK usando `GRADLE_USER_HOME` local dentro del repo por la restricción del sandbox.
 
 **Archivos Modificados:**
 - `src/lib/devotion-day-images.ts`
@@ -153,22 +205,22 @@ Historial de intervenciones del asistente en el repo.
 - `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetContentFactory.java`
 - `AGENTS.md`
 
-### [2026-03-23 21:37] 201. Imagenes de devociones en santoral diario y widget grande
-**Planificacion:**
-- Revisar por que el 26/06 mostraba a San Josemaria en texto pero no resolvia su retrato.
-- Hacer que el cartel del dia dentro de la app y el widget grande usen la imagen real de cada devocion cuando el santoral coincida con su fiesta.
-- Evitar seguir ampliando listas parciales por substring y cubrir tambien fiestas compuestas como San Carlo Acutis o Santos Pedro y Pablo.
+### [2026-03-23 21:37] 201. Imágenes de devociones en santoral diario y widget grande
+**Planificación:**
+- Revisar por que el 26/06 mostraba a San Josemaria en texto pero no resolvía su retrato.
+- Hacer que el cartel del día dentro de la app y el widget grande usen la imagen real de cada devoción cuando el santoral coincida con su fiesta.
+- Evitar seguir ampliando listas parciales por substring y cubrir también fiestas compuestas como San Carlo Acutis o Santos Pedro y Pablo.
 
-**Ejecucion:**
-- **Causa real**: la app y el widget usaban tablas hardcodeadas y parciales de coincidencias por nombre; San Jose Maria Escrivá de Balaguer no estaba cubierto y varias devociones dependian de matches incompletos o de un fallback generico.
-- **App**: se agrego `src/lib/devotion-day-images.ts`, con aliases normalizados para todas las devociones con imagen propia. `SettingsContext` ahora consulta primero ese resolver antes del fallback mariano o del placeholder del dia.
-- **Widget grande**: `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetContentFactory.java` paso a usar una tabla completa de devociones con sus rutas reales en `public/images`, incluyendo San Josemaria, San Juan Pablo II, San Carlo Acutis, San Jose, etc.
-- **Encuadre**: `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java` ahora lee tambien preferencias de encuadre de IDs de oraciones/devociones desde `image-display.ts`, no solo de placeholders. Se agrego ademas `devocion-san-jose` a los mapas de encuadre.
-- **Resultado**: cuando la fecha del santoral coincide con una devocion existente, el cartel del dia y el widget grande muestran el retrato correcto en vez de depender de un match parcial o una imagen generica.
+**Ejecución:**
+- **Causa real**: la app y el widget usaban tablas hardcodeadas y parciales de coincidencias por nombre; San José María Escrivá de Balaguer no estaba cubierto y varias devociones dependían de matches incompletos o de un fallback genérico.
+- **App**: se agregó `src/lib/devotion-day-images.ts`, con aliases normalizados para todas las devociones con imagen propia. `SettingsContext` ahora consulta primero ese resolver antes del fallback mariano o del placeholder del día.
+- **Widget grande**: `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetContentFactory.java` pasó a usar una tabla completa de devociones con sus rutas reales en `public/images`, incluyendo San Josemaria, San Juan Pablo II, San Carlo Acutis, San José, etc.
+- **Encuadre**: `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java` ahora lee también preferencias de encuadre de IDs de oraciones/devociones desde `image-display.ts`, no solo de placeholders. Se agregó además `devocion-san-jose` a los mapas de encuadre.
+- **Resultado**: cuando la fecha del santoral coincide con una devoción existente, el cartel del día y el widget grande muestran el retrato correcto en vez de depender de un match parcial o una imagen genérica.
 
-**Validacion:**
+**Validación:**
 - `npm.cmd run build` OK.
-- `.\gradlew.bat :app:compileDebugJavaWithJavac` OK usando `GRADLE_USER_HOME` local dentro del repo por la restriccion del sandbox.
+- `.\gradlew.bat :app:compileDebugJavaWithJavac` OK usando `GRADLE_USER_HOME` local dentro del repo por la restricción del sandbox.
 
 **Archivos Modificados:**
 - `src/lib/devotion-day-images.ts`
@@ -179,30 +231,30 @@ Historial de intervenciones del asistente en el repo.
 - `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java`
 - `AGENTS.md`
 
-### [2026-03-23 19:24] 200. Eliminacion condicional de copia antigua de respaldo
-**Planificacion:**
-- Eliminar la copia de referencia de `create-backup.before-incremental.mjs` solo si seguia presente.
+### [2026-03-23 19:24] 200. Eliminación condicional de copia antigua de respaldo
+**Planificación:**
+- Eliminar la copia de referencia de `create-backup.before-incremental.mjs` solo si seguía presente.
 - Evitar error si el archivo ya no existia.
 
-**Ejecucion:**
-- **Limpieza segura**: se comprobo la existencia de `output/reference/create-backup.before-incremental.mjs` antes de borrar.
+**Ejecución:**
+- **Limpieza segura**: se comprobó la existencia de `output/reference/create-backup.before-incremental.mjs` antes de borrar.
 - **Resultado**: el archivo existia y fue eliminado; si no hubiera existido, la rutina habria terminado sin error.
 
 **Archivos Modificados:**
 - `AGENTS.md`
 
-### [2026-03-23 19:18] 199. Widget chico 2x2 con jerarquia tipografica proporcional
-**Planificacion:**
-- Corregir la interpretacion anterior y mantener el widget pequeno como un widget 2x2.
-- Hacer que el nombre del santo quede siempre mas grande que el detalle, en negrita y alineado al margen izquierdo.
-- Ajustar el crecimiento del texto para que, al ampliarse el widget, nombre y detalle escalen de forma proporcional sin perder jerarquia.
+### [2026-03-23 19:18] 199. Widget chico 2x2 con jerarquía tipográfica proporcional
+**Planificación:**
+- Corregir la interpretacion anterior y mantener el widget pequeño como un widget 2x2.
+- Hacer que el nombre del santo quede siempre más grande que el detalle, en negrita y alineado al margen izquierdo.
+- Ajustar el crecimiento del texto para que, al ampliarse el widget, nombre y detalle escalen de forma proporcional sin perder jerarquía.
 
-**Ejecucion:**
-- **Tamano del widget**: `android/app/src/main/res/xml/widget_saint_small.xml` paso a declarar el widget pequeno como `2x2`, con altura minima y de redimensionado acordes.
-- **Layout**: `android/app/src/main/res/layout/widget_saint_small.xml` mantuvo el bloque de texto alineado al inicio y reforzo la jerarquia visual del nombre del santo con mayor tamano base y negrita, dejando el detalle debajo con peso para ocupar el espacio restante.
-- **Escalado proporcional**: `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java` ahora calcula un factor de crecimiento por ancho y alto disponibles, aplica ese crecimiento primero al detalle y deriva el tamano del nombre con una proporcion fija superior, asegurando que el santo siempre quede mas grande que la descripcion.
+**Ejecución:**
+- **Tamaño del widget**: `android/app/src/main/res/xml/widget_saint_small.xml` pasó a declarar el widget pequeño como `2x2`, con altura mínima y de redimensionado acordes.
+- **Layout**: `android/app/src/main/res/layout/widget_saint_small.xml` mantuvo el bloque de texto alineado al inicio y reforzó la jerarquía visual del nombre del santo con mayor tamaño base y negrita, dejando el detalle debajo con peso para ocupar el espacio restante.
+- **Escalado proporcional**: `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java` ahora calcula un factor de crecimiento por ancho y alto disponibles, aplica ese crecimiento primero al detalle y deriva el tamaño del nombre con una proporción fija superior, asegurando que el santo siempre quede más grande que la descripción.
 
-**Validacion:**
+**Validación:**
 - `.\gradlew.bat :app:compileDebugJavaWithJavac` OK.
 
 **Archivos Modificados:**
@@ -212,17 +264,17 @@ Historial de intervenciones del asistente en el repo.
 - `AGENTS.md`
 
 ### [2026-03-23 19:05] 198. Widget chico alineado como el grande, sin imagen
-**Planificacion:**
-- Devolver el widget pequeno a una estructura visual equivalente al widget grande, pero sin bloque de imagen.
-- Quitar el centrado y la auto-maquetacion agresiva que desordenaban el texto del widget pequeno.
+**Planificación:**
+- Devolver el widget pequeño a una estructura visual equivalente al widget grande, pero sin bloque de imagen.
+- Quitar el centrado y la auto-maquetacion agresiva que desordenaban el texto del widget pequeño.
 - Mantener un ajuste nativo simple por altura para no romper el redimensionado.
 
-**Ejecucion:**
-- **Layout pequeno**: `android/app/src/main/res/layout/widget_saint_small.xml` paso a usar el mismo bloque de texto del widget grande: padding 12/10/12/12, titulo arriba, descripcion debajo y ambos alineados al inicio.
-- **Alineacion**: se eliminaron `center_vertical` y `center_horizontal`; el nombre y la bio ahora usan `gravity/textAlignment` hacia el inicio para quedar ordenados al margen izquierdo.
-- **Sizing nativo**: `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java` dejo atras la estimacion compleja por caracteres. Ahora el widget pequeno solo ajusta tamanos y lineas en tres rangos de altura, manteniendo una presentacion mas estable y parecida al widget grande.
+**Ejecución:**
+- **Layout pequeño**: `android/app/src/main/res/layout/widget_saint_small.xml` pasó a usar el mismo bloque de texto del widget grande: padding 12/10/12/12, título arriba, descripción debajo y ambos alineados al inicio.
+- **Alineación**: se eliminaron `center_vertical` y `center_horizontal`; el nombre y la bio ahora usan `gravity/textAlignment` hacia el inicio para quedar ordenados al margen izquierdo.
+- **Sizing nativo**: `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java` dejo atras la estimacion compleja por caracteres. Ahora el widget pequeño solo ajusta tamanos y lineas en tres rangos de altura, manteniendo una presentacion más estable y parecida al widget grande.
 
-**Validacion:**
+**Validación:**
 - `.\gradlew.bat :app:compileDebugJavaWithJavac` OK.
 
 **Archivos Modificados:**
@@ -231,22 +283,22 @@ Historial de intervenciones del asistente en el repo.
 - `AGENTS.md`
 
 ### [2026-03-23 18:50] 197. Selector con flecha para `crear respaldo` y textos con tildes
-**Planificacion:**
+**Planificación:**
 - Reemplazar el prompt interactivo por numero con un selector navegable con flechas y Enter.
 - Corregir las tildes faltantes en los textos visibles del respaldo y del comando de PowerShell.
 
-**Ejecucion:**
-- **Selector TTY**: `scripts/create-backup.mjs` ahora usa un menu interactivo con flecha (`>`) sobre la opcion seleccionada y confirmacion con Enter cuando la terminal soporta modo interactivo.
+**Ejecución:**
+- **Selector TTY**: `scripts/create-backup.mjs` ahora usa un menú interactivo con flecha (`>`) sobre la opción seleccionada y confirmación con Enter cuando la terminal soporta modo interactivo.
 - **Fallback**: si la entrada no es TTY, el script conserva un fallback por numero para no romper automatizaciones o pipes.
 - **Tildes**: se corrigieron mensajes visibles como `opción`, `está`, `Conéctalo`, `según` y las cadenas equivalentes del instalador PowerShell.
-- **PowerShell**: se corrigio tambien la rama textual de `imágenes` y se reinstalo el perfil con el bloque actualizado.
+- **PowerShell**: se corrigió también la rama textual de `imágenes` y se reinstaló el perfil con el bloque actualizado.
 
-**Validacion:**
+**Validación:**
 - `node --check scripts/create-backup.mjs` OK.
 - `node scripts/create-backup.mjs --help` OK con los textos acentuados.
 - `cmd /c "echo 3| node scripts/create-backup.mjs --prompt"` OK sobre el fallback no TTY.
 - `powershell -ExecutionPolicy Bypass -File scripts/install-powershell-commands.ps1` OK.
-- El selector con flechas requiere TTY real; en esta sesion automatizada no se pudo recorrer manualmente con teclas, pero la ruta interactiva y la de fallback quedaron implementadas.
+- El selector con flechas requiere TTY real; en esta sesión automatizada no se pudo recorrer manualmente con teclas, pero la ruta interactiva y la de fallback quedaron implementadas.
 
 **Archivos Modificados:**
 - `scripts/create-backup.mjs`
@@ -254,20 +306,20 @@ Historial de intervenciones del asistente en el repo.
 - `AGENTS.md`
 
 ### [2026-03-23 18:35] 196. Nombre versionado del backup y prompt forzado
-**Planificacion:**
-- Hacer que el archivo de respaldo use la version actual de la app en el nombre.
+**Planificación:**
+- Hacer que el archivo de respaldo use la versión actual de la app en el nombre.
 - Evitar que `crear respaldo` pueda resolver un destino sin antes abrir el selector cuando se ejecuta sin argumento.
 
-**Ejecucion:**
+**Ejecución:**
 - **Nombre versionado**: `scripts/create-backup.mjs` ahora lee `package.json` y genera el archivo como `cotidie-backup-vN.N.N.zip`.
-- **Prompt explicito**: se agrego soporte `--prompt/--interactive` al script.
+- **Prompt explícito**: se agregó soporte `--prompt/--interactive` al script.
 - **PowerShell**: `scripts/install-powershell-commands.ps1` ahora pasa `--prompt` cuando el usuario ejecuta `crear respaldo` sin modo, forzando la eleccion previa entre `Disco`, `Drive` y `Documentos`.
 
-**Validacion:**
+**Validación:**
 - `node --check scripts/create-backup.mjs` OK.
 - `node scripts/create-backup.mjs --help` OK, mostrando `cotidie-backup-v4.4.20.zip`.
 - `crear respaldo documentos` OK fuera del sandbox, generando `C:\Users\balca\Documentos\Cotidie\cotidie-backup-v4.4.20.zip`.
-- `crear respaldo` OK fuera del sandbox con selector previo; al elegir `3`, genero el ZIP versionado en `Documentos`.
+- `crear respaldo` OK fuera del sandbox con selector previo; al elegir `3`, generó el ZIP versionado en `Documentos`.
 
 **Archivos Modificados:**
 - `scripts/create-backup.mjs`
@@ -275,18 +327,18 @@ Historial de intervenciones del asistente en el repo.
 - `AGENTS.md`
 
 ### [2026-03-23 18:20] 195. `crear respaldo` pasa a ZIP unico por destino
-**Planificacion:**
+**Planificación:**
 - Cambiar el respaldo para que deje un unico archivo `.zip` en la carpeta elegida, en vez de copiar el arbol de archivos sueltos.
 - Mantener la seguridad reciente: no vaciar la carpeta destino y solo reemplazar el archivo de respaldo del mismo nombre.
 - Confirmar que el flujo interactivo sigue pidiendo elegir entre `Disco`, `Drive` y `Documentos` antes de continuar.
 
-**Ejecucion:**
+**Ejecución:**
 - **ZIP de respaldo**: `scripts/create-backup.mjs` ahora recopila los archivos del proyecto permitidos por las exclusiones y genera `cotidie-backup.zip`.
 - **Destino**: el ZIP se guarda dentro de la carpeta elegida (`Disco`, `Drive` o `Documentos`) en vez de poblarla con copias sueltas del repo.
 - **Reemplazo acotado**: solo se reemplaza `cotidie-backup.zip` si ya existe; el resto del contenido del destino no se toca.
-- **Utilidad compartida**: se extrajo la logica de armado ZIP a `scripts/lib/zip-utils.mjs` y `scripts/create-images-archive.mjs` paso a reutilizarla.
+- **Utilidad compartida**: se extrajo la lógica de armado ZIP a `scripts/lib/zip-utils.mjs` y `scripts/create-images-archive.mjs` pasó a reutilizarla.
 
-**Validacion:**
+**Validación:**
 - `node --check scripts/lib/zip-utils.mjs` OK.
 - `node --check scripts/create-images-archive.mjs` OK.
 - `node --check scripts/create-backup.mjs` OK.
@@ -301,21 +353,21 @@ Historial de intervenciones del asistente en el repo.
 - `AGENTS.md`
 
 ### [2026-03-23 18:05] 194. Copia de referencia de `create-backup.mjs` previa al fix incremental
-**Ejecucion:**
-- Se agrego `output/reference/create-backup.before-incremental.mjs` como copia separada de la version inmediatamente anterior de `scripts/create-backup.mjs`, la que vaciaba el destino completo antes de copiar.
-- No se restauro esa version como activa ni se reconfiguro el comando para usarla.
+**Ejecución:**
+- Se agregó `output/reference/create-backup.before-incremental.mjs` como copia separada de la versión inmediatamente anterior de `scripts/create-backup.mjs`, la que vaciaba el destino completo antes de copiar.
+- No se restauró esa versión como activa ni se reconfiguro el comando para usarla.
 
 **Archivos Modificados:**
 - `output/reference/create-backup.before-incremental.mjs`
 - `AGENTS.md`
 
 ### [2026-03-23 17:55] 193. Respaldo incremental sin vaciar el destino
-**Planificacion:**
-- Corregir la logica de `crear respaldo` para que no vuelva a eliminar todo el directorio destino.
+**Planificación:**
+- Corregir la lógica de `crear respaldo` para que no vuelva a eliminar todo el directorio destino.
 - Mantener el reemplazo solo cuando exista colision real de nombre entre origen y destino.
 
-**Ejecucion:**
-- **Copia incremental**: en `scripts/create-backup.mjs` se elimino el borrado previo del directorio destino completo.
+**Ejecución:**
+- **Copia incremental**: en `scripts/create-backup.mjs` se eliminó el borrado previo del directorio destino completo.
 - **Colisiones**: ahora el respaldo agrega contenido y solo elimina el elemento existente cuando hay choque de nombre con tipo incompatible (`archivo` vs `carpeta`) o para reemplazar la entrada concreta correspondiente.
 - **Mensajes**: el flujo paso de "Limpiando respaldo existente..." a "Actualizando respaldo..." para reflejar el nuevo comportamiento.
 
@@ -324,11 +376,11 @@ Historial de intervenciones del asistente en el repo.
 - `AGENTS.md`
 
 ### [2026-03-23 17:40] 192. Selector interactivo de `crear respaldo` en orden Disco, Drive y Documentos
-**Planificacion:**
+**Planificación:**
 - Ajustar el modo interactivo de `crear respaldo` para que las opciones visibles queden exactamente como `Disco`, `Drive` y `Documentos`.
 - Mantener intacta la resolucion posterior de cada destino.
 
-**Ejecucion:**
+**Ejecución:**
 - **Selector**: se reordeno el prompt interactivo de `scripts/create-backup.mjs` para mostrar `1) Disco`, `2) Drive`, `3) Documentos`.
 - **Continuacion**: el script solo sigue con el respaldo despues de que el usuario elige una de esas tres opciones; los alias por palabra (`disco`, `drive`, `documentos`) siguen siendo validos.
 
@@ -337,17 +389,17 @@ Historial de intervenciones del asistente en el repo.
 - `AGENTS.md`
 
 ### [2026-03-23 17:25] 191. `crear imagenes` pasa a ZIP y `documentos` queda visible
-**Planificacion:**
+**Planificación:**
 - Cambiar la interfaz visible de `crear respaldo` para usar `documentos` en vez de `documents`.
-- Reemplazar el uso incorrecto de `crear imagenes`, que seguia enlazado a PDFs promocionales, por un ZIP con las imagenes reales de la app.
+- Reemplazar el uso incorrecto de `crear imagenes`, que seguía enlazado a PDFs promocionales, por un ZIP con las imágenes reales de la app.
 - Evitar que `crear imagenes` acepte argumentos ambiguos.
 
-**Ejecucion:**
-- **Respaldo**: se ajusto el selector interactivo y los textos del comando para mostrar `documentos` como nombre del modo.
-- **ZIP de imagenes**: se agrego `scripts/create-images-archive.mjs`, que recorre `public`, `android/app/src/main/assets/public` y `android/app/src/main/res`, empaqueta todas las imagenes (`png`, `jpg`, `jpeg`, `webp`, `gif`, `svg`) y genera `output/images/cotidie-app-images.zip`.
+**Ejecución:**
+- **Respaldo**: se ajustó el selector interactivo y los textos del comando para mostrar `documentos` como nombre del modo.
+- **ZIP de imágenes**: se agregó `scripts/create-images-archive.mjs`, que recorre `public`, `android/app/src/main/assets/public` y `android/app/src/main/res`, empaqueta todas las imágenes (`png`, `jpg`, `jpeg`, `webp`, `gif`, `svg`) y genera `output/images/cotidie-app-images.zip`.
 - **PowerShell**: `crear imagenes` y `crear imágenes` ahora apuntan al script nuevo; si se les pasan argumentos, responden con `Uso: crear imagenes`.
 
-**Validacion:**
+**Validación:**
 - `node --check scripts/create-images-archive.mjs` OK.
 - `node scripts/create-images-archive.mjs` OK, creando `output/images/cotidie-app-images.zip` con 201 entradas.
 - Lectura del ZIP por `System.IO.Compression.ZipFile` OK (`Entries=201`).
@@ -378,20 +430,20 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `AGENTS.md`
 
 ### [2026-03-23 01:10] 189. Redefinicion de destinos de `crear respaldo`
-**Planificacion:**
+**Planificación:**
 - Ajustar el script de backup y el comando PowerShell `crear respaldo` a los tres destinos corregidos por el usuario: `drive`, `documents` y `disco`.
 - Mantener un solo mensaje de error para cualquier destino no utilizable.
-- Evitar cualquier limpieza destructiva sobre la raiz de `Documentos`.
+- Evitar cualquier limpieza destructiva sobre la raíz de `Documentos`.
 
-**Ejecucion:**
+**Ejecución:**
 - **Script de respaldo**: se reconstruyo `scripts/create-backup.mjs` con selector interactivo y modos `--drive`, `--documents` y `--disk`.
 - **Drive**: el modo `drive` ahora apunta a `H:\Mi unidad\Cotidie`.
-- **Documents**: para no limpiar la raiz `C:\Users\balca\Documentos`, el respaldo se deja en la carpeta dedicada `C:\Users\balca\Documentos\Cotidie`.
+- **Documents**: para no limpiar la raíz `C:\Users\balca\Documentos`, el respaldo se deja en la carpeta dedicada `C:\Users\balca\Documentos\Cotidie`.
 - **Disco**: el modo `disk/disco` ahora prueba `B:\Cotidie` y luego `J:\Cotidie`, creando la carpeta si falta cuando la unidad existe.
 - **Error unificado**: si cualquiera de los tres destinos no es usable, el script devuelve el mismo mensaje de error ya configurado.
 - **PowerShell / npm**: `crear respaldo drive|documents|disco` y los scripts npm quedaron alineados con los nuevos flags.
 
-**Validacion:**
+**Validación:**
 - `node --check scripts/create-backup.mjs` OK.
 - `node scripts/create-backup.mjs --help` OK.
 - `Get-Command crear` OK fuera del sandbox.
@@ -543,32 +595,32 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `android/app/src/main/res/xml/widget_saint_small.xml`
 - `AGENTS.md`
 
-### [2026-03-20 09:20] 181. Readaptacion por cambio de ubicacion del proyecto
-**Planificacion:**
+### [2026-03-20 09:20] 181. Readaptacion por cambio de ubicación del proyecto
+**Planificación:**
 - Detectar la nueva ruta operativa del proyecto tras el cambio de entorno.
 - Evitar fallos de herramientas o sesiones que siguieran apuntando a la ruta anterior en OneDrive.
 - Validar que el build funcione tanto desde la ruta activa como desde la ruta historica.
 
-**Ejecucion:**
+**Ejecución:**
 - **Ruta activa**: se verifico que la copia operativa actual del proyecto es `C:\\Users\\balca\\Desktop\\CotidieApp`.
-- **Compatibilidad**: se creo una union de directorio en `C:\\Users\\balca\\OneDrive\\Desktop\\CotidieApp` apuntando a la copia activa del Escritorio para mantener compatibilidad con procesos o scripts que aun usen la ruta antigua.
-- **Verificacion**: `npm run build` se ejecuto correctamente entrando por la ruta antigua, confirmando que el cambio de ubicacion ya no rompe el flujo.
-- **Android SDK**: sigue faltando `C:\\Users\\balca\\AppData\\Local\\Android\\Sdk`; la app web/build queda operativa, pero para compilar Android nativo aun hace falta completar el SDK desde Android Studio.
+- **Compatibilidad**: se creó una union de directorio en `C:\\Users\\balca\\OneDrive\\Desktop\\CotidieApp` apuntando a la copia activa del Escritorio para mantener compatibilidad con procesos o scripts que aún usen la ruta antigua.
+- **Verificación**: `npm run build` se ejecutó correctamente entrando por la ruta antigua, confirmando que el cambio de ubicación ya no rompe el flujo.
+- **Android SDK**: sigue faltando `C:\\Users\\balca\\AppData\\Local\\Android\\Sdk`; la app web/build queda operativa, pero para compilar Android nativo aún hace falta completar el SDK desde Android Studio.
 
 **Archivos Modificados:**
 - `AGENTS.md`
 
 ### [2026-03-19 23:48] 180. Adaptacion a nueva PC + bootstrap de entorno Windows
-**Planificacion:**
+**Planificación:**
 - Detectar rutas absolutas del equipo anterior que rompen el build o la automatizacion al mover el proyecto a otra PC.
-- Volver portable la configuracion Android/Gradle y el flujo de generacion de APK.
+- Volver portable la configuración Android/Gradle y el flujo de generación de APK.
 - Anadir un script de preparacion para reinstalar herramientas base y regenerar `android/local.properties` en el nuevo entorno.
 
-**Ejecucion:**
-- **Gradle Android**: se elimino la dependencia fija de `org.gradle.java.home` en `android/gradle.properties` para que use `JAVA_HOME` o el JBR detectado localmente.
+**Ejecución:**
+- **Gradle Android**: se eliminó la dependencia fija de `org.gradle.java.home` en `android/gradle.properties` para que use `JAVA_HOME` o el JBR detectado localmente.
 - **APK script**: `scripts/android-apk.mjs` ahora detecta `JAVA_HOME` y Git desde variables de entorno o rutas comunes, y deja de depender por defecto de `H:\\Mi Unidad\\...`; el archivo de salida local pasa a `output/apk-archive` salvo override con `COTIDIE_APK_DRIVE_DIR`.
-- **Bootstrap Windows**: se agrego `scripts/setup-windows-dev.ps1` y el script npm `setup:windows` para instalar/verificar Node.js LTS, Git, Android Studio y VS Code con `winget`, ademas de regenerar `android/local.properties` cuando el SDK este disponible.
-- **Documentacion**: se actualizo `README.md` con el flujo minimo para preparar una PC nueva.
+- **Bootstrap Windows**: se agregó `scripts/setup-windows-dev.ps1` y el script npm `setup:windows` para instalar/verificar Node.js LTS, Git, Android Studio y VS Code con `winget`, además de regenerar `android/local.properties` cuando el SDK este disponible.
+- **Documentacion**: se actualizó `README.md` con el flujo mínimo para preparar una PC nueva.
 
 **Archivos Modificados:**
 - `android/gradle.properties`
@@ -636,10 +688,10 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `src/components/developer/DeveloperDashboard.tsx`
 - `AGENTS.md`
 
-### [2026-03-18 15:54] 176. Tres variantes square con logo e imagenes para Instagram
+### [2026-03-18 15:54] 176. Tres variantes square con logo e imágenes para Instagram
 **Planificación:**
 - Crear las tres variantes pendientes para post cuadrado 1080x1080: minimalista, premium/catolico clasico y anuncio pagado.
-- Incluir el logo real de la app y usar imagenes existentes del proyecto.
+- Incluir el logo real de la app y usar imágenes existentes del proyecto.
 - Entregar los tres PDFs por separado y validar que cada uno tenga 1 pagina.
 
 **Ejecución:**
@@ -679,7 +731,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - Entregar un archivo listo para compartir y validar que tenga una sola página.
 
 **Ejecución:**
-- **Contenido promo**: se redactó una pieza en español enfocada en oración diaria, Plan de Vida, Rosario, Via Crucis, Nuevo Testamento, EPUBs personales, recordatorios, santo/frase del día y planes personalizados.
+- **Contenido promo**: se redactó una pieza en español enfocada en oración diaria, Plan de Vida, Rosario, Vía Crucis, Nuevo Testamento, EPUBs personales, recordatorios, santo/frase del día y planes personalizados.
 - **Diseño**: se añadió `scripts/generate_instagram_promo_pdf.mjs`, que genera un póster vertical con hero, bloques de beneficios, cápsulas de funciones y CTA “Instálala desde el link del perfil”.
 - **Entrega**: se generó `output/pdf/cotidie-instagram-promo.pdf`.
 - **Validación**: se comprobó con Poppler que el archivo tiene 1 página.
@@ -825,7 +877,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - Reemplazar secuencias mojibake por emojis Unicode estables ya usados correctamente en la app.
 
 **Ejecución:**
-- **Barrido**: se localizó el problema en `src/components/AnnuumStory.tsx`; no quedaron más secuencias `ðŸ` en `src`, `public` ni `scripts`.
+- **Barrido**: se localizó el problema en `src/components/AnnuumStory.tsx`; no quedaron más secuencias mojibake de emoji en `src`, `public` ni `scripts`.
 - **Reemplazos**: se corrigieron los emojis rotos de oración, amanecer, noche, campana, rosario, devociones creadas y celebración final.
 - **Validación**: `node node_modules/typescript/bin/tsc --noEmit --pretty false` OK y `npm.cmd run build` OK.
 
@@ -926,24 +978,24 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `AGENTS.md`
 
 ### [2026-03-16 15:42] 159. Fixes de Oraciones/PWA/idioma/Rosario/Camino/EPUB/bienvenida
-**Planificacion:**
+**Planificación:**
 - Corregir la carga visual de `Oraciones`, el override de oraciones predeterminadas y la persistencia de Camino.
-- Resolver fallos de idioma, retroceso en Rosario modo `Leer`, memoria/busqueda del lector EPUB y duracion/limpieza del aviso final de plan personalizado.
-- Agregar ajuste persistente para desactivar la bienvenida, dejar trazabilidad de la causa real de la PWA y conectar imagenes base a oraciones estructurales.
+- Resolver fallos de idioma, retroceso en Rosario modo `Leer`, memoria/búsqueda del lector EPUB y duración/limpieza del aviso final de plan personalizado.
+- Agregar ajuste persistente para desactivar la bienvenida, dejar trazabilidad de la causa real de la PWA y conectar imágenes base a oraciones estructurales.
 
-**Ejecucion:**
-- **Oraciones**: se reemplazo el acordeon por secciones visibles estables para evitar que el contenido quedara invisible aunque los botones siguieran activos.
-- **PWA**: se confirmo que `origin/main` quedo detenido en `v4.4.9`, por eso la web no recibio `4.4.10+`; ademas se versiono el `manifest` desde `layout` y `android-apk.mjs` ahora avisa explicitamente cuando se construye APK sin `git push`.
-- **Idioma**: `PrayerDetail` ahora resuelve variantes de idioma por clave normalizada y persiste la eleccion correcta aun si cambian acentos/codificacion de las claves.
-- **Rosario Leer**: `MainApp` y `RosaryMeditated` comparten un back-handler para que retroceder desde un misterio vuelva al menu del Rosario meditado, no a Plan de Vida.
-- **Camino**: el scroll guardado vuelve a ser prioritario; al salir de Camino se limpia el estado del buscador para no reabrir en la ultima busqueda.
-- **Examen de Conciencia**: `setPredefinedPrayerOverride` quedo implementado y las ediciones del usuario ya se guardan/aplican sin el mensaje `Funcion no implementada aun`.
-- **Creditos y bienvenida**: se agrego el texto de colaboracion con IA en `Otros` y un ajuste persistente para desactivar la pantalla de bienvenida.
-- **Imagenes estructurales**: se conectaron imagenes locales a `Padre Nuestro`, `Ave Maria` y `Gloria`, y se corrigieron sus textos base visibles.
-- **Lectura prolongada**: se creo `useScreenWakeLock` y se aplica a textos largos y al lector EPUB para evitar que se apague la pantalla mientras se lee.
-- **EPUB NT**: se reforzo la memoria de ubicacion guardando `cfi` y `href`, con flush en `pagehide/visibilitychange`; la busqueda ahora admite referencias como `Juan 13:18` ademas de texto libre.
+**Ejecución:**
+- **Oraciones**: se reemplazó el acordeon por secciones visibles estables para evitar que el contenido quedara invisible aunque los botones siguieran activos.
+- **PWA**: se confirmó que `origin/main` quedó detenido en `v4.4.9`, por eso la web no recibio `4.4.10+`; además se versionó el `manifest` desde `layout` y `android-apk.mjs` ahora avisa explícitamente cuando se construye APK sin `git push`.
+- **Idioma**: `PrayerDetail` ahora resuelve variantes de idioma por clave normalizada y persiste la eleccion correcta aún si cambian acentos/codificacion de las claves.
+- **Rosario Leer**: `MainApp` y `RosaryMeditated` comparten un back-handler para que retroceder desde un misterio vuelva al menú del Rosario meditado, no a Plan de Vida.
+- **Camino**: el scroll guardado vuelve a ser prioritario; al salir de Camino se limpia el estado del buscador para no reabrir en la última búsqueda.
+- **Examen de Conciencia**: `setPredefinedPrayerOverride` quedó implementado y las ediciones del usuario ya se guardan/aplican sin el mensaje `Funcion no implementada aun`.
+- **Creditos y bienvenida**: se agregó el texto de colaboracion con IA en `Otros` y un ajuste persistente para desactivar la pantalla de bienvenida.
+- **Imágenes estructurales**: se conectaron imágenes locales a `Padre Nuestro`, `Ave Maria` y `Gloria`, y se corrigieron sus textos base visibles.
+- **Lectura prolongada**: se creó `useScreenWakeLock` y se aplica a textos largos y al lector EPUB para evitar que se apague la pantalla mientras se lee.
+- **EPUB NT**: se reforzó la memoria de ubicación guardando `cfi` y `href`, con flush en `pagehide/visibilitychange`; la búsqueda ahora admite referencias como `Juan 13:18` además de texto libre.
 - **Plan personalizado**: el toast final ahora respeta `3` segundos exactos y se descarta inmediatamente al salir del plan para que no aparezca fuera de contexto.
-- **Validacion**: `node node_modules/typescript/bin/tsc --noEmit --pretty false` OK y `npm.cmd run build` OK.
+- **Validación**: `node node_modules/typescript/bin/tsc --noEmit --pretty false` OK y `npm.cmd run build` OK.
 
 **Archivos Modificados:**
 - `scripts/android-apk.mjs`
@@ -962,34 +1014,34 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `src/lib/prayers/oraciones/estructurales.ts`
 - `AGENTS.md`
 
-### [2026-03-13 22:41] 158. Verificacion de navegacion + limpieza de persistencia
-**Planificacion:**
-- Confirmar que la navegacion jerarquica nueva compile sin errores y revisar si quedo codigo redundante.
-- Eliminar redundancias de persistencia del estado de navegacion sin tocar el comportamiento ya corregido.
+### [2026-03-13 22:41] 158. Verificación de navegación + limpieza de persistencia
+**Planificación:**
+- Confirmar que la navegación jerarquica nueva compile sin errores y revisar si quedó codigo redundante.
+- Eliminar redundancias de persistencia del estado de navegación sin tocar el comportamiento ya corregido.
 
-**Ejecucion:**
-- **Verificacion**: se reviso MainApp y la salida del plan personalizado; la logica jerarquica y la salida a Inicio permanecen correctas.
+**Ejecución:**
+- **Verificación**: se revisó MainApp y la salida del plan personalizado; la lógica jerarquica y la salida a Inicio permanecen correctas.
 - **Limpieza**: useNavPersistence dejo de recibir argumentos muertos y ahora persiste NavigationState tipado directamente.
-- **Persistencia**: en MainApp se elimino la normalizacion duplicada antes de persistNavState, porque persistNavState ya normaliza internamente.
-- **Validacion**: node node_modules/typescript/bin/tsc --noEmit --pretty false OK.
+- **Persistencia**: en MainApp se eliminó la normalizacion duplicada antes de persistNavState, porque persistNavState ya normaliza internamente.
+- **Validación**: node node_modules/typescript/bin/tsc --noEmit --pretty false OK.
 
 **Archivos Modificados:**
 - src/components/main/useNavPersistence.ts
 - src/components/main/MainApp.tsx
 - AGENTS.md
 
-### [2026-03-13 22:34] 157. Navegacion jerarquica + morado penitencial + salida de plan personalizado
-**Planificacion:**
+### [2026-03-13 22:34] 157. Navegación jerarquica + morado penitencial + salida de plan personalizado
+**Planificación:**
 - Reemplazar el retroceso basado en historial por retroceso jerarquico real A > B > C > D > E.
-- Hacer que el plan personalizado quede fuera de esa jerarquia: back a Inicio y doble avance final a pantalla principal.
-- Forzar el morado sobre memorias de martires en tiempos penitenciales, dejando solo las celebraciones mayores con color propio, tambien en el widget Android.
+- Hacer que el plan personalizado quede fuera de esa jerarquía: back a Inicio y doble avance final a pantalla principal.
+- Forzar el morado sobre memorias de martires en tiempos penitenciales, dejando solo las celebraciones mayores con color propio, también en el widget Android.
 
-**Ejecucion:**
-- **Navegacion jerarquica**: handleBack en MainApp ya no depende de window.history.back(). Ahora sube un nivel por prayerPathIds; un nivel raiz vuelve a su categoria y la categoria vuelve al menu principal.
-- **Plan personalizado**: dentro de un plan personalizado, el back sale a Inicio y el doble avance al final tambien lleva a Inicio, no al menu del plan. La navegacion lineal interna por anterior/siguiente se mantiene.
-- **Color liturgico web**: se ajusto keepsOwnColorInPenitentialSeason para que el morado prevalezca en Adviento/Cuaresma sobre memorias y fiestas menores, incluyendo martires; solo solemnidades, fiesta del Senor y casos mayores como Viernes Santo, Pentecostes y Domingo de Ramos conservan color propio.
-- **Color liturgico Android**: se replico la misma precedencia en SaintWidgetContentFactory, normalizando texto liturgico antes de decidir color para que el widget grande quede alineado con la app.
-- **Validacion**: node node_modules/typescript/bin/tsc --noEmit --pretty false OK y ./gradlew.bat :app:compileDebugJavaWithJavac --console=plain OK.
+**Ejecución:**
+- **Navegación jerarquica**: handleBack en MainApp ya no depende de window.history.back(). Ahora sube un nivel por prayerPathIds; un nivel raíz vuelve a su categoría y la categoría vuelve al menú principal.
+- **Plan personalizado**: dentro de un plan personalizado, el back sale a Inicio y el doble avance al final también lleva a Inicio, no al menú del plan. La navegación lineal interna por anterior/siguiente se mantiene.
+- **Color litúrgico web**: se ajustó keepsOwnColorInPenitentialSeason para que el morado prevalezca en Adviento/Cuaresma sobre memorias y fiestas menores, incluyendo martires; solo solemnidades, fiesta del Señor y casos mayores como Viernes Santo, Pentecostés y Domingo de Ramos conservan color propio.
+- **Color litúrgico Android**: se replico la misma precedencia en SaintWidgetContentFactory, normalizando texto litúrgico antes de decidir color para que el widget grande quede alineado con la app.
+- **Validación**: node node_modules/typescript/bin/tsc --noEmit --pretty false OK y ./gradlew.bat :app:compileDebugJavaWithJavac --console=plain OK.
 
 **Archivos Modificados:**
 - src/components/main/MainApp.tsx
@@ -998,14 +1050,14 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - AGENTS.md
 
 ### [2026-03-13 00:40] 156. Fix de git add sobre caches de Gradle
-**Planificacion:**
+**Planificación:**
 - Explicar y cortar el fallo del `git add` automatico al final de `android:apk`.
 - Evitar que Git intente indexar caches y locks generados por Gradle dentro del repo.
 
-**Ejecucion:**
-- **Gitignore**: se agrego `/.gradle-user-home/` en el `.gitignore` raiz y se confirmo que `android/build` y `android/app/build` ya estaban ignorados por `android/.gitignore`.
-- **Script APK**: el paso de stage ahora usa `git add -A -- .` con exclusiones explicitas para `.gradle-user-home`, `android/build`, `android/app/build`, `.next`, `out` y `node_modules`.
-- **Validacion**: `git check-ignore -v .gradle-user-home android\build android\app\build` OK y `node --check scripts\android-apk.mjs` OK.
+**Ejecución:**
+- **Gitignore**: se agregó `/.gradle-user-home/` en el `.gitignore` raíz y se confirmó que `android/build` y `android/app/build` ya estaban ignorados por `android/.gitignore`.
+- **Script APK**: el paso de stage ahora usa `git add -A -- .` con exclusiones explícitas para `.gradle-user-home`, `android/build`, `android/app/build`, `.next`, `out` y `node_modules`.
+- **Validación**: `git check-ignore -v .gradle-user-home android\build android\app\build` OK y `node --check scripts\android-apk.mjs` OK.
 
 **Archivos Modificados:**
 - `.gitignore`
@@ -1013,61 +1065,61 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `AGENTS.md`
 
 ### [2026-03-13 00:28] 155. Endurecimiento completo de android:apk en Windows
-**Planificacion:**
+**Planificación:**
 - Revisar de punta a punta `scripts/android-apk.mjs` para eliminar fallos encadenados de invocacion en Windows.
 - Reemplazar las capas fragiles de `npm.cmd`/`npx.cmd` por entrypoints directos en Node.
 - Validar el flujo real de build/APK y verificar el tramo final de Git sin publicar cambios.
 
-**Ejecucion:**
-- **Node tools**: se reemplazo la ejecucion de `npm` y `npx` por llamadas directas a `node` sobre `npm-cli.js` y la CLI local de Capacitor.
+**Ejecución:**
+- **Node tools**: se reemplazó la ejecucion de `npm` y `npx` por llamadas directas a `node` sobre `npm-cli.js` y la CLI local de Capacitor.
 - **Gradle**: en Windows el script usa `cmd.exe /d /s /c gradlew.bat assembleDebug`, manteniendo compatibilidad con `.bat` sin aplicar shell fragil al resto.
 - **Git**: se mantuvo la ejecucion directa del binario `git.exe` con argumentos separados para `add`, `commit` y `push`.
-- **Validacion real**: `node scripts\android-apk.mjs --no-bump --no-push` completo con build Next, `cap sync android`, `gradlew.bat assembleDebug` y generacion de APK exitosa.
-- **Validacion Git**: `git push --dry-run` respondio `Everything up-to-date`.
+- **Validación real**: `node scripts\android-apk.mjs --no-bump --no-push` completo con build Next, `cap sync android`, `gradlew.bat assembleDebug` y generación de APK exitosa.
+- **Validación Git**: `git push --dry-run` respondio `Everything up-to-date`.
 
 **Archivos Modificados:**
 - `scripts/android-apk.mjs`
 - `AGENTS.md`
 
 ### [2026-03-13 00:14] 154. Fix EINVAL al lanzar npm.cmd en android:apk
-**Planificacion:**
+**Planificación:**
 - Corregir el fallo `EINVAL` al invocar `npm.cmd`/`npx.cmd` desde `spawnSync` en Windows.
 - Mantener el esquema endurecido sin volver a `shell: true` global.
 
-**Ejecucion:**
+**Ejecución:**
 - **Compatibilidad Windows**: `runCommand()` ahora detecta `.cmd` y los ejecuta mediante `cmd.exe /d /s /c`, que es la forma compatible en este entorno para `npm.cmd` y `npx.cmd`.
 - **Alcance acotado**: el cambio solo aplica a scripts `.cmd`; Git y los binarios normales siguen ejecutandose directamente con argumentos separados.
-- **Validacion**: `node --check scripts\android-apk.mjs` OK.
+- **Validación**: `node --check scripts\android-apk.mjs` OK.
 
 **Archivos Modificados:**
 - `scripts/android-apk.mjs`
 - `AGENTS.md`
 
 ### [2026-03-13 00:08] 153. Fix ENOENT de npm/npx en android:apk
-**Planificacion:**
+**Planificación:**
 - Corregir el fallo introducido al ejecutar `npm` y `npx` sin `shell: true` dentro de `scripts/android-apk.mjs` en Windows.
 - Mantener el hardening previo de Git sin volver al esquema fragil anterior.
 
-**Ejecucion:**
-- **Resolucion de comandos**: se agrego `resolveNodeTool()` para convertir `npm` y `npx` a `npm.cmd` y `npx.cmd` en Windows, usando el directorio de Node cuando esta disponible.
+**Ejecución:**
+- **Resolucion de comandos**: se agregó `resolveNodeTool()` para convertir `npm` y `npx` a `npm.cmd` y `npx.cmd` en Windows, usando el directorio de Node cuando esta disponible.
 - **Compatibilidad**: el flujo sigue usando `spawnSync` con binario y argumentos separados, pero ahora encuentra correctamente las herramientas Node en Windows.
-- **Validacion**: `node --check scripts\android-apk.mjs` OK.
+- **Validación**: `node --check scripts\android-apk.mjs` OK.
 
 **Archivos Modificados:**
 - `scripts/android-apk.mjs`
 - `AGENTS.md`
 
-### [2026-03-12 23:58] 152. Idioma por oracion + memoria de navegacion por sesion
-**Planificacion:**
-- Hacer que el idioma elegido se recuerde por cada oracion individual.
-- Mantener la posicion de navegacion si la app solo pasa a segundo plano.
-- Evitar restaurar la ultima pantalla cuando la app fue cerrada del todo y se vuelve a abrir desde cero.
+### [2026-03-12 23:58] 152. Idioma por oración + memoria de navegación por sesión
+**Planificación:**
+- Hacer que el idioma elegido se recuerde por cada oración individual.
+- Mantener la posicion de navegación si la app solo pasa a segundo plano.
+- Evitar restaurar la última pantalla cuando la app fue cerrada del todo y se vuelve a abrir desde cero.
 
-**Ejecucion:**
-- **Idioma por oracion**: se agrego persistencia `prayerLanguagePreferences` en `SettingsContext`, con guardado por `prayerId` y restauracion en `PrayerDetail`.
-- **Detalle de oracion**: cada oracion con variantes recuerda su ultimo idioma valido; `Preces` sigue arrancando en latin solo si aun no existe una preferencia guardada para esa oracion.
-- **Navegacion por sesion**: la persistencia de `navState` se movio de `localStorage` a `sessionStorage`, de modo que la posicion sobrevive al segundo plano pero no a un relanzamiento real tras cerrar la app.
-- **Validacion**: `node .\node_modules\typescript\bin\tsc --noEmit --pretty false` OK.
+**Ejecución:**
+- **Idioma por oración**: se agregó persistencia `prayerLanguagePreferences` en `SettingsContext`, con guardado por `prayerId` y restauracion en `PrayerDetail`.
+- **Detalle de oración**: cada oración con variantes recuerda su último idioma valido; `Preces` sigue arrancando en latin solo si aún no existe una preferencia guardada para esa oración.
+- **Navegación por sesión**: la persistencia de `navState` se movió de `localStorage` a `sessionStorage`, de modo que la posicion sobrevive al segundo plano pero no a un relanzamiento real tras cerrar la app.
+- **Validación**: `node .\node_modules\typescript\bin\tsc --noEmit --pretty false` OK.
 
 **Archivos Modificados:**
 - `src/context/SettingsContext.tsx`
@@ -1078,34 +1130,34 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `AGENTS.md`
 
 ### [2026-03-12 23:40] 151. Hardening de git push en android:apk
-**Planificacion:**
+**Planificación:**
 - Revisar por que el paso final de `git push` en `npm run android:apk` falla aunque el mismo push manual funciona.
 - Unificar la ejecucion de Git para evitar diferencias entre el script y la terminal del usuario.
-- Mejorar el diagnostico del comando ejecutado cuando falle.
+- Mejorar el diagnóstico del comando ejecutado cuando falle.
 
-**Ejecucion:**
-- **Diagnostico**: se detecto que el script ejecutaba Git como string con `shell: true` y ademas usaba una ruta distinta para `commit` frente al resto del flujo, lo que hacia fragil el parseo del ejecutable y argumentos en Windows.
+**Ejecución:**
+- **Diagnóstico**: se detectó que el script ejecutaba Git como string con `shell: true` y además usaba una ruta distinta para `commit` frente al resto del flujo, lo que hacia fragil el parseo del ejecutable y argumentos en Windows.
 - **Hardening**: `scripts/android-apk.mjs` ahora usa `spawnSync` con binario y argumentos separados (`shell: false`) para `npm`, `npx`, Gradle y Git.
 - **Consistencia**: `git add`, `git commit` y `git push` ahora comparten la misma resolucion de binario y el mismo entorno de ejecucion.
-- **Trazabilidad**: el helper imprime el comando exacto antes de correrlo y devuelve un error mas preciso si falla.
-- **Validacion**: `node --check scripts\android-apk.mjs` sin errores.
+- **Trazabilidad**: el helper imprime el comando exacto antes de correrlo y devuelve un error más preciso si falla.
+- **Validación**: `node --check scripts\android-apk.mjs` sin errores.
 
 **Archivos Modificados:**
 - `scripts/android-apk.mjs`
 - `AGENTS.md`
 
 ### [2026-03-12 23:10] 150. Comando reutilizable para respaldo limpio a J:
-**Planificacion:**
+**Planificación:**
 - Reemplazar el script de respaldo previo por uno que actualice directamente `J:\BENJA\CotidieApp`.
 - Excluir artefactos temporales e innecesarios del respaldo.
 - Dejar un comando corto reutilizable para ejecutar el respaldo y mostrar error claro si el disco no esta conectado.
 
-**Ejecucion:**
+**Ejecución:**
 - **Script de respaldo**: `scripts/create-backup.mjs` ahora limpia y recrea `J:\BENJA\CotidieApp`, copiando el proyecto sin `.git`, `node_modules`, `.next`, `out`, builds, caches, logs, temporales ni APKs.
-- **Validacion de disco**: el script verifica que exista `J:\` antes de copiar; si no esta conectado, falla con mensaje explicito.
-- **Comando npm**: se agrego `npm run backup:drive` en `package.json` para ejecutar el respaldo desde el proyecto.
-- **PowerShell**: se creo la funcion `crear` en el perfil del usuario para permitir `crear respaldo` desde cualquier carpeta.
-- **Validacion**: se ejecuto `node scripts/create-backup.mjs` y `powershell -Command "crear respaldo"` con resultado correcto.
+- **Validación de disco**: el script verifica que exista `J:\` antes de copiar; si no esta conectado, falla con mensaje explícito.
+- **Comando npm**: se agregó `npm run backup:drive` en `package.json` para ejecutar el respaldo desde el proyecto.
+- **PowerShell**: se creó la función `crear` en el perfil del usuario para permitir `crear respaldo` desde cualquier carpeta.
+- **Validación**: se ejecutó `node scripts/create-backup.mjs` y `powershell -Command "crear respaldo"` con resultado correcto.
 
 **Archivos Modificados:**
 - `scripts/create-backup.mjs`
@@ -1113,18 +1165,18 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `AGENTS.md`
 
 ### [2026-03-11 21:57] 149. Fullscreen con imagen + respaldo total + importacion inteligente
-**Planificacion:**
-- Mantener la imagen asociada a la oracion dentro del modo pantalla completa, sin perder el ancho completo.
+**Planificación:**
+- Mantener la imagen asociada a la oración dentro del modo pantalla completa, sin perder el ancho completo.
 - Hacer que el respaldo general `.ctd` exporte y restaure todo el estado relevante de la app desde un snapshot unico.
 - Evitar importaciones innecesarias detectando respaldos, ajustes o planes personalizados ya existentes.
 
-**Ejecucion:**
+**Ejecución:**
 - **PrayerDetail**: la imagen enlazada ya no desaparece en pantalla completa; ahora se mantiene visible y ocupa todo el ancho mientras el texto sigue centrado.
-- **Snapshot completo**: se agrego `getBackupSnapshot` en `SettingsContext` y se normalizo/exporto el estado completo, incluyendo timer, modo distraccion, planes, stats, modo dev, trazas dev, simulaciones y banderas de Annuum.
-- **Hidratacion/importacion**: se centralizo la aplicacion del snapshot completo para cargar/exportar/importar el mismo formato y restaurar esos campos adicionales.
+- **Snapshot completo**: se agregó `getBackupSnapshot` en `SettingsContext` y se normalizó/exporto el estado completo, incluyendo timer, modo distraccion, planes, stats, modo dev, trazas dev, simulaciones y banderas de Annuum.
+- **Hidratacion/importacion**: se centralizo la aplicación del snapshot completo para cargar/exportar/importar el mismo formato y restaurar esos campos adicionales.
 - **Importacion inteligente**: `importUserData` ahora distingue importacion completa, parcial y de plan personalizado; si el contenido ya coincide con lo existente, muestra aviso y no aplica cambios.
 - **Ajustes y planes**: `ContentSettings` y `CustomPlanView` ahora usan la respuesta de importacion para exportar el snapshot completo y reportar correctamente duplicados o archivos invalidos.
-- **Validacion**: `npx tsc --noEmit` OK. `npm run build` alcanzo `next build --no-lint` pero no termino dentro del timeout del entorno.
+- **Validación**: `npx tsc --noEmit` OK. `npm run build` alcanzo `next build --no-lint` pero no termino dentro del timeout del entorno.
 
 **Archivos Modificados:**
 - `src/context/SettingsContext.tsx`
@@ -1184,21 +1236,21 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `src/components/main/useNativeAppBindings.ts`
 - `AGENTS.md`
 
-### [2026-03-11 16:17] 145. Saneamiento tras mudanza de carpeta + validaciÃ³n completa
-**PlanificaciÃ³n:**
-- Revisar si el cambio de ubicaciÃ³n dejÃ³ rutas absolutas, dependencias ausentes o builds rotos.
-- Corregir textos daÃ±ados o mal formulados que hubieran quedado en la copia nueva.
+### [2026-03-11 16:17] 145. Saneamiento tras mudanza de carpeta + validación completa
+**Planificación:**
+- Revisar si el cambio de ubicación dejó rutas absolutas, dependencias ausentes o builds rotos.
+- Corregir textos dañados o mal formulados que hubieran quedado en la copia nueva.
 - Restaurar artefactos externos faltantes solo si eran necesarios para volver a compilar.
 
-**EjecuciÃ³n:**
-- **Rutas tras la mudanza**: se revisaron referencias a rutas antiguas y no quedaron configuraciones activas del proyecto apuntando a la carpeta previa; las coincidencias restantes fueron solo histÃ³ricas en `AGENTS.md` o referencias nominales del cÃ³digo.
-- **Texto/UI**: se normalizaron secuencias mojibake reales en 17 archivos de `src` (acentos, signos de apertura, viÃ±etas, emoji e Ã­ndices) para que la interfaz vuelva a mostrarse correctamente.
-- **FormulaciÃ³n**: se corrigieron frases visibles como `Se ha abierto el menÃº para compartir.` y el misterio luminoso `La autorrevelaciÃ³n de JesÃºs en las bodas de CanÃ¡`.
-- **Android/Gradle**: se restaurÃ³ la cachÃ© local necesaria del wrapper de Gradle en la nueva ubicaciÃ³n y se recompilÃ³ Android usando `GRADLE_USER_HOME` dentro del proyecto.
+**Ejecución:**
+- **Rutas tras la mudanza**: se revisaron referencias a rutas antiguas y no quedaron configuraciones activas del proyecto apuntando a la carpeta previa; las coincidencias restantes fueron solo históricas en `AGENTS.md` o referencias nominales del código.
+- **Texto/UI**: se normalizaron secuencias mojibake reales en 17 archivos de `src` (acentos, signos de apertura, viñetas, emoji e índices) para que la interfaz vuelva a mostrarse correctamente.
+- **Formulación**: se corrigieron frases visibles como `Se ha abierto el menú para compartir.` y el misterio luminoso `La autorrevelación de Jesús en las bodas de Caná`.
+- **Android/Gradle**: se restauró la caché local necesaria del wrapper de Gradle en la nueva ubicación y se recompiló Android usando `GRADLE_USER_HOME` dentro del proyecto.
 
-**ValidaciÃ³n:**
+**Validación:**
 - `npm run build` completado correctamente en `C:\Users\balca\Desktop\CotidieApp`.
-- `android\gradlew.bat :app:compileDebugJavaWithJavac` completado correctamente con la cachÃ© nueva de Gradle.
+- `android\gradlew.bat :app:compileDebugJavaWithJavac` completado correctamente con la caché nueva de Gradle.
 - No quedaron secuencias mojibake en `src` tras el saneamiento.
 
 **Archivos Modificados:**
@@ -1222,36 +1274,36 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `AGENTS.md`
 
 ### [2026-03-11 15:30] 144. Traslado limpio del proyecto a Escritorio
-**PlanificaciÃ³n:**
-- Mover el proyecto a `Desktop` excluyendo carpetas y archivos temporales o de cachÃ©.
-- Reinstalar Ãºnicamente dependencias y artefactos temporales necesarios en la copia nueva.
-- Intentar retirar la carpeta original para evitar duplicados y confusiÃ³n de rutas.
+**Planificación:**
+- Mover el proyecto a `Desktop` excluyendo carpetas y archivos temporales o de caché.
+- Reinstalar únicamente dependencias y artefactos temporales necesarios en la copia nueva.
+- Intentar retirar la carpeta original para evitar duplicados y confusión de rutas.
 
-**EjecuciÃ³n:**
-- **Copia limpia**: se replicÃ³ el proyecto en `C:\Users\balca\Desktop\CotidieApp` excluyendo `node_modules`, `.next`, `out`, `dist`, `coverage`, `.turbo`, `.gradle-user-home`, `.gradle`, `.idea`, `.trae`, `android\.gradle`, `android\build`, `android\app\build` y logs/temporales comunes.
-- **ReinstalaciÃ³n**: se ejecutÃ³ `npm install` en la copia de Escritorio para reconstruir Ãºnicamente dependencias necesarias.
+**Ejecución:**
+- **Copia limpia**: se replicó el proyecto en `C:\Users\balca\Desktop\CotidieApp` excluyendo `node_modules`, `.next`, `out`, `dist`, `coverage`, `.turbo`, `.gradle-user-home`, `.gradle`, `.idea`, `.trae`, `android\.gradle`, `android\build`, `android\app\build` y logs/temporales comunes.
+- **Reinstalación**: se ejecutó `npm install` en la copia de Escritorio para reconstruir únicamente dependencias necesarias.
 - **Limpieza final**: se eliminaron rastros generados no necesarios en la nueva copia (`tsc.out`, `tsconfig.tsbuildinfo`).
-- **Ruta original**: la carpeta original quedÃ³ vaciada, pero Windows mantuvo bloqueado el borrado del directorio raÃ­z por uso de otro proceso durante esta sesiÃ³n.
+- **Ruta original**: la carpeta original quedó vaciada, pero Windows mantuvo bloqueado el borrado del directorio raíz por uso de otro proceso durante esta sesión.
 
 **Resultado:**
-- La copia operativa y limpia del proyecto pasÃ³ a ser `C:\Users\balca\Desktop\CotidieApp`.
-- En la copia nueva no quedaron `.trae` ni carpetas de cachÃ© excluidas del traslado.
+- La copia operativa y limpia del proyecto pasó a ser `C:\Users\balca\Desktop\CotidieApp`.
+- En la copia nueva no quedaron `.trae` ni carpetas de caché excluidas del traslado.
 
 **Archivos Modificados:**
 - `AGENTS.md`
 
-### [2026-03-11 13:20] 143. Fix importaciÃ³n real de planes `.ctd` y respaldos completos
-**PlanificaciÃ³n:**
-- Verificar si la importaciÃ³n/exportaciÃ³n mostraba mensajes de Ã©xito acordes al estado real aplicado.
+### [2026-03-11 13:20] 143. Fix importación real de planes `.ctd` y respaldos completos
+**Planificación:**
+- Verificar si la importación/exportación mostraba mensajes de éxito acordes al estado real aplicado.
 - Corregir el caso donde un `.ctd` de plan personalizado se confirmaba pero no actualizaba `customPlans`.
-- Corregir la importaciÃ³n de respaldo completo para que no dependa solo de `localStorage` cuando la app prioriza IndexedDB.
+- Corregir la importación de respaldo completo para que no dependa solo de `localStorage` cuando la app prioriza IndexedDB.
 
-**EjecuciÃ³n:**
-- **Plans `.ctd`**: en `SettingsContext`, la rama de importaciÃ³n parcial ahora procesa `customPlans`, de modo que importar un plan personalizado desde archivo local sÃ­ actualiza el estado efectivo de la app.
-- **Backups completos**: en `ContentSettings`, la detecciÃ³n de backup completo dejÃ³ de escribir solo en `localStorage` + recargar; ahora usa `importUserData(...)` para aplicar el estado vivo y persistirlo correctamente por la vÃ­a normal (IndexedDB + respaldo local).
-- **Resultado funcional**: tanto el mensaje de Ã©xito como el estado aplicado quedaron alineados para importaciones de planes y respaldos.
+**Ejecución:**
+- **Plans `.ctd`**: en `SettingsContext`, la rama de importación parcial ahora procesa `customPlans`, de modo que importar un plan personalizado desde archivo local sí actualiza el estado efectivo de la app.
+- **Backups completos**: en `ContentSettings`, la detección de backup completo dejó de escribir solo en `localStorage` + recargar; ahora usa `importUserData(...)` para aplicar el estado vivo y persistirlo correctamente por la vía normal (IndexedDB + respaldo local).
+- **Resultado funcional**: tanto el mensaje de éxito como el estado aplicado quedaron alineados para importaciones de planes y respaldos.
 
-**ValidaciÃ³n:**
+**Validación:**
 - `node .\node_modules\typescript\lib\tsc.js --noEmit --noUnusedLocals --noUnusedParameters --pretty false` sin errores.
 - `cmd /c npm run build` completado correctamente.
 
@@ -1260,28 +1312,28 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `src/components/settings/ContentSettings.tsx`
 - `AGENTS.md`
 
-### [2026-03-11 12:55] 142. AuditorÃ­a global + limpieza de cÃ³digo muerto + separaciÃ³n de componentes
-**PlanificaciÃ³n:**
-- Revisar el proyecto completo excluyendo temporales/cachÃ©s para detectar errores reales, imports/estados muertos y piezas que podÃ­an separarse sin riesgo.
-- Endurecer el chequeo de TypeScript con `noUnusedLocals` y `noUnusedParameters` para identificar cÃ³digo muerto confirmado.
-- Reordenar archivos con fronteras claras de responsabilidad y corregir deuda funcional encontrada durante la auditorÃ­a.
+### [2026-03-11 12:55] 142. Auditoría global + limpieza de código muerto + separación de componentes
+**Planificación:**
+- Revisar el proyecto completo excluyendo temporales/cachés para detectar errores reales, imports/estados muertos y piezas que podían separarse sin riesgo.
+- Endurecer el chequeo de TypeScript con `noUnusedLocals` y `noUnusedParameters` para identificar código muerto confirmado.
+- Reordenar archivos con fronteras claras de responsabilidad y corregir deuda funcional encontrada durante la auditoría.
 
-**EjecuciÃ³n:**
-- **Limpieza de cÃ³digo muerto**:
-  - Se eliminaron imports, estados, handlers y helpers sin uso en mÃºltiples componentes (`MainApp`, `PrayerList`, `PrayerDetail`, `ContentSettings`, `AppearanceSettings`, `AnnuumStory`, `RosaryImmersive`, `RosaryMeditated`, `SearchCamino`, `DeveloperSettings`, `CustomPlanView`, `AudioPlayer`, `ImageCropper`, `calendar`, etc.).
-  - Se simplificÃ³ `ics-generator.ts` removiendo lÃ³gica/variables huÃ©rfanas y dejando una implementaciÃ³n mÃ¡s directa.
-- **SeparaciÃ³n por coherencia**:
+**Ejecución:**
+- **Limpieza de código muerto**:
+  - Se eliminaron imports, estados, handlers y helpers sin uso en múltiples componentes (`MainApp`, `PrayerList`, `PrayerDetail`, `ContentSettings`, `AppearanceSettings`, `AnnuumStory`, `RosaryImmersive`, `RosaryMeditated`, `SearchCamino`, `DeveloperSettings`, `CustomPlanView`, `AudioPlayer`, `ImageCropper`, `calendar`, etc.).
+  - Se simplificó `ics-generator.ts` removiendo lógica/variables huérfanas y dejando una implementación más directa.
+- **Separación por coherencia**:
   - Se extrajo `CartasIntro` desde `MainApp` a `src/components/main/CartasIntro.tsx`.
   - Se extrajo `SaintOfTheDayCard` desde `PrayerList` a `src/components/saints/SaintOfTheDayCard.tsx`.
-- **CorrecciÃ³n funcional adicional**:
-  - `setPredefinedPrayerOverride` en `SettingsContext` dejÃ³ de ser un `TODO` y ahora guarda, persiste y reaplica overrides de oraciones predeterminadas.
-  - La aplicaciÃ³n de overrides/ocultamiento de oraciones predeterminadas pasÃ³ a ser recursiva, cubriendo tambiÃ©n oraciones anidadas.
+- **Corrección funcional adicional**:
+  - `setPredefinedPrayerOverride` en `SettingsContext` dejó de ser un `TODO` y ahora guarda, persiste y reaplica overrides de oraciones predeterminadas.
+  - La aplicación de overrides/ocultamiento de oraciones predeterminadas pasó a ser recursiva, cubriendo también oraciones anidadas.
   - `restorePredefinedPrayer` y `restoreAllPredefinedPrayers` ahora limpian correctamente overrides asociados.
 
-**ValidaciÃ³n:**
+**Validación:**
 - `node .\node_modules\typescript\lib\tsc.js --noEmit --pretty false` sin errores.
 - `node .\node_modules\typescript\lib\tsc.js --noEmit --noUnusedLocals --noUnusedParameters --pretty false` sin errores.
-- `cmd /c npm run build` completado correctamente (`next build` + export estÃ¡tico).
+- `cmd /c npm run build` completado correctamente (`next build` + export estático).
 
 **Archivos Modificados:**
 - `src/components/AddPrayerForm.tsx`
@@ -1311,22 +1363,22 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `AGENTS.md`
 
 ### [2026-03-11 10:20] 141. Zonas de toque inmersivas como Plan Personalizado
-**PlanificaciÃ³n:**
-- Igualar la navegaciÃ³n tÃ¡ctil de `RosaryImmersive` y `ViaCrucisImmersive` al comportamiento del Plan Personalizado.
-- Permitir que tocar sobre texto tambiÃ©n avance/retroceda, sin romper botones interactivos.
+**Planificación:**
+- Igualar la navegación táctil de `RosaryImmersive` y `ViaCrucisImmersive` al comportamiento del Plan Personalizado.
+- Permitir que tocar sobre texto también avance/retroceda, sin romper botones interactivos.
 - Evitar zonas muertas en Rosario cuando el modo global es `Zonas de toque`.
 
-**EjecuciÃ³n:**
-- **Helper tÃ¡ctil**: `src/utils/touchNavigation.ts` ahora exporta `TOUCH_NAV_INTERACTIVE_SELECTORS` y acepta `blockedSelectors` para reutilizar la lÃ³gica con distinto criterio segÃºn la vista.
+**Ejecución:**
+- **Helper táctil**: `src/utils/touchNavigation.ts` ahora exporta `TOUCH_NAV_INTERACTIVE_SELECTORS` y acepta `blockedSelectors` para reutilizar la lógica con distinto criterio según la vista.
 - **Rosario inmersivo**:
-  - En modo `touch`, la navegaciÃ³n tÃ¡ctil ahora ignora solo controles interactivos reales (`button`, links, inputs, etc.), igual que el flujo deseado del plan personalizado.
-  - Se retirÃ³ la capa overlay de zonas laterales que estaba interceptando toques y dejaba el centro sin respuesta sobre el texto.
-  - El root click quedÃ³ condicionado a `touchNavEnabled`, para no mezclar globo y zonas de toque a la vez.
-- **Via Crucis inmersivo**:
-  - Se aplicÃ³ el mismo criterio de navegaciÃ³n tÃ¡ctil del Plan Personalizado al tocar texto.
-  - Se eliminÃ³ helper local redundante que bloqueaba `[data-no-touch-nav]`.
+  - En modo `touch`, la navegación táctil ahora ignora solo controles interactivos reales (`button`, links, inputs, etc.), igual que el flujo deseado del plan personalizado.
+  - Se retiró la capa overlay de zonas laterales que estaba interceptando toques y dejaba el centro sin respuesta sobre el texto.
+  - El root click quedó condicionado a `touchNavEnabled`, para no mezclar globo y zonas de toque a la vez.
+- **Vía Crucis inmersivo**:
+  - Se aplicó el mismo criterio de navegación táctil del Plan Personalizado al tocar texto.
+  - Se eliminó helper local redundante que bloqueaba `[data-no-touch-nav]`.
 
-**ValidaciÃ³n:**
+**Validación:**
 - `node .\\node_modules\\typescript\\lib\\tsc.js --noEmit --pretty false` sin errores.
 
 **Archivos Modificados:**
@@ -1336,26 +1388,26 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `AGENTS.md`
 
 ### [2026-03-11 09:50] 140. Fix build Next 15 (spawn EPERM) + hardening export workers
-**PlanificaciÃ³n:**
+**Planificación:**
 - Resolver el fallo de `npm run build` en Windows donde Next.js terminaba con `spawn EPERM` tras compilar.
-- Mantener `next-pwa` activo sin romper la exportaciÃ³n estÃ¡tica con `workerThreads`.
+- Mantener `next-pwa` activo sin romper la exportación estática con `workerThreads`.
 - Evitar que el script Android dependa del home de Gradle del entorno y no haga bump/push involuntario en validaciones.
 
-**EjecuciÃ³n:**
+**Ejecución:**
 - **Next build / Windows**:
-  - En `next.config.mjs` se desactivÃ³ `experimental.webpackBuildWorker` y se activÃ³ `experimental.workerThreads` para evitar el `spawn` bloqueado de `jest-worker`.
-  - Se aÃ±adiÃ³ `hideFunctionProperties(...)` para ocultar propiedades funciÃ³n en la config devuelta por `withPWA`, reduciendo conflictos de clonaciÃ³n en workers.
+  - En `next.config.mjs` se desactivó `experimental.webpackBuildWorker` y se activó `experimental.workerThreads` para evitar el `spawn` bloqueado de `jest-worker`.
+  - Se añadió `hideFunctionProperties(...)` para ocultar propiedades función en la config devuelta por `withPWA`, reduciendo conflictos de clonación en workers.
 - **Patch reproducible para export workers**:
-  - Se creÃ³ `scripts/patch-next-export-workers.js` para parchear `node_modules/next/dist/export/index.js`.
-  - El parche vuelve no enumerables las funciones de `nextConfig` antes de enviar la configuraciÃ³n a workers de exportaciÃ³n, evitando `DataCloneError` con `generateBuildId`, `exportPathMap` y similares.
-  - `package.json` ahora ejecuta este parche tambiÃ©n en `postinstall`.
+  - Se creó `scripts/patch-next-export-workers.js` para parchear `node_modules/next/dist/export/index.js`.
+  - El parche vuelve no enumerables las funciones de `nextConfig` antes de enviar la configuración a workers de exportación, evitando `DataCloneError` con `generateBuildId`, `exportPathMap` y similares.
+  - `package.json` ahora ejecuta este parche también en `postinstall`.
 - **Android APK script**:
-  - `scripts/android-apk.mjs` ahora fija `GRADLE_USER_HOME` dentro del workspace (`.gradle-user-home`) para no depender de perfiles invÃ¡lidos del entorno.
-  - Se aÃ±adiÃ³ soporte explÃ­cito para validar con `--no-bump --no-push`, evitando subir versiÃ³n o hacer `git push` por una corrida tÃ©cnica.
+  - `scripts/android-apk.mjs` ahora fija `GRADLE_USER_HOME` dentro del workspace (`.gradle-user-home`) para no depender de perfiles inválidos del entorno.
+  - Se añadió soporte explícito para validar con `--no-bump --no-push`, evitando subir versión o hacer `git push` por una corrida técnica.
 
-**ValidaciÃ³n:**
-- `npm run build` completÃ³ correctamente: compilaciÃ³n, page data, static pages, build traces y export.
-- `node scripts/android-apk.mjs --no-bump --no-push` ya supera el fallo original de Next/webpack y avanza hasta Gradle; la fase final de Android quedÃ³ limitada por descarga/lock del wrapper en el entorno, no por error de la app web.
+**Validación:**
+- `npm run build` completó correctamente: compilación, page data, static pages, build traces y export.
+- `node scripts/android-apk.mjs --no-bump --no-push` ya supera el fallo original de Next/webpack y avanza hasta Gradle; la fase final de Android quedó limitada por descarga/lock del wrapper en el entorno, no por error de la app web.
 
 **Archivos Modificados:**
 - `next.config.mjs`
@@ -1364,14 +1416,14 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `scripts/patch-next-export-workers.js`
 - `AGENTS.md`
 
-### [2026-02-27 15:19] 139. Fondos por estación en Via Crucis + fix apertura invasiva Android
+### [2026-02-27 15:19] 139. Fondos por estación en Vía Crucis + fix apertura invasiva Android
 **Objetivo:**
 - Integrar fondos visuales por estación (14) en `ViaCrucisImmersive`.
 - Corregir apertura inesperada de la app cuando está en segundo plano.
 - Mantener acción de notificación `mark_prayed` sin abrir Activity en Android.
 
 **Ejecución:**
-- **Via Crucis inmersivo**:
+- **Vía Crucis inmersivo**:
   - Se agregó arreglo de 14 imágenes de dominio público (Wikimedia) para cada estación.
   - Se incorporó selección de imagen por fase/estación (`intro`, `stations`, `outro`).
   - Se reemplazó fondo de gradiente plano por capa de imagen + overlay oscuro para conservar legibilidad.
@@ -1464,7 +1516,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `src/lib/placeholder-images.json`
 - `AGENTS.md`
 
-### [2026-02-26 02:40] 133. Forzar reemplazo de iconos Android
+### [2026-02-26 02:40] 133. Forzar reemplazo de íconos Android
 **Planificación:**
 - Forzar la sustitución de `ic_launcher*` en todas las densidades desde `Downloads/icon.png`.
 
@@ -1526,7 +1578,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `src/context/SettingsContext.tsx`
 - `AGENTS.md`
 
-### [2026-02-26 02:00] 129. Reemplazo global de iconos (PWA + Android)
+### [2026-02-26 02:00] 129. Reemplazo global de íconos (PWA + Android)
 **Planificación:**
 - Reemplazar íconos principales por `Downloads/icon.png`.
 - Generar variantes con zona segura para recortes del sistema.
@@ -1560,7 +1612,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `src/context/SettingsContext.tsx`
 - `AGENTS.md`
 
-### [2026-02-26 01:30] 127. Renombre lector EPUB + iconos Annuum
+### [2026-02-26 01:30] 127. Renombre lector EPUB + íconos Annuum
 **Planificación:**
 - Renombrar el componente del lector a un nombre genérico.
 - Unificar los íconos de Cotidie Annuum al `icons/icon.png`.
@@ -1744,7 +1796,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 ### [2026-02-25 14:17] 116. Lote de correcciones UX/estabilidad/importación/contador (Planificación)
 **Planificación:**
 - Ajustar safe area en fullscreen de `Lectura Nuevo Testamento`.
-- Unificar icono PWA con variante maskable con zona segura.
+- Unificar ícono PWA con variante maskable con zona segura.
 - Mover a ciclo de día 05:00 (solo para contadores Cotidie Annuum + checks Plan de Vida).
 - Contar progreso al marcar check (además de abrir oración/sección).
 - Mitigar reinicios con manejo de errores globales no fatales y robustecer flujo de importación por abrir-con-app.
@@ -1935,7 +1987,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 ### [2026-02-23 12:54] 103. Avance visual EPUB + limpieza botón fullscreen duplicado (Ejecución)
 **Ejecución:**
 - Se reforzó `goPrev/goNext` para forzar sincronización visual tras el cambio de página (`syncAfterPageChange`), incluyendo `resize` y `display` del CFI actual.
-- Se eliminó del control del lector el botón de pantalla completa (icono de expandir/contraer), manteniendo el de encabezado como único punto.
+- Se eliminó del control del lector el botón de pantalla completa (ícono de expandir/contraer), manteniendo el de encabezado como único punto.
 - Se limpió la barra de acciones para dejar solo navegación, menú lateral y contador de página.
 
 **Validación:**
@@ -2084,7 +2136,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - Se actualizó `public/manifest.json` para usar exclusivamente `"/icons/icon.png"` como ícono PWA (192 y 512).
 - Se removieron del layout las referencias a `black_icon.png` y `white_icon.png`.
 - Se dejó `link rel="icon"` y `link rel="apple-touch-icon"` apuntando solo a `"/icons/icon.png"`.
-- No se tocaron otras funciones fuera de iconos PWA/layout.
+- No se tocaron otras funciones fuera de íconos PWA/layout.
 
 **Archivos Modificados:**
 - `public/manifest.json`
@@ -2094,7 +2146,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 **Planificación:**
 - Corregir el manifiesto PWA para que use únicamente el ícono principal (`/icons/icon.png`) en instalación.
 - Eliminar referencias de favicon condicional a íconos blanco/negro en el layout web.
-- Mantener cambios acotados solo a PWA/layout de iconos.
+- Mantener cambios acotados solo a PWA/layout de íconos.
 
 **Ejecución:**
 - En progreso.
@@ -2338,7 +2390,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - Mantener cambios acotados solo a íconos Android.
 
 **Ejecución:**
-- Se ejecutó `npx capacitor-assets generate` para regenerar recursos de icono.
+- Se ejecutó `npx capacitor-assets generate` para regenerar recursos de ícono.
 - Se conservaron únicamente los cambios de Android launcher en `mipmap-*` y `mipmap-anydpi-v26`.
 - Se revirtieron salidas no solicitadas (PWA/manifest y otros archivos fuera del alcance) para respetar el pedido de actualizar solo ícono Android.
 
@@ -2634,7 +2686,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `android/app/build.gradle`
 - `src/context/SettingsContext.tsx`
 
-### [2026-02-22 00:19] 56. Aumento de safe zone del icono launcher
+### [2026-02-22 00:19] 56. Aumento de safe zone del ícono launcher
 **Planificación:**
 - Aumentar la zona segura del ícono de app en Android para evitar recorte visual en bordes.
 - Ajustar el `inset` del `adaptive-icon` (normal y round) en `mipmap-anydpi-v26`.
@@ -2649,15 +2701,15 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml`
 - `android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml`
 
-### [2026-02-22 00:10] 55. Actualizacion de iconos desde /icons
+### [2026-02-22 00:10] 55. Actualizacion de íconos desde /icons
 **Planificación:**
-- Reemplazar los iconos web/public por los nuevos de `public/icons`.
-- Sincronizar los iconos empaquetados en `android/app/src/main/assets/public/icons`.
-- Actualizar iconos Android launcher/notificacion en `android/app/src/main/res` usando las mismas fuentes nuevas.
+- Reemplazar los íconos web/public por los nuevos de `public/icons`.
+- Sincronizar los íconos empaquetados en `android/app/src/main/assets/public/icons`.
+- Actualizar íconos Android launcher/notificacion en `android/app/src/main/res` usando las mismas fuentes nuevas.
 - Registrar el detalle final en este archivo al terminar.
 **Ejecución:**
-- **Web/PWA**: Se conservaron como fuente los nuevos iconos en `public/icons` y se regeneraron los de compatibilidad en `public/icons/antiguo`.
-- **Android launcher**: Se reemplazaron `ic_launcher`, `ic_launcher_round`, `ic_launcher_foreground` e `ic_launcher_background` en todos los `mipmap-*` usando los nuevos iconos base.
+- **Web/PWA**: Se conservaron como fuente los nuevos íconos en `public/icons` y se regeneraron los de compatibilidad en `public/icons/antiguo`.
+- **Android launcher**: Se reemplazaron `ic_launcher`, `ic_launcher_round`, `ic_launcher_foreground` e `ic_launcher_background` en todos los `mipmap-*` usando los nuevos íconos base.
 - **Android notificaciones**: Se reemplazaron `small_icon_black.png` y `small_icon_white.png` en `android/app/src/main/res/drawable`.
 - **Assets Android WebView**: Se sincronizó `android/app/src/main/assets/public/icons` con `public/icons`.
 
@@ -2698,7 +2750,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 
 ### [2026-02-22 00:08] 54. Imagen en notificación de prueba (dev)
 **Planificación:**
-- Añadir una imagen visible en la notificación de prueba de 5 minutos para validar render de banner/icono.
+- Añadir una imagen visible en la notificación de prueba de 5 minutos para validar render de banner/ícono.
 - Usar el ícono principal con fondo (`/icons/icon.png`).
 - Mantener el cambio acotado solo al bloque de notificación test.
 **Ejecución:**
@@ -2788,13 +2840,13 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 
 ### [2026-02-21 23:20] 48. Fix de alcance para horizonEnd en scheduler
 **Planificación:**
-- Corregir el error de compilacion `Cannot find name 'horizonEnd'` en `SettingsContext.tsx`.
-- Ajustar unicamente el alcance de la variable para no alterar la logica de programacion.
+- Corregir el error de compilación `Cannot find name 'horizonEnd'` en `SettingsContext.tsx`.
+- Ajustar únicamente el alcance de la variable para no alterar la lógica de programacion.
 
 **Ejecución:**
-- **Scheduler de notificaciones**: Se movio la declaracion de `horizonEnd` al inicio de `sync`, antes de su uso en notificaciones fijas y fiestas moviles.
+- **Scheduler de notificaciones**: Se movió la declaracion de `horizonEnd` al inicio de `sync`, antes de su uso en notificaciones fijas y fiestas moviles.
 - **Resultado**: El error de TypeScript en `src/context/SettingsContext.tsx:2250` queda resuelto.
-- **Validación**: `next build` compila y pasa chequeo de tipos de esa seccion; el proceso termina con `spawn EPERM` del entorno.
+- **Validación**: `next build` compila y pasa chequeo de tipos de esa sección; el proceso termina con `spawn EPERM` del entorno.
 
 **Archivos Modificados:**
 - `src/context/SettingsContext.tsx`
@@ -2813,13 +2865,13 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 **Archivos Modificados:**
 - `src/context/SettingsContext.tsx`
 
-### [2026-02-21 22:55] 46. Memoria de sesion y apertura/importacion de backups .ctd
+### [2026-02-21 22:55] 46. Memoria de sesión y apertura/importacion de backups .ctd
 **Planificación:**
-- Evitar "memoria infinita" de navegacion para que el estado se conserve solo mientras la app siga viva en recientes.
-- Permitir abrir/compartir archivos `.ctd`/`.json` con Cotidie en Android e importar su contenido automaticamente.
+- Evitar "memoria infinita" de navegación para que el estado se conserve solo mientras la app siga viva en recientes.
+- Permitir abrir/compartir archivos `.ctd`/`.json` con Cotidie en Android e importar su contenido automáticamente.
 
 **Ejecución:**
-- **Navegacion**: Se migro el guardado de `cotidie_nav_state` de `localStorage` a `sessionStorage` en `MainApp`.
+- **Navegación**: Se migro el guardado de `cotidie_nav_state` de `localStorage` a `sessionStorage` en `MainApp`.
 - **Resultado**: La posicion/vista se mantiene en segundo plano, pero no persiste tras cierre real del proceso.
 - **Android (intents)**: Se agregaron filtros `VIEW` y `SEND` en el `AndroidManifest` para que Cotidie aparezca al abrir/compartir backups.
 - **Android (bridge)**: En `MainActivity`, se capturan intents con archivo, se lee el texto y se inyecta en `localStorage` temporal (`cotidie_pending_import`) para consumo en la webview.
@@ -2831,12 +2883,12 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `android/app/src/main/java/com/benjamin/studio/MainActivity.java`
 - `src/context/SettingsContext.tsx`
 
-### [2026-02-20 16:09] 45. Refresco de imagen del Santo del dia al cambiar placeholder
+### [2026-02-20 16:09] 45. Refresco de imagen del Santo del día al cambiar placeholder
 **Planificación:**
 - Corregir la condicion de no-actualizacion para que detecte cambios de `imageUrl` aunque el `id` de imagen sea el mismo.
 
 **Ejecución:**
-- **Santo del dia**: Se ajusto `sameImage` para comparar `id` y `imageUrl`.
+- **Santo del día**: Se ajustó `sameImage` para comparar `id` y `imageUrl`.
 - **Resultado**: Si cambias `src/lib/placeholder-images.json` para `saintoftheday-5`, la imagen se refresca sin esperar cambio de fecha.
 
 **Archivos Modificados:**
@@ -2845,11 +2897,11 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 ### [2026-02-20 15:51] 44. Limpieza de regla especial 28/02
 **Planificación:**
 - Eliminar cualquier regla dedicada a `28/02` para que no haya forzado de imagen.
-- Mantener el comportamiento base: imagen por dia de semana y color liturgico por reglas generales (incluyendo Cuaresma en morado cuando corresponda).
+- Mantener el comportamiento base: imagen por día de semana y color litúrgico por reglas generales (incluyendo Cuaresma en morado cuando corresponda).
 
 **Ejecución:**
-- **Santo del dia**: Se retiro la excepcion que forzaba `saintoftheday-5` para `28/02`.
-- **Resultado**: `28/02` vuelve a usar la logica normal sin intervencion especial.
+- **Santo del día**: Se retiró la excepcion que forzaba `saintoftheday-5` para `28/02`.
+- **Resultado**: `28/02` vuelve a usar la lógica normal sin intervencion especial.
 
 **Archivos Modificados:**
 - `src/context/SettingsContext.tsx`
@@ -2880,7 +2932,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 ### [2026-02-20 12:45] 41. Notificaciones de fiestas y fallback de errores
 **Planificación:**
 - Agregar notificaciones para fiestas fijas principales en `fixed-notifications.ts`.
-- Evitar reinicios abruptos ante errores mostrando una pantalla de fallback con acciones explí­citas.
+- Evitar reinicios abruptos ante errores mostrando una pantalla de fallback con acciones explícitas.
 
 **Ejecución:**
 - **Notificaciones**: Se añadieron fiestas fijas principales (fechas estables) con hora sugerida 09:00.
@@ -2957,7 +3009,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - **Rosario Inmersivo**: Se mantuvo el formateo de asteriscos en pre-rosario usando el renderizador de texto.
 - **Rosario Inmersivo**: Se aplicó el renderizador de texto a los pasos del pre-rosario para ocultar asteriscos.
 - **Rosario Inmersivo**: Se ajustó el renderizado del pre-rosario para respetar asteriscos como negrita gris y centrar el contenido.
-- **Rosario Inmersivo**: Se forzó fuente de emoji y se subió opacidad del icono central para evitar cuadros vacíos.
+- **Rosario Inmersivo**: Se forzó fuente de emoji y se subió opacidad del ícono central para evitar cuadros vacíos.
 - **Rosario Inmersivo**: Se reemplazaron emojis por íconos Lucide para evitar caracteres faltantes en dispositivos sin soporte de emoji.
 - **Rosario Inmersivo**: Se cambió el ícono de corazón por una corona en los pasos de comunión/intro.
 - **Notificaciones fijas**: Se añadió soporte para recordatorios no editables desde un archivo dedicado y se conectó al scheduler nativo.
@@ -2993,12 +3045,12 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 
 ### [2026-02-17 13:30] 37. Corrección de Flujo Salve (Ramificación)
 **Planificación:**
-- Modificar `handleNext` en `RosaryImmersive.tsx` para que al terminar la Salve no salte automáticamente al final (Jaculatorias), sino que simplemente cierre el "desví­o" y devuelva al usuario al contexto donde estaba (o al inicio de las oraciones finales si vino desde el misterio).
+- Modificar `handleNext` en `RosaryImmersive.tsx` para que al terminar la Salve no salte automáticamente al final (Jaculatorias), sino que simplemente cierre el "desvío" y devuelva al usuario al contexto donde estaba (o al inicio de las oraciones finales si vino desde el misterio).
 
 **Ejecución:**
 - **RosaryImmersive.tsx**:
     - Se eliminó la lógica que forzaba `setPostStepIndex(jacIndex)` al cerrar la Salve.
-    - Ahora `setIsSalveActive(false)` es la única acción, permitiendo que el estado subyacente (`postStepIndex`) determine qué mostrar a continuación (normalmente Letaní­as si se accedió desde el final del misterio).
+    - Ahora `setIsSalveActive(false)` es la única acción, permitiendo que el estado subyacente (`postStepIndex`) determine qué mostrar a continuación (normalmente Letanías si se accedió desde el final del misterio).
 
 **Archivos Modificados:**
 - `src/components/RosaryImmersive.tsx`
@@ -3006,22 +3058,22 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 ### [2026-02-17 13:15] 36. Mejoras Integrales en Rosario Inmersivo
 **Planificación:**
 - Implementar los 11 puntos solicitados para mejorar la experiencia del Rosario.
-- **Lógica**: Saltar intenciones si están vací­as.
+- **Lógica**: Saltar intenciones si están vacías.
 - **UI**: Aumentar opacidad del fondo (0.65), ocultar botón de edición de jaculatorias cuando no corresponde.
-- **Navegación**: Corregir botón "Salve" y "Ir a Letaní­as".
-- **Contenido**: Actualizar texto de Letaní­as según versión Opus Dei (incluyendo oraciones finales y nuevas invocaciones).
+- **Navegación**: Corregir botón "Salve" y "Ir a Letanías".
+- **Contenido**: Actualizar texto de Letanías según versión Opus Dei (incluyendo oraciones finales y nuevas invocaciones).
 
 **Ejecución:**
 - **RosaryImmersive.tsx**:
     - Se aumentó la opacidad de la imagen de fondo.
     - Se corrigió la lógica de visibilidad del botón "Salve" y "Editar Jaculatorias" (mutuamente exclusivos).
     - Se aseguró que `isPostRosaryActive` se active correctamente al pulsar "Salve".
-    - Se verificó la lógica de salto de intenciones (ya existí­a, se confirmó su funcionamiento).
-- **Letaní­as (index.ts)**:
+    - Se verificó la lógica de salto de intenciones (ya existía, se confirmó su funcionamiento).
+- **Letanías (index.ts)**:
     - Se actualizó el texto con las nuevas invocaciones (*Mater misericordiae, Mater spei, Solacium migrantium*).
     - Se corrigió la oración final (se reemplazó el Angelus por la Colecta del Rosario "Oh Dios, cuyo Unigénito Hijo...").
-    - Se ajustaron las intenciones finales (Por el Papa, por las ínimas).
-    - Se aplicó formato de sangrí­a para que las respuestas se rendericen en negrita automáticamente.
+    - Se ajustaron las intenciones finales (Por el Papa, por las ánimas).
+    - Se aplicó formato de sangría para que las respuestas se rendericen en negrita automáticamente.
 
 **Archivos Modificados:**
 - `src/components/RosaryImmersive.tsx`
@@ -3044,7 +3096,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 ### [2026-02-17 12:45] 34. Recorte de Imágenes para Fondos de Pantalla
 **Planificación:**
 - Implementar una herramienta de recorte de imágenes (cropping) para que el usuario pueda ajustar las imágenes subidas como fondo de pantalla.
-- Utilizar la librerí­a `react-easy-crop` para la interfaz de recorte.
+- Utilizar la librería `react-easy-crop` para la interfaz de recorte.
 - Crear utilidades para procesar la imagen (canvas) y generar el resultado final.
 
 **Ejecución:**
@@ -3078,10 +3130,10 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `src/components/developer/DeveloperDashboard.tsx`
 - `src/components/main/MainApp.tsx`
 
-### [2026-02-11 11:15] 32. Refinamiento de Estadí­sticas
+### [2026-02-11 11:15] 32. Refinamiento de Estadísticas
 **Planificación:**
-- **Stats**: Cambiar la lógica de "Racha" (consecutiva) a "Total de Dí­as" (acumulativa única) para Mañana, Noche y Misa.
-- **App Usage**: Añadir contador de "Dí­as no usados" (calculado como diferencia entre dí­as del año transcurridos y dí­as activo).
+- **Stats**: Cambiar la lógica de "Racha" (consecutiva) a "Total de Días" (acumulativa única) para Mañana, Noche y Misa.
+- **App Usage**: Añadir contador de "Días no usados" (calculado como diferencia entre días del año transcurridos y días activo).
 - **Persistencia**: Confirmar compatibilidad de IndexedDB con APK (WebView).
 
 **Ejecución:**
@@ -3089,8 +3141,8 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
     - Se añadieron nuevas propiedades a `UserStats`: `morningDaysCount`, `nightDaysCount`, `massDaysCount`.
     - Se actualizó `incrementStat` para incrementar estos contadores solo si la fecha difiere de la última registrada (`lastMorningPrayerDate`, etc.).
 - **DeveloperDashboard**:
-    - Se actualizaron las etiquetas para reflejar "Dí­as Totales" en lugar de "Rachas".
-    - Se añadió visualización de "Dí­as Faltantes" bajo el contador de "Dí­as Activo".
+    - Se actualizaron las etiquetas para reflejar "Días Totales" en lugar de "Rachas".
+    - Se añadió visualización de "Días Faltantes" bajo el contador de "Días Activo".
 
 **Archivos Modificados:**
 - `src/context/SettingsContext.tsx`
@@ -3103,7 +3155,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - **Movable Feasts**: Corregir algoritmo de Miércoles de Ceniza (no se mostraba correctamente).
 - **Nueva Oración**: Agregar "Oración antes de la comunión" (Comunión espiritual).
 - **UX**: Implementar gesto "Pinch to Zoom" en el detalle de oraciones para cambiar tamaño de letra dinámicamente.
-- **Stats**: Reemplazar contadores absolutos de oraciones mañana/noche por "Racha de dí­as" (Streak) en el panel de desarrollador.
+- **Stats**: Reemplazar contadores absolutos de oraciones mañana/noche por "Racha de días" (Streak) en el panel de desarrollador.
 - **PWA Persistence**: Implementar `IndexedDB` para evitar pérdida de datos en actualizaciones de PWA (reemplazando `localStorage` como fuente primaria).
 - **UI**: Corregir botón "Salir de Pantalla Completa" para respetar `safe-area-inset-bottom`.
 
@@ -3133,9 +3185,9 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 
 ---
 
-### [2026-02-11 09:30] 30. Nueva Oración: Letaní­as de la Humildad
+### [2026-02-11 09:30] 30. Nueva Oración: Letanías de la Humildad
 **Planificación:**
-- El usuario solicitó agregar las "Letaní­as de la Humildad" en la sección de Oraciones.
+- El usuario solicitó agregar las "Letanías de la Humildad" en la sección de Oraciones.
 - Se creará un nuevo archivo de oración y se registrará en `src/lib/data.tsx`.
 
 **Ejecución:**
@@ -3148,23 +3200,23 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 
 ---
 
-### [2026-02-10 16:00] 29. Adoración Extendida y Guí­a PWA
+### [2026-02-10 16:00] 29. Adoración Extendida y Guía PWA
 **Planificación:**
 - **Rosario Immersive**:
-    - El usuario solicitó agregar "Padre Nuestro, Ave Marí­a y Gloria" a cada uno de los 3 pasos de "Adoración" iniciales.
+    - El usuario solicitó agregar "Padre Nuestro, Ave María y Gloria" a cada uno de los 3 pasos de "Adoración" iniciales.
     - Se modificará `PRE_ROSARY_STEPS` (o las constantes de texto) para incluir estas oraciones completas.
 - **Documentación**:
     - Se detallarán los pasos exactos para subir y desplegar la PWA en Vercel.
 
 **Ejecución:**
 - **RosaryImmersive.tsx**:
-    - Se actualizaron `ADORACION_SANTISIMO_TEXT_1`, `_2`, y `_3` para incluir el texto completo de Padre Nuestro, Ave Marí­a y Gloria después de la jaculatoria "Bendito sea...".
+    - Se actualizaron `ADORACION_SANTISIMO_TEXT_1`, `_2`, y `_3` para incluir el texto completo de Padre Nuestro, Ave María y Gloria después de la jaculatoria "Bendito sea...".
 
 **Archivos Modificados:**
 - `src/components/RosaryImmersive.tsx`
 **Planificación:**
 - **Rosario Immersive**:
-    - El usuario reportó que no se veí­an imágenes de fondo, solo colores.
+    - El usuario reportó que no se veían imágenes de fondo, solo colores.
     - Se constató que se usaban gradientes CSS.
     - Se decidió mapear los misterios a imágenes reales existentes en `public/images/`.
     - Se implementará un `div` con `backgroundImage` y opacidad reducida, manteniendo el gradiente como superposición (overlay) para asegurar legibilidad.
@@ -3191,8 +3243,8 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
     - Dividir Adoración inicial en 4 pasos.
     - Zona segura en selección de misterios.
     - Botones de salto en barra superior (evitar toques accidentales).
-    - Botón directo a Letaní­as.
-    - Tí­tulo descriptivo en meditación.
+    - Botón directo a Letanías.
+    - Título descriptivo en meditación.
     - Emoji de Salve (Corona) y lógica de salto.
 - **Archivos**: Usar API `Share` para exportar ICS y Backups de forma fiable en Android.
 - **Navegación**: Corregir botón "Atrás" en Plan de Vida.
@@ -3206,9 +3258,9 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
     - Se dividió `PRE_ROSARY_STEPS`.
     - Se añadieron clases `safe-area` en Selection View.
     - Se movieron botones de salto a la barra superior.
-    - Se implementó botón "Ir a Letaní­as".
-    - Se formatearon las Letaní­as (`whitespace-pre-wrap`).
-    - Se cambió lógica de Salve (botón explí­cito al final).
+    - Se implementó botón "Ir a Letanías".
+    - Se formatearon las Letanías (`whitespace-pre-wrap`).
+    - Se cambió lógica de Salve (botón explícito al final).
 - **ContentSettings**: Se implementó `Share.share()` para exportar archivos.
 - **Next Config**: Se configuró `withPWA` en `next.config.mjs`.
 
@@ -3236,11 +3288,11 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `src/components/settings/ContentSettings.tsx`
 - `android/app/src/main/AndroidManifest.xml`
 **Planificación:**
-- Aumentar el tamaño de los botones del menú lateral en la Consola de Desarrollo para facilitar su pulsación en dispositivos móviles, ya que actualmente son pequeños y difí­ciles de seleccionar.
+- Aumentar el tamaño de los botones del menú lateral en la Consola de Desarrollo para facilitar su pulsación en dispositivos móviles, ya que actualmente son pequeños y difíciles de seleccionar.
 
 **Ejecución:**
 - **NavButton Update**: Se aumentó el padding vertical (`py-2` -> `py-4`) y horizontal (`px-3` -> `px-4`) de los botones de navegación.
-- **Text & Icon Size**: Se incrementó el tamaño del icono (`size-4` -> `size-5`) y el texto (`text-sm` -> `text-base`).
+- **Text & Icon Size**: Se incrementó el tamaño del ícono (`size-4` -> `size-5`) y el texto (`text-sm` -> `text-base`).
 
 **Archivos Modificados:**
 - `src/components/developer/DeveloperDashboard.tsx`
@@ -3274,7 +3326,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - Mover el botón de exportación a la pestaña "Contenido" para mejor visibilidad.
 - Corregir el diseño responsive del Developer Dashboard:
     - Asegurar que la barra superior respete el `safe-area-inset-top`.
-    - Implementar un menú lateral colapsable (hamburger menu) funcional en móviles.
+    - Implementar un menú lateral colapsable (hamburger menú) funcional en móviles.
 
 **Ejecución:**
 - **ICS Generator**: Se creó `src/lib/ics-generator.ts` con la lógica para mapear santos y colores litúrgicos a eventos `.ics`.
@@ -3291,7 +3343,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - Establecer la posición predeterminada de los controles de navegación en el centro inferior, respetando también el margen seguro inferior.
 
 **Ejecución:**
-- **Safe Areas**: Se reemplazaron las clases utilitarias `pt-safe-top`/`pb-safe-bottom` por valores explí­citos `pt-[env(safe-area-inset-top)]` y `pb-[env(safe-area-inset-bottom)]` en `ViaCrucisImmersive.tsx` y `RosaryImmersive.tsx`.
+- **Safe Areas**: Se reemplazaron las clases utilitarias `pt-safe-top`/`pb-safe-bottom` por valores explícitos `pt-[env(safe-area-inset-top)]` y `pb-[env(safe-area-inset-bottom)]` en `ViaCrucisImmersive.tsx` y `RosaryImmersive.tsx`.
 - **Nav Position**: Se actualizó la lógica CSS de posición por defecto de los controles de navegación para usar `env(safe-area-inset-bottom)` en lugar de variables CSS personalizadas, asegurando que aparezcan correctamente en el centro inferior sin ser cubiertos por la interfaz del sistema.
 
 **Archivos Modificados:**
@@ -3307,8 +3359,8 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
     - Dividir Adoración inicial en 4 pasos.
     - Zona segura en selección de misterios.
     - Botones de salto en barra superior (evitar toques accidentales).
-    - Botón directo a Letaní­as.
-    - Tí­tulo descriptivo en meditación.
+    - Botón directo a Letanías.
+    - Título descriptivo en meditación.
     - Emoji de Salve (Corona) y lógica de salto.
 - **Archivos**: Usar API `Share` para exportar ICS y Backups de forma fiable en Android.
 - **Navegación**: Corregir botón "Atrás" en Plan de Vida.
@@ -3322,9 +3374,9 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
     - Se dividió `PRE_ROSARY_STEPS`.
     - Se añadieron clases `safe-area` en Selection View.
     - Se movieron botones de salto a la barra superior.
-    - Se implementó botón "Ir a Letaní­as".
-    - Se formatearon las Letaní­as (`whitespace-pre-wrap`).
-    - Se cambió lógica de Salve (botón explí­cito al final).
+    - Se implementó botón "Ir a Letanías".
+    - Se formatearon las Letanías (`whitespace-pre-wrap`).
+    - Se cambió lógica de Salve (botón explícito al final).
 - **ContentSettings**: Se implementó `Share.share()` para exportar archivos.
 - **Next Config**: Se configuró `withPWA` en `next.config.mjs`.
 
@@ -3360,13 +3412,13 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 
 ### [2026-02-10 12:00] 26. Sincronización de Widgets Android
 **Planificación:**
-- El usuario reportó desincronización entre el "Santo del Dí­a" en la app y los widgets de Android (color, imagen, zona de visión).
+- El usuario reportó desincronización entre el "Santo del Día" en la app y los widgets de Android (color, imagen, zona de visión).
 - Se identificó que la lógica de los widgets reside en código nativo Java (`SaintWidgetContentFactory.java`).
-- Se requiere replicar la lógica de colores (verde para ví­rgenes) y selección de imagen (patrones marianos) en Java.
+- Se requiere replicar la lógica de colores (verde para vírgenes) y selección de imagen (patrones marianos) en Java.
 
 **Ejecución:**
-- **Color Sync**: Se actualizó `getLiturgicalColor` en `SaintWidgetContentFactory.java` para separar `virgin` de `marian` y asignar color verde (green) a las ví­rgenes no mártires.
-- **Image Sync**: Se replicó la lógica de detección de fiestas marianas (por nombre y tipo) y la lista de santos especí­ficos en `pickSaintImageAssetPath`.
+- **Color Sync**: Se actualizó `getLiturgicalColor` en `SaintWidgetContentFactory.java` para separar `virgin` de `marian` y asignar color verde (green) a las vírgenes no mártires.
+- **Image Sync**: Se replicó la lógica de detección de fiestas marianas (por nombre y tipo) y la lista de santos específicos en `pickSaintImageAssetPath`.
 - **Vision Zone**: Se verificó que `SaintWidgetUpdater.java` ya parsea `image-display.ts`, por lo que al alinear los IDs de imagen, la zona de visión se corrige automáticamente.
 
 **Archivos Modificados:**
@@ -3374,12 +3426,12 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 
 ### [2026-02-10 11:30] 25. Corrección Definitiva de Colores Litúrgicos
 **Planificación:**
-- El usuario reportó que Santa Escolástica (virgen) seguí­a apareciendo en celeste (azul) en lugar de verde.
-- Se revisó `getLiturgicalColor.ts` y se detectó que la lógica de "Memoria" podí­a estar interfiriendo o que la caché de la app no se actualizó.
-- Se reforzará la lógica para que `virgin` (no mariana, no mártir) sea explí­citamente `green`.
+- El usuario reportó que Santa Escolástica (virgen) seguía apareciendo en celeste (azul) en lugar de verde.
+- Se revisó `getLiturgicalColor.ts` y se detectó que la lógica de "Memoria" podía estar interfiriendo o que la caché de la app no se actualizó.
+- Se reforzará la lógica para que `virgin` (no mariana, no mártir) sea explícitamente `green`.
 
 **Ejecución:**
-- **Refactor**: Se añadió un bloque explí­cito para `virgin` que retorna `green`, asegurando que no caiga en el bloque de `default` o `blue` por error.
+- **Refactor**: Se añadió un bloque explícito para `virgin` que retorna `green`, asegurando que no caiga en el bloque de `default` o `blue` por error.
 - **Verificación**: Se comprobó que Santa Escolástica tiene `type: "virgin"` en `saints-data.json`, por lo que con el cambio, su color será verde.
 
 **Archivos Modificados:**
@@ -3391,7 +3443,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - Se aplicará validación de tipos antes de llamar a la función.
 
 **Ejecución:**
-- **Fix**: Se extrajo `rawContent` y se pasó a `getMeditationContent` solo si es string (o string vací­o si no), asegurando compatibilidad de tipos.
+- **Fix**: Se extrajo `rawContent` y se pasó a `getMeditationContent` solo si es string (o string vacío si no), asegurando compatibilidad de tipos.
 
 **Archivos Modificados:**
 - `src/components/ViaCrucisImmersive.tsx`
@@ -3437,7 +3489,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - La propiedad `content` de `Prayer` puede ser un objeto (mapa de strings), lo cual no es renderizable directamente por React.
 
 **Ejecución:**
-- **Fix**: Se añadió una comprobación `typeof content === 'string'` antes de renderizar. Si es un objeto, se renderiza string vací­o (o se podrí­a manejar de otra forma, pero por ahora asegura la compilación).
+- **Fix**: Se añadió una comprobación `typeof content === 'string'` antes de renderizar. Si es un objeto, se renderiza string vacío (o se podría manejar de otra forma, pero por ahora asegura la compilación).
 
 **Archivos Modificados:**
 - `src/components/ViaCrucisImmersive.tsx`
@@ -3448,7 +3500,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - Se verificó que TypeScript marca `id` como opcional en la interfaz `Prayer`.
 
 **Ejecución:**
-- **Fix**: Se añadió el operador `?.` (optional chaining) o comprobaciones explí­citas de existencia (`p.id && ...`) antes de usar métodos de string como `startsWith`, `split` o `includes`.
+- **Fix**: Se añadió el operador `?.` (optional chaining) o comprobaciones explícitas de existencia (`p.id && ...`) antes de usar métodos de string como `startsWith`, `split` o `includes`.
 
 **Archivos Modificados:**
 - `src/components/ViaCrucisImmersive.tsx`
@@ -3489,7 +3541,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 ### [2026-02-10 10:25] 15. Fix de Compilación (Tipos AppView)
 **Planificación:**
 - El usuario reportó error de compilación al asignar `'viaCrucis'` a `activeView` en `MainApp.tsx`.
-- El tipo `AppView` no incluí­a `'viaCrucis'` ni `'rosary'`, causando incompatibilidad de tipos en `setNavState`.
+- El tipo `AppView` no incluía `'viaCrucis'` ni `'rosary'`, causando incompatibilidad de tipos en `setNavState`.
 
 **Ejecución:**
 - **Type Fix**: Se actualizó la definición de `AppView` en `MainApp.tsx` para incluir `'viaCrucis' | 'rosary'`, alineándolo con el uso en el `switch` de renderizado y los manejadores de eventos.
@@ -3497,17 +3549,17 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 **Archivos Modificados:**
 - `src/components/main/MainApp.tsx`
 
-### [2026-02-10 10:15] 14. Corrección de Colores Litúrgicos (Ví­rgenes)
+### [2026-02-10 10:15] 14. Corrección de Colores Litúrgicos (Vírgenes)
 **Planificación:**
 - El usuario solicitó restringir el color celeste (`blue`) exclusivamente a fiestas marianas.
-- Las santas ví­rgenes (no marianas) deben usar verde (si no son mártires) o rojo (si son mártires).
+- Las santas vírgenes (no marianas) deben usar verde (si no son mártires) o rojo (si son mártires).
 - Se modificará la lógica de asignación de colores.
 
 **Ejecución:**
 - **Refactor `getLiturgicalColor`**:
     - Se separó la lógica de `marian` y `virgin`.
     - Se reforzó la detección de mártires buscando también en el `name` (para cubrir casos donde `type` sea solo `virgin` pero sea mártir).
-    - Se asignó `colors.green` a las ví­rgenes no mártires, según instrucción explí­cita.
+    - Se asignó `colors.green` a las vírgenes no mártires, según instrucción explícita.
 
 **Archivos Modificados:**
 - `src/lib/getLiturgicalColor.ts`
@@ -3530,13 +3582,13 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 
 ### [2026-02-09 21:50] 12. Limpieza de Interfaz Desarrollador
 **Planificación:**
-- Eliminar la tabla JSON sin formato en la pestaña de Estadí­sticas.
+- Eliminar la tabla JSON sin formato en la pestaña de Estadísticas.
 - Ocultar el encabezado global ("Cotidie") cuando se está en el panel de desarrollador.
 - Cambiar la etiqueta "development" por "desarrollador" en la consola.
 
 **Ejecución:**
 - **DeveloperDashboard.tsx**:
-    - Se eliminó el bloque `<pre>` que mostraba el JSON crudo en "Estadí­sticas" y "Globales".
+    - Se eliminó el bloque `<pre>` que mostraba el JSON crudo en "Estadísticas" y "Globales".
     - Se reemplazó el texto del entorno para mostrar "desarrollador".
 - **MainApp.tsx**:
     - Se añadió la condición `navState.activeView !== 'developer'` para evitar renderizar el componente `<Header />` en esa vista.
@@ -3551,7 +3603,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - Se revisaron los componentes principales para asegurar la localización.
 
 **Ejecución:**
-- **Developer Dashboard**: Se tradujeron las claves de las estadí­sticas (que se mostraban en inglés como `daysActive`, etc.) a etiquetas legibles en español (`Dí­as Activo`, `Oraciones Abiertas`).
+- **Developer Dashboard**: Se tradujeron las claves de las estadísticas (que se mostraban en inglés como `daysActive`, etc.) a etiquetas legibles en español (`Días Activo`, `Oraciones Abiertas`).
 - **Verificación**: Se confirmó que `AnnuumStory.tsx`, `Settings.tsx` y sus subcomponentes ya se encuentran traducidos.
 
 **Archivos Modificados:**
@@ -3560,13 +3612,13 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 ### [2026-02-09 18:35] 10. Devoción a San José y Mejoras en Simulación de Fechas
 **Planificación:**
 - Agregar devoción a San José.
-- Restringir el simulador de fechas para que solo afecte al "Santo del Dí­a" y no a la lógica global de la app.
+- Restringir el simulador de fechas para que solo afecte al "Santo del Día" y no a la lógica global de la app.
 - Habilitar la navegación a la devoción del santo al hacer clic en su tarjeta.
 - Corregir la navegación doble al guardar una oración editada.
 
 **Ejecución:**
 - **San José**: Se creó `src/lib/prayers/devociones/sanjose.ts` y se registró en `data.tsx`.
-- **Scope Simulación**: Se modificó `SettingsContext.tsx` para usar `new Date()` en rotación de fondos y estadí­sticas, limitando `simulatedDate` solo al cálculo del santo.
+- **Scope Simulación**: Se modificó `SettingsContext.tsx` para usar `new Date()` en rotación de fondos y estadísticas, limitando `simulatedDate` solo al cálculo del santo.
 - **Link Santo**: Se añadió lógica en `SettingsContext` para resolver el ID de la oración del santo y se actualizó `PrayerList.tsx` (`SaintOfTheDayCard`) para ser clickeable.
 - **Nav Fix**: Se eliminó la llamada redundante a `handleBack()` en `MainApp.tsx` (`handleSavePrayer`), ya que `AddPrayerForm` ya maneja la cancelación/retorno.
 
@@ -3584,18 +3636,18 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - Se revisó manualmente `DeveloperDashboard.tsx`.
 
 **Ejecución:**
-- **Análisis Build**: La compilación (`npm run build`) finalizó con éxito (Exit Code 0), confirmando que no hay errores de sintaxis ni de tipos crí­ticos.
-- **Mejora UX**: En `DeveloperDashboard.tsx`, se detectó que el input de edición de estadí­sticas no permití­a borrar el número completamente (backspace bloqueado por validación `NaN`). Se corrigió para permitir strings vací­os temporalmente (seteando valor a 0), mejorando la experiencia de edición.
+- **Análisis Build**: La compilación (`npm run build`) finalizó con éxito (Exit Code 0), confirmando que no hay errores de sintaxis ni de tipos críticos.
+- **Mejora UX**: En `DeveloperDashboard.tsx`, se detectó que el input de edición de estadísticas no permitía borrar el número completamente (backspace bloqueado por validación `NaN`). Se corrigió para permitir strings vacíos temporalmente (seteando valor a 0), mejorando la experiencia de edición.
 
 **Archivos Modificados:**
 - `src/components/developer/DeveloperDashboard.tsx`
 
 ### [2026-02-09 18:20] 8. Limpieza de APKs Antiguos
 **Planificación:**
-- El usuario solicitó que al compilar una nueva versión, se eliminen automáticamente las versiones anteriores (`.apk`) presentes en la raí­z.
+- El usuario solicitó que al compilar una nueva versión, se eliminen automáticamente las versiones anteriores (`.apk`) presentes en la raíz.
 
 **Ejecución:**
-- **Script Update**: Se modificó `scripts/android-apk.mjs` para buscar y eliminar archivos que coincidan con el patrón `cotidie-installer-v*.apk` en la raí­z del proyecto antes de copiar el nuevo APK generado.
+- **Script Update**: Se modificó `scripts/android-apk.mjs` para buscar y eliminar archivos que coincidan con el patrón `cotidie-installer-v*.apk` en la raíz del proyecto antes de copiar el nuevo APK generado.
 
 **Archivos Modificados:**
 - `scripts/android-apk.mjs`
@@ -3621,7 +3673,7 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - El usuario solicitó actualizar el año de inicio en el copyright a 2025.
 
 **Ejecución:**
-- **Copyright Update**: Se actualizó el texto en `DeveloperSettings.tsx` para mostrar "Â© 2025 - {año_actual}".
+- **Copyright Update**: Se actualizó el texto en `DeveloperSettings.tsx` para mostrar "© 2025 - {año_actual}".
 
 **Archivos Modificados:**
 - `src/components/settings/DeveloperSettings.tsx`
@@ -3679,11 +3731,11 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 
 ### [2026-02-09 17:40] 2. Configuración de Build APK y Scripts
 **Planificación:**
-- El usuario consultó sobre la ubicación del APK generado y pidió que se copiara a la raí­z.
+- El usuario consultó sobre la ubicación del APK generado y pidió que se copiara a la raíz.
 - Se detectó un problema con la ruta del SDK de Android.
 
 **Ejecución:**
-- **Script APK**: Se modificó `scripts/android-apk.mjs` para copiar el APK generado a la raí­z del proyecto (`process.cwd()`).
+- **Script APK**: Se modificó `scripts/android-apk.mjs` para copiar el APK generado a la raíz del proyecto (`process.cwd()`).
 - **Path Fix**: Se ajustó el script para usar `import.meta.url` y resolver rutas relativas de forma segura, evitando errores si se ejecuta desde otro directorio.
 - **Android Config**: Se actualizó `android/local.properties` con la ruta correcta del SDK: `C:\Users\balca\AppData\Local\Android\Sdk`.
 
