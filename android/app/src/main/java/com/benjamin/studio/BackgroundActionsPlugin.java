@@ -2,6 +2,8 @@ package com.benjamin.studio;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import com.benjamin.studio.widgets.SaintWidgetPreferences;
+import com.benjamin.studio.widgets.SaintWidgetUpdater;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -53,6 +55,20 @@ public class BackgroundActionsPlugin extends Plugin {
 
         JSObject result = new JSObject();
         result.put("items", items);
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void setSmallWidgetMode(PluginCall call) {
+        String mode = SaintWidgetPreferences.normalizeSmallWidgetMode(call.getString("mode", SaintWidgetPreferences.DISPLAY_MODE_FULL));
+        Context context = getContext();
+        if (context != null) {
+            SaintWidgetPreferences.setSmallWidgetMode(context, mode);
+            SaintWidgetUpdater.updateAll(context);
+        }
+
+        JSObject result = new JSObject();
+        result.put("mode", mode);
         call.resolve(result);
     }
 }

@@ -13,22 +13,24 @@
         android:src="@drawable/widget_bg_round" />
 
     <LinearLayout
+        android:id="@+id/widget_text_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:paddingLeft="12dp"
-        android:paddingTop="10dp"
-        android:paddingRight="12dp"
-        android:paddingBottom="12dp">
+        android:paddingLeft="8dp"
+        android:paddingTop="6dp"
+        android:paddingRight="8dp"
+        android:paddingBottom="6dp">
 
         <TextView
             android:id="@+id/widget_saint_name"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="3"
             android:ellipsize="end"
             android:gravity="start"
             android:includeFontPadding="false"
-            android:maxLines="3"
+            android:maxLines="10"
             android:textAlignment="viewStart"
             android:textSize="15sp"
             android:textStyle="bold" />
@@ -37,12 +39,12 @@
             android:id="@+id/widget_saint_bio"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1"
-            android:layout_marginTop="6dp"
+            android:layout_weight="5"
+            android:layout_marginTop="2dp"
             android:ellipsize="end"
             android:gravity="start|top"
             android:includeFontPadding="false"
-            android:maxLines="5"
+            android:maxLines="18"
             android:textAlignment="viewStart"
             android:textSize="12sp" />
     </LinearLayout>

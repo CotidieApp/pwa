@@ -3,7 +3,7 @@ export type FixedNotificationEntry = {
   title: string;
   text: string;
   route?: string; // e.g. "inicio/plan-de-vida/Santa-Misa"
-  image?: string; // URL o path local para banner (Android: largeIcon, iOS: attachment)
+  image?: string; // URL o path local para banner expandido en Android e attachment en iOS
   devOnly?: boolean; // si es true, solo se programa cuando el modo desarrollador está activo
 };
 

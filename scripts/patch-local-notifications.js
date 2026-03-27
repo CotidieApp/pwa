@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const filePath = path.join(
+const managerPath = path.join(
   __dirname,
   '..',
   'node_modules',
@@ -18,17 +18,27 @@ const filePath = path.join(
   'LocalNotificationManager.java'
 );
 
-if (!fs.existsSync(filePath)) {
+if (!fs.existsSync(managerPath)) {
   process.exit(0);
 }
 
-const original = fs.readFileSync(filePath, 'utf8');
-if (original.includes('com.benjamin.studio.MARK_PRAYED')) {
-  process.exit(0);
-}
+let source = fs.readFileSync(managerPath, 'utf8');
+let changed = false;
 
-const pattern = /\/\/ TODO Add custom icons to actions[\s\S]*?NotificationCompat\.Action\.Builder actionBuilder = new NotificationCompat\.Action\.Builder\(/;
-const replacement = `// TODO Add custom icons to actions
+const replaceOnce = (pattern, replacement, label) => {
+  const next = source.replace(pattern, replacement);
+  if (next === source) {
+    console.error(`patch-local-notifications: pattern not found for ${label}`);
+    process.exit(1);
+  }
+  source = next;
+  changed = true;
+};
+
+if (!source.includes('com.benjamin.studio.MARK_PRAYED')) {
+  replaceOnce(
+    /\/\/ TODO Add custom icons to actions[\s\S]*?NotificationCompat\.Action\.Builder actionBuilder = new NotificationCompat\.Action\.Builder\(/,
+    `// TODO Add custom icons to actions
                     LocalNotificationSchedule actionSchedule = localNotification.getSchedule();
                     boolean isRemovable = actionSchedule == null || actionSchedule.isRemovable();
                     Intent actionIntent;
@@ -54,12 +64,37 @@ const replacement = `// TODO Add custom icons to actions
                             flags
                         );
                     }
-                    NotificationCompat.Action.Builder actionBuilder = new NotificationCompat.Action.Builder(`;
-
-const next = original.replace(pattern, replacement);
-if (next === original) {
-  console.error('patch-local-notifications: pattern not found');
-  process.exit(1);
+                    NotificationCompat.Action.Builder actionBuilder = new NotificationCompat.Action.Builder(`,
+    'mark_prayed action'
+  );
 }
 
-fs.writeFileSync(filePath, next, 'utf8');
+if (!source.includes('NotificationCompat.BigPictureStyle')) {
+  replaceOnce(
+    /        String sound = localNotification\.getSound\(context, getDefaultSound\(context\)\);/,
+    `        JSObject extra = localNotification.getExtra();
+        String imageDrawable = extra != null ? extra.getString("imageDrawable") : null;
+        String bigPictureSummaryText = localNotification.getBody() != null
+            ? localNotification.getBody()
+            : localNotification.getSummaryText();
+        if (imageDrawable != null) {
+            android.graphics.Bitmap bigPicture = localNotification.getLargeIcon(context);
+            if (bigPicture != null) {
+                mBuilder.setStyle(
+                    new NotificationCompat.BigPictureStyle()
+                        .bigPicture(bigPicture)
+                        .bigLargeIcon((android.graphics.Bitmap) null)
+                        .setBigContentTitle(localNotification.getTitle())
+                        .setSummaryText(bigPictureSummaryText)
+                );
+            }
+        }
+
+        String sound = localNotification.getSound(context, getDefaultSound(context));`,
+    'big picture style'
+  );
+}
+
+if (changed) {
+  fs.writeFileSync(managerPath, source, 'utf8');
+}

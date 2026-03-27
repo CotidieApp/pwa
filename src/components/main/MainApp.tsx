@@ -942,6 +942,16 @@ export default function MainApp() {
 
   const showPlanCalendarButton =
     navState.activeView === 'category' && navState.selectedCategoryId === 'plan-de-vida';
+  const showsStandardHeader =
+    navState.activeView !== 'home' && navState.activeView !== 'developer';
+  const statusBarBackdropClass =
+    navState.activeView === 'home'
+      ? 'bg-transparent'
+      : showsStandardHeader
+        ? 'bg-primary'
+        : 'bg-background';
+  const navigationBarBackdropClass =
+    navState.activeView === 'home' ? 'bg-transparent' : 'bg-background';
 
   const handleOpenPlanCalendar = () => {
     setNavState({
@@ -971,6 +981,17 @@ export default function MainApp() {
 
   return (
     <div className={cn("h-full w-full text-foreground relative", navState.activeView === 'home' ? "bg-transparent" : "bg-background")}>
+      <div
+        aria-hidden="true"
+        className={cn("pointer-events-none fixed inset-x-0 top-0 z-[1]", statusBarBackdropClass)}
+        style={{ height: 'env(safe-area-inset-top)' }}
+      />
+      <div
+        aria-hidden="true"
+        className={cn("pointer-events-none fixed inset-x-0 bottom-0 z-[1]", navigationBarBackdropClass)}
+        style={{ height: 'env(safe-area-inset-bottom)' }}
+      />
+
       {isSeason && !hasViewedAnnuum && navState.activeView === 'home' && (
         <div
           className="absolute z-40 cursor-pointer animate-in fade-in zoom-in duration-500 hover:scale-110 transition-transform"
@@ -1004,7 +1025,7 @@ export default function MainApp() {
       )}
 
       <div className="flex flex-col h-full md:max-w-6xl md:mx-auto md:border-x md:border-border/50">
-        {navState.activeView !== 'home' && navState.activeView !== 'developer' && (
+        {showsStandardHeader && (
           <Header
             title={headerTitle}
             showBackButton={true}

@@ -7,13 +7,17 @@ export type PendingMarkPrayedResult = {
   }>;
 };
 
+export type SmallWidgetDisplayMode = 'full' | 'saint_priority';
+
 export type BackgroundActionsPlugin = {
   getPendingMarkPrayed: () => Promise<PendingMarkPrayedResult>;
+  setSmallWidgetMode: (options: { mode: SmallWidgetDisplayMode }) => Promise<{ mode: SmallWidgetDisplayMode }>;
 };
 
 const BackgroundActions = registerPlugin<BackgroundActionsPlugin>('BackgroundActions', {
   web: () => ({
     getPendingMarkPrayed: async () => ({ items: [] }),
+    setSmallWidgetMode: async (options: { mode: SmallWidgetDisplayMode }) => ({ mode: options.mode }),
   }),
 });
 

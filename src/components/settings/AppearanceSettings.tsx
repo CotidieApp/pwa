@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { Capacitor } from '@capacitor/core';
 import { Form } from '@/components/ui/form';
 import { cn } from '@/lib/utils';
 import { extractThemeColorsFromImageUrl, clampNumber, type ThemeColors } from '@/lib/theme-utils';
@@ -44,6 +45,8 @@ export default function AppearanceSettings() {
     setNavMode,
     arrowBubbleSize,
     setArrowBubbleSize,
+    smallWidgetMode,
+    setSmallWidgetMode,
     addUserHomeBackground,
     removeUserHomeBackground,
     allHomeBackgrounds,
@@ -128,6 +131,7 @@ export default function AppearanceSettings() {
     { value: 'timesnewroman', label: 'Times New Roman' },
   ];
   const fontSizeDisplay = clampNumber(fontSize, 11, 21);
+  const isAndroidNative = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
 
   return (
     <div className="space-y-6 animate-in fade-in-0 duration-500">
@@ -171,6 +175,26 @@ export default function AppearanceSettings() {
             <p className="text-xs text-muted-foreground">
               El tamaño del globo aparece solo cuando el modo de navegación está en Globo de flechas.
             </p>
+          )}
+
+          {isAndroidNative && (
+            <div className="space-y-2">
+              <Label className="flex flex-col gap-1 text-sm">
+                <span>Widget chico del santoral</span>
+                <span className="text-xs text-muted-foreground">
+                  En tamaños muy pequeños puedes priorizar mostrar todo reducido o solo el nombre del santo en grande.
+                </span>
+              </Label>
+              <Select value={smallWidgetMode} onValueChange={(value) => setSmallWidgetMode(value as any)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar comportamiento" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="full">Mostrar todo reducido</SelectItem>
+                  <SelectItem value="saint_priority">Solo santo en grande si falta espacio</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           )}
 
           <div className="flex items-center justify-between">

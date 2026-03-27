@@ -31,11 +31,14 @@ import { resolveDevotionDayMatch } from '@/lib/devotion-day-images';
 import { getMovableFeast, getEasterDate } from '@/lib/movable-feasts';
 import { persistence } from '@/lib/persistence';
 import { fixedNotifications, type FixedNotificationEntry } from '@/lib/fixed-notifications';
+import type { SmallWidgetDisplayMode } from '@/plugins/BackgroundActions';
 import { addByKind, addDays, formatTemplate, getNextOccurrence, parseFixedNotificationDate } from '@/context/settings/notification-date-utils';
 import { applyPlanDeVidaAggregateIncrement, applyPrayerOpenIncrement } from '@/context/settings/stats-updates';
 
 const saintsData = saintsDataRaw as { saints: SaintOfTheDay[] };
 const NOTIFICATION_ACTION_TYPE_ID = 'cotidie-prayer-actions';
+const CARTAS_REMINDER_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000;
+const CARTAS_REMINDER_REACTIVATION_DELAY_MS = 60 * 1000;
 const FORCED_DAILY_QUOTES: Record<string, Quote> = {
   '06-26': {
     id: 'forced-quote-06-26',
@@ -59,6 +62,7 @@ type Theme = 'light' | 'dark';
 type FontSize = number;
 type ArrowBubbleSize = 'sm' | 'md' | 'lg';
 type NavMode = 'bubble' | 'touch';
+type SmallWidgetMode = SmallWidgetDisplayMode;
 type OverlayPosition = { x: number; y: number };
 type OverlayPositions = { timer: OverlayPosition; planNav: OverlayPosition; AnnuumBubble: OverlayPosition };
 export type DevTraceLevel = 'info' | 'warn' | 'error';
@@ -203,6 +207,8 @@ type Settings = {
   addDailyReminder: () => void;
   updateDailyReminder: (id: string, patch: Partial<Omit<DailyReminder, 'id' | 'createdAt'>>) => void;
   removeDailyReminder: (id: string) => void;
+  cartasReminderEnabled: boolean;
+  setCartasReminderEnabled: (enabled: boolean) => void;
   devTestNotificationEnabled: boolean;
   setDevTestNotificationEnabled: (enabled: boolean) => void;
   devLiveTraceEnabled: boolean;
@@ -251,6 +257,8 @@ type Settings = {
 
   arrowBubbleSize: ArrowBubbleSize;
   setArrowBubbleSize: (size: ArrowBubbleSize) => void;
+  smallWidgetMode: SmallWidgetMode;
+  setSmallWidgetMode: (mode: SmallWidgetMode) => void;
 
   userHomeBackgrounds: ImagePlaceholder[];
   allHomeBackgrounds: ImagePlaceholder[];
@@ -427,6 +435,9 @@ const normalizeBoolean = (value: any, fallback = false) =>
 
 const normalizeNumber = (value: any, fallback = 0) =>
   isFiniteNumber(value) ? value : fallback;
+
+const normalizeSmallWidgetMode = (value: any): SmallWidgetMode =>
+  value === 'saint_priority' ? 'saint_priority' : 'full';
 
 const normalizeStringArray = (raw: any, requiredValues: string[] = []): string[] => {
   const values = Array.isArray(raw)
@@ -658,6 +669,7 @@ const FULL_BACKUP_KEYS = [
   'pinchToZoomEnabled',
   'navMode',
   'arrowBubbleSize',
+  'smallWidgetMode',
   'userHomeBackgrounds',
   'scrollPositions',
   'prayerLanguagePreferences',
@@ -672,6 +684,8 @@ const FULL_BACKUP_KEYS = [
   'customPlans',
   'notificationsEnabled',
   'dailyReminders',
+  'cartasReminderEnabled',
+  'cartasReminderAnchorAt',
   'devTestNotificationEnabled',
   'devLiveTraceEnabled',
   'devLiveTraceEvents',
@@ -714,6 +728,7 @@ const normalizeBackupState = (raw: any) => {
   const navMode: NavMode = source.navMode === 'touch' ? 'touch' : 'bubble';
   const arrowBubbleSize: ArrowBubbleSize =
     source.arrowBubbleSize === 'md' || source.arrowBubbleSize === 'lg' ? source.arrowBubbleSize : 'sm';
+  const smallWidgetMode = normalizeSmallWidgetMode(source.smallWidgetMode);
   return {
     theme,
     fontSize,
@@ -749,6 +764,7 @@ const normalizeBackupState = (raw: any) => {
     pinchToZoomEnabled: normalizeBoolean(source.pinchToZoomEnabled, true),
     navMode,
     arrowBubbleSize,
+    smallWidgetMode,
     userHomeBackgrounds: Array.isArray(source.userHomeBackgrounds) ? source.userHomeBackgrounds : [],
     scrollPositions: normalizeNumberRecord(source.scrollPositions),
     prayerLanguagePreferences: normalizeStringRecord(source.prayerLanguagePreferences),
@@ -763,6 +779,8 @@ const normalizeBackupState = (raw: any) => {
     customPlans: normalizeCustomPlansValue(source.customPlans),
     notificationsEnabled: normalizeBoolean(source.notificationsEnabled, true),
     dailyReminders: normalizeDailyRemindersValue(source.dailyReminders),
+    cartasReminderEnabled: normalizeBoolean(source.cartasReminderEnabled, true),
+    cartasReminderAnchorAt: Math.max(1, Math.floor(normalizeNumber(source.cartasReminderAnchorAt, Date.now()))),
     devTestNotificationEnabled: normalizeBoolean(source.devTestNotificationEnabled),
     devLiveTraceEnabled: normalizeBoolean(source.devLiveTraceEnabled),
     devLiveTraceEvents: normalizeDevTraceEventsValue(source.devLiveTraceEvents),
@@ -852,6 +870,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [pinchToZoomEnabled, setPinchToZoomEnabled] = useState(true);
   const [navMode, setNavMode] = useState<NavMode>('bubble');
   const [arrowBubbleSize, setArrowBubbleSize] = useState<ArrowBubbleSize>('sm');
+  const [smallWidgetMode, setSmallWidgetMode] = useState<SmallWidgetMode>('full');
 
   const [userHomeBackgrounds, setUserHomeBackgrounds] = useState<ImagePlaceholder[]>([]);
   const [scrollPositions, setScrollPositions] = useState<{ [k: string]: number }>({});
@@ -882,6 +901,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   const [notificationsEnabled, setNotificationsEnabledState] = useState(true);
   const [dailyReminders, setDailyReminders] = useState<DailyReminder[]>([]);
+  const [cartasReminderEnabled, setCartasReminderEnabledState] = useState(true);
+  const [cartasReminderAnchorAt, setCartasReminderAnchorAt] = useState<number>(() => Date.now());
   const [devTestNotificationEnabled, setDevTestNotificationEnabledState] = useState(false);
   const [devLiveTraceEnabled, setDevLiveTraceEnabledState] = useState(false);
   const [devLiveTraceEvents, setDevLiveTraceEvents] = useState<DevTraceEvent[]>([]);
@@ -1024,6 +1045,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setPinchToZoomEnabled(snapshot.pinchToZoomEnabled);
     setNavMode(snapshot.navMode);
     setArrowBubbleSize(snapshot.arrowBubbleSize);
+    setSmallWidgetMode(snapshot.smallWidgetMode);
     setUserHomeBackgrounds(snapshot.userHomeBackgrounds);
     setScrollPositions(snapshot.scrollPositions);
     setPrayerLanguagePreferences(snapshot.prayerLanguagePreferences);
@@ -1038,6 +1060,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setCustomPlans(snapshot.customPlans);
     setNotificationsEnabledState(snapshot.notificationsEnabled);
     setDailyReminders(snapshot.dailyReminders);
+    setCartasReminderEnabledState(snapshot.cartasReminderEnabled);
+    setCartasReminderAnchorAt(snapshot.cartasReminderAnchorAt);
     setDevTestNotificationEnabledState(snapshot.devTestNotificationEnabled);
     setDevLiveTraceEnabledState(snapshot.devLiveTraceEnabled);
     setDevLiveTraceEvents(snapshot.devLiveTraceEvents);
@@ -1087,6 +1111,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         pinchToZoomEnabled,
         navMode,
         arrowBubbleSize,
+        smallWidgetMode,
         userHomeBackgrounds,
         scrollPositions,
         prayerLanguagePreferences,
@@ -1101,6 +1126,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         customPlans,
         notificationsEnabled,
         dailyReminders,
+        cartasReminderEnabled,
+        cartasReminderAnchorAt,
         devTestNotificationEnabled,
         devLiveTraceEnabled,
         devLiveTraceEvents,
@@ -1147,6 +1174,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       pinchToZoomEnabled,
       navMode,
       arrowBubbleSize,
+      smallWidgetMode,
       userHomeBackgrounds,
       scrollPositions,
       prayerLanguagePreferences,
@@ -1161,6 +1189,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       customPlans,
       notificationsEnabled,
       dailyReminders,
+      cartasReminderEnabled,
+      cartasReminderAnchorAt,
       devTestNotificationEnabled,
       devLiveTraceEnabled,
       devLiveTraceEvents,
@@ -1248,6 +1278,12 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     if (!isLoaded) return;
     saveState(backupSnapshot);
   }, [backupSnapshot, isLoaded, saveState]);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'android') return;
+    void BackgroundActions.setSmallWidgetMode({ mode: smallWidgetMode }).catch(() => {});
+  }, [isLoaded, smallWidgetMode]);
 
   // Track Days Active & Morning/Night Usage (App Open)
   useEffect(() => {
@@ -1450,6 +1486,26 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     toast({ title: enabled ? 'Notificaciones activadas.' : 'Notificaciones desactivadas.' });
   };
 
+  const setCartasReminderEnabled = (enabled: boolean) => {
+    setCartasReminderEnabledState(enabled);
+    if (enabled) {
+      const now = Date.now();
+      setCartasReminderAnchorAt((prev) => (Number.isFinite(prev) && prev > 0 ? prev : now));
+    }
+    pushDevLiveTrace({
+      level: 'info',
+      source: 'notifications',
+      message: enabled
+        ? 'Recordatorio de Cartas activado.'
+        : 'Recordatorio de Cartas desactivado.',
+    });
+    toast({
+      title: enabled
+        ? 'Recordatorio de Cartas activado.'
+        : 'Recordatorio de Cartas desactivado.',
+    });
+  };
+
   const setDevTestNotificationEnabled = (enabled: boolean) => {
     setDevTestNotificationEnabledState(enabled);
     pushDevLiveTrace({
@@ -1646,6 +1702,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const addUserLetter = (p: Omit<Prayer, 'id' | 'isUserDefined'> & { imageUrl?: string }) => {
     const newP: Prayer = { ...p, id: generateId(), isUserDefined: true, categoryId: 'cartas' };
     setUserLetters(prev => [...prev, newP]);
+    setCartasReminderAnchorAt(Date.now());
     incrementStat('lettersWritten');
     toast({ title: 'Carta añadida correctamente.' });
   };
@@ -1688,7 +1745,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setOverlayPositions(defaultOverlayPositions);
     setNavMode('bubble');
     setArrowBubbleSize('sm');
+    setSmallWidgetMode('full');
     setMovableFeastsEnabled(true);
+    setCartasReminderEnabledState(true);
+    setCartasReminderAnchorAt(Date.now());
     // ... reset others as needed, but usually we keep user data
     toast({ title: 'Configuración restablecida.' });
   };
@@ -2622,12 +2682,13 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
     const active = notificationsEnabled ? dailyReminders.filter((r) => r.enabled) : [];
     const fixedActive = notificationsEnabled ? fixedNotifications : [];
+    const cartasReminderActive = notificationsEnabled && cartasReminderEnabled;
 
     const sync = async () => {
       const now = new Date();
       const platform = Capacitor.getPlatform();
       const maxTotal = platform === 'ios' ? 60 : 180;
-      const totalSources = active.length + fixedActive.length;
+      const totalSources = active.length + fixedActive.length + (cartasReminderActive ? 1 : 0);
       const horizonDays = Math.min(30, Math.max(1, Math.floor(maxTotal / Math.max(1, totalSources))));
       const horizonEnd = new Date(now);
       horizonEnd.setDate(now.getDate() + horizonDays);
@@ -2641,7 +2702,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         await LocalNotifications.cancel({ notifications: pendingIds.map((id) => ({ id })) });
       }
 
-      if (!notificationsEnabled || (active.length === 0 && fixedActive.length === 0)) return;
+      if (!notificationsEnabled || (active.length === 0 && fixedActive.length === 0 && !cartasReminderActive)) return;
 
       const currentPerms = await LocalNotifications.checkPermissions();
       const perms = currentPerms.display === 'granted'
@@ -2750,6 +2811,37 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
             extra: { target: r.target, reminderId: r.id, date: dateKey },
           });
         }
+      }
+
+      if (cartasReminderActive) {
+        const anchorAt =
+          Number.isFinite(cartasReminderAnchorAt) && cartasReminderAnchorAt > 0
+            ? cartasReminderAnchorAt
+            : now.getTime();
+        const dueAt = anchorAt + CARTAS_REMINDER_INTERVAL_MS;
+        const fireAt = new Date(
+          dueAt > now.getTime()
+            ? dueAt
+            : now.getTime() + CARTAS_REMINDER_REACTIVATION_DELAY_MS
+        );
+        const id = toNotificationId(`cartas:inactive:${anchorAt}`);
+        notifications.push({
+          id,
+          title: 'Cartas',
+          body: 'Han pasado 30 días sin escribir una carta nueva. Háblale al Señor de hijo a Padre.',
+          channelId: 'cotidie-reminders',
+          smallIcon: icon,
+          schedule: {
+            at: fireAt,
+            allowWhileIdle: true,
+          },
+          extra: {
+            target: { type: 'prayer', id: 'cartas' },
+            cartasInactivityReminder: true,
+            anchorAt,
+            dueAt,
+          },
+        });
       }
 
       if (fixedActive.length > 0) {
@@ -2981,6 +3073,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     isLoaded,
     notificationsEnabled,
     dailyReminders,
+    cartasReminderEnabled,
+    cartasReminderAnchorAt,
     devTestNotificationEnabled,
     getReminderTitle,
     buildDefaultReminderMessage,
@@ -3250,6 +3344,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         addDailyReminder,
         updateDailyReminder,
         removeDailyReminder,
+        cartasReminderEnabled,
+        setCartasReminderEnabled,
         devTestNotificationEnabled,
         setDevTestNotificationEnabled,
         devLiveTraceEnabled,
@@ -3287,6 +3383,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         setNavMode,
         arrowBubbleSize,
         setArrowBubbleSize,
+        smallWidgetMode,
+        setSmallWidgetMode,
         userHomeBackgrounds,
         allHomeBackgrounds,
         addUserHomeBackground,
@@ -3338,6 +3436,3 @@ export const useSettings = () => {
   if (!ctx) throw new Error('useSettings must be used within SettingsProvider');
   return ctx;
 };
-
-
-

@@ -17,6 +17,14 @@
 /.next/
 /out/
 /.gradle-user-home/
+/android/.android-user-home/
+/android/.gradle-user-home/
+/android/android/
+/android/caches/
+/android/daemon/
+/android/kotlin-profile/
+/android/native/
+/android/notifications/
 
 # production
 /build

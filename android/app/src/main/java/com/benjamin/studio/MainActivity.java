@@ -2,11 +2,13 @@ package com.benjamin.studio;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.View;
 import android.webkit.RenderProcessGoneDetail;
 import android.webkit.WebView;
 import androidx.core.view.WindowCompat;
@@ -42,7 +44,7 @@ public class MainActivity extends BridgeActivity {
     protected void onCreate(Bundle savedInstanceState) {
         registerPlugin(BackgroundActionsPlugin.class);
         super.onCreate(savedInstanceState);
-        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        configureSystemBars();
         configureWebViewStability();
         if (getIntent() != null && getIntent().getBooleanExtra(RECOVERY_MODE_EXTRA, false)) {
             showRecoveryScreen();
@@ -62,6 +64,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onResume() {
         super.onResume();
+        configureSystemBars();
         isInForeground = true;
         flushPendingNavigationToWebView();
         flushPendingImportToWebView();
@@ -71,6 +74,27 @@ public class MainActivity extends BridgeActivity {
     public void onPause() {
         isInForeground = false;
         super.onPause();
+    }
+
+    private void configureSystemBars() {
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        getWindow().setStatusBarColor(Color.TRANSPARENT);
+        getWindow().setNavigationBarColor(Color.TRANSPARENT);
+        getWindow().getDecorView().setBackgroundColor(Color.TRANSPARENT);
+
+        View contentView = findViewById(android.R.id.content);
+        if (contentView != null) {
+            contentView.setBackgroundColor(Color.TRANSPARENT);
+        }
+
+        if (bridge != null && bridge.getWebView() != null) {
+            bridge.getWebView().setBackgroundColor(Color.TRANSPARENT);
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            getWindow().setStatusBarContrastEnforced(false);
+            getWindow().setNavigationBarContrastEnforced(false);
+        }
     }
 
     private void handleImportIntent(Intent intent) {

@@ -12,6 +12,7 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.util.TypedValue;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.RemoteViews;
 
@@ -27,10 +28,12 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-final class SaintWidgetUpdater {
+public final class SaintWidgetUpdater {
+    private static final int SMALL_WIDGET_MIN_WIDTH_DP = 140;
+    private static final int SMALL_WIDGET_MIN_HEIGHT_DP = 48;
     private static Map<String, CropBias> cachedBiasByPlaceholderId;
 
-    static void updateAll(Context context) {
+    public static void updateAll(Context context) {
         AppWidgetManager manager = AppWidgetManager.getInstance(context);
         SaintWidgetContent content = SaintWidgetContentFactory.forNow(context);
 
@@ -115,7 +118,7 @@ final class SaintWidgetUpdater {
     private static RemoteViews buildSmallViews(Context context, SaintWidgetContent content, AppWidgetManager manager, int appWidgetId) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_saint_small);
         applyCommon(context, views, content);
-        applySmallSizing(views, manager != null ? manager.getAppWidgetOptions(appWidgetId) : null, content);
+        applySmallSizing(context, views, manager != null ? manager.getAppWidgetOptions(appWidgetId) : null, content);
         return views;
     }
 
@@ -222,38 +225,63 @@ final class SaintWidgetUpdater {
         return 4;
     }
 
-    private static void applySmallSizing(RemoteViews views, Bundle options, SaintWidgetContent content) {
+    private static void applySmallSizing(Context context, RemoteViews views, Bundle options, SaintWidgetContent content) {
         int minWidthDp = options != null
-                ? Math.max(140, options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 140))
-                : 140;
+                ? Math.max(SMALL_WIDGET_MIN_WIDTH_DP, options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, SMALL_WIDGET_MIN_WIDTH_DP))
+                : SMALL_WIDGET_MIN_WIDTH_DP;
         int minHeightDp = options != null
-                ? Math.max(110, options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 110))
-                : 110;
+                ? Math.max(SMALL_WIDGET_MIN_HEIGHT_DP, options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, SMALL_WIDGET_MIN_HEIGHT_DP))
+                : SMALL_WIDGET_MIN_HEIGHT_DP;
+        String smallWidgetMode = SaintWidgetPreferences.getSmallWidgetMode(context);
         boolean hasBio = content.bio != null && !content.bio.trim().isEmpty();
-        float widthFactor = clamp((minWidthDp - 140f) / 140f, 0f, 1.35f);
-        float heightFactor = clamp((minHeightDp - 110f) / 120f, 0f, 1.35f);
-        float growthFactor = 1f + (widthFactor * 0.22f) + (heightFactor * 0.30f);
+        float widthFactor = clamp((minWidthDp - SMALL_WIDGET_MIN_WIDTH_DP) / 180f, 0f, 1.5f);
+        float heightFactor = clamp((minHeightDp - SMALL_WIDGET_MIN_HEIGHT_DP) / 220f, 0f, 1.8f);
+        boolean compactHeight = minHeightDp <= 72;
+        boolean compactWidth = minWidthDp <= 170;
+        boolean useSaintPriorityMode = SaintWidgetPreferences.DISPLAY_MODE_SAINT_PRIORITY.equals(smallWidgetMode);
+        boolean shouldHideBio = !hasBio || (useSaintPriorityMode && (compactHeight || (compactWidth && minHeightDp <= 88)));
 
-        float bioSizeSp = clamp(11.5f * growthFactor, 11.5f, 16f);
-        float titleSizeSp = clamp(bioSizeSp * 1.28f, 14.5f, 20f);
-        int titleLines = minHeightDp >= 180 ? 3 : 2;
-        int bioLines = minHeightDp >= 220 ? 8 : (minHeightDp >= 160 ? 6 : 4);
+        int horizontalPaddingDp = minWidthDp >= 260 ? 12 : (minWidthDp >= 180 ? 9 : 6);
+        int verticalPaddingDp = minHeightDp >= 180 ? 10 : (minHeightDp >= 96 ? 7 : 4);
+        views.setViewPadding(
+                R.id.widget_text_container,
+                dpToPx(context, horizontalPaddingDp),
+                dpToPx(context, verticalPaddingDp),
+                dpToPx(context, horizontalPaddingDp),
+                dpToPx(context, verticalPaddingDp)
+        );
 
-        if (!hasBio) {
-            titleSizeSp = clamp(titleSizeSp * 1.08f, 15f, 21f);
-            titleLines = minHeightDp >= 180 ? 4 : 3;
-        }
-
-        views.setTextViewTextSize(R.id.widget_saint_name, TypedValue.COMPLEX_UNIT_SP, titleSizeSp);
-        views.setInt(R.id.widget_saint_name, "setMaxLines", Math.max(getNameMaxLines(content.name), titleLines));
-
-        if (!hasBio) {
-            views.setViewVisibility(R.id.widget_saint_bio, View.GONE);
+        int titleLines;
+        if (shouldHideBio) {
+            float titleSizeSp = clamp(11.5f + (widthFactor * 2.2f) + (heightFactor * 3.6f), 9f, 22f);
+            titleLines = minHeightDp >= 132 ? 8 : (minHeightDp >= 84 || minWidthDp >= 220 ? 6 : 4);
+            views.setInt(R.id.widget_saint_name, "setGravity", Gravity.START | Gravity.CENTER_VERTICAL);
+            views.setTextViewTextSize(R.id.widget_saint_name, TypedValue.COMPLEX_UNIT_SP, titleSizeSp);
         } else {
+            float titleSizeSp = clamp(8.2f + (widthFactor * 1.8f) + (heightFactor * 2.3f), 6.5f, 18f);
+            float bioSizeSp = clamp(6.2f + (widthFactor * 1.4f) + (heightFactor * 1.9f), 5f, 14f);
+            titleLines = minHeightDp >= 200 ? 10 : (minHeightDp >= 110 ? 8 : 6);
+            int bioLines = minHeightDp >= 220 ? 18 : (minHeightDp >= 140 ? 14 : (minHeightDp >= 96 ? 10 : 8));
+            if (minWidthDp >= 260) {
+                titleLines += 1;
+                bioLines += 2;
+            }
+            views.setInt(R.id.widget_saint_name, "setGravity", Gravity.START | Gravity.CENTER_VERTICAL);
+            views.setTextViewTextSize(R.id.widget_saint_name, TypedValue.COMPLEX_UNIT_SP, titleSizeSp);
             views.setViewVisibility(R.id.widget_saint_bio, View.VISIBLE);
             views.setTextViewTextSize(R.id.widget_saint_bio, TypedValue.COMPLEX_UNIT_SP, bioSizeSp);
             views.setInt(R.id.widget_saint_bio, "setMaxLines", Math.max(getBioMaxLines(content.bio), bioLines));
         }
+        views.setInt(R.id.widget_saint_name, "setMaxLines", Math.max(getNameMaxLines(content.name), titleLines));
+
+        if (shouldHideBio) {
+            views.setViewVisibility(R.id.widget_saint_bio, View.GONE);
+        }
+    }
+
+    private static int dpToPx(Context context, int dp) {
+        float density = context.getResources().getDisplayMetrics().density;
+        return Math.max(1, Math.round(dp * density));
     }
 
     private static float clamp(float value, float min, float max) {

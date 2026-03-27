@@ -2,6 +2,199 @@
 
 Historial de intervenciones del asistente en el repo.
 
+### [2026-03-27 15:48] 219. Barras del sistema con fondo real y sin gris residual en Android
+**Planificación:**
+- Revisar por qué, aun con barras transparentes, seguía apareciendo gris detrás de la barra de estado y de navegación.
+- Corregir tanto la capa nativa como la capa web para que el sistema siempre vea el color o fondo correcto según la pantalla activa.
+- Garantizar el comportamiento pedido: si hay fondo completo, ese fondo debe verse detrás de ambas barras; si hay encabezado, el color del encabezado debe verse detrás de la barra superior y el fondo uniforme detrás de la barra inferior.
+
+**Ejecución:**
+- **Capa nativa**: `android/app/src/main/java/com/benjamin/studio/MainActivity.java` reforzó `configureSystemBars()` para dejar transparentes no solo las barras, sino también `decorView`, `android.R.id.content` y el `WebView`. Además, esa configuración se reaplica en `onResume` para evitar que Android recupere un fondo opaco al volver a la app.
+- **Layout Android**: `android/app/src/main/res/layout/activity_main.xml` pasó a declarar fondo transparente tanto en el `CoordinatorLayout` raíz como en el `WebView`, eliminando el gris residual que podía asomar detrás del contenido web.
+- **Tema**: `android/app/src/main/res/values/styles.xml` dejó `AppTheme.NoActionBar` con `android:background` transparente en vez de `@null`, para que la ventana no aporte un color propio al edge-to-edge.
+- **Capa web**: `src/components/main/MainApp.tsx` agregó dos respaldos fijos y sin interacción para las safe areas. Cuando la vista es `home`, se mantienen transparentes para que se vea el fondo real detrás de ambas barras; cuando hay encabezado estándar, la zona superior toma `bg-primary` y la inferior `bg-background`, cumpliendo exactamente la regla pedida.
+
+**Validación:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `.\gradlew.bat :app:processDebugResources :app:compileDebugJavaWithJavac` OK usando `ANDROID_USER_HOME` y `GRADLE_USER_HOME` locales dentro de `android`.
+- Intento de `.\gradlew.bat :app:assembleDebug`: los recursos y la compilación Java pasaron, pero el proceso cayó más tarde en `validateSigningDebug` por un problema aparte de signing del entorno (`Cannot invoke "java.io.File.mkdirs()" because "folder" is null`).
+
+**Archivos Modificados:**
+- `android/app/src/main/java/com/benjamin/studio/MainActivity.java`
+- `android/app/src/main/res/layout/activity_main.xml`
+- `android/app/src/main/res/values/styles.xml`
+- `src/components/main/MainApp.tsx`
+- `AGENTS.md`
+
+### [2026-03-27 11:39] 218. Notificaciones Android con imagen en banner expandido
+**Planificación:**
+- Confirmar por qué las notificaciones ya llevaban imagen en el payload pero Android seguía mostrándolas solo con estilo de texto.
+- Hacer que las notificaciones con imagen se rendericen como `título + texto + banner` sin convertir en banner las que solo usan ícono.
+- Dejar el cambio persistido para futuras instalaciones de dependencias y validar compilación web y Android.
+
+**Ejecución:**
+- **Causa real**: `SettingsContext` ya programaba algunas notificaciones con `largeIcon` y metadatos de imagen, pero `@capacitor/local-notifications` en Android solo aplicaba `BigTextStyle`/`InboxStyle`, así que la imagen nunca pasaba a banner expandido.
+- **Parche persistente**: `scripts/patch-local-notifications.js` se rehizo para aplicar parches idempotentes sobre `LocalNotificationManager.java`, conservando el ajuste previo de `mark_prayed` y agregando uno nuevo para `BigPictureStyle`.
+- **Banner expandido**: el parche nativo ahora detecta `extra.imageDrawable` y, solo en ese caso, reutiliza la imagen ya configurada para renderizar la notificación con `NotificationCompat.BigPictureStyle`, manteniendo `title` como encabezado y `body` como texto resumen.
+- **Alcance controlado**: no se fuerza el banner en recordatorios que solo usan ícono de app, evitando que fiestas o avisos sin imagen real aparezcan con un cartel grande incorrecto.
+- **Documentación**: se actualizó la anotación de `image` en `src/lib/fixed-notifications.ts` para dejar claro que en Android esa imagen ahora se usa como banner expandido.
+- **Aplicación local**: además del script, se ejecutó el parche sobre la copia instalada de `node_modules` para que esta build ya compile con el comportamiento nuevo.
+
+**Validación:**
+- `npm.cmd run build` OK.
+- `.\gradlew.bat :app:compileDebugJavaWithJavac` OK usando `ANDROID_USER_HOME` y `GRADLE_USER_HOME` locales.
+
+**Archivos Modificados:**
+- `scripts/patch-local-notifications.js`
+- `src/lib/fixed-notifications.ts`
+- `AGENTS.md`
+
+### [2026-03-27 11:23] 217. Ajuste de tono menos cursi en `Cotidie Annuum`
+**Planificación:**
+- Bajar un punto más el tono del copy de `Cotidie Annuum`, partiendo por `Memoria agradecida`, que seguía sonando demasiado blando.
+- Conservar la línea contemplativa del cambio anterior, pero con formulaciones más sobrias, directas y menos adornadas.
+
+**Ejecución:**
+- **Subtítulo**: en `src/components/AnnuumStory.tsx` el encabezado pasó de `Memoria agradecida {año}` a `Recorrido {año}`.
+- **Apertura y clave de lectura**: se endurecieron frases visibles como `Miremos este año con gratitud` y `Esto es memoria agradecida`, que pasaron a variantes más directas como `Miremos el año con verdad` y `Es una lectura serena del año`.
+- **Bloques marianos y cierre**: se suavizó menos el lenguaje de la devoción mariana, del slide del Rosario, de la proyección del año siguiente y del cierre final para evitar expresiones demasiado blandas como `de la mano`, `hambre de Dios` o `Quédate con esta paz`.
+- **Criterio**: se mantuvo el tono pastoral y cristiano, pero más cerca de una formulación sobria de homilía que de un cierre emotivo o excesivamente dulce.
+
+**Validación:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `npm.cmd run build` avanzó hasta `next build` y volvió a fallar en la etapa final de export con un `ENOENT` de `.next` apuntando a una ruta sin `OneDrive`; el ajuste de copy no introdujo errores de TypeScript.
+
+**Archivos Modificados:**
+- `src/components/AnnuumStory.tsx`
+- `AGENTS.md`
+
+### [2026-03-27 11:22] 216. Reactivar recordatorio de Cartas sin reiniciar el conteo
+**Planificación:**
+- Ajustar el nuevo recordatorio de `Cartas` para que apagarlo temporalmente no reinicie el contador de días sin nueva carta.
+- Hacer que, si el usuario lo vuelve a activar después de que el plazo ya venció, la notificación no se pierda por haber quedado en una fecha pasada.
+
+**Ejecución:**
+- **Ancla preservada**: `src/context/SettingsContext.tsx` dejó de reiniciar `cartasReminderAnchorAt` al volver a activar el switch; ahora solo lo rellena si aún no existía.
+- **Conteo continuo**: con ese cambio, si el usuario lo apaga en el día 20 y lo reactiva en el 25, el sistema sigue contando desde la última carta creada y no desde la reactivación.
+- **Reactivación vencida**: cuando el plazo de 30 días ya pasó mientras el recordatorio estaba apagado, el scheduler ahora programa el aviso para el corto plazo al reactivarlo en vez de descartarlo por tener una fecha ya pasada.
+
+**Validación:**
+- `npm.cmd run build` OK.
+
+**Archivos Modificados:**
+- `src/context/SettingsContext.tsx`
+- `AGENTS.md`
+
+### [2026-03-27 11:19] 215. Recordatorio de Cartas tras 30 días sin nueva entrada
+**Planificación:**
+- Agregar una notificación local específica para `Cartas` que se programe solo cuando pasen 30 días sin crear una carta nueva.
+- Hacer que al tocar esa notificación la app abra directamente la sección `Plan de Vida > Cartas`.
+- Dar al usuario un control visible dentro de `Cartas` para apagar este recordatorio sin afectar el resto de las notificaciones.
+
+**Ejecución:**
+- **Estado persistido**: `src/context/SettingsContext.tsx` incorporó `cartasReminderEnabled` y `cartasReminderAnchorAt`, ambos persistidos en respaldos/importaciones para que la preferencia y el conteo sobrevivan cierres, restauraciones y cambios de dispositivo.
+- **Reinicio por actividad real**: el ancla del recordatorio se actualiza únicamente al crear una carta nueva mediante `addUserLetter`, de modo que el plazo de 30 días responde a nuevas entradas y no solo a abrir la sección.
+- **Programación condicional**: el scheduler nativo de `LocalNotifications` ahora añade una notificación one-shot para `Cartas` cuando el recordatorio está activo y las notificaciones generales también lo están; no usa acciones de `Marcar como rezado`, porque aquí se trata de volver a escribir, no de marcar una práctica.
+- **Apertura directa**: esa notificación se programa con destino a la oración `cartas`, por lo que al tocarla la navegación entra directamente a `Plan de Vida > Cartas`.
+- **Control en la vista**: `src/components/main/CartasIntro.tsx` ahora muestra un bloque `Recordatorio de Cartas` con switch propio y texto explicativo, incluyendo aviso cuando las notificaciones globales están apagadas.
+
+**Validación:**
+- `npm.cmd run build` OK.
+
+**Archivos Modificados:**
+- `src/context/SettingsContext.tsx`
+- `src/components/main/CartasIntro.tsx`
+- `AGENTS.md`
+
+### [2026-03-27 11:17] 214. Cotidie Annuum con tono contemplativo y estadísticas subordinadas
+**Planificación:**
+- Rehacer la narrativa de `Cotidie Annuum` para que deje de sentirse como un resumen de métricas y pase a leerse como memoria agradecida del año espiritual.
+- Mantener visibles varias estadísticas, pero claramente subordinadas a una lectura filial, sobria y pastoral, sin ironías ni lenguaje mecánico.
+- Unificar el tono de todas las diapositivas para que suene más cercano a una homilía breve que a un balance gamificado.
+
+**Ejecución:**
+- **Marco general**: `src/components/AnnuumStory.tsx` cambió el subtítulo del encabezado a `Memoria agradecida {año}` y añadió una diapositiva inicial de clave de lectura para dejar explícito que las cifras no miden santidad, sino huellas de búsqueda de Dios.
+- **Nueva estructura visual**: se incorporaron bloques reutilizables (`SlideFrame`, `MetricBlock`) para que todas las pantallas mantengan una misma jerarquía: primero la lectura espiritual del año y luego el dato, ya no al revés.
+- **Lenguaje**: se reescribieron los textos de inicio, cierre y todas las diapositivas de estadísticas para quitar bromas, slogans y frases cursis como `¿Acaso la escribiste tú?`, `Madrugador de Dios` o `El cielo es el límite`, reemplazándolas por un tono más sobrio, filial y contemplativo.
+- **Lectura espiritual de datos**: las secciones de días activos, oración principal, total de aperturas, devoción más frecuente, mañana, noche, Ángelus, Rosario, examen de conciencia, Misa, frases de santos y creaciones propias ahora muestran el número con aclaraciones y una reflexión breve que lo interpreta desde la perseverancia, la gracia y el recomienzo.
+- **Precisión de métricas**: el slide de oración principal dejó de presentarse como `Veces rezada` y pasó a hablar de `Aperturas registradas`, explicitando que la app cuenta accesos y no mide la hondura interior de cada rato de oración.
+- **Cierre y proyección**: el final del Annuum y la diapositiva del año siguiente pasaron a invitar a mirar el camino con paz, pidiendo constancia y hondura antes que cantidad, en vez de un tono festivo o triunfalista.
+
+**Validación:**
+- `npm.cmd run build` OK.
+
+**Archivos Modificados:**
+- `src/components/AnnuumStory.tsx`
+- `AGENTS.md`
+
+### [2026-03-27 11:03] 213. Widget chico con modo configurable y contenido completo por defecto
+**Planificación:**
+- Corregir el criterio anterior para que el widget chico no oculte información por defecto cuando el espacio sea reducido.
+- Implementar además una configuración opcional para Android que permita elegir entre `mostrar todo reducido` o `solo santo en grande si falta espacio`.
+- Sincronizar ese ajuste entre la app y el widget nativo para que el cambio se refleje aunque el widget ya esté colocado en pantalla.
+
+**Ejecución:**
+- **Modo por defecto**: `src/context/SettingsContext.tsx` incorporó `smallWidgetMode` con valor inicial `full`, persistido en respaldos y restauraciones de la app.
+- **Sincronización nativa**: `src/plugins/BackgroundActions.ts` y `android/app/src/main/java/com/benjamin/studio/BackgroundActionsPlugin.java` añadieron `setSmallWidgetMode`, que guarda la preferencia en Android y refresca los widgets existentes al cambiarla.
+- **Preferencias del widget**: se agregó `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetPreferences.java` para centralizar lectura/escritura del modo del widget chico.
+- **Ajuste visual en la app**: `src/components/settings/AppearanceSettings.tsx` ahora muestra, en Android, el selector `Mostrar todo reducido` / `Solo santo en grande si falta espacio`.
+- **Widget chico**: `android/app/src/main/res/layout/widget_saint_small.xml` pasó a repartir mejor el alto disponible entre nombre y bio, mientras `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java` rehízo el sizing para que en modo `full` nunca esconda la bio por lógica y reduzca ambas tipografías según el espacio; el ocultamiento solo ocurre en el modo opcional `saint_priority`.
+- **Acceso nativo**: `SaintWidgetUpdater` quedó expuesto públicamente para poder refrescarse desde el plugin al cambiar la preferencia.
+
+**Validación:**
+- `npm.cmd run build` OK.
+- `.\gradlew.bat :app:compileDebugJavaWithJavac` OK usando `ANDROID_USER_HOME` y `GRADLE_USER_HOME` locales dentro del repo.
+
+**Archivos Modificados:**
+- `src/plugins/BackgroundActions.ts`
+- `src/context/SettingsContext.tsx`
+- `src/components/settings/AppearanceSettings.tsx`
+- `android/app/src/main/java/com/benjamin/studio/BackgroundActionsPlugin.java`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetPreferences.java`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java`
+- `android/app/src/main/res/layout/widget_saint_small.xml`
+- `AGENTS.md`
+
+### [2026-03-27 10:47] 212. Widget chico vuelve a mínimo `2x1` con texto adaptable
+**Planificación:**
+- Recuperar el tamaño mínimo `2x1` del widget pequeño en Android sin perder el redimensionado libre hacia tamaños mayores.
+- Rehacer el ajuste tipográfico para que el texto responda al ancho y alto disponibles, ocultando la bio cuando el espacio sea demasiado bajo.
+
+**Ejecución:**
+- **Proveedor del widget**: `android/app/src/main/res/xml/widget_saint_small.xml` volvió a declarar altura mínima y altura objetivo de una fila (`48dp`, `targetCellHeight="1"`), manteniendo resize horizontal y vertical.
+- **Layout base**: `android/app/src/main/res/layout/widget_saint_small.xml` pasó a una base más compacta, con paddings menores, más líneas permitidas y margen vertical reducido para aprovechar mejor `2x1`.
+- **Escalado nativo**: `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java` ahora toma como base real `2x1`, calcula crecimiento por ancho y alto disponibles y decide cuándo esconder la bio.
+- **Comportamiento compacto**: en alturas bajas el widget prioriza el nombre del santo, centra mejor ese bloque y evita forzar una bio que rompería el layout.
+- **Comportamiento expandido**: al crecer a tamaños como `4x4`, el widget vuelve a mostrar la bio, aumenta líneas disponibles y escala ambos textos proporcionalmente.
+
+**Validación:**
+- `.\gradlew.bat :app:compileDebugJavaWithJavac` OK usando `ANDROID_USER_HOME` y `GRADLE_USER_HOME` locales dentro del repo.
+
+**Archivos Modificados:**
+- `android/app/src/main/res/xml/widget_saint_small.xml`
+- `android/app/src/main/res/layout/widget_saint_small.xml`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java`
+- `AGENTS.md`
+
+### [2026-03-27 10:38] 211. Fondo continuo tras barras del sistema en Android
+**Planificación:**
+- Revisar por qué las barras superior e inferior dejaron de mostrar el contenido edge-to-edge y empezaron a verse grises.
+- Reforzar la configuración nativa de Android para mantener status bar y navigation bar transparentes sin scrim automático de contraste.
+
+**Ejecución:**
+- **Actividad principal**: en `android/app/src/main/java/com/benjamin/studio/MainActivity.java` se extrajo `configureSystemBars()` para concentrar la configuración edge-to-edge al crear la actividad.
+- **Colores de barras**: esa rutina deja explícitamente `statusBarColor` y `navigationBarColor` en transparente junto con `WindowCompat.setDecorFitsSystemWindows(..., false)`.
+- **Scrim gris**: para Android 10+ se desactivó también la imposición automática de contraste (`setStatusBarContrastEnforced(false)` y `setNavigationBarContrastEnforced(false)`), que es la fuente típica de la franja gris sobre barras transparentes.
+- **Temas nativos**: `android/app/src/main/res/values/styles.xml` se alineó para los temas `AppTheme`, `AppTheme.NoActionBar` y `AppTheme.NoActionBarLaunch`, activando `windowDrawsSystemBarBackgrounds`, manteniendo las barras transparentes y deshabilitando el contraste forzado también desde tema.
+
+**Validación:**
+- `.\gradlew.bat :app:compileDebugJavaWithJavac` OK usando `ANDROID_USER_HOME` y `GRADLE_USER_HOME` locales dentro del repo.
+
+**Archivos Modificados:**
+- `android/app/src/main/java/com/benjamin/studio/MainActivity.java`
+- `android/app/src/main/res/values/styles.xml`
+- `AGENTS.md`
+
 ### [2026-03-26 15:48] 210. Pasada editorial completa del historial de `AGENTS.md`
 **Planificación:**
 - Hacer una pasada puramente editorial sobre todo el historial para corregir tildes, ortografía y formulación en texto narrativo sin alterar rutas, nombres de archivos, comandos ni fragmentos entre backticks.
