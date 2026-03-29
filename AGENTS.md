@@ -2,6 +2,40 @@
 
 Historial de intervenciones del asistente en el repo.
 
+### [2026-03-29 18:24] 223. Widget chico con tipografía más grande y bloque de texto ocupando toda la tarjeta
+**Planificación:**
+- Revisar por qué, tras devolver el mínimo `2x1`, el widget chico estaba dejando el texto demasiado pequeño y visualmente “encogido” dentro de solo parte del espacio disponible.
+- Rehacer el sizing para que nombre y bio llenen mejor la altura real del widget, con menos padding, más tamaño de letra y menos vacío entre ambos bloques.
+
+**Ejecución:**
+- **Layout base**: `android/app/src/main/res/layout/widget_saint_small.xml` redujo paddings laterales y verticales, equilibró los pesos entre nombre y bio (`4/4` en vez de `3/5`), eliminó el margen extra de la bio y subió los tamaños base de ambas tipografías.
+- **Escalado nativo**: `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java` hizo más agresiva la fórmula de sizing: menos padding dinámico, títulos y bios bastante más grandes, más líneas disponibles y una gravedad del título orientada a pegarlo a la bio cuando ambas están visibles.
+- **Resultado**: el texto del widget chico vuelve a llenar visualmente la tarjeta en vez de quedar pequeño y usando solo una fracción del alto disponible.
+
+**Validación:**
+- `.\gradlew.bat :app:processDebugResources :app:compileDebugJavaWithJavac` OK usando `ANDROID_USER_HOME` y `GRADLE_USER_HOME` locales dentro de `android`.
+
+**Archivos Modificados:**
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java`
+- `android/app/src/main/res/layout/widget_saint_small.xml`
+- `AGENTS.md`
+
+### [2026-03-29 18:22] 222. Fondos reales detrás de barras transparentes sin respaldos fijos
+**Planificación:**
+- Ajustar la capa web del edge-to-edge para que las barras transparentes muestren el contenido real de la pantalla y no una franja fija superpuesta.
+- Mantener el comportamiento correcto ya logrado en Android nativo, pero dejando que el encabezado y el fondo de cada vista se prolonguen naturalmente detrás de las barras del sistema.
+
+**Ejecución:**
+- **MainApp**: `src/components/main/MainApp.tsx` eliminó los dos respaldos fijos de safe area que pintaban manualmente la zona superior e inferior. Con eso, el color real del encabezado vuelve a ocupar la barra superior por el propio `Header`, y el fondo real de cada vista se prolonga detrás de la barra inferior en vez de verse como una capa aparte.
+- **Resultado buscado**: las barras siguen transparentes, pero ahora muestran el contenido auténtico de la app detrás de ellas, igual que el encabezado ya lo hacía arriba.
+
+**Validación:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+
+**Archivos Modificados:**
+- `src/components/main/MainApp.tsx`
+- `AGENTS.md`
+
 ### [2026-03-29 17:59] 221. Widget chico 2x1 real, edge-to-edge reforzado, scroll normal en Mes de María e importación `.ctd` sin repetición
 **Planificación:**
 - Ajustar el widget chico para que el mínimo real vuelva a ser `2x1` y mantenga resize libre en cualquier tamaño superior.

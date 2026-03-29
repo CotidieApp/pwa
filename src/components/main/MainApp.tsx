@@ -944,14 +944,6 @@ export default function MainApp() {
     navState.activeView === 'category' && navState.selectedCategoryId === 'plan-de-vida';
   const showsStandardHeader =
     navState.activeView !== 'home' && navState.activeView !== 'developer';
-  const statusBarBackdropClass =
-    navState.activeView === 'home'
-      ? 'bg-transparent'
-      : showsStandardHeader
-        ? 'bg-primary'
-        : 'bg-background';
-  const navigationBarBackdropClass =
-    navState.activeView === 'home' ? 'bg-transparent' : 'bg-background';
 
   const handleOpenPlanCalendar = () => {
     setNavState({
@@ -986,17 +978,6 @@ export default function MainApp() {
         navState.activeView === 'home' ? "bg-transparent" : "bg-background"
       )}
     >
-      <div
-        aria-hidden="true"
-        className={cn("pointer-events-none fixed inset-x-0 top-0 z-20", statusBarBackdropClass)}
-        style={{ height: 'env(safe-area-inset-top)' }}
-      />
-      <div
-        aria-hidden="true"
-        className={cn("pointer-events-none fixed inset-x-0 bottom-0 z-20", navigationBarBackdropClass)}
-        style={{ height: 'env(safe-area-inset-bottom)' }}
-      />
-
       {isSeason && !hasViewedAnnuum && navState.activeView === 'home' && (
         <div
           className="absolute z-40 cursor-pointer animate-in fade-in zoom-in duration-500 hover:scale-110 transition-transform"

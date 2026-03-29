@@ -17,35 +17,34 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:paddingLeft="6dp"
-        android:paddingTop="4dp"
-        android:paddingRight="6dp"
-        android:paddingBottom="4dp">
+        android:paddingLeft="4dp"
+        android:paddingTop="3dp"
+        android:paddingRight="4dp"
+        android:paddingBottom="3dp">
 
         <TextView
             android:id="@+id/widget_saint_name"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="3"
+            android:layout_weight="4"
             android:ellipsize="end"
             android:gravity="start"
             android:includeFontPadding="false"
             android:maxLines="10"
             android:textAlignment="viewStart"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/widget_saint_bio"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="5"
-            android:layout_marginTop="2dp"
+            android:layout_weight="4"
             android:ellipsize="end"
             android:gravity="start|top"
             android:includeFontPadding="false"
             android:maxLines="18"
             android:textAlignment="viewStart"
-            android:textSize="10sp" />
+            android:textSize="11sp" />
     </LinearLayout>
 </FrameLayout>
