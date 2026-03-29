@@ -29,8 +29,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class SaintWidgetUpdater {
-    private static final int SMALL_WIDGET_MIN_WIDTH_DP = 140;
-    private static final int SMALL_WIDGET_MIN_HEIGHT_DP = 48;
+    private static final int SMALL_WIDGET_MIN_WIDTH_DP = 110;
+    private static final int SMALL_WIDGET_MIN_HEIGHT_DP = 40;
     private static Map<String, CropBias> cachedBiasByPlaceholderId;
 
     public static void updateAll(Context context) {

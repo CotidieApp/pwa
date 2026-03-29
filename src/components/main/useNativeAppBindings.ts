@@ -128,6 +128,7 @@ export const useSharedImportBinding = ({
 }) => {
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
+    if (Capacitor.getPlatform() === 'android') return;
 
     const extractImportUri = (rawUrl: string): string | null => {
       const trimmed = rawUrl.trim();

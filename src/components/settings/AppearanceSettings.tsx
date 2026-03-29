@@ -20,9 +20,7 @@ import { cn } from '@/lib/utils';
 import { extractThemeColorsFromImageUrl, clampNumber, type ThemeColors } from '@/lib/theme-utils';
 import ImageCropper from '@/components/ui/ImageCropper';
 
-const imageFormSchema = z.object({
-  // Description is no longer required by user
-});
+const imageFormSchema = z.object({});
 type ImageFormValues = z.infer<typeof imageFormSchema>;
 
 export default function AppearanceSettings() {
@@ -154,7 +152,7 @@ export default function AppearanceSettings() {
               </SelectContent>
             </Select>
           </div>
-          {navMode === 'bubble' ? (
+          {navMode === 'bubble' && (
             <div className="space-y-2">
               <Label className="flex flex-col gap-1 text-sm">
                 <span>Tamaño de globos de flechas</span>
@@ -171,10 +169,6 @@ export default function AppearanceSettings() {
                 </SelectContent>
               </Select>
             </div>
-          ) : (
-            <p className="text-xs text-muted-foreground">
-              El tamaño del globo aparece solo cuando el modo de navegación está en Globo de flechas.
-            </p>
           )}
 
           {isAndroidNative && (
@@ -360,7 +354,6 @@ export default function AppearanceSettings() {
                     )}
                   </div>
                 </div>
-                {/* Description field removed as requested */}
                 <Button type="submit" size="sm" className="w-full">Agregar Fondo</Button>
               </form>
             </Form>
@@ -384,6 +377,4 @@ export default function AppearanceSettings() {
     </div>
   );
 }
-
-
 

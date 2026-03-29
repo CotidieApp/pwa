@@ -2,6 +2,54 @@
 
 Historial de intervenciones del asistente en el repo.
 
+### [2026-03-29 17:59] 221. Widget chico 2x1 real, edge-to-edge reforzado, scroll normal en Mes de María e importación `.ctd` sin repetición
+**Planificación:**
+- Ajustar el widget chico para que el mínimo real vuelva a ser `2x1` y mantenga resize libre en cualquier tamaño superior.
+- Reforzar otra vez el edge-to-edge en Android para que las barras superior e inferior se mantengan transparentes y se vea detrás el encabezado o el fondo correcto.
+- Corregir el tratamiento indebido de texto largo en `Mes de María` y cortar la reapertura fantasma de importaciones `.ctd` al iniciar la app.
+- Confirmar además el color litúrgico correcto del Domingo de Ramos para verificar si hacía falta cambiar la lógica actual.
+
+**Ejecución:**
+- **Widget chico**: `android/app/src/main/res/xml/widget_saint_small.xml` bajó sus mínimos a `110dp x 40dp`, dejando un `2x1` real como base. `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java` alineó esos nuevos mínimos para que el escalado parta desde ese tamaño y siga creciendo sin restricciones, y `android/app/src/main/res/layout/widget_saint_small.xml` compactó paddings y tipografías base para que el layout siga respirando incluso en el tamaño mínimo.
+- **Barras del sistema**: `android/app/src/main/java/com/benjamin/studio/MainActivity.java` reforzó `configureSystemBars()` con `window` transparente, `systemUiVisibility` edge-to-edge, fondo transparente también en la raíz del `WebView`, transparencia del divisor de la barra de navegación y reaplicación en `onWindowFocusChanged`, además de `onResume`. `android/app/src/main/res/values/styles.xml` sumó `android:windowBackground` transparente en el tema principal y `postSplashScreenTheme` hacia `AppTheme.NoActionBar` para que la transparencia correcta sobreviva también al paso por el splash. En la capa web, `src/components/main/MainApp.tsx` elevó los respaldos fijos de safe area y aseguró una altura mínima de `100svh`, de modo que la barra superior reciba el color del encabezado cuando corresponde y la inferior muestre fondo uniforme detrás.
+- **Scroll de Mes de María**: `src/lib/prayers/plan-de-vida/mes-de-maria.ts` dejó de marcar `Oración Inicial` y `Oración Final` como `isLongText`, devolviéndolas al comportamiento normal de scroll y evitando el tratamiento especial de posición persistida y wake lock.
+- **Importación `.ctd`**: `android/app/src/main/java/com/benjamin/studio/MainActivity.java` ahora limpia el intent compartido una vez leído para que no vuelva a reinyectarse en arranques posteriores, y `src/components/main/useNativeAppBindings.ts` dejó de duplicar en Android el procesamiento vía `App.getLaunchUrl`/`appUrlOpen`, porque en esta plataforma ya queda cubierto por `MainActivity`.
+- **Criterio litúrgico**: se revisó la lógica existente y el caso ya estaba correcto. El Domingo de Ramos corresponde a **rojo**, en línea con la IGMR `346.2`, así que no hizo falta cambiar el color litúrgico del repo.
+
+**Validación:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `npm.cmd run build` OK.
+- `.\gradlew.bat :app:processDebugResources :app:compileDebugJavaWithJavac` OK usando `ANDROID_USER_HOME` y `GRADLE_USER_HOME` locales dentro de `android`.
+
+**Archivos Modificados:**
+- `android/app/src/main/java/com/benjamin/studio/MainActivity.java`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java`
+- `android/app/src/main/res/layout/widget_saint_small.xml`
+- `android/app/src/main/res/values/styles.xml`
+- `android/app/src/main/res/xml/widget_saint_small.xml`
+- `src/components/main/MainApp.tsx`
+- `src/components/main/useNativeAppBindings.ts`
+- `src/lib/prayers/plan-de-vida/mes-de-maria.ts`
+- `AGENTS.md`
+
+### [2026-03-28 18:01] 220. Resumen markdown de cambios posteriores a `v4.4.22`
+**Planificación:**
+- Ubicar el commit exacto correspondiente a la build `4.4.22` para usarlo como corte objetivo.
+- Revisar los commits posteriores y separar cambios funcionales, mantenimiento y numeraciones de build.
+- Redactar un archivo `.md` nuevo con un resumen consolidado y fácil de compartir.
+
+**Ejecución:**
+- **Corte confirmado**: se verificó que `Auto-deploy: Build v4.4.22` corresponde al commit `16c9dc7`.
+- **Tramo revisado**: se tomó como alcance `16c9dc7..HEAD`, cubriendo las builds `4.4.23`, `4.4.24` y `4.4.26`, además del ajuste intermedio posterior a `4.4.22`.
+- **Documento nuevo**: se creó `docs/resumen-cambios-desde-4.4.22.md` con una síntesis por versión y por área funcional, incluyendo la nota de que no aparece `4.4.25` en el historial de Git.
+
+**Validación:**
+- Revisión manual de `git log` posterior a `16c9dc7` y verificación de existencia del archivo nuevo: OK.
+
+**Archivos Modificados:**
+- `docs/resumen-cambios-desde-4.4.22.md`
+- `AGENTS.md`
+
 ### [2026-03-27 15:48] 219. Barras del sistema con fondo real y sin gris residual en Android
 **Planificación:**
 - Revisar por qué, aun con barras transparentes, seguía apareciendo gris detrás de la barra de estado y de navegación.

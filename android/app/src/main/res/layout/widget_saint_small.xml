@@ -17,10 +17,10 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:paddingLeft="8dp"
-        android:paddingTop="6dp"
-        android:paddingRight="8dp"
-        android:paddingBottom="6dp">
+        android:paddingLeft="6dp"
+        android:paddingTop="4dp"
+        android:paddingRight="6dp"
+        android:paddingBottom="4dp">
 
         <TextView
             android:id="@+id/widget_saint_name"
@@ -32,7 +32,7 @@
             android:includeFontPadding="false"
             android:maxLines="10"
             android:textAlignment="viewStart"
-            android:textSize="15sp"
+            android:textSize="13sp"
             android:textStyle="bold" />
 
         <TextView
@@ -46,6 +46,6 @@
             android:includeFontPadding="false"
             android:maxLines="18"
             android:textAlignment="viewStart"
-            android:textSize="12sp" />
+            android:textSize="10sp" />
     </LinearLayout>
 </FrameLayout>

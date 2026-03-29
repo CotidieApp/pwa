@@ -980,15 +980,20 @@ export default function MainApp() {
         : undefined;
 
   return (
-    <div className={cn("h-full w-full text-foreground relative", navState.activeView === 'home' ? "bg-transparent" : "bg-background")}>
+    <div
+      className={cn(
+        "relative min-h-[100svh] w-full text-foreground",
+        navState.activeView === 'home' ? "bg-transparent" : "bg-background"
+      )}
+    >
       <div
         aria-hidden="true"
-        className={cn("pointer-events-none fixed inset-x-0 top-0 z-[1]", statusBarBackdropClass)}
+        className={cn("pointer-events-none fixed inset-x-0 top-0 z-20", statusBarBackdropClass)}
         style={{ height: 'env(safe-area-inset-top)' }}
       />
       <div
         aria-hidden="true"
-        className={cn("pointer-events-none fixed inset-x-0 bottom-0 z-[1]", navigationBarBackdropClass)}
+        className={cn("pointer-events-none fixed inset-x-0 bottom-0 z-20", navigationBarBackdropClass)}
         style={{ height: 'env(safe-area-inset-bottom)' }}
       />
 
@@ -1024,7 +1029,7 @@ export default function MainApp() {
         </div>
       )}
 
-      <div className="flex flex-col h-full md:max-w-6xl md:mx-auto md:border-x md:border-border/50">
+      <div className="flex min-h-[100svh] flex-col md:mx-auto md:max-w-6xl md:border-x md:border-border/50">
         {showsStandardHeader && (
           <Header
             title={headerTitle}

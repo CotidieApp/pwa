@@ -544,7 +544,7 @@ final class SaintWidgetContentFactory {
         // Let's iterate definitions
         Map<Integer, SaintEntry> easterFeasts = new HashMap<>();
         easterFeasts.put(-46, new SaintEntry(0, 0, "Miércoles de Ceniza", "Inicio de la Cuaresma, un tiempo de penitencia y conversión de cuarenta días en preparación para la Pascua. Se caracteriza por la imposición de la ceniza en la frente.", "Conmemoración", "celebration;lent;ceniza"));
-        easterFeasts.put(-7, new SaintEntry(0, 0, "Domingo de Ramos", "Inicio de la Semana Santa...", "Celebración del Día", "celebration;lent;ramos"));
+        easterFeasts.put(-7, new SaintEntry(0, 0, "Domingo de Ramos", "Inicio de la Semana Santa, día de la entrada triunfal de Jesús en Jerusalén, aclamado por la multitud con ramas de olivo y palmas.", "Celebración del Día", "celebration;lent;ramos"));
         easterFeasts.put(-6, new SaintEntry(0, 0, "Lunes Santo", "Día para preparar el alma...", "Celebración del Día", "celebration;lent"));
         easterFeasts.put(-5, new SaintEntry(0, 0, "Martes Santo", "Día para preparar el alma...", "Celebración del Día", "celebration;lent"));
         easterFeasts.put(-4, new SaintEntry(0, 0, "Miércoles Santo", "Día para preparar el alma...", "Celebración del Día", "celebration;lent"));
