@@ -232,17 +232,25 @@ public final class SaintWidgetUpdater {
         int minHeightDp = options != null
                 ? Math.max(SMALL_WIDGET_MIN_HEIGHT_DP, options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, SMALL_WIDGET_MIN_HEIGHT_DP))
                 : SMALL_WIDGET_MIN_HEIGHT_DP;
+        int maxWidthDp = options != null
+                ? Math.max(minWidthDp, options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, minWidthDp))
+                : minWidthDp;
+        int maxHeightDp = options != null
+                ? Math.max(minHeightDp, options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, minHeightDp))
+                : minHeightDp;
+        int effectiveWidthDp = Math.max(minWidthDp, Math.round((minWidthDp + maxWidthDp) / 2f));
+        int effectiveHeightDp = Math.max(minHeightDp, Math.round((minHeightDp + maxHeightDp) / 2f));
         String smallWidgetMode = SaintWidgetPreferences.getSmallWidgetMode(context);
         boolean hasBio = content.bio != null && !content.bio.trim().isEmpty();
-        float widthFactor = clamp((minWidthDp - SMALL_WIDGET_MIN_WIDTH_DP) / 180f, 0f, 1.5f);
-        float heightFactor = clamp((minHeightDp - SMALL_WIDGET_MIN_HEIGHT_DP) / 220f, 0f, 1.8f);
-        boolean compactHeight = minHeightDp <= 72;
-        boolean compactWidth = minWidthDp <= 170;
+        float widthFactor = clamp((effectiveWidthDp - SMALL_WIDGET_MIN_WIDTH_DP) / 120f, 0f, 2.4f);
+        float heightFactor = clamp((effectiveHeightDp - SMALL_WIDGET_MIN_HEIGHT_DP) / 120f, 0f, 2.6f);
+        boolean compactHeight = effectiveHeightDp <= 72;
+        boolean compactWidth = effectiveWidthDp <= 170;
         boolean useSaintPriorityMode = SaintWidgetPreferences.DISPLAY_MODE_SAINT_PRIORITY.equals(smallWidgetMode);
-        boolean shouldHideBio = !hasBio || (useSaintPriorityMode && (compactHeight || (compactWidth && minHeightDp <= 88)));
+        boolean shouldHideBio = !hasBio || (useSaintPriorityMode && (compactHeight || (compactWidth && effectiveHeightDp <= 88)));
 
-        int horizontalPaddingDp = minWidthDp >= 260 ? 8 : (minWidthDp >= 180 ? 6 : 3);
-        int verticalPaddingDp = minHeightDp >= 180 ? 6 : (minHeightDp >= 96 ? 4 : 2);
+        int horizontalPaddingDp = effectiveWidthDp >= 260 ? 6 : (effectiveWidthDp >= 180 ? 4 : 2);
+        int verticalPaddingDp = effectiveHeightDp >= 180 ? 4 : (effectiveHeightDp >= 96 ? 2 : 1);
         views.setViewPadding(
                 R.id.widget_text_container,
                 dpToPx(context, horizontalPaddingDp),
@@ -253,20 +261,20 @@ public final class SaintWidgetUpdater {
 
         int titleLines;
         if (shouldHideBio) {
-            float titleSizeSp = clamp(15.5f + (widthFactor * 3.8f) + (heightFactor * 5.2f), 13f, 30f);
-            titleLines = minHeightDp >= 132 ? 10 : (minHeightDp >= 84 || minWidthDp >= 220 ? 8 : 6);
+            float titleSizeSp = clamp(18f + (widthFactor * 4.4f) + (heightFactor * 5.8f), 15f, 34f);
+            titleLines = effectiveHeightDp >= 132 ? 10 : (effectiveHeightDp >= 84 || effectiveWidthDp >= 220 ? 8 : 6);
             views.setInt(R.id.widget_saint_name, "setGravity", Gravity.START | Gravity.CENTER_VERTICAL);
             views.setTextViewTextSize(R.id.widget_saint_name, TypedValue.COMPLEX_UNIT_SP, titleSizeSp);
         } else {
-            float titleSizeSp = clamp(11.8f + (widthFactor * 2.6f) + (heightFactor * 3.5f), 10.5f, 24f);
-            float bioSizeSp = clamp(8.6f + (widthFactor * 1.9f) + (heightFactor * 2.5f), 7.5f, 18f);
-            titleLines = minHeightDp >= 200 ? 12 : (minHeightDp >= 110 ? 9 : 7);
-            int bioLines = minHeightDp >= 220 ? 20 : (minHeightDp >= 140 ? 15 : (minHeightDp >= 96 ? 11 : 8));
-            if (minWidthDp >= 260) {
+            float titleSizeSp = clamp(14f + (widthFactor * 3f) + (heightFactor * 4f), 12f, 28f);
+            float bioSizeSp = clamp(10.5f + (widthFactor * 2.1f) + (heightFactor * 3f), 9f, 21f);
+            titleLines = effectiveHeightDp >= 200 ? 12 : (effectiveHeightDp >= 110 ? 9 : 7);
+            int bioLines = effectiveHeightDp >= 220 ? 20 : (effectiveHeightDp >= 140 ? 15 : (effectiveHeightDp >= 96 ? 11 : 8));
+            if (effectiveWidthDp >= 260) {
                 titleLines += 1;
                 bioLines += 2;
             }
-            views.setInt(R.id.widget_saint_name, "setGravity", Gravity.START | Gravity.BOTTOM);
+            views.setInt(R.id.widget_saint_name, "setGravity", Gravity.START | Gravity.TOP);
             views.setTextViewTextSize(R.id.widget_saint_name, TypedValue.COMPLEX_UNIT_SP, titleSizeSp);
             views.setViewVisibility(R.id.widget_saint_bio, View.VISIBLE);
             views.setTextViewTextSize(R.id.widget_saint_bio, TypedValue.COMPLEX_UNIT_SP, bioSizeSp);

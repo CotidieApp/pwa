@@ -24,6 +24,7 @@ import { letanias as letaniasRosarioBase } from '@/lib/prayers/plan-de-vida/sant
 import { cn } from '@/lib/utils';
 import { AnimatePresence } from 'framer-motion';
 import { isAnnuumSeason } from '@/lib/movable-feasts';
+import { getImageObjectPosition } from '@/lib/image-display';
 import AnnuumStory from '../AnnuumStory';
 import Image from 'next/image';
 import DeveloperDashboard from '@/components/developer/DeveloperDashboard';
@@ -106,6 +107,8 @@ export default function MainApp() {
     setHasViewedAnnuum,
     pushDevLiveTrace,
     navMode,
+    homeBackgroundId,
+    allHomeBackgrounds,
   } = useSettings();
   const customPlanTouchNavEnabled = navMode === 'touch';
   const customPlanExitAdvanceRef = useRef<{
@@ -944,6 +947,25 @@ export default function MainApp() {
     navState.activeView === 'category' && navState.selectedCategoryId === 'plan-de-vida';
   const showsStandardHeader =
     navState.activeView !== 'home' && navState.activeView !== 'developer';
+  const currentHomeBackgroundId = allHomeBackgrounds.find((img) => img.id === homeBackgroundId)?.id;
+  const homeBarsBackgroundStyle =
+    navState.activeView === 'home'
+      ? {
+          backgroundImage: 'var(--home-bg-image)',
+          backgroundPosition: getImageObjectPosition(currentHomeBackgroundId),
+          backgroundSize: 'cover',
+          backgroundRepeat: 'no-repeat',
+          backgroundColor: 'hsl(var(--background))',
+        }
+      : undefined;
+  const statusBarBackdropClass =
+    navState.activeView === 'home'
+      ? 'bg-transparent'
+      : showsStandardHeader
+        ? 'bg-primary'
+        : 'bg-background';
+  const navigationBarBackdropClass =
+    navState.activeView === 'home' ? 'bg-transparent' : 'bg-background';
 
   const handleOpenPlanCalendar = () => {
     setNavState({
@@ -978,6 +1000,17 @@ export default function MainApp() {
         navState.activeView === 'home' ? "bg-transparent" : "bg-background"
       )}
     >
+      <div
+        aria-hidden="true"
+        className={cn("pointer-events-none fixed inset-x-0 top-0 z-20", statusBarBackdropClass)}
+        style={{ height: 'env(safe-area-inset-top)', ...homeBarsBackgroundStyle }}
+      />
+      <div
+        aria-hidden="true"
+        className={cn("pointer-events-none fixed inset-x-0 bottom-0 z-20", navigationBarBackdropClass)}
+        style={{ height: 'env(safe-area-inset-bottom)', ...homeBarsBackgroundStyle }}
+      />
+
       {isSeason && !hasViewedAnnuum && navState.activeView === 'home' && (
         <div
           className="absolute z-40 cursor-pointer animate-in fade-in zoom-in duration-500 hover:scale-110 transition-transform"

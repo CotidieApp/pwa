@@ -2,6 +2,24 @@
 
 Historial de intervenciones del asistente en el repo.
 
+### [2026-03-29 18:33] 224. Safe areas sin negro y widget chico dimensionado por tamaño efectivo
+**Planificación:**
+- Corregir la regresión donde las barras transparentes habían vuelto a mostrar negro detrás, restaurando una pintura explícita de safe areas con el fondo correcto de cada pantalla.
+- Rehacer el cálculo del widget chico para que no escale solo con el tamaño mínimo declarado, sino también con el tamaño realmente disponible al colocarlo o expandirlo.
+
+**Ejecución:**
+- **Barras del sistema**: `src/components/main/MainApp.tsx` volvió a pintar explícitamente las safe areas, pero ahora con el criterio correcto. En vistas normales, la barra superior usa `bg-primary` y la inferior `bg-background`; en `home`, ambas toman `var(--home-bg-image)` con el mismo `objectPosition` del fondo de inicio, evitando el negro y dejando que el fondo real se vea detrás de las barras.
+- **Widget chico**: `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java` dejó de calcular el escalado solo con `OPTION_APPWIDGET_MIN_WIDTH/HEIGHT` y pasó a usar también `OPTION_APPWIDGET_MAX_WIDTH/HEIGHT` para estimar el tamaño efectivo disponible. Con eso se aumentaron factores de escala, tamaños máximos, líneas visibles y se redujeron paddings, de modo que el texto ocupe mucho mejor todo el espacio real del widget.
+
+**Validación:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `.\gradlew.bat :app:processDebugResources :app:compileDebugJavaWithJavac` OK usando `ANDROID_USER_HOME` y `GRADLE_USER_HOME` locales dentro de `android`.
+
+**Archivos Modificados:**
+- `src/components/main/MainApp.tsx`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java`
+- `AGENTS.md`
+
 ### [2026-03-29 18:24] 223. Widget chico con tipografía más grande y bloque de texto ocupando toda la tarjeta
 **Planificación:**
 - Revisar por qué, tras devolver el mínimo `2x1`, el widget chico estaba dejando el texto demasiado pequeño y visualmente “encogido” dentro de solo parte del espacio disponible.
