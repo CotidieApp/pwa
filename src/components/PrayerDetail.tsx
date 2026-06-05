@@ -422,15 +422,18 @@ const PrayerContent = ({
     if (!prayerId) return;
     const container = scrollContainerRef?.current;
     if (!container) return;
+
     if (prayer.isLongText) {
       const saved = scrollPositions[prayerId];
       if (typeof saved === 'number') {
         container.scrollTo({ top: saved });
+        return;
       }
-    } else {
-      container.scrollTo({ top: 0 });
     }
-  }, [prayerId, scrollPositions, searchState, prayer.isLongText, scrollContainerRef]);
+
+    // Normal prayer or no saved position: always reset to top
+    container.scrollTo({ top: 0 });
+  }, [prayerId, scrollPositions[prayerId], searchState, prayer.isLongText, scrollContainerRef]);
 
   useEffect(() => {
     const container = scrollContainerRef?.current;
@@ -575,96 +578,100 @@ export default function PrayerDetail({
   const objectPosition = getImageObjectPosition(prayer.id);
 
   return (
-    <div className={cn('flex min-h-0 flex-col h-full', isDistractionFree ? 'py-20' : 'p-4')}>
+    <div className={cn('flex min-h-0 flex-col h-full bg-background', isDistractionFree ? 'py-20' : 'p-0')}>
       {prayer.imageUrl && (
-        <div
-          className={cn(
-            'relative overflow-hidden sticky z-0 shrink-0',
-            isDistractionFree
-              ? 'mb-8 top-20 left-1/2 w-screen max-w-none -translate-x-1/2 rounded-none'
-              : 'mb-4 top-4 rounded-lg'
-          )}
-          style={{ height: isDistractionFree ? 'min(42vh, 420px)' : '200px' }}
-        >
-          <Image
-            src={prayer.imageUrl}
-            alt={prayer.title || 'Imagen de la oracion'}
-            fill
-            className="object-cover"
-            style={{ objectPosition }}
-            priority
-          />
+        <div className="bg-background px-4 py-4 shrink-0 sticky top-0 z-10">
+          <div
+            className={cn(
+              'relative overflow-hidden rounded-lg shadow-sm border border-border/10',
+              isDistractionFree && 'rounded-none border-0 shadow-none'
+            )}
+            style={{ height: isDistractionFree ? 'min(42vh, 420px)' : '180px' }}
+          >
+            <Image
+              src={prayer.imageUrl}
+              alt={prayer.title || 'Imagen de la oración'}
+              fill
+              className="object-cover"
+              style={{ objectPosition }}
+              priority
+            />
+          </div>
         </div>
       )}
 
-      <div className={cn('flex-1 min-h-0 flex flex-col', isDistractionFree && 'mx-auto max-w-3xl px-4 sm:px-6 lg:px-8')}>
+      <div className={cn('flex-1 min-h-0 flex flex-col', isDistractionFree && 'mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 w-full')}>
         {showAudioPlayer && (
-          <div className="mb-6 space-y-4 shrink-0">
-            {audioSrc ? (
-              <AudioPlayer src={audioSrc} title={localAudioSrc ? 'Audio seleccionado' : 'Escuchar meditacion'} />
-            ) : (
-              <div className="rounded-lg bg-secondary/50 p-4 text-center text-sm text-muted-foreground">
-                Selecciona un audio para escuchar
-              </div>
-            )}
-
-            {prayer.id === 'lectura-audio' && (
-              <div className="space-y-3">
-                <div className="grid gap-2">
-                  <Label className="text-sm font-medium">Audios Disponibles</Label>
-                  {predefinedAudios.map((audio, idx) => (
-                    <Button
-                      key={idx}
-                      variant="outline"
-                      className={cn(
-                        'w-full justify-start text-left',
-                        localAudioSrc === audio.src && 'border-primary bg-primary/5 text-primary'
-                      )}
-                      onClick={() => setLocalAudioSrc(audio.src)}
-                    >
-                      <Icon.Play className="mr-2 h-4 w-4" />
-                      {audio.title}
-                    </Button>
-                  ))}
+          <div className="px-4 mb-4 shrink-0">
+            <div className="sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-2 rounded-xl border shadow-sm">
+              {audioSrc ? (
+                <AudioPlayer src={audioSrc} title={localAudioSrc ? 'Audio seleccionado' : 'Escuchar meditación'} />
+              ) : (
+                <div className="rounded-lg bg-secondary/50 p-4 text-center text-sm text-muted-foreground">
+                  Selecciona un audio para escuchar
                 </div>
+              )}
 
-                <div className="border-t pt-2">
-                  <Label htmlFor="audio-upload" className="mb-2 block text-sm font-medium">
-                    O subir archivo personal (.mp3)
-                  </Label>
-                  <Input
-                    id="audio-upload"
-                    type="file"
-                    accept="audio/*"
-                    onChange={handleFileUpload}
-                    className="cursor-pointer"
-                  />
+              {prayer.id === 'lectura-audio' && (
+                <div className="mt-2 space-y-2">
+                  <div className="flex flex-col gap-1">
+                    {predefinedAudios.map((audio, idx) => (
+                      <Button
+                        key={idx}
+                        variant="ghost"
+                        size="sm"
+                        className={cn(
+                          'w-full justify-start text-left',
+                          localAudioSrc === audio.src && 'border-primary bg-primary/5 text-primary'
+                        )}
+                        onClick={() => setLocalAudioSrc(audio.src)}
+                      >
+                        <Icon.Play className="mr-2 h-4 w-4" />
+                        {audio.title}
+                      </Button>
+                    ))}
+                  </div>
+
+                  <div className="border-t pt-2">
+                    <Label htmlFor="audio-upload" className="mb-2 block text-sm font-medium">
+                      O subir archivo personal (.mp3)
+                    </Label>
+                    <Input
+                      id="audio-upload"
+                      type="file"
+                      accept="audio/*"
+                      onChange={handleFileUpload}
+                      className="cursor-pointer"
+                    />
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         )}
 
-        <Card
-          className={cn(
-            'overflow-hidden border bg-card shadow-md flex-1 flex flex-col min-h-0',
-            isDistractionFree && 'border-0 bg-transparent shadow-none'
-          )}
-        >
-          <CardContent className={cn('p-6 pt-6 flex flex-1 flex-col min-h-0', isDistractionFree && 'p-0 pt-0 text-[1.05rem] leading-[1.85]')}>
-            <div
-              ref={scrollContainerRef}
-              data-app-scroll-container="true"
-              className="flex-1 min-h-0 overflow-y-auto touch-pan-y scrollbar-hide overscroll-contain"
-            >
-              {prayer.content ? (
-                <PrayerContent prayer={prayer} searchState={searchState} scrollContainerRef={scrollContainerRef} />
-              ) : (
-                <p className="text-sm text-muted-foreground">Contenido no disponible.</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <div className={cn("flex-1 min-h-0 flex flex-col", !isDistractionFree && "px-4 pb-4")}>
+          <Card
+            className={cn(
+              'overflow-hidden border bg-card shadow-md flex-1 flex flex-col min-h-0',
+              isDistractionFree && 'border-0 bg-transparent shadow-none'
+            )}
+          >
+            <CardContent className={cn('p-6 pt-6 flex flex-1 flex-col min-h-0', isDistractionFree && 'p-0 pt-0 text-[1.05rem] leading-[1.85]')}>
+              <div
+                ref={scrollContainerRef}
+                data-app-scroll-container="true"
+                className="flex-1 min-h-0 overflow-y-auto touch-pan-y scrollbar-hide overscroll-contain"
+              >
+                {prayer.content ? (
+                  <PrayerContent prayer={prayer} searchState={searchState} scrollContainerRef={scrollContainerRef} />
+                ) : (
+                  <p className="text-sm text-muted-foreground">Contenido no disponible.</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
