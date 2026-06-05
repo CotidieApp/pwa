@@ -95,11 +95,7 @@ const buildRelativeMonthlyDate = (
 };
 
 export const parseFixedNotificationDate = (value: string, now: Date): ParsedFixedDate | null => {
-<<<<<<< HEAD
   const full = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})$/);
-=======
-  const full = value.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})$/);
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
   if (full) {
     const [, dd, mm, yyyy, hh, min] = full;
     const day = Number(dd);
@@ -115,11 +111,7 @@ export const parseFixedNotificationDate = (value: string, now: Date): ParsedFixe
     return Number.isNaN(date.getTime()) ? null : { kind: 'once', date };
   }
 
-<<<<<<< HEAD
   const dayMonth = value.match(/^(\d{1,2})\/(\d{1,2})\s+(\d{1,2}):(\d{2})$/);
-=======
-  const dayMonth = value.match(/^(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})$/);
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
   if (dayMonth) {
     const [, dd, mm, hh, min] = dayMonth;
     const day = Number(dd);
@@ -135,11 +127,7 @@ export const parseFixedNotificationDate = (value: string, now: Date): ParsedFixe
     return Number.isNaN(date.getTime()) ? null : { kind: 'yearly', date };
   }
 
-<<<<<<< HEAD
   const dayOnly = value.match(/^(\d{1,2})\s+(\d{1,2}):(\d{2})$/);
-=======
-  const dayOnly = value.match(/^(\d{2})\s+(\d{2}):(\d{2})$/);
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
   if (dayOnly) {
     const [, dd, hh, min] = dayOnly;
     const day = Number(dd);
@@ -155,11 +143,7 @@ export const parseFixedNotificationDate = (value: string, now: Date): ParsedFixe
     return Number.isNaN(date.getTime()) ? null : { kind: 'monthly', date };
   }
 
-<<<<<<< HEAD
   const relative = value.match(/^([lmwjvsd])([1234u])\s+(\d{1,2}):(\d{2})$/i);
-=======
-  const relative = value.match(/^([lmwjvsd])([1234u])\s+(\d{2}):(\d{2})$/i);
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
   if (relative) {
     const [, letter, ordinal, hh, min] = relative;
     const weekday = weekdayByLetter[String(letter).toLowerCase()];
@@ -179,11 +163,7 @@ export const parseFixedNotificationDate = (value: string, now: Date): ParsedFixe
       : { kind: 'relative-monthly', date, relative: spec };
   }
 
-<<<<<<< HEAD
   const timeOnly = value.match(/^(\d{1,2}):(\d{2})$/);
-=======
-  const timeOnly = value.match(/^(\d{2}):(\d{2})$/);
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
   if (timeOnly) {
     const [, hh, min] = timeOnly;
     const hours = Number(hh);

@@ -5,20 +5,11 @@ import android.appwidget.AppWidgetManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-<<<<<<< HEAD
-=======
-import android.os.Bundle;
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
-<<<<<<< HEAD
-=======
-import android.util.TypedValue;
-import android.view.Gravity;
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
 import android.view.View;
 import android.widget.RemoteViews;
 
@@ -35,11 +26,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class SaintWidgetUpdater {
-<<<<<<< HEAD
-=======
-    private static final int SMALL_WIDGET_MIN_WIDTH_DP = 110;
-    private static final int SMALL_WIDGET_MIN_HEIGHT_DP = 40;
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
     private static Map<String, CropBias> cachedBiasByPlaceholderId;
 
     public static void updateAll(Context context) {
@@ -54,11 +40,7 @@ public final class SaintWidgetUpdater {
 
         int[] smallIds = manager.getAppWidgetIds(new ComponentName(context, SaintWidgetSmallProvider.class));
         for (int id : smallIds) {
-<<<<<<< HEAD
             RemoteViews views = buildSmallViews(context, content);
-=======
-            RemoteViews views = buildSmallViews(context, content, manager, id);
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
             manager.updateAppWidget(id, views);
         }
     }
@@ -128,17 +110,10 @@ public final class SaintWidgetUpdater {
         }
     }
 
-<<<<<<< HEAD
     private static RemoteViews buildSmallViews(Context context, SaintWidgetContent content) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_saint_small);
         applyCommon(context, views, content);
         applyLegacySmallWidgetFormat(views, content);
-=======
-    private static RemoteViews buildSmallViews(Context context, SaintWidgetContent content, AppWidgetManager manager, int appWidgetId) {
-        RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_saint_small);
-        applyCommon(context, views, content);
-        applySmallSizing(context, views, manager != null ? manager.getAppWidgetOptions(appWidgetId) : null, content);
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
         return views;
     }
 
@@ -245,7 +220,6 @@ public final class SaintWidgetUpdater {
         return 4;
     }
 
-<<<<<<< HEAD
     private static void applyLegacySmallWidgetFormat(RemoteViews views, SaintWidgetContent content) {
         views.setInt(R.id.widget_saint_name, "setMaxLines", 3);
         if (content.bio == null || content.bio.trim().isEmpty()) {
@@ -253,83 +227,13 @@ public final class SaintWidgetUpdater {
             return;
         }
         views.setViewVisibility(R.id.widget_saint_bio, View.VISIBLE);
-        views.setInt(R.id.widget_saint_bio, "setMaxLines", 6);
-=======
-    private static void applySmallSizing(Context context, RemoteViews views, Bundle options, SaintWidgetContent content) {
-        int minWidthDp = options != null
-                ? Math.max(SMALL_WIDGET_MIN_WIDTH_DP, options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, SMALL_WIDGET_MIN_WIDTH_DP))
-                : SMALL_WIDGET_MIN_WIDTH_DP;
-        int minHeightDp = options != null
-                ? Math.max(SMALL_WIDGET_MIN_HEIGHT_DP, options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, SMALL_WIDGET_MIN_HEIGHT_DP))
-                : SMALL_WIDGET_MIN_HEIGHT_DP;
-        int maxWidthDp = options != null
-                ? Math.max(minWidthDp, options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, minWidthDp))
-                : minWidthDp;
-        int maxHeightDp = options != null
-                ? Math.max(minHeightDp, options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, minHeightDp))
-                : minHeightDp;
-        int effectiveWidthDp = Math.max(minWidthDp, Math.round((minWidthDp + maxWidthDp) / 2f));
-        int effectiveHeightDp = Math.max(minHeightDp, Math.round((minHeightDp + maxHeightDp) / 2f));
-        String smallWidgetMode = SaintWidgetPreferences.getSmallWidgetMode(context);
-        boolean hasBio = content.bio != null && !content.bio.trim().isEmpty();
-        float widthFactor = clamp((effectiveWidthDp - SMALL_WIDGET_MIN_WIDTH_DP) / 120f, 0f, 2.4f);
-        float heightFactor = clamp((effectiveHeightDp - SMALL_WIDGET_MIN_HEIGHT_DP) / 120f, 0f, 2.6f);
-        boolean compactHeight = effectiveHeightDp <= 72;
-        boolean compactWidth = effectiveWidthDp <= 170;
-        boolean useSaintPriorityMode = SaintWidgetPreferences.DISPLAY_MODE_SAINT_PRIORITY.equals(smallWidgetMode);
-        boolean shouldHideBio = !hasBio || (useSaintPriorityMode && (compactHeight || (compactWidth && effectiveHeightDp <= 88)));
-
-        int horizontalPaddingDp = effectiveWidthDp >= 260 ? 6 : (effectiveWidthDp >= 180 ? 4 : 2);
-        int verticalPaddingDp = effectiveHeightDp >= 180 ? 4 : (effectiveHeightDp >= 96 ? 2 : 1);
-        views.setViewPadding(
-                R.id.widget_text_container,
-                dpToPx(context, horizontalPaddingDp),
-                dpToPx(context, verticalPaddingDp),
-                dpToPx(context, horizontalPaddingDp),
-                dpToPx(context, verticalPaddingDp)
-        );
-
-        int titleLines;
-        if (shouldHideBio) {
-            float titleSizeSp = clamp(18f + (widthFactor * 4.4f) + (heightFactor * 5.8f), 15f, 34f);
-            titleLines = effectiveHeightDp >= 132 ? 10 : (effectiveHeightDp >= 84 || effectiveWidthDp >= 220 ? 8 : 6);
-            views.setInt(R.id.widget_saint_name, "setGravity", Gravity.START | Gravity.CENTER_VERTICAL);
-            views.setTextViewTextSize(R.id.widget_saint_name, TypedValue.COMPLEX_UNIT_SP, titleSizeSp);
-        } else {
-            float titleSizeSp = clamp(14f + (widthFactor * 3f) + (heightFactor * 4f), 12f, 28f);
-            float bioSizeSp = clamp(10.5f + (widthFactor * 2.1f) + (heightFactor * 3f), 9f, 21f);
-            titleLines = effectiveHeightDp >= 200 ? 12 : (effectiveHeightDp >= 110 ? 9 : 7);
-            int bioLines = effectiveHeightDp >= 220 ? 20 : (effectiveHeightDp >= 140 ? 15 : (effectiveHeightDp >= 96 ? 11 : 8));
-            if (effectiveWidthDp >= 260) {
-                titleLines += 1;
-                bioLines += 2;
-            }
-            views.setInt(R.id.widget_saint_name, "setGravity", Gravity.START | Gravity.TOP);
-            views.setTextViewTextSize(R.id.widget_saint_name, TypedValue.COMPLEX_UNIT_SP, titleSizeSp);
-            views.setViewVisibility(R.id.widget_saint_bio, View.VISIBLE);
-            views.setTextViewTextSize(R.id.widget_saint_bio, TypedValue.COMPLEX_UNIT_SP, bioSizeSp);
-            views.setInt(R.id.widget_saint_bio, "setMaxLines", Math.max(getBioMaxLines(content.bio), bioLines));
-        }
-        views.setInt(R.id.widget_saint_name, "setMaxLines", Math.max(getNameMaxLines(content.name), titleLines));
-
-        if (shouldHideBio) {
-            views.setViewVisibility(R.id.widget_saint_bio, View.GONE);
-        }
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
-    }
+        views.setInt(R.id.widget_saint_bio, "setMaxLines", 6);    }
 
     private static int dpToPx(Context context, int dp) {
         float density = context.getResources().getDisplayMetrics().density;
         return Math.max(1, Math.round(dp * density));
     }
 
-<<<<<<< HEAD
-=======
-    private static float clamp(float value, float min, float max) {
-        return Math.max(min, Math.min(max, value));
-    }
-
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
     private static final class CropBias {
         final float horizontal;
         final float vertical;

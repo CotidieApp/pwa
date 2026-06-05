@@ -94,20 +94,12 @@
   * {
     @apply border-border;
   }
-<<<<<<< HEAD
   html, body {
     @apply bg-transparent;
     overscroll-behavior-y: contain;
   }
   body {
     @apply text-foreground;
-=======
-  body {
-    @apply bg-background text-foreground;
-  }
-  html, body {
-    overscroll-behavior-y: contain;
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
   }
   .text-large h1, .text-large .text-6xl {
     font-size: 3.5rem; /* Ajustado para un mejor balance */

@@ -37,14 +37,6 @@ const formatInlineHtml = (escaped: string) => {
     .replace(/(^|[^\w_])_(?!_)(.+?)_(?!\w)/g, '$1<em>$2</em>');
 };
 
-<<<<<<< HEAD
-=======
-const getAppScrollContainer = (): HTMLElement | null => {
-  if (typeof document === 'undefined') return null;
-  return document.querySelector('[data-app-scroll-container="true"]');
-};
-
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const renderCaminoLines = (
@@ -328,17 +320,11 @@ const formatVariantLabel = (key: string) => {
 const PrayerContent = ({
   prayer,
   searchState,
-<<<<<<< HEAD
   scrollContainerRef,
 }: {
   prayer: Prayer;
   searchState?: { term: string; activeIndex: number; resultsCount: number };
   scrollContainerRef?: React.RefObject<HTMLDivElement>;
-=======
-}: {
-  prayer: Prayer;
-  searchState?: { term: string; activeIndex: number; resultsCount: number };
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
 }) => {
   const {
     setScrollPosition,
@@ -346,48 +332,19 @@ const PrayerContent = ({
     theme,
     pinchToZoomEnabled,
     fontSize,
-<<<<<<< HEAD
-    prayerTextZoom,
-    setPrayerTextZoom,
-=======
     setFontSize,
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
     prayerLanguagePreferences,
     setPrayerLanguagePreference,
   } = useSettings();
   const throttleTimeout = useRef<NodeJS.Timeout | null>(null);
-<<<<<<< HEAD
-
-  const [initialDistance, setInitialDistance] = useState<number | null>(null);
-  const [initialZoomFactor, setInitialZoomFactor] = useState<number | null>(null);
-  const [contentZoomFactor, setContentZoomFactor] = useState(prayerTextZoom);
-  const contentZoomFactorRef = useRef(contentZoomFactor);
-  const contentFontSize = Math.round(fontSize * contentZoomFactor);
-  const contentStyle = { fontSize: `${contentFontSize}px` };
-
-  useEffect(() => {
-    contentZoomFactorRef.current = contentZoomFactor;
-  }, [contentZoomFactor]);
-
-  useEffect(() => {
-    setContentZoomFactor(prayerTextZoom);
-  }, [prayerTextZoom]);
-
-  useEffect(() => {
-    const el = scrollContainerRef?.current;
-    if (!pinchToZoomEnabled || !el) return;
-=======
-  const containerRef = useRef<HTMLDivElement>(null);
 
   // Pinch-to-zoom logic
   const [initialDistance, setInitialDistance] = useState<number | null>(null);
   const [initialFontSize, setInitialFontSize] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!pinchToZoomEnabled || !containerRef.current) return;
-
-    const el = containerRef.current;
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
+    const el = scrollContainerRef?.current;
+    if (!pinchToZoomEnabled || !el) return;
 
     const handleTouchStart = (e: TouchEvent) => {
       if (e.touches.length === 2) {
@@ -397,31 +354,17 @@ const PrayerContent = ({
           e.touches[0].clientY - e.touches[1].clientY
         );
         setInitialDistance(d);
-<<<<<<< HEAD
-        setInitialZoomFactor(contentZoomFactorRef.current);
-=======
         setInitialFontSize(fontSize);
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
       }
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-<<<<<<< HEAD
-      if (e.touches.length === 2 && initialDistance !== null && initialZoomFactor !== null) {
-=======
       if (e.touches.length === 2 && initialDistance !== null && initialFontSize !== null) {
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
         e.preventDefault(); // Prevent default browser zoom/scroll behavior
         const d = Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,
           e.touches[0].clientY - e.touches[1].clientY
         );
-<<<<<<< HEAD
-        const scale = d / initialDistance;
-        let nextZoomFactor = initialZoomFactor * scale;
-        nextZoomFactor = Math.max(0.75, Math.min(nextZoomFactor, 2));
-        setContentZoomFactor(nextZoomFactor);
-=======
         
         // Calculate scale factor
         const scale = d / initialDistance;
@@ -433,18 +376,12 @@ const PrayerContent = ({
         newSize = Math.max(10, Math.min(newSize, 40));
         
         setFontSize(Math.round(newSize));
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
       }
     };
 
     const handleTouchEnd = () => {
       setInitialDistance(null);
-<<<<<<< HEAD
-      setInitialZoomFactor(null);
-      setPrayerTextZoom(contentZoomFactorRef.current);
-=======
       setInitialFontSize(null);
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
     };
 
     // Use { passive: false } to allow preventDefault()
@@ -457,46 +394,25 @@ const PrayerContent = ({
       el.removeEventListener('touchmove', handleTouchMove);
       el.removeEventListener('touchend', handleTouchEnd);
     };
-<<<<<<< HEAD
-  }, [pinchToZoomEnabled, initialDistance, initialZoomFactor]);
-=======
-  }, [pinchToZoomEnabled, initialDistance, initialFontSize, fontSize, setFontSize]);
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
+  }, [pinchToZoomEnabled, initialDistance, initialFontSize, fontSize, setFontSize, scrollContainerRef]);
 
   const themeMode: 'light' | 'dark' = theme === 'dark' ? 'dark' : 'light';
   const prayerId: string = prayer.id ?? '';
   const isCamino = prayerId === 'camino-libro';
-<<<<<<< HEAD
-  const isPinching = initialDistance !== null && initialZoomFactor !== null;
-  const pinchPercentage = Math.round(contentZoomFactor * 100);
 
   const handleScroll = useCallback(() => {
     if (!prayer.isLongText || !prayerId) return;
     const container = scrollContainerRef?.current;
-=======
-
-  const handleScroll = useCallback(() => {
-    if (!prayer.isLongText || !prayerId) return;
-    const container = getAppScrollContainer();
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
     if (!container) return;
     if (throttleTimeout.current) clearTimeout(throttleTimeout.current);
     throttleTimeout.current = setTimeout(() => {
       setScrollPosition(prayerId, container.scrollTop);
     }, 200);
-<<<<<<< HEAD
   }, [prayerId, prayer.isLongText, setScrollPosition, scrollContainerRef]);
 
   useLayoutEffect(() => {
     if (!prayerId) return;
     const container = scrollContainerRef?.current;
-=======
-  }, [prayerId, prayer.isLongText, setScrollPosition]);
-
-  useLayoutEffect(() => {
-    if (!prayerId) return;
-    const container = getAppScrollContainer();
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
     if (!container) return;
     if (prayer.isLongText) {
       const saved = scrollPositions[prayerId];
@@ -506,27 +422,16 @@ const PrayerContent = ({
     } else {
       container.scrollTo({ top: 0 });
     }
-<<<<<<< HEAD
   }, [prayerId, scrollPositions, searchState, prayer.isLongText, scrollContainerRef]);
 
   useEffect(() => {
     const container = scrollContainerRef?.current;
-=======
-  }, [prayerId, scrollPositions, searchState, prayer.isLongText]);
-
-  useEffect(() => {
-    const container = getAppScrollContainer();
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
     if (!container) return;
     container.addEventListener('scroll', handleScroll, { passive: true });
 
     const flushScrollPosition = () => {
       if (!prayer.isLongText || !prayerId) return;
-<<<<<<< HEAD
       const currentContainer = scrollContainerRef?.current;
-=======
-      const currentContainer = getAppScrollContainer();
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
       if (!currentContainer) return;
       setScrollPosition(prayerId, currentContainer.scrollTop);
     };
@@ -547,28 +452,13 @@ const PrayerContent = ({
       flushScrollPosition();
       if (throttleTimeout.current) clearTimeout(throttleTimeout.current);
     };
-  }, [handleScroll, prayer.isLongText, prayerId, setScrollPosition]);
+  }, [handleScroll, prayer.isLongText, prayerId, setScrollPosition, scrollContainerRef]);
 
   useEffect(() => {
-<<<<<<< HEAD
-    if (!searchState?.term || searchState.activeIndex === -1) return;
-    const container = scrollContainerRef?.current;
-    if (!container) return;
-
-    const el = container.querySelector(`#search-result-${searchState.activeIndex}`) as HTMLElement | null;
-    if (!el) return;
-
-    const containerRect = container.getBoundingClientRect();
-    const elementRect = el.getBoundingClientRect();
-    const targetTop = container.scrollTop + (elementRect.top - containerRect.top) - container.clientHeight / 2 + elementRect.height / 2;
-
-    container.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
-=======
     if (searchState?.term && searchState.activeIndex !== -1) {
       const el = document.getElementById(`search-result-${searchState.activeIndex}`);
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
   }, [searchState?.activeIndex, searchState?.term]);
 
   const getPreferredVariant = useCallback(() => {
@@ -590,31 +480,12 @@ const PrayerContent = ({
   if (typeof prayer.content === 'string') {
     const { term = '', activeIndex = -1 } = searchState || {};
     return (
-<<<<<<< HEAD
-      <div className="relative">
-        {isPinching && (
-          <div className="pointer-events-none absolute right-4 top-4 z-20 rounded-full bg-background/95 px-3 py-1 text-xs font-semibold text-foreground shadow-lg ring-1 ring-border">
-            {pinchPercentage}%
-          </div>
-        )}
-        <div className="text-foreground/90 leading-relaxed" style={contentStyle}>
-          {isCamino
-            ? renderCaminoLines(prayer.content, term, activeIndex, themeMode)
-            : term
-              ? parseAndHighlight(prayer.content, term, activeIndex, themeMode)
-              : renderText(prayer.content)}
-        </div>
-=======
-      <div 
-        ref={containerRef}
-        className="text-foreground/90 leading-relaxed touch-pan-y"
-      >
+      <div className="text-foreground/90 leading-relaxed touch-pan-y">
         {isCamino
           ? renderCaminoLines(prayer.content, term, activeIndex, themeMode)
           : term
             ? parseAndHighlight(prayer.content, term, activeIndex, themeMode)
             : renderText(prayer.content)}
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
       </div>
     );
   }
@@ -640,32 +511,7 @@ const PrayerContent = ({
     };
 
     return (
-<<<<<<< HEAD
-      <div className="relative">
-        {isPinching && (
-          <div className="pointer-events-none absolute right-4 top-4 z-20 rounded-full bg-background/95 px-3 py-1 text-xs font-semibold text-foreground shadow-lg ring-1 ring-border">
-            {pinchPercentage}%
-          </div>
-        )}
-        <div>
-          <div className="flex justify-between items-center mb-4 border-b pb-3">
-            <h3 className="text-lg font-headline font-semibold">{selectedLabel}</h3>
-            {otherLang && (
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={toggleLang}
-                title={`Cambiar a ${otherLabel}`}
-              >
-                <ArrowRightLeft className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-          <div className="text-foreground/90 leading-relaxed" style={contentStyle}>
-            {renderText(displayedContent)}
-          </div>
-=======
-      <div ref={containerRef} className="touch-pan-y">
+      <div className="touch-pan-y">
         <div className="flex justify-between items-center mb-4 border-b pb-3">
           <h3 className="text-lg font-headline font-semibold">{selectedLabel}</h3>
           {otherLang && (
@@ -681,7 +527,6 @@ const PrayerContent = ({
         </div>
         <div className="text-foreground/90 leading-relaxed">
           {renderText(displayedContent)}
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
         </div>
       </div>
     );
@@ -700,10 +545,7 @@ export default function PrayerDetail({
 }) {
   const { isDistractionFree } = useSettings();
   const [localAudioSrc, setLocalAudioSrc] = useState<string | null>(null);
-<<<<<<< HEAD
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-=======
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
   useScreenWakeLock(Boolean(prayer.isLongText));
 
   const predefinedAudios = [
@@ -725,11 +567,7 @@ export default function PrayerDetail({
   const objectPosition = getImageObjectPosition(prayer.id);
 
   return (
-<<<<<<< HEAD
     <div className={cn('flex min-h-0 flex-col', isDistractionFree ? 'py-20' : 'p-4')}>
-=======
-    <div className={cn(isDistractionFree ? 'py-20' : 'p-4')}>
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
       {prayer.imageUrl && (
         <div
           className={cn(
@@ -751,11 +589,7 @@ export default function PrayerDetail({
         </div>
       )}
 
-<<<<<<< HEAD
       <div className={cn('flex-1 min-h-0', isDistractionFree && 'mx-auto max-w-3xl px-4 sm:px-6 lg:px-8')}>
-=======
-      <div className={cn(isDistractionFree && 'mx-auto max-w-3xl px-4 sm:px-6 lg:px-8')}>
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
         {showAudioPlayer && (
           <div className="mb-6 space-y-4">
              {audioSrc ? (
@@ -805,7 +639,6 @@ export default function PrayerDetail({
 
         <Card
           className={cn(
-<<<<<<< HEAD
             'overflow-hidden border bg-card shadow-md flex-1',
             isDistractionFree && 'border-0 bg-transparent shadow-none'
           )}
@@ -819,21 +652,9 @@ export default function PrayerDetail({
               {prayer.content ? (
                 <PrayerContent prayer={prayer} searchState={searchState} scrollContainerRef={scrollContainerRef} />
               ) : (
-                <div className="p-4 text-sm text-muted-foreground">Contenido no disponible.</div>
+                <p className="text-sm text-muted-foreground">Contenido no disponible.</p>
               )}
             </div>
-=======
-            'overflow-hidden border bg-card shadow-md',
-            isDistractionFree && 'border-0 bg-transparent shadow-none'
-          )}
-        >
-          <CardContent className={cn('p-6 pt-6', isDistractionFree && 'p-0 pt-0 text-[1.05rem] leading-[1.85]')}>
-            {prayer.content ? (
-              <PrayerContent prayer={prayer} searchState={searchState} />
-            ) : (
-              <p className="text-sm text-muted-foreground">Contenido no disponible.</p>
-            )}
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
           </CardContent>
         </Card>
       </div>

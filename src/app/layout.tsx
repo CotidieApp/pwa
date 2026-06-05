@@ -59,11 +59,7 @@ export default function RootLayout({
         <link rel="stylesheet" href="/fonts/fonts.css" />
       </head>
 
-<<<<<<< HEAD
       <body className="h-full font-body bg-transparent">
-=======
-      <body className="h-full font-body">
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
         <SettingsProvider>
           <ThemeManager>
             <ServiceWorkerCleanup />

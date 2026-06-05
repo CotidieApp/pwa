@@ -99,11 +99,7 @@ export default function PrayerList({
   const showTracker = isPlanDeVidaCategory && planDeVidaTrackerEnabled && prayerPathLength === 0;
 
   return (
-<<<<<<< HEAD
     <div className="space-y-3 pb-4 touch-pan-y overscroll-contain">
-=======
-    <div className="space-y-3 pb-4">
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
       {/* Santo del día arriba solo en devociones */}
       {categoryId === 'devociones' && prayerPathLength === 0 && (
         <SaintOfTheDayCard onOpenPrayerById={onOpenPrayerById} />

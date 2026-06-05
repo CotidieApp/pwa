@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
@@ -13,7 +13,6 @@
         android:src="@drawable/widget_bg_round" />
 
     <LinearLayout
-<<<<<<< HEAD
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
@@ -21,22 +20,10 @@
         android:paddingRight="8dp"
         android:paddingTop="6dp"
         android:paddingBottom="6dp">
-=======
-        android:id="@+id/widget_text_container"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:paddingLeft="4dp"
-        android:paddingTop="3dp"
-        android:paddingRight="4dp"
-        android:paddingBottom="3dp">
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
-
         <TextView
             android:id="@+id/widget_saint_name"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-<<<<<<< HEAD
             android:layout_weight="1"
             android:autoSizeMaxTextSize="18sp"
             android:autoSizeMinTextSize="10sp"
@@ -44,23 +31,12 @@
             android:autoSizeTextType="uniform"
             android:ellipsize="end"
             android:gravity="center_vertical"
-            android:maxLines="3"
-=======
-            android:layout_weight="4"
-            android:ellipsize="end"
-            android:gravity="start"
-            android:includeFontPadding="false"
-            android:maxLines="10"
-            android:textAlignment="viewStart"
-            android:textSize="15sp"
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
-            android:textStyle="bold" />
+            android:maxLines="3"            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/widget_saint_bio"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-<<<<<<< HEAD
             android:layout_weight="2"
             android:layout_marginTop="2dp"
             android:autoSizeMaxTextSize="14sp"
@@ -69,15 +45,5 @@
             android:autoSizeTextType="uniform"
             android:ellipsize="end"
             android:gravity="center_vertical"
-            android:maxLines="6" />
-=======
-            android:layout_weight="4"
-            android:ellipsize="end"
-            android:gravity="start|top"
-            android:includeFontPadding="false"
-            android:maxLines="18"
-            android:textAlignment="viewStart"
-            android:textSize="11sp" />
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
-    </LinearLayout>
+            android:maxLines="6" />    </LinearLayout>
 </FrameLayout>

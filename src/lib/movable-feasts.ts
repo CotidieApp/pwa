@@ -120,7 +120,6 @@ const movableFeastsDefinitions: Record<string, MovableFeastDefinition> = {
     title: "Solemnidad",
     type: "celebration",
   },
-<<<<<<< HEAD
   divineMercy: {
     offset: 7,
     name: "Domingo de la Divina Misericordia",
@@ -142,8 +141,6 @@ const movableFeastsDefinitions: Record<string, MovableFeastDefinition> = {
     title: "Solemnidad",
     type: "celebration",
   },
-=======
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
   christTheKing: {
     offset: 0, // Placeholder, calculated separately
     name: "Jesucristo, Rey del Universo",

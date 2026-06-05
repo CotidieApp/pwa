@@ -2,7 +2,6 @@
 
 Historial de intervenciones del asistente en el repo.
 
-<<<<<<< HEAD
 ### [2026-06-04 00:00] 227. Activacion parcial del proyecto en nuevo entorno
 **Planificacion:**
 - Leer la guia externa `C:\Users\balca\Downloads\instrucciones-codex-activar-otro-equipo.md` y contrastarla con el estado real de esta copia restaurada.
@@ -74,8 +73,25 @@ Historial de intervenciones del asistente en el repo.
 - `src/context/SettingsContext.tsx`
 - `AGENTS.md`
 
-=======
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
+### [2026-06-04 23:30] 228. Reparación de merge conflictos y sincronización Git/Vercel
+**Planificación:**
+- Eliminar marcadores de merge dejados por una sincronización fallida entre la copia local (`4.4.30`) y `origin/main` (`4.4.29`).
+- Restaurar `SettingsContext.tsx` y `fixed-notifications.ts` tras el commit accidental `uyn`.
+- Dejar el proyecto compilable (`tsc`, `build`) y listo para `git push` hacia Vercel.
+
+**Ejecución:**
+- Se resolvieron conflictos en web, Android, `package.json`, `package-lock.json`, `AGENTS.md` y componentes afectados, priorizando la rama local más reciente (`HEAD`) y fusionando mejoras de edge-to-edge del tema Android.
+- Se corrigieron rutas de imágenes en notificaciones fijas (`./icons/`, `./images/`) y fiestas móviles adicionales en `movable-feasts.ts`.
+- Se restauró `PrayerDetail.tsx` con zoom por oración (`prayerTextZoom`) y contenedor de scroll dedicado.
+
+**Validación:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `npm.cmd run build` OK.
+
+**Archivos Modificados:**
+- Múltiples archivos con marcadores `<<<<<<<` / `=======` / `>>>>>>>`
+- `AGENTS.md`
+
 ### [2026-03-29 18:33] 224. Safe areas sin negro y widget chico dimensionado por tamaño efectivo
 **Planificación:**
 - Corregir la regresión donde las barras transparentes habían vuelto a mostrar negro detrás, restaurando una pintura explícita de safe areas con el fondo correcto de cada pantalla.

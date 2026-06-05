@@ -2,21 +2,15 @@ package com.benjamin.studio;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
-<<<<<<< HEAD
-=======
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-<<<<<<< HEAD
-=======
 import android.view.View;
 import android.view.Window;
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
 import android.webkit.RenderProcessGoneDetail;
 import android.webkit.WebView;
 import androidx.core.view.WindowCompat;
@@ -93,9 +87,6 @@ public class MainActivity extends BridgeActivity {
     }
 
     private void configureSystemBars() {
-<<<<<<< HEAD
-        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
-=======
         Window window = getWindow();
         WindowCompat.setDecorFitsSystemWindows(window, false);
         window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
@@ -125,7 +116,6 @@ public class MainActivity extends BridgeActivity {
             window.setStatusBarContrastEnforced(false);
             window.setNavigationBarContrastEnforced(false);
         }
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
     }
 
     private void handleImportIntent(Intent intent) {

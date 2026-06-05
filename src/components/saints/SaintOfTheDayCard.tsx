@@ -39,16 +39,10 @@ export default function SaintOfTheDayCard({ onOpenPrayerById }: SaintOfTheDayCar
 
   const [isPeeking, setIsPeeking] = useState(false);
 
-<<<<<<< HEAD
   const canPeekHiddenSaint = Boolean(overriddenFixedSaint);
   const isShowingHiddenSaint = Boolean(isPeeking && overriddenFixedSaint);
   const activeSaint = isShowingHiddenSaint ? overriddenFixedSaint : saintOfTheDay;
   const activeImage = isShowingHiddenSaint ? overriddenFixedSaintImage : saintOfTheDayImage;
-=======
-  const showFixed = isPeeking && overriddenFixedSaint;
-  const activeSaint = showFixed ? overriddenFixedSaint : saintOfTheDay;
-  const activeImage = showFixed ? overriddenFixedSaintImage : saintOfTheDayImage;
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
 
   if (!activeSaint) return null;
 
@@ -57,11 +51,7 @@ export default function SaintOfTheDayCard({ onOpenPrayerById }: SaintOfTheDayCar
   const annunciationOverlayImage = isAnnunciationDay
     ? PlaceHolderImages.find((img) => img.id === 'annunciation-overlay-image') || null
     : null;
-<<<<<<< HEAD
   const activePrayerId = isShowingHiddenSaint
-=======
-  const activePrayerId = showFixed
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
     ? resolveDevotionDayPrayerId(activeSaint)
     : saintOfTheDayPrayerId ?? resolveDevotionDayPrayerId(activeSaint);
   const isClickable = Boolean(activePrayerId && onOpenPrayerById);
@@ -120,11 +110,7 @@ export default function SaintOfTheDayCard({ onOpenPrayerById }: SaintOfTheDayCar
               </div>
             </div>
           )}
-<<<<<<< HEAD
           {canPeekHiddenSaint && (
-=======
-          {overriddenFixedSaint && (
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
             <button
               className="absolute bottom-2 right-2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full backdrop-blur-sm transition-all active:scale-95 z-20"
               onClick={(event) => event.stopPropagation()}
@@ -136,22 +122,15 @@ export default function SaintOfTheDayCard({ onOpenPrayerById }: SaintOfTheDayCar
                 event.stopPropagation();
                 setIsPeeking(false);
               }}
-<<<<<<< HEAD
               onPointerCancel={(event) => {
                 event.stopPropagation();
                 setIsPeeking(false);
               }}
-=======
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
               onPointerLeave={(event) => {
                 event.stopPropagation();
                 setIsPeeking(false);
               }}
-<<<<<<< HEAD
               aria-label="Mantener presionado para ver el santo del día"
-=======
-              aria-label="Ver santo fijo"
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
             >
               <Eye className="size-5" />
             </button>

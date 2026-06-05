@@ -18,13 +18,8 @@ android {
         applicationId "com.benjamin.studio"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-<<<<<<< HEAD
         versionCode 64
         versionName "4.4.30"
-=======
-        versionCode 63
-        versionName "4.4.29"
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

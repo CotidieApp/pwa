@@ -25,10 +25,7 @@
 /android/kotlin-profile/
 /android/native/
 /android/notifications/
-<<<<<<< HEAD
 /.local-tools/
-=======
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
 
 # production
 /build
@@ -59,15 +56,12 @@ next-env.d.ts
 firebase-debug.log
 firestore-debug.log
 *.apk
-<<<<<<< HEAD
 
 .gradle-user-home/
 android/.gradle-user-home-clean/
 cotidie-installer-v4.4.30.apk
 output/
 out/
-=======
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
 
 node_modules/
 .next/

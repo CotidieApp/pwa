@@ -186,11 +186,7 @@ export default function HomePage({ onSelectCategory, onOpenCustomPlan, onCreateC
 
       {/* Content */}
       <div
-<<<<<<< HEAD
         className="relative z-10 flex flex-col h-[100dvh] min-h-[100dvh] pt-[env(safe-area-inset-top)] text-white"
-=======
-        className="relative z-10 flex flex-col h-[100svh] min-h-[100svh] pt-[env(safe-area-inset-top)] text-white"
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}

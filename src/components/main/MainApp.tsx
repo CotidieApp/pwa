@@ -24,10 +24,6 @@ import { letanias as letaniasRosarioBase } from '@/lib/prayers/plan-de-vida/sant
 import { cn } from '@/lib/utils';
 import { AnimatePresence } from 'framer-motion';
 import { isAnnuumSeason } from '@/lib/movable-feasts';
-<<<<<<< HEAD
-=======
-import { getImageObjectPosition } from '@/lib/image-display';
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
 import AnnuumStory from '../AnnuumStory';
 import Image from 'next/image';
 import DeveloperDashboard from '@/components/developer/DeveloperDashboard';
@@ -110,11 +106,6 @@ export default function MainApp() {
     setHasViewedAnnuum,
     pushDevLiveTrace,
     navMode,
-<<<<<<< HEAD
-=======
-    homeBackgroundId,
-    allHomeBackgrounds,
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
   } = useSettings();
   const customPlanTouchNavEnabled = navMode === 'touch';
   const customPlanExitAdvanceRef = useRef<{
@@ -953,28 +944,6 @@ export default function MainApp() {
     navState.activeView === 'category' && navState.selectedCategoryId === 'plan-de-vida';
   const showsStandardHeader =
     navState.activeView !== 'home' && navState.activeView !== 'developer';
-<<<<<<< HEAD
-=======
-  const currentHomeBackgroundId = allHomeBackgrounds.find((img) => img.id === homeBackgroundId)?.id;
-  const homeBarsBackgroundStyle =
-    navState.activeView === 'home'
-      ? {
-          backgroundImage: 'var(--home-bg-image)',
-          backgroundPosition: getImageObjectPosition(currentHomeBackgroundId),
-          backgroundSize: 'cover',
-          backgroundRepeat: 'no-repeat',
-          backgroundColor: 'hsl(var(--background))',
-        }
-      : undefined;
-  const statusBarBackdropClass =
-    navState.activeView === 'home'
-      ? 'bg-transparent'
-      : showsStandardHeader
-        ? 'bg-primary'
-        : 'bg-background';
-  const navigationBarBackdropClass =
-    navState.activeView === 'home' ? 'bg-transparent' : 'bg-background';
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
 
   const handleOpenPlanCalendar = () => {
     setNavState({
@@ -1003,27 +972,7 @@ export default function MainApp() {
         : undefined;
 
   return (
-<<<<<<< HEAD
     <div className={cn("h-full w-full text-foreground relative", navState.activeView === 'home' ? "bg-transparent" : "bg-background")}>
-=======
-    <div
-      className={cn(
-        "relative min-h-[100svh] w-full text-foreground",
-        navState.activeView === 'home' ? "bg-transparent" : "bg-background"
-      )}
-    >
-      <div
-        aria-hidden="true"
-        className={cn("pointer-events-none fixed inset-x-0 top-0 z-20", statusBarBackdropClass)}
-        style={{ height: 'env(safe-area-inset-top)', ...homeBarsBackgroundStyle }}
-      />
-      <div
-        aria-hidden="true"
-        className={cn("pointer-events-none fixed inset-x-0 bottom-0 z-20", navigationBarBackdropClass)}
-        style={{ height: 'env(safe-area-inset-bottom)', ...homeBarsBackgroundStyle }}
-      />
-
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
       {isSeason && !hasViewedAnnuum && navState.activeView === 'home' && (
         <div
           className="absolute z-40 cursor-pointer animate-in fade-in zoom-in duration-500 hover:scale-110 transition-transform"
@@ -1056,11 +1005,7 @@ export default function MainApp() {
         </div>
       )}
 
-<<<<<<< HEAD
       <div className="flex flex-col h-full md:max-w-6xl md:mx-auto md:border-x md:border-border/50">
-=======
-      <div className="flex min-h-[100svh] flex-col md:mx-auto md:max-w-6xl md:border-x md:border-border/50">
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
         {showsStandardHeader && (
           <Header
             title={headerTitle}
@@ -1100,17 +1045,11 @@ export default function MainApp() {
         <div
           className={cn(
             'flex-1 overflow-x-hidden pb-[max(0px,env(safe-area-inset-bottom))]',
-<<<<<<< HEAD
             navState.activeView === 'home' || navState.activeView === 'prayer'
               ? 'overflow-y-hidden'
               : 'overflow-y-auto'
           )}
           data-app-scroll-container={navState.activeView !== 'prayer' ? 'true' : undefined}
-=======
-            navState.activeView === 'home' ? 'overflow-y-hidden' : 'overflow-y-auto'
-          )}
-          data-app-scroll-container="true"
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
           onClick={(e) => {
             if (!customPlanTouchNavEnabled) return
             if (!hasCustomPlanPrayerNav) return
