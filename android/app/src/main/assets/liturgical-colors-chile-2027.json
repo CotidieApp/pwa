@@ -1,0 +1,1104 @@
+{
+  "year": 2027,
+  "locale": "CL",
+  "coverage": "snapshot",
+  "source": "Base general permanente de Cotidie reforzada con calendario liturgico chileno",
+  "sourcePage": "https://iglesia.cl/tiempos_liturgicos.php",
+  "days": {
+    "2027-01-01": {
+      "appColor": "Blanco"
+    },
+    "2027-01-02": {
+      "appColor": "Blanco"
+    },
+    "2027-01-03": {
+      "appColor": "Blanco"
+    },
+    "2027-01-04": {
+      "appColor": "Blanco"
+    },
+    "2027-01-05": {
+      "appColor": "Blanco"
+    },
+    "2027-01-06": {
+      "appColor": "Blanco"
+    },
+    "2027-01-07": {
+      "appColor": "Blanco"
+    },
+    "2027-01-08": {
+      "appColor": "Blanco"
+    },
+    "2027-01-09": {
+      "appColor": "Blanco"
+    },
+    "2027-01-10": {
+      "appColor": "Blanco"
+    },
+    "2027-01-11": {
+      "appColor": "Verde"
+    },
+    "2027-01-12": {
+      "appColor": "Verde"
+    },
+    "2027-01-13": {
+      "appColor": "Blanco"
+    },
+    "2027-01-14": {
+      "appColor": "Verde"
+    },
+    "2027-01-15": {
+      "appColor": "Verde"
+    },
+    "2027-01-16": {
+      "appColor": "Verde"
+    },
+    "2027-01-17": {
+      "appColor": "Blanco"
+    },
+    "2027-01-18": {
+      "appColor": "Verde"
+    },
+    "2027-01-19": {
+      "appColor": "Verde"
+    },
+    "2027-01-20": {
+      "appColor": "Rojo"
+    },
+    "2027-01-21": {
+      "appColor": "Rojo"
+    },
+    "2027-01-22": {
+      "appColor": "Rojo"
+    },
+    "2027-01-23": {
+      "appColor": "Blanco"
+    },
+    "2027-01-24": {
+      "appColor": "Blanco"
+    },
+    "2027-01-25": {
+      "appColor": "Blanco"
+    },
+    "2027-01-26": {
+      "appColor": "Blanco"
+    },
+    "2027-01-27": {
+      "appColor": "Verde"
+    },
+    "2027-01-28": {
+      "appColor": "Blanco"
+    },
+    "2027-01-29": {
+      "appColor": "Verde"
+    },
+    "2027-01-30": {
+      "appColor": "Verde"
+    },
+    "2027-01-31": {
+      "appColor": "Blanco"
+    },
+    "2027-02-01": {
+      "appColor": "Verde"
+    },
+    "2027-02-02": {
+      "appColor": "Blanco"
+    },
+    "2027-02-03": {
+      "appColor": "Verde"
+    },
+    "2027-02-04": {
+      "appColor": "Verde"
+    },
+    "2027-02-05": {
+      "appColor": "Rojo"
+    },
+    "2027-02-06": {
+      "appColor": "Rojo"
+    },
+    "2027-02-07": {
+      "appColor": "Verde"
+    },
+    "2027-02-08": {
+      "appColor": "Blanco"
+    },
+    "2027-02-09": {
+      "appColor": "Verde"
+    },
+    "2027-02-10": {
+      "appColor": "Morado"
+    },
+    "2027-02-11": {
+      "appColor": "Morado"
+    },
+    "2027-02-12": {
+      "appColor": "Morado"
+    },
+    "2027-02-13": {
+      "appColor": "Morado"
+    },
+    "2027-02-14": {
+      "appColor": "Morado"
+    },
+    "2027-02-15": {
+      "appColor": "Morado"
+    },
+    "2027-02-16": {
+      "appColor": "Morado"
+    },
+    "2027-02-17": {
+      "appColor": "Morado"
+    },
+    "2027-02-18": {
+      "appColor": "Morado"
+    },
+    "2027-02-19": {
+      "appColor": "Morado"
+    },
+    "2027-02-20": {
+      "appColor": "Morado"
+    },
+    "2027-02-21": {
+      "appColor": "Morado"
+    },
+    "2027-02-22": {
+      "appColor": "Blanco"
+    },
+    "2027-02-23": {
+      "appColor": "Morado"
+    },
+    "2027-02-24": {
+      "appColor": "Morado"
+    },
+    "2027-02-25": {
+      "appColor": "Morado"
+    },
+    "2027-02-26": {
+      "appColor": "Morado"
+    },
+    "2027-02-27": {
+      "appColor": "Morado"
+    },
+    "2027-02-28": {
+      "appColor": "Morado"
+    },
+    "2027-03-01": {
+      "appColor": "Morado"
+    },
+    "2027-03-02": {
+      "appColor": "Morado"
+    },
+    "2027-03-03": {
+      "appColor": "Morado"
+    },
+    "2027-03-04": {
+      "appColor": "Morado"
+    },
+    "2027-03-05": {
+      "appColor": "Morado"
+    },
+    "2027-03-06": {
+      "appColor": "Morado"
+    },
+    "2027-03-07": {
+      "appColor": "Morado"
+    },
+    "2027-03-08": {
+      "appColor": "Morado"
+    },
+    "2027-03-09": {
+      "appColor": "Morado"
+    },
+    "2027-03-10": {
+      "appColor": "Morado"
+    },
+    "2027-03-11": {
+      "appColor": "Morado"
+    },
+    "2027-03-12": {
+      "appColor": "Morado"
+    },
+    "2027-03-13": {
+      "appColor": "Morado"
+    },
+    "2027-03-14": {
+      "appColor": "Morado"
+    },
+    "2027-03-15": {
+      "appColor": "Morado"
+    },
+    "2027-03-16": {
+      "appColor": "Morado"
+    },
+    "2027-03-17": {
+      "appColor": "Morado"
+    },
+    "2027-03-18": {
+      "appColor": "Morado"
+    },
+    "2027-03-19": {
+      "appColor": "Blanco"
+    },
+    "2027-03-20": {
+      "appColor": "Morado"
+    },
+    "2027-03-21": {
+      "appColor": "Rojo"
+    },
+    "2027-03-22": {
+      "appColor": "Morado"
+    },
+    "2027-03-23": {
+      "appColor": "Morado"
+    },
+    "2027-03-24": {
+      "appColor": "Morado"
+    },
+    "2027-03-25": {
+      "appColor": "Blanco"
+    },
+    "2027-03-26": {
+      "appColor": "Rojo"
+    },
+    "2027-03-27": {
+      "appColor": "Blanco"
+    },
+    "2027-03-28": {
+      "appColor": "Blanco"
+    },
+    "2027-03-29": {
+      "appColor": "Blanco"
+    },
+    "2027-03-30": {
+      "appColor": "Blanco"
+    },
+    "2027-03-31": {
+      "appColor": "Blanco"
+    },
+    "2027-04-01": {
+      "appColor": "Blanco"
+    },
+    "2027-04-02": {
+      "appColor": "Blanco"
+    },
+    "2027-04-03": {
+      "appColor": "Blanco"
+    },
+    "2027-04-04": {
+      "appColor": "Blanco"
+    },
+    "2027-04-05": {
+      "appColor": "Blanco"
+    },
+    "2027-04-06": {
+      "appColor": "Blanco"
+    },
+    "2027-04-07": {
+      "appColor": "Blanco"
+    },
+    "2027-04-08": {
+      "appColor": "Blanco"
+    },
+    "2027-04-09": {
+      "appColor": "Blanco"
+    },
+    "2027-04-10": {
+      "appColor": "Blanco"
+    },
+    "2027-04-11": {
+      "appColor": "Blanco"
+    },
+    "2027-04-12": {
+      "appColor": "Blanco"
+    },
+    "2027-04-13": {
+      "appColor": "Blanco"
+    },
+    "2027-04-14": {
+      "appColor": "Blanco"
+    },
+    "2027-04-15": {
+      "appColor": "Blanco"
+    },
+    "2027-04-16": {
+      "appColor": "Blanco"
+    },
+    "2027-04-17": {
+      "appColor": "Blanco"
+    },
+    "2027-04-18": {
+      "appColor": "Blanco"
+    },
+    "2027-04-19": {
+      "appColor": "Blanco"
+    },
+    "2027-04-20": {
+      "appColor": "Blanco"
+    },
+    "2027-04-21": {
+      "appColor": "Blanco"
+    },
+    "2027-04-22": {
+      "appColor": "Blanco"
+    },
+    "2027-04-23": {
+      "appColor": "Blanco"
+    },
+    "2027-04-24": {
+      "appColor": "Rojo"
+    },
+    "2027-04-25": {
+      "appColor": "Blanco"
+    },
+    "2027-04-26": {
+      "appColor": "Blanco"
+    },
+    "2027-04-27": {
+      "appColor": "Blanco"
+    },
+    "2027-04-28": {
+      "appColor": "Rojo"
+    },
+    "2027-04-29": {
+      "appColor": "Blanco"
+    },
+    "2027-04-30": {
+      "appColor": "Blanco"
+    },
+    "2027-05-01": {
+      "appColor": "Blanco"
+    },
+    "2027-05-02": {
+      "appColor": "Blanco"
+    },
+    "2027-05-03": {
+      "appColor": "Rojo"
+    },
+    "2027-05-04": {
+      "appColor": "Blanco"
+    },
+    "2027-05-05": {
+      "appColor": "Blanco"
+    },
+    "2027-05-06": {
+      "appColor": "Blanco"
+    },
+    "2027-05-07": {
+      "appColor": "Blanco"
+    },
+    "2027-05-08": {
+      "appColor": "Blanco"
+    },
+    "2027-05-09": {
+      "appColor": "Blanco"
+    },
+    "2027-05-10": {
+      "appColor": "Blanco"
+    },
+    "2027-05-11": {
+      "appColor": "Blanco"
+    },
+    "2027-05-12": {
+      "appColor": "Blanco"
+    },
+    "2027-05-13": {
+      "appColor": "Blanco"
+    },
+    "2027-05-14": {
+      "appColor": "Rojo"
+    },
+    "2027-05-15": {
+      "appColor": "Blanco"
+    },
+    "2027-05-16": {
+      "appColor": "Rojo"
+    },
+    "2027-05-17": {
+      "appColor": "Blanco"
+    },
+    "2027-05-18": {
+      "appColor": "Verde"
+    },
+    "2027-05-19": {
+      "appColor": "Verde"
+    },
+    "2027-05-20": {
+      "appColor": "Blanco"
+    },
+    "2027-05-21": {
+      "appColor": "Rojo"
+    },
+    "2027-05-22": {
+      "appColor": "Blanco"
+    },
+    "2027-05-23": {
+      "appColor": "Blanco"
+    },
+    "2027-05-24": {
+      "appColor": "Blanco"
+    },
+    "2027-05-25": {
+      "appColor": "Blanco"
+    },
+    "2027-05-26": {
+      "appColor": "Blanco"
+    },
+    "2027-05-27": {
+      "appColor": "Blanco"
+    },
+    "2027-05-28": {
+      "appColor": "Verde"
+    },
+    "2027-05-29": {
+      "appColor": "Verde"
+    },
+    "2027-05-30": {
+      "appColor": "Blanco"
+    },
+    "2027-05-31": {
+      "appColor": "Blanco"
+    },
+    "2027-06-01": {
+      "appColor": "Rojo"
+    },
+    "2027-06-02": {
+      "appColor": "Verde"
+    },
+    "2027-06-03": {
+      "appColor": "Rojo"
+    },
+    "2027-06-04": {
+      "appColor": "Blanco"
+    },
+    "2027-06-05": {
+      "appColor": "Blanco"
+    },
+    "2027-06-06": {
+      "appColor": "Blanco"
+    },
+    "2027-06-07": {
+      "appColor": "Verde"
+    },
+    "2027-06-08": {
+      "appColor": "Verde"
+    },
+    "2027-06-09": {
+      "appColor": "Blanco"
+    },
+    "2027-06-10": {
+      "appColor": "Verde"
+    },
+    "2027-06-11": {
+      "appColor": "Rojo"
+    },
+    "2027-06-12": {
+      "appColor": "Verde"
+    },
+    "2027-06-13": {
+      "appColor": "Blanco"
+    },
+    "2027-06-14": {
+      "appColor": "Verde"
+    },
+    "2027-06-15": {
+      "appColor": "Verde"
+    },
+    "2027-06-16": {
+      "appColor": "Verde"
+    },
+    "2027-06-17": {
+      "appColor": "Verde"
+    },
+    "2027-06-18": {
+      "appColor": "Verde"
+    },
+    "2027-06-19": {
+      "appColor": "Blanco"
+    },
+    "2027-06-20": {
+      "appColor": "Verde"
+    },
+    "2027-06-21": {
+      "appColor": "Blanco"
+    },
+    "2027-06-22": {
+      "appColor": "Rojo"
+    },
+    "2027-06-23": {
+      "appColor": "Verde"
+    },
+    "2027-06-24": {
+      "appColor": "Blanco"
+    },
+    "2027-06-25": {
+      "appColor": "Verde"
+    },
+    "2027-06-26": {
+      "appColor": "Blanco"
+    },
+    "2027-06-27": {
+      "appColor": "Blanco"
+    },
+    "2027-06-28": {
+      "appColor": "Rojo"
+    },
+    "2027-06-29": {
+      "appColor": "Rojo"
+    },
+    "2027-06-30": {
+      "appColor": "Rojo"
+    },
+    "2027-07-01": {
+      "appColor": "Verde"
+    },
+    "2027-07-02": {
+      "appColor": "Verde"
+    },
+    "2027-07-03": {
+      "appColor": "Rojo"
+    },
+    "2027-07-04": {
+      "appColor": "Verde"
+    },
+    "2027-07-05": {
+      "appColor": "Blanco"
+    },
+    "2027-07-06": {
+      "appColor": "Rojo"
+    },
+    "2027-07-07": {
+      "appColor": "Verde"
+    },
+    "2027-07-08": {
+      "appColor": "Verde"
+    },
+    "2027-07-09": {
+      "appColor": "Rojo"
+    },
+    "2027-07-10": {
+      "appColor": "Verde"
+    },
+    "2027-07-11": {
+      "appColor": "Blanco"
+    },
+    "2027-07-12": {
+      "appColor": "Verde"
+    },
+    "2027-07-13": {
+      "appColor": "Blanco"
+    },
+    "2027-07-14": {
+      "appColor": "Blanco"
+    },
+    "2027-07-15": {
+      "appColor": "Blanco"
+    },
+    "2027-07-16": {
+      "appColor": "Blanco"
+    },
+    "2027-07-17": {
+      "appColor": "Verde"
+    },
+    "2027-07-18": {
+      "appColor": "Verde"
+    },
+    "2027-07-19": {
+      "appColor": "Verde"
+    },
+    "2027-07-20": {
+      "appColor": "Verde"
+    },
+    "2027-07-21": {
+      "appColor": "Blanco"
+    },
+    "2027-07-22": {
+      "appColor": "Blanco"
+    },
+    "2027-07-23": {
+      "appColor": "Blanco"
+    },
+    "2027-07-24": {
+      "appColor": "Verde"
+    },
+    "2027-07-25": {
+      "appColor": "Rojo"
+    },
+    "2027-07-26": {
+      "appColor": "Blanco"
+    },
+    "2027-07-27": {
+      "appColor": "Verde"
+    },
+    "2027-07-28": {
+      "appColor": "Verde"
+    },
+    "2027-07-29": {
+      "appColor": "Blanco"
+    },
+    "2027-07-30": {
+      "appColor": "Verde"
+    },
+    "2027-07-31": {
+      "appColor": "Blanco"
+    },
+    "2027-08-01": {
+      "appColor": "Blanco"
+    },
+    "2027-08-02": {
+      "appColor": "Blanco"
+    },
+    "2027-08-03": {
+      "appColor": "Verde"
+    },
+    "2027-08-04": {
+      "appColor": "Blanco"
+    },
+    "2027-08-05": {
+      "appColor": "Verde"
+    },
+    "2027-08-06": {
+      "appColor": "Blanco"
+    },
+    "2027-08-07": {
+      "appColor": "Rojo"
+    },
+    "2027-08-08": {
+      "appColor": "Blanco"
+    },
+    "2027-08-09": {
+      "appColor": "Rojo"
+    },
+    "2027-08-10": {
+      "appColor": "Rojo"
+    },
+    "2027-08-11": {
+      "appColor": "Blanco"
+    },
+    "2027-08-12": {
+      "appColor": "Verde"
+    },
+    "2027-08-13": {
+      "appColor": "Verde"
+    },
+    "2027-08-14": {
+      "appColor": "Rojo"
+    },
+    "2027-08-15": {
+      "appColor": "Blanco"
+    },
+    "2027-08-16": {
+      "appColor": "Verde"
+    },
+    "2027-08-17": {
+      "appColor": "Verde"
+    },
+    "2027-08-18": {
+      "appColor": "Blanco"
+    },
+    "2027-08-19": {
+      "appColor": "Blanco"
+    },
+    "2027-08-20": {
+      "appColor": "Blanco"
+    },
+    "2027-08-21": {
+      "appColor": "Blanco"
+    },
+    "2027-08-22": {
+      "appColor": "Blanco"
+    },
+    "2027-08-23": {
+      "appColor": "Blanco"
+    },
+    "2027-08-24": {
+      "appColor": "Rojo"
+    },
+    "2027-08-25": {
+      "appColor": "Blanco"
+    },
+    "2027-08-26": {
+      "appColor": "Blanco"
+    },
+    "2027-08-27": {
+      "appColor": "Blanco"
+    },
+    "2027-08-28": {
+      "appColor": "Blanco"
+    },
+    "2027-08-29": {
+      "appColor": "Rojo"
+    },
+    "2027-08-30": {
+      "appColor": "Verde"
+    },
+    "2027-08-31": {
+      "appColor": "Verde"
+    },
+    "2027-09-01": {
+      "appColor": "Verde"
+    },
+    "2027-09-02": {
+      "appColor": "Verde"
+    },
+    "2027-09-03": {
+      "appColor": "Blanco"
+    },
+    "2027-09-04": {
+      "appColor": "Verde"
+    },
+    "2027-09-05": {
+      "appColor": "Blanco"
+    },
+    "2027-09-06": {
+      "appColor": "Verde"
+    },
+    "2027-09-07": {
+      "appColor": "Verde"
+    },
+    "2027-09-08": {
+      "appColor": "Blanco"
+    },
+    "2027-09-09": {
+      "appColor": "Blanco"
+    },
+    "2027-09-10": {
+      "appColor": "Verde"
+    },
+    "2027-09-11": {
+      "appColor": "Verde"
+    },
+    "2027-09-12": {
+      "appColor": "Verde"
+    },
+    "2027-09-13": {
+      "appColor": "Blanco"
+    },
+    "2027-09-14": {
+      "appColor": "Rojo"
+    },
+    "2027-09-15": {
+      "appColor": "Blanco"
+    },
+    "2027-09-16": {
+      "appColor": "Rojo"
+    },
+    "2027-09-17": {
+      "appColor": "Blanco"
+    },
+    "2027-09-18": {
+      "appColor": "Verde"
+    },
+    "2027-09-19": {
+      "appColor": "Verde"
+    },
+    "2027-09-20": {
+      "appColor": "Rojo"
+    },
+    "2027-09-21": {
+      "appColor": "Rojo"
+    },
+    "2027-09-22": {
+      "appColor": "Verde"
+    },
+    "2027-09-23": {
+      "appColor": "Blanco"
+    },
+    "2027-09-24": {
+      "appColor": "Blanco"
+    },
+    "2027-09-25": {
+      "appColor": "Verde"
+    },
+    "2027-09-26": {
+      "appColor": "Verde"
+    },
+    "2027-09-27": {
+      "appColor": "Blanco"
+    },
+    "2027-09-28": {
+      "appColor": "Rojo"
+    },
+    "2027-09-29": {
+      "appColor": "Blanco"
+    },
+    "2027-09-30": {
+      "appColor": "Blanco"
+    },
+    "2027-10-01": {
+      "appColor": "Blanco"
+    },
+    "2027-10-02": {
+      "appColor": "Blanco"
+    },
+    "2027-10-03": {
+      "appColor": "Verde"
+    },
+    "2027-10-04": {
+      "appColor": "Blanco"
+    },
+    "2027-10-05": {
+      "appColor": "Verde"
+    },
+    "2027-10-06": {
+      "appColor": "Verde"
+    },
+    "2027-10-07": {
+      "appColor": "Blanco"
+    },
+    "2027-10-08": {
+      "appColor": "Verde"
+    },
+    "2027-10-09": {
+      "appColor": "Rojo"
+    },
+    "2027-10-10": {
+      "appColor": "Verde"
+    },
+    "2027-10-11": {
+      "appColor": "Verde"
+    },
+    "2027-10-12": {
+      "appColor": "Blanco"
+    },
+    "2027-10-13": {
+      "appColor": "Verde"
+    },
+    "2027-10-14": {
+      "appColor": "Rojo"
+    },
+    "2027-10-15": {
+      "appColor": "Blanco"
+    },
+    "2027-10-16": {
+      "appColor": "Blanco"
+    },
+    "2027-10-17": {
+      "appColor": "Rojo"
+    },
+    "2027-10-18": {
+      "appColor": "Rojo"
+    },
+    "2027-10-19": {
+      "appColor": "Rojo"
+    },
+    "2027-10-20": {
+      "appColor": "Verde"
+    },
+    "2027-10-21": {
+      "appColor": "Verde"
+    },
+    "2027-10-22": {
+      "appColor": "Blanco"
+    },
+    "2027-10-23": {
+      "appColor": "Verde"
+    },
+    "2027-10-24": {
+      "appColor": "Blanco"
+    },
+    "2027-10-25": {
+      "appColor": "Verde"
+    },
+    "2027-10-26": {
+      "appColor": "Verde"
+    },
+    "2027-10-27": {
+      "appColor": "Verde"
+    },
+    "2027-10-28": {
+      "appColor": "Rojo"
+    },
+    "2027-10-29": {
+      "appColor": "Verde"
+    },
+    "2027-10-30": {
+      "appColor": "Verde"
+    },
+    "2027-10-31": {
+      "appColor": "Verde"
+    },
+    "2027-11-01": {
+      "appColor": "Blanco"
+    },
+    "2027-11-02": {
+      "appColor": "Blanco"
+    },
+    "2027-11-03": {
+      "appColor": "Blanco"
+    },
+    "2027-11-04": {
+      "appColor": "Blanco"
+    },
+    "2027-11-05": {
+      "appColor": "Verde"
+    },
+    "2027-11-06": {
+      "appColor": "Verde"
+    },
+    "2027-11-07": {
+      "appColor": "Verde"
+    },
+    "2027-11-08": {
+      "appColor": "Verde"
+    },
+    "2027-11-09": {
+      "appColor": "Blanco"
+    },
+    "2027-11-10": {
+      "appColor": "Blanco"
+    },
+    "2027-11-11": {
+      "appColor": "Blanco"
+    },
+    "2027-11-12": {
+      "appColor": "Rojo"
+    },
+    "2027-11-13": {
+      "appColor": "Verde"
+    },
+    "2027-11-14": {
+      "appColor": "Verde"
+    },
+    "2027-11-15": {
+      "appColor": "Blanco"
+    },
+    "2027-11-16": {
+      "appColor": "Verde"
+    },
+    "2027-11-17": {
+      "appColor": "Blanco"
+    },
+    "2027-11-18": {
+      "appColor": "Verde"
+    },
+    "2027-11-19": {
+      "appColor": "Rojo"
+    },
+    "2027-11-20": {
+      "appColor": "Rojo"
+    },
+    "2027-11-21": {
+      "appColor": "Blanco"
+    },
+    "2027-11-22": {
+      "appColor": "Rojo"
+    },
+    "2027-11-23": {
+      "appColor": "Verde"
+    },
+    "2027-11-24": {
+      "appColor": "Rojo"
+    },
+    "2027-11-25": {
+      "appColor": "Verde"
+    },
+    "2027-11-26": {
+      "appColor": "Verde"
+    },
+    "2027-11-27": {
+      "appColor": "Verde"
+    },
+    "2027-11-28": {
+      "appColor": "Morado"
+    },
+    "2027-11-29": {
+      "appColor": "Morado"
+    },
+    "2027-11-30": {
+      "appColor": "Rojo"
+    },
+    "2027-12-01": {
+      "appColor": "Morado"
+    },
+    "2027-12-02": {
+      "appColor": "Morado"
+    },
+    "2027-12-03": {
+      "appColor": "Blanco"
+    },
+    "2027-12-04": {
+      "appColor": "Morado"
+    },
+    "2027-12-05": {
+      "appColor": "Morado"
+    },
+    "2027-12-06": {
+      "appColor": "Morado"
+    },
+    "2027-12-07": {
+      "appColor": "Blanco"
+    },
+    "2027-12-08": {
+      "appColor": "Blanco"
+    },
+    "2027-12-09": {
+      "appColor": "Morado"
+    },
+    "2027-12-10": {
+      "appColor": "Morado"
+    },
+    "2027-12-11": {
+      "appColor": "Morado"
+    },
+    "2027-12-12": {
+      "appColor": "Morado"
+    },
+    "2027-12-13": {
+      "appColor": "Rojo"
+    },
+    "2027-12-14": {
+      "appColor": "Blanco"
+    },
+    "2027-12-15": {
+      "appColor": "Morado"
+    },
+    "2027-12-16": {
+      "appColor": "Morado"
+    },
+    "2027-12-17": {
+      "appColor": "Morado"
+    },
+    "2027-12-18": {
+      "appColor": "Morado"
+    },
+    "2027-12-19": {
+      "appColor": "Morado"
+    },
+    "2027-12-20": {
+      "appColor": "Morado"
+    },
+    "2027-12-21": {
+      "appColor": "Morado"
+    },
+    "2027-12-22": {
+      "appColor": "Morado"
+    },
+    "2027-12-23": {
+      "appColor": "Morado"
+    },
+    "2027-12-24": {
+      "appColor": "Morado"
+    },
+    "2027-12-25": {
+      "appColor": "Blanco"
+    },
+    "2027-12-26": {
+      "appColor": "Rojo"
+    },
+    "2027-12-27": {
+      "appColor": "Blanco"
+    },
+    "2027-12-28": {
+      "appColor": "Rojo"
+    },
+    "2027-12-29": {
+      "appColor": "Rojo"
+    },
+    "2027-12-30": {
+      "appColor": "Blanco"
+    },
+    "2027-12-31": {
+      "appColor": "Blanco"
+    }
+  }
+}

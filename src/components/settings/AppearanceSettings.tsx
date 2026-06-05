@@ -1,0 +1,380 @@
+﻿'use client';
+
+import React, { useState } from 'react';
+import Image from 'next/image';
+import { useSettings } from '@/context/SettingsContext';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Slider } from '@/components/ui/slider';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import * as Icon from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { useForm, SubmitHandler } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Capacitor } from '@capacitor/core';
+import { Form } from '@/components/ui/form';
+import { cn } from '@/lib/utils';
+import { extractThemeColorsFromImageUrl, clampNumber, type ThemeColors } from '@/lib/theme-utils';
+import ImageCropper from '@/components/ui/ImageCropper';
+
+const imageFormSchema = z.object({});
+type ImageFormValues = z.infer<typeof imageFormSchema>;
+
+export default function AppearanceSettings() {
+  const {
+    theme,
+    setTheme,
+    fontSize,
+    setFontSize,
+    fontFamily,
+    setFontFamily,
+    homeBackgroundId,
+    setHomeBackgroundId,
+    autoRotateBackground,
+    setAutoRotateBackground,
+    planDeVidaTrackerEnabled,
+    setPlanDeVidaTrackerEnabled,
+    pinchToZoomEnabled,
+    setPinchToZoomEnabled,
+    navMode,
+    setNavMode,
+    arrowBubbleSize,
+    setArrowBubbleSize,
+    smallWidgetMode,
+    setSmallWidgetMode,
+    addUserHomeBackground,
+    removeUserHomeBackground,
+    allHomeBackgrounds,
+  } = useSettings();
+
+  const { toast } = useToast();
+  const [newBackgroundFile, setNewBackgroundFile] = useState<File | null>(null);
+  const [isCropperOpen, setIsCropperOpen] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  const [finalCroppedImage, setFinalCroppedImage] = useState<string | null>(null);
+  const [cropAspect, setCropAspect] = useState(9 / 16);
+
+  const imageForm = useForm<ImageFormValues>({
+    resolver: zodResolver(imageFormSchema),
+    defaultValues: {},
+  });
+
+  const onImageSubmit: SubmitHandler<ImageFormValues> = async () => {
+    if (!finalCroppedImage) {
+      toast({ variant: 'destructive', title: 'Selecciona una imagen', description: 'Debes elegir y recortar una imagen.' });
+      return;
+    }
+    
+    const imageUrl = finalCroppedImage;
+    let themeColors: ThemeColors = {
+      primary: { h: 36, s: 60 },
+      background: { h: 216, s: 25 },
+      accent: { h: 45, s: 55 },
+    };
+
+    try {
+      const extracted = await extractThemeColorsFromImageUrl(imageUrl);
+      if (extracted) themeColors = extracted;
+    } catch {}
+
+    const generatedDescription = `Fondo personalizado ${new Date().toLocaleDateString()}`;
+
+    addUserHomeBackground({
+      imageUrl,
+      description: generatedDescription,
+      imageHint: generatedDescription,
+      themeColors,
+    });
+    imageForm.reset();
+    setNewBackgroundFile(null);
+    setFinalCroppedImage(null);
+    setImageToCrop(null);
+    toast({ title: 'Fondo agregado.' });
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setNewBackgroundFile(file);
+      setCropAspect(9 / 16);
+      const reader = new FileReader();
+      reader.onload = () => {
+        setImageToCrop(reader.result as string);
+        setIsCropperOpen(true);
+      };
+      reader.readAsDataURL(file);
+    }
+    // Clear input value so same file can be selected again
+    e.target.value = '';
+  };
+
+  const handleCropComplete = (croppedImage: string) => {
+    setFinalCroppedImage(croppedImage);
+    setIsCropperOpen(false);
+    setImageToCrop(null);
+  };
+
+  const handleThemeChange = (checked: boolean) => {
+    setTheme(checked ? 'dark' : 'light');
+  };
+
+  const fontOptions = [
+    { value: 'literata', label: 'Literata (Predeterminada)' },
+    { value: 'lora', label: 'Lora' },
+    { value: 'merriweather', label: 'Merriweather' },
+    { value: 'ebgaramond', label: 'EB Garamond' },
+    { value: 'timesnewroman', label: 'Times New Roman' },
+  ];
+  const fontSizeDisplay = clampNumber(fontSize, 11, 21);
+  const isAndroidNative = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
+
+  return (
+    <div className="space-y-6 animate-in fade-in-0 duration-500">
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-headline text-base">Apariencia General</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="nav-mode-select" className="text-sm">
+              Modo de navegación
+            </Label>
+            <Select value={navMode} onValueChange={(value) => setNavMode(value as any)}>
+              <SelectTrigger id="nav-mode-select">
+                <SelectValue placeholder="Seleccionar modo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="touch">Zonas de toque</SelectItem>
+                <SelectItem value="bubble">Globo de flechas</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {navMode === 'bubble' && (
+            <div className="space-y-2">
+              <Label className="flex flex-col gap-1 text-sm">
+                <span>Tamaño de globos de flechas</span>
+                <span className="text-xs text-muted-foreground">Ajusta el tamaño en Plan Personalizado y Rosario.</span>
+              </Label>
+              <Select value={arrowBubbleSize} onValueChange={(value) => setArrowBubbleSize(value as any)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar tamaño" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sm">Pequeño</SelectItem>
+                  <SelectItem value="md">Mediano</SelectItem>
+                  <SelectItem value="lg">Grande</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {isAndroidNative && (
+            <div className="space-y-2">
+              <Label className="flex flex-col gap-1 text-sm">
+                <span>Widget chico del santoral</span>
+                <span className="text-xs text-muted-foreground">
+                  En tamaños muy pequeños puedes priorizar mostrar todo reducido o solo el nombre del santo en grande.
+                </span>
+              </Label>
+              <Select value={smallWidgetMode} onValueChange={(value) => setSmallWidgetMode(value as any)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar comportamiento" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="full">Mostrar todo reducido</SelectItem>
+                  <SelectItem value="saint_priority">Solo santo en grande si falta espacio</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between">
+            <Label htmlFor="dark-mode-switch" className="flex items-center gap-2 text-sm">
+              Modo Oscuro
+            </Label>
+            <div className="flex items-center gap-2">
+              <Icon.Sun className={`size-5 ${theme === 'light' ? 'text-primary' : 'text-muted-foreground'}`} />
+              <Switch
+                id="dark-mode-switch"
+                checked={theme === 'dark'}
+                onCheckedChange={handleThemeChange}
+              />
+              <Icon.Moon className={`size-5 ${theme === 'dark' ? 'text-primary' : 'text-muted-foreground'}`} />
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="font-family-select" className="text-sm">
+              Fuente del texto
+            </Label>
+            <Select value={fontFamily} onValueChange={setFontFamily}>
+              <SelectTrigger id="font-family-select">
+                <SelectValue placeholder="Seleccionar fuente" />
+              </SelectTrigger>
+              <SelectContent>
+                {fontOptions.map(option => (
+                  <SelectItem key={option.value} value={option.value}>
+                    <span className={`font-${option.value}`}>{option.label}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-3">
+            <Label className="flex flex-col gap-1 text-sm">
+              <span>Tamaño de letra</span>
+              <span className="text-xs text-muted-foreground">Ajusta el tamaño del texto en toda la aplicación.</span>
+            </Label>
+            <div className="pt-1">
+              <Slider
+                min={11}
+                max={21}
+                step={1}
+                value={[fontSizeDisplay]}
+                onValueChange={(values) => {
+                  const next = values[0];
+                  if (typeof next === 'number' && Number.isFinite(next)) setFontSize(next);
+                }}
+              />
+            </div>
+            <div className="flex items-center justify-between text-xs text-muted-foreground tabular-nums">
+              <span>11</span>
+              <span>{fontSizeDisplay}px</span>
+              <span>21</span>
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <Label htmlFor="plan-tracker-switch" className="flex flex-col gap-1 text-sm">
+               <span>Rastreador de Plan de Vida</span>
+               <span className="text-xs text-muted-foreground">Muestra casillas en el Plan de Vida.</span>
+            </Label>
+            <Switch
+              id="plan-tracker-switch"
+              checked={planDeVidaTrackerEnabled}
+              onCheckedChange={setPlanDeVidaTrackerEnabled}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <Label htmlFor="pinch-zoom-switch" className="flex flex-col gap-1 text-sm">
+               <span>Pellizcar para Zoom</span>
+               <span className="text-xs text-muted-foreground">Cambia el tamaño de letra con gestos.</span>
+            </Label>
+            <Switch
+              id="pinch-zoom-switch"
+              checked={pinchToZoomEnabled}
+              onCheckedChange={setPinchToZoomEnabled}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-headline text-base">Fondo de Pantalla</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+            <div className="flex items-center justify-between mb-2">
+              <Label htmlFor="auto-rotate-bg-switch" className="flex flex-col gap-1 text-sm">
+                <span>Rotación Diaria de Fondo</span>
+                <span className="text-xs text-muted-foreground">Cambia el fondo de inicio cada día.</span>
+              </Label>
+              <Switch
+                id="auto-rotate-bg-switch"
+                checked={autoRotateBackground}
+                onCheckedChange={setAutoRotateBackground}
+              />
+            </div>
+            
+            <Label className="text-sm">Seleccionar Fondo</Label>
+            <div className={cn("grid grid-cols-2 gap-4", autoRotateBackground && "opacity-50 pointer-events-none")}>
+              {allHomeBackgrounds.map((image) => (
+                <div
+                  key={image.id}
+                  className="relative group cursor-pointer rounded-lg overflow-hidden border-2 border-transparent hover:border-primary transition-all"
+                  onClick={() => setHomeBackgroundId(image.id)}
+                >
+                  <div className="relative w-full aspect-[9/16]">
+                    <Image
+                      src={image.imageUrl}
+                      alt={image.description}
+                      fill
+                      className="object-cover"
+                      data-ai-hint={image.imageHint}
+                    />
+                  </div>
+                  {homeBackgroundId === image.id && (
+                    <div className="absolute inset-0 bg-primary/50 flex items-center justify-center">
+                      <Icon.CheckCircle2 className="size-8 text-primary-foreground" />
+                    </div>
+                  )}
+                   {image.isUserDefined && (
+                     <Button
+                       variant="destructive"
+                       size="icon"
+                       className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                       onClick={(e) => {
+                         e.stopPropagation();
+                         removeUserHomeBackground(image.id);
+                       }}
+                     >
+                       <Icon.Trash2 className="h-4 w-4" />
+                     </Button>
+                   )}
+                </div>
+              ))}
+            </div>
+
+            <Form {...imageForm}>
+              <form onSubmit={imageForm.handleSubmit(onImageSubmit)} className="space-y-4 p-4 border rounded-md mt-6">
+                <div>
+                  <Label>Subir Nuevo Fondo</Label>
+                  <div className="mt-2 space-y-2">
+                    <input
+                      id="new-background-file"
+                      type="file"
+                      accept="image/*"
+                      className="sr-only"
+                      onChange={handleFileChange}
+                    />
+                    <Button asChild variant="outline" size="sm">
+                      <label htmlFor="new-background-file" className="cursor-pointer">
+                        Seleccionar imagen
+                      </label>
+                    </Button>
+                    {newBackgroundFile?.name && (
+                      <p className="text-xs text-muted-foreground font-body break-all">
+                        {newBackgroundFile.name} {finalCroppedImage && "(Recortada)"}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <Button type="submit" size="sm" className="w-full">Agregar Fondo</Button>
+              </form>
+            </Form>
+        </CardContent>
+      </Card>
+
+      {isCropperOpen && (
+        <ImageCropper
+          imageSrc={imageToCrop}
+          onCropComplete={handleCropComplete}
+          onCancel={() => {
+            setIsCropperOpen(false);
+            setNewBackgroundFile(null);
+            setImageToCrop(null);
+            setFinalCroppedImage(null);
+          }}
+          isOpen={isCropperOpen}
+          aspect={cropAspect}
+        />
+      )}
+    </div>
+  );
+}
+
