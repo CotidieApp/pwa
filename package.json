@@ -11,6 +11,7 @@
     "backup:drive": "node scripts/create-backup.mjs --drive",
     "backup:disk": "node scripts/create-backup.mjs --disk",
     "android:apk": "node scripts/android-apk.mjs",
+    "postandroid:apk": "node scripts/copy-apk.mjs",
     "postinstall": "node scripts/patch-local-notifications.js && node scripts/patch-next-export-workers.js",
     "start": "node server.js"
   },
