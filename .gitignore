@@ -68,3 +68,7 @@ output/
 out/
 =======
 >>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
+
+node_modules/
+.next/
+
