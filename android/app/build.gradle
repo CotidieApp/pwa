@@ -1,5 +1,4 @@
 apply plugin: 'com.android.application'
-import org.gradle.api.file.DuplicatesStrategy
 
 android {
     namespace = "com.benjamin.studio"
@@ -116,7 +115,7 @@ tasks.register('copyNotificationImagesToDrawable', Copy) {
             fileCopyDetails.path = "${renamed}${extension}"
         }
     }
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    duplicatesStrategy = 'EXCLUDE'
     into("${project.projectDir}/src/main/res/drawable")
 }
 
