@@ -10,15 +10,9 @@ export type FixedNotificationEntry = {
 export const fixedNotifications: FixedNotificationEntry[] = [
   {
     date: '3/10 9:00', // Aniversario Cotidie
-<<<<<<< HEAD
     title: '#{year-2025} aniversario de Cotidie',
     text: 'Conmemoramos el día en el que nació como un mero proyecto esta aplicación. ¡Gracias por formar parte de esta comunidad!',
     image: './icons/icon.png'
-=======
-    title: '#{year-2025} aniversaio de Cotidie',
-    text: 'Conmemoramos el día en el que nació como un mero proyecto esta aplicación. ¡Gracias por formar parte de esta comunidad!',
-    image: './icon.png'
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
   },
   {
     date: 'j1 9:00', // Recuerdo a las vocaciones
@@ -36,11 +30,7 @@ export const fixedNotifications: FixedNotificationEntry[] = [
     date: '25/12 7:00', // Navidad
     title: '¡Feliz Navidad!',
     text: 'Desde Cotidie les deseamos una muy feliz Navidad y un próspero {year+1}.',
-<<<<<<< HEAD
     image: './images/nativity.jpeg'
-=======
-    image: './nativity.jpeg'
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
   },
   // Fiestas principales (hora sugerida 09:00)
   {
@@ -62,20 +52,12 @@ export const fixedNotifications: FixedNotificationEntry[] = [
     date: '19/03 09:00', // San José
     title: 'San José',
     text: 'Pide a San José un corazón fiel y trabajador para servir en lo cotidiano.',
-<<<<<<< HEAD
     image: './images/san-jose.jpg'
-=======
-    image: './san-jose.jpg'
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
   },
   {
     date: '25/03 09:00', // Anunciación del Señor
     title: 'Anunciación del Señor',
-<<<<<<< HEAD
     text: 'Di tu «hágase» al Señor y renueva tu confianza en su plan.'
-=======
-    text: 'Di tu hágase al Señor y renueva tu confianza en su plan.'
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
   },
   {
     date: '06/08 09:00', // Transfiguración del Señor

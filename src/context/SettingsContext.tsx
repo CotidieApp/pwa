@@ -252,12 +252,9 @@ type Settings = {
   pinchToZoomEnabled: boolean;
   setPinchToZoomEnabled: (enabled: boolean) => void;
 
-<<<<<<< HEAD
   prayerTextZoom: number;
   setPrayerTextZoom: (zoom: number) => void;
 
-=======
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
   navMode: NavMode;
   setNavMode: (mode: NavMode) => void;
 
@@ -673,10 +670,7 @@ const FULL_BACKUP_KEYS = [
   'customThemeColors',
   'isCustomThemeActive',
   'pinchToZoomEnabled',
-<<<<<<< HEAD
   'prayerTextZoom',
-=======
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
   'navMode',
   'arrowBubbleSize',
   'smallWidgetMode',
@@ -772,10 +766,7 @@ const normalizeBackupState = (raw: any) => {
     customThemeColors: normalizeThemeColorsValue(source.customThemeColors),
     isCustomThemeActive: normalizeBoolean(source.isCustomThemeActive),
     pinchToZoomEnabled: normalizeBoolean(source.pinchToZoomEnabled, true),
-<<<<<<< HEAD
     prayerTextZoom: isFiniteNumber(source.prayerTextZoom) ? Math.min(2, Math.max(0.5, Number(source.prayerTextZoom))) : 1,
-=======
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
     navMode,
     arrowBubbleSize,
     smallWidgetMode,
@@ -882,10 +873,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [isCustomThemeActive, setIsCustomThemeActive] = useState(false);
 
   const [pinchToZoomEnabled, setPinchToZoomEnabled] = useState(true);
-<<<<<<< HEAD
   const [prayerTextZoom, setPrayerTextZoom] = useState(1);
-=======
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
   const [navMode, setNavMode] = useState<NavMode>('bubble');
   const [arrowBubbleSize, setArrowBubbleSize] = useState<ArrowBubbleSize>('sm');
   const [smallWidgetMode, setSmallWidgetMode] = useState<SmallWidgetMode>('full');
@@ -905,13 +893,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     useState<ImagePlaceholder | null>(null);
   const [saintOfTheDayPrayerId, setSaintOfTheDayPrayerId] = useState<string | null>(null);
   
-<<<<<<< HEAD
   const [overriddenFixedSaint, setOverriddenFixedSaint] = useState<SaintOfTheDay | null>(null);
   const [overriddenFixedSaintImage, setOverriddenFixedSaintImage] = useState<ImagePlaceholder | null>(null);
-=======
-  const [overriddenFixedSaint] = useState<SaintOfTheDay | null>(null);
-  const [overriddenFixedSaintImage] = useState<ImagePlaceholder | null>(null);
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
   
   const [lastSaintUpdate, setLastSaintUpdate] = useState<string | null>(null);
   
@@ -1066,10 +1049,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setCustomThemeColors(snapshot.customThemeColors);
     setIsCustomThemeActive(snapshot.isCustomThemeActive);
     setPinchToZoomEnabled(snapshot.pinchToZoomEnabled);
-<<<<<<< HEAD
     setPrayerTextZoom(snapshot.prayerTextZoom);
-=======
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
     setNavMode(snapshot.navMode);
     setArrowBubbleSize(snapshot.arrowBubbleSize);
     setSmallWidgetMode(snapshot.smallWidgetMode);
@@ -1136,10 +1116,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         customThemeColors,
         isCustomThemeActive,
         pinchToZoomEnabled,
-<<<<<<< HEAD
         prayerTextZoom,
-=======
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
         navMode,
         arrowBubbleSize,
         smallWidgetMode,
@@ -2890,11 +2867,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
             let imagePath: string | null = null;
             if (typeof entry.image === 'string') {
               if (entry.image.startsWith('./')) {
-<<<<<<< HEAD
                 imagePath = `/${entry.image.slice(2)}`;
-=======
-                imagePath = `/images/${entry.image.slice(2)}`;
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
               } else {
                 console.warn('Invalid fixed notification image path (use ./...):', entry.image);
               }
@@ -3071,7 +3044,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
       scheduleEaster(now.getFullYear());
       scheduleEaster(now.getFullYear() + 1);
-<<<<<<< HEAD
       scheduleMovable(now.getFullYear(), 7, 'Domingo de la Divina Misericordia', 'Segundo Domingo de Pascua. Confía en la misericordia del Señor y acércate a su perdón.', 'divine-mercy', 9, 0);
       scheduleMovable(now.getFullYear() + 1, 7, 'Domingo de la Divina Misericordia', 'Segundo Domingo de Pascua. Confía en la misericordia del Señor y acércate a su perdón.', 'divine-mercy', 9, 0);
       scheduleMovable(now.getFullYear(), 39, 'Ascensión del Señor', 'Solemnidad. Jesucristo sube al cielo y nos invita a elevar el corazón y la esperanza.', 'ascension', 9, 0);
@@ -3089,20 +3061,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       // Jesús, Sumo y Eterno Sacerdote - calculado a partir de Pascua (offset 53)
       scheduleMovable(now.getFullYear(), 53, 'Jesucristo, Sumo y Eterno Sacerdote', 'Solemnidad que reconoce a Jesús como Sumo y Eterno Sacerdote. Ofrece tu agradecimiento y oración.', 'christ-high-priest', 9, 0);
       scheduleMovable(now.getFullYear() + 1, 53, 'Jesucristo, Sumo y Eterno Sacerdote', 'Solemnidad que reconoce a Jesús como Sumo y Eterno Sacerdote. Ofrece tu agradecimiento y oración.', 'christ-high-priest', 9, 0);
-=======
-      scheduleMovable(now.getFullYear(), 7, 'Domingo de la Divina Misericordia', 'Segundo Domingo de Pascua. Confia en la misericordia del Senor y acercate a su perdon.', 'divine-mercy', 9, 0);
-      scheduleMovable(now.getFullYear() + 1, 7, 'Domingo de la Divina Misericordia', 'Segundo Domingo de Pascua. Confia en la misericordia del Senor y acercate a su perdon.', 'divine-mercy', 9, 0);
-      scheduleMovable(now.getFullYear(), 39, 'Ascension del Senor', 'Solemnidad. Jesucristo sube al cielo y nos invita a elevar el corazon y la esperanza.', 'ascension', 9, 0);
-      scheduleMovable(now.getFullYear() + 1, 39, 'Ascension del Senor', 'Solemnidad. Jesucristo sube al cielo y nos invita a elevar el corazon y la esperanza.', 'ascension', 9, 0);
-      scheduleMovable(now.getFullYear(), 49, 'Pentecostes', 'Solemnidad. Invoca al Espiritu Santo y deja que renueve tu vida.', 'pentecost', 9, 0);
-      scheduleMovable(now.getFullYear() + 1, 49, 'Pentecostes', 'Solemnidad. Invoca al Espiritu Santo y deja que renueve tu vida.', 'pentecost', 9, 0);
-      scheduleMovable(now.getFullYear(), 56, 'Santisima Trinidad', 'Solemnidad. Alaba al Padre, al Hijo y al Espiritu Santo con fe y gratitud.', 'trinity', 9, 0);
-      scheduleMovable(now.getFullYear() + 1, 56, 'Santisima Trinidad', 'Solemnidad. Alaba al Padre, al Hijo y al Espiritu Santo con fe y gratitud.', 'trinity', 9, 0);
-      scheduleMovable(now.getFullYear(), 60, 'Corpus Christi', 'Solemnidad del Cuerpo y la Sangre de Cristo. Adora la Eucaristia y renueva tu amor por ella.', 'corpus-christi', 9, 0);
-      scheduleMovable(now.getFullYear() + 1, 60, 'Corpus Christi', 'Solemnidad del Cuerpo y la Sangre de Cristo. Adora la Eucaristia y renueva tu amor por ella.', 'corpus-christi', 9, 0);
-      scheduleMovable(now.getFullYear(), 68, 'Sagrado Corazon de Jesus', 'Solemnidad. Consagra tu corazon al Corazon de Jesus y confia en su amor.', 'sacred-heart', 9, 0);
-      scheduleMovable(now.getFullYear() + 1, 68, 'Sagrado Corazon de Jesus', 'Solemnidad. Consagra tu corazon al Corazon de Jesus y confia en su amor.', 'sacred-heart', 9, 0);
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
       const annuumYearsAhead = 10;
       for (let i = 0; i <= annuumYearsAhead; i++) {
         scheduleCotidieAnnuumStart(now.getFullYear() + i);
@@ -3291,11 +3249,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     const movable = getMovableFeast(now, easter);
 
     // 2. Check Fixed Saints
-<<<<<<< HEAD
     const fixed = saintsData.saints.find(s => s.month === currentMonth && s.day === currentDay) || null;
-=======
-    const fixed = saintsData.saints.find(s => s.month === currentMonth && s.day === currentDay);
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
 
     // Priority logic based on user setting
     // If enabled: Movable takes precedence (e.g. Ash Wednesday > San Simeón)
@@ -3303,18 +3257,14 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     const effectiveSaint = movableFeastsEnabled 
       ? (movable || fixed) 
       : (fixed || movable);
-<<<<<<< HEAD
     const hiddenFixedSaint =
       movableFeastsEnabled && movable && fixed
         ? fixed
         : null;
-=======
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
 
     const dow = now.getDay(); // 0..6
     const dayImageId = `saintoftheday-${dow}`;
     const dayImage = PlaceHolderImages.find(img => img.id === dayImageId) || null;
-<<<<<<< HEAD
     const marianNamePattern =
       /(Nuestra Señora|Virgen María|Inmaculada Concepción|Asunción de la Virgen|Presentación de la Virgen|Natividad de la Virgen|Visitación de la Virgen)/i;
     const marianImage = PlaceHolderImages.find((img) => img.id === 'saintoftheday-6') || dayImage;
@@ -3354,29 +3304,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     const sameHiddenImage =
       overriddenFixedSaintImage?.id === hiddenFixedImage?.id &&
       overriddenFixedSaintImage?.imageUrl === hiddenFixedImage?.imageUrl;
-=======
-    const devotionMatch = resolveDevotionDayMatch(effectiveSaint);
-
-    let image = dayImage;
-    if (currentMonth === 12 && (currentDay === 24 || currentDay === 25)) {
-      const christmasImage = PlaceHolderImages.find((img) => img.id === 'christmas-image') || null;
-      image = christmasImage || dayImage;
-    } else {
-      const marianNamePattern =
-        /(Nuestra Señora|Virgen María|Inmaculada Concepción|Asunción de la Virgen|Presentación de la Virgen|Natividad de la Virgen|Visitación de la Virgen)/i;
-      const marianImage = PlaceHolderImages.find((img) => img.id === 'saintoftheday-6') || dayImage;
-      const isMarian = Boolean(
-        (effectiveSaint as any)?.type === 'marian' || (effectiveSaint?.name && marianNamePattern.test(effectiveSaint.name))
-      );
-
-      if (devotionMatch?.image) {
-        image = devotionMatch.image;
-      } else if (isMarian) {
-        image = marianImage;
-      }
-    }
-    const prayerId = devotionMatch?.prayerId ?? null;
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
 
     const sameSaint =
       saintOfTheDay?.name === effectiveSaint?.name &&
@@ -3385,8 +3312,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       saintOfTheDayImage?.id === image?.id &&
       saintOfTheDayImage?.imageUrl === image?.imageUrl;
     const samePrayerId = saintOfTheDayPrayerId === prayerId;
-
-<<<<<<< HEAD
     if (
       lastSaintUpdate === dateKey &&
       sameSaint &&
@@ -3397,14 +3322,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     ) {
       return;
     }
-=======
-    if (lastSaintUpdate === dateKey && sameSaint && sameImage && samePrayerId) return;
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
 
     setSaintOfTheDay(effectiveSaint || null);
     setSaintOfTheDayImage(image || null);
     setSaintOfTheDayPrayerId(prayerId);
-<<<<<<< HEAD
     setOverriddenFixedSaint(hiddenFixedSaint || null);
     setOverriddenFixedSaintImage(hiddenFixedImage || null);
     setLastSaintUpdate(dateKey);
@@ -3418,10 +3339,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     overriddenFixedSaint,
     overriddenFixedSaintImage,
   ]);
-=======
-    setLastSaintUpdate(dateKey);
-  }, [simulatedDate, lastSaintUpdate, movableFeastsEnabled, saintOfTheDay, saintOfTheDayImage, saintOfTheDayPrayerId]);
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
 
   return (
     <SettingsContext.Provider
@@ -3516,11 +3433,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         resetCustomTheme,
         pinchToZoomEnabled,
         setPinchToZoomEnabled,
-<<<<<<< HEAD
         prayerTextZoom,
         setPrayerTextZoom,
-=======
->>>>>>> 47b58837317ce981497a0fdbdeaed3c3f8cb75d3
         navMode,
         setNavMode,
         arrowBubbleSize,
