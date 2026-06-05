@@ -69,8 +69,8 @@ const renderCaminoLines = (
           ? 'bg-yellow-300 text-black'
           : 'bg-yellow-500/60 text-black'
         : matchCounter === activeIndex
-        ? 'bg-yellow-400 text-black'
-        : 'bg-yellow-200 text-black';
+          ? 'bg-yellow-400 text-black'
+          : 'bg-yellow-200 text-black';
 
     const id = isMatch ? `search-result-${matchCounter}` : undefined;
     const lineNode = pointMatch ? (
@@ -131,8 +131,8 @@ const parseAndHighlight = (
             ? 'bg-yellow-300 text-black'
             : 'bg-yellow-500/60 text-black'
           : isActive
-          ? 'bg-yellow-400 text-black'
-          : 'bg-yellow-200 text-black';
+            ? 'bg-yellow-400 text-black'
+            : 'bg-yellow-200 text-black';
 
       rendered.push(
         <p key={`match-${i}`} id={`search-result-${matchCounter}`} className="mt-3">
@@ -365,16 +365,16 @@ const PrayerContent = ({
           e.touches[0].clientX - e.touches[1].clientX,
           e.touches[0].clientY - e.touches[1].clientY
         );
-        
+
         // Calculate scale factor
         const scale = d / initialDistance;
-        
+
         // New font size
         let newSize = initialFontSize * scale;
-        
+
         // Clamp
         newSize = Math.max(10, Math.min(newSize, 40));
-        
+
         setFontSize(Math.round(newSize));
       }
     };
@@ -399,6 +399,14 @@ const PrayerContent = ({
   const themeMode: 'light' | 'dark' = theme === 'dark' ? 'dark' : 'light';
   const prayerId: string = prayer.id ?? '';
   const isCamino = prayerId === 'camino-libro';
+
+  useEffect(() => {
+    const container = scrollContainerRef?.current;
+    if (container) {
+      container.scrollTop = 0;
+    }
+    window.scrollTo(0, 0);
+  }, [prayerId, scrollContainerRef]);
 
   const handleScroll = useCallback(() => {
     if (!prayer.isLongText || !prayerId) return;
@@ -554,13 +562,13 @@ export default function PrayerDetail({
   ];
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (file) {
-          const url = URL.createObjectURL(file);
-          setLocalAudioSrc(url);
-      }
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setLocalAudioSrc(url);
+    }
   };
-  
+
   const showAudioPlayer = (prayer.audio || prayer.id === 'lectura-audio') && !isDistractionFree;
   const audioSrc = localAudioSrc || prayer.audio || '';
 
@@ -592,20 +600,20 @@ export default function PrayerDetail({
       <div className={cn('flex-1 min-h-0', isDistractionFree && 'mx-auto max-w-3xl px-4 sm:px-6 lg:px-8')}>
         {showAudioPlayer && (
           <div className="mb-6 space-y-4">
-             {audioSrc ? (
-               <AudioPlayer src={audioSrc} title={localAudioSrc ? 'Audio seleccionado' : 'Escuchar meditacion'} />
-             ) : (
-               <div className="rounded-lg bg-secondary/50 p-4 text-center text-sm text-muted-foreground">
-                 Selecciona un audio para escuchar
-               </div>
-             )}
+            {audioSrc ? (
+              <AudioPlayer src={audioSrc} title={localAudioSrc ? 'Audio seleccionado' : 'Escuchar meditacion'} />
+            ) : (
+              <div className="rounded-lg bg-secondary/50 p-4 text-center text-sm text-muted-foreground">
+                Selecciona un audio para escuchar
+              </div>
+            )}
 
-             {prayer.id === 'lectura-audio' && (
-               <div className="space-y-3">
-                 <div className="grid gap-2">
-                   <Label className="text-sm font-medium">Audios Disponibles</Label>
-                   {predefinedAudios.map((audio, idx) => (
-                     <Button
+            {prayer.id === 'lectura-audio' && (
+              <div className="space-y-3">
+                <div className="grid gap-2">
+                  <Label className="text-sm font-medium">Audios Disponibles</Label>
+                  {predefinedAudios.map((audio, idx) => (
+                    <Button
                       key={idx}
                       variant="outline"
                       className={cn(
@@ -613,27 +621,27 @@ export default function PrayerDetail({
                         localAudioSrc === audio.src && 'border-primary bg-primary/5 text-primary'
                       )}
                       onClick={() => setLocalAudioSrc(audio.src)}
-                     >
-                       <Icon.Play className="mr-2 h-4 w-4" />
-                       {audio.title}
-                     </Button>
-                   ))}
-                 </div>
+                    >
+                      <Icon.Play className="mr-2 h-4 w-4" />
+                      {audio.title}
+                    </Button>
+                  ))}
+                </div>
 
-                 <div className="border-t pt-2">
-                    <Label htmlFor="audio-upload" className="mb-2 block text-sm font-medium">
-                      O subir archivo personal (.mp3)
-                    </Label>
-                    <Input
-                      id="audio-upload"
-                      type="file"
-                      accept="audio/*"
-                      onChange={handleFileUpload}
-                      className="cursor-pointer"
-                    />
-                 </div>
-               </div>
-             )}
+                <div className="border-t pt-2">
+                  <Label htmlFor="audio-upload" className="mb-2 block text-sm font-medium">
+                    O subir archivo personal (.mp3)
+                  </Label>
+                  <Input
+                    id="audio-upload"
+                    type="file"
+                    accept="audio/*"
+                    onChange={handleFileUpload}
+                    className="cursor-pointer"
+                  />
+                </div>
+              </div>
+            )}
           </div>
         )}
 

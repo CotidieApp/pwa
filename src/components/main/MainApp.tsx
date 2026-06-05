@@ -228,9 +228,9 @@ export default function MainApp() {
 
   useEffect(() => {
     requestAnimationFrame(() => {
-      window.scrollTo({ top: 0 });
+      window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
     });
-  }, [navState.activeView, navState.selectedCategoryId, navState.prayerPathIds?.length]);
+  }, [navState.activeView]);
 
   const getPrayerById = useCallback((id: string, list: Prayer[]): Prayer | null => {
     for (const prayer of list) {
