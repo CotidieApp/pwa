@@ -233,14 +233,17 @@ export default function MainApp() {
   }, [navState.activeView]);
 
   const getPrayerById = useCallback((id: string, list: Prayer[]): Prayer | null => {
-    for (const prayer of list) {
-      if (prayer.id === id) return prayer;
-      if (prayer.prayers) {
-        const found = getPrayerById(id, prayer.prayers);
-        if (found) return found;
+    const findRecursively = (targetId: string, currentList: Prayer[]): Prayer | null => {
+      for (const prayer of currentList) {
+        if (prayer.id === targetId) return prayer;
+        if (prayer.prayers) {
+          const found = findRecursively(targetId, prayer.prayers);
+          if (found) return found;
+        }
       }
-    }
-    return null;
+      return null;
+    };
+    return findRecursively(id, list);
   }, []);
 
   const buildPrayerPath = useCallback((pathIds: string[]) => {
@@ -1045,7 +1048,7 @@ export default function MainApp() {
         <div
           className={cn(
             'flex-1 overflow-x-hidden pb-[max(0px,env(safe-area-inset-bottom))]',
-            navState.activeView === 'home' || navState.activeView === 'prayer'
+            navState.activeView === 'home'
               ? 'overflow-y-hidden'
               : 'overflow-y-auto'
           )}

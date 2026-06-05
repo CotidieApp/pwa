@@ -6,14 +6,13 @@ import { useSettings } from '@/context/SettingsContext';
 export default function ThemeManager({ children }: { children: React.ReactNode }) {
   const settings = useSettings();
 
-  // This can happen on first load if the context is not immediately available.
-  if (!settings) {
-    return <>{children}</>;
-  }
-
-  const { theme, fontSize, fontFamily, activeThemeColors } = settings;
+  const theme = settings?.theme;
+  const fontSize = settings?.fontSize;
+  const fontFamily = settings?.fontFamily;
+  const activeThemeColors = settings?.activeThemeColors;
 
   useEffect(() => {
+    if (!settings) return;
     const root = document.documentElement;
     root.classList.remove('light', 'dark');
     root.classList.remove('font-literata', 'font-lora', 'font-merriweather', 'font-ebgaramond', 'font-timesnewroman');
@@ -22,7 +21,7 @@ export default function ThemeManager({ children }: { children: React.ReactNode }
       root.classList.add(theme);
     }
 
-    const clampedFontSize = Math.min(21, Math.max(11, Number.isFinite(fontSize) ? fontSize : 15));
+    const clampedFontSize = Math.min(21, Math.max(11, Number.isFinite(fontSize) ? (fontSize as number) : 15));
     root.style.fontSize = `${clampedFontSize}px`;
 
     if (fontFamily) {
@@ -31,9 +30,10 @@ export default function ThemeManager({ children }: { children: React.ReactNode }
       root.classList.add('font-literata');
     }
 
-  }, [theme, fontSize, fontFamily]);
+  }, [settings, theme, fontSize, fontFamily]);
 
   useEffect(() => {
+    if (!settings || !activeThemeColors) return;
     const root = document.documentElement;
     
     if (activeThemeColors.primary) {
@@ -59,7 +59,7 @@ export default function ThemeManager({ children }: { children: React.ReactNode }
       root.style.removeProperty('--accent-hue');
       root.style.removeProperty('--accent-saturation');
     }
-  }, [activeThemeColors]);
+  }, [settings, activeThemeColors]);
 
   return <>{children}</>;
 }

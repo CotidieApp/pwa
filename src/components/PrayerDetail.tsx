@@ -401,9 +401,9 @@ const PrayerContent = ({
   const isCamino = prayerId === 'camino-libro';
 
   useEffect(() => {
-    const container = scrollContainerRef?.current;
-    if (container) {
-      container.scrollTop = 0;
+    const el = scrollContainerRef?.current;
+    if (el) {
+      el.scrollTo(0, 0);
     }
     window.scrollTo(0, 0);
   }, [prayerId, scrollContainerRef]);
@@ -575,11 +575,11 @@ export default function PrayerDetail({
   const objectPosition = getImageObjectPosition(prayer.id);
 
   return (
-    <div className={cn('flex min-h-0 flex-col', isDistractionFree ? 'py-20' : 'p-4')}>
+    <div className={cn('flex min-h-0 flex-col h-full', isDistractionFree ? 'py-20' : 'p-4')}>
       {prayer.imageUrl && (
         <div
           className={cn(
-            'relative overflow-hidden sticky z-0',
+            'relative overflow-hidden sticky z-0 shrink-0',
             isDistractionFree
               ? 'mb-8 top-20 left-1/2 w-screen max-w-none -translate-x-1/2 rounded-none'
               : 'mb-4 top-4 rounded-lg'
@@ -597,9 +597,9 @@ export default function PrayerDetail({
         </div>
       )}
 
-      <div className={cn('flex-1 min-h-0', isDistractionFree && 'mx-auto max-w-3xl px-4 sm:px-6 lg:px-8')}>
+      <div className={cn('flex-1 min-h-0 flex flex-col', isDistractionFree && 'mx-auto max-w-3xl px-4 sm:px-6 lg:px-8')}>
         {showAudioPlayer && (
-          <div className="mb-6 space-y-4">
+          <div className="mb-6 space-y-4 shrink-0">
             {audioSrc ? (
               <AudioPlayer src={audioSrc} title={localAudioSrc ? 'Audio seleccionado' : 'Escuchar meditacion'} />
             ) : (
@@ -647,11 +647,11 @@ export default function PrayerDetail({
 
         <Card
           className={cn(
-            'overflow-hidden border bg-card shadow-md flex-1',
+            'overflow-hidden border bg-card shadow-md flex-1 flex flex-col min-h-0',
             isDistractionFree && 'border-0 bg-transparent shadow-none'
           )}
         >
-          <CardContent className={cn('p-6 pt-6 flex h-full flex-col', isDistractionFree && 'p-0 pt-0 text-[1.05rem] leading-[1.85]')}>
+          <CardContent className={cn('p-6 pt-6 flex flex-1 flex-col min-h-0', isDistractionFree && 'p-0 pt-0 text-[1.05rem] leading-[1.85]')}>
             <div
               ref={scrollContainerRef}
               data-app-scroll-container="true"

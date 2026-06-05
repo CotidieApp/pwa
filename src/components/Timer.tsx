@@ -26,14 +26,14 @@ export default function Timer() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [draftMinutes, setDraftMinutes] = useState(`${timerDuration}`);
 
-  if (!timerEnabled) {
-    return null;
-  }
-
   useEffect(() => {
     if (!isEditOpen) return;
     setDraftMinutes(`${timerDuration}`);
   }, [isEditOpen, timerDuration]);
+
+  if (!timerEnabled) {
+    return null;
+  }
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
