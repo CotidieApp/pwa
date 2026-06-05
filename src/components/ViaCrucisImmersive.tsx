@@ -15,8 +15,7 @@ const PRAYERS_TEXT = {
   te_adoramos: `Te adoramos Cristo y te bendecimos. Que por tu Santa Cruz redimiste al mundo.`,
   padre_nuestro: `Padre nuestro, que estás en el cielo, santificado sea tu Nombre; venga a nosotros tu reino; hágase tu voluntad en la tierra como en el cielo. Danos hoy nuestro pan de cada día; perdona nuestras ofensas, como también nosotros perdonamos a los que nos ofenden; no nos dejes caer en la tentación, y líbranos del mal. Amén.`,
   ave_maria: `Dios te salve, María, llena eres de gracia; el Señor es contigo; bendita Tú eres entre todas las mujeres, y bendito es el fruto de tu vientre, Jesús. Santa María, Madre de Dios, ruega por nosotros, pecadores, ahora y en la hora de nuestra muerte. Amén.`,
-  gloria: `Gloria al Padre, y al Hijo, y al Espíritu Santo. Como era en el principio, ahora y siempre, por los siglos de los siglos. Amén.`,
-  peque: `Pequé, Señor, Pequé. Ten Piedad y misericordia de mí.`,
+  peque: `Señor, pequé. Ten Piedad y misericordia de mí.`,
 };
 
 // Station Steps Sequence
@@ -25,7 +24,6 @@ const STATION_SEQUENCE = [
   { type: 'meditacion', label: 'Meditación' },
   { type: 'padre_nuestro', label: 'Padre Nuestro' },
   { type: 'ave_maria', label: 'Ave María' },
-  { type: 'gloria', label: 'Gloria' },
   { type: 'peque', label: 'Acto de Contrición' },
 ];
 
@@ -147,9 +145,9 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
 
     // Common end phrases to remove
     const ends = [
-      "Padre nuestro…\nDios te salve…\n\nPequé, Señor, Pequé\nTen Piedad y misericordia de mí.",
-      "Padre nuestro…\nDios te salve…\n\nPequé, Señor, Pequé\nTen Piedad y misericordia de mí",
-      "Padre nuestro...\nDios te salve...\n\nPequé, Señor, Pequé\nTen Piedad y misericordia de mí."
+      "Padre nuestro…\nDios te salve…\n\nSeñor, pequé\nTen Piedad y misericordia de mí.",
+      "Padre nuestro…\nDios te salve…\n\nSeñor, pequé\nTen Piedad y misericordia de mí",
+      "Padre nuestro...\nDios te salve...\n\nSeñor, pequé\nTen Piedad y misericordia de mí."
     ];
 
     for (const s of starts) {
@@ -397,10 +395,6 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
       case 'ave_maria':
         mainIcon = <Sparkles className="h-16 w-16" />;
         mainText = PRAYERS_TEXT.ave_maria;
-        break;
-      case 'gloria':
-        mainIcon = <Sparkles className="h-16 w-16" />;
-        mainText = PRAYERS_TEXT.gloria;
         break;
       case 'peque':
         mainIcon = <Heart className="h-16 w-16" />;

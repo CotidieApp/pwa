@@ -55,19 +55,22 @@ import { oracionPorLosDifuntos } from './prayers/oraciones/oracion-difuntos';
 import { oracionDeLaFamilia } from './prayers/oraciones/oracion-familia';
 import { letaniasHumildad } from './prayers/oraciones/letanias-humildad';
 import { estructurales } from './prayers/oraciones/estructurales';
+import { venicreator } from './prayers/oraciones/veni-creator';
+import { pangelingua } from './prayers/oraciones/pange-lingua';
+import { tedeum } from './prayers/oraciones/te-deum';
 import { oracionAlSagradoCorazonDeJesus } from './prayers/oraciones/oracion-al-sagrado-corazon';
 
 export const categories: Category[] = [
-  { 
-    id: 'devociones', 
-    name: 'Devociones', 
+  {
+    id: 'devociones',
+    name: 'Devociones',
     icon: <DevotionIcon className="size-8" />
   },
   { id: 'plan-de-vida', name: 'Plan de Vida', icon: <ClipboardList className="size-8" /> },
-  { 
-    id: 'oraciones', 
-    name: 'Oraciones', 
-    icon: <BookOpen className="size-8" /> 
+  {
+    id: 'oraciones',
+    name: 'Oraciones',
+    icon: <BookOpen className="size-8" />
   },
   { id: 'ajustes', name: 'Ajustes', icon: <Settings className="size-8" /> },
 ];
@@ -132,7 +135,7 @@ export const initialPrayers: Prayer[] = [
   salveRegina,
   preces,
   viaCrucis,
-  
+
   // Oraciones Varias
   estructurales,
   comunionEspiritualAntes,
@@ -145,5 +148,8 @@ export const initialPrayers: Prayer[] = [
   oracionPorLosDifuntos,
   oracionDeLaFamilia,
   oracionAlSagradoCorazonDeJesus,
-  letaniasHumildad
+  letaniasHumildad,
+  venicreator,
+  pangelingua,
+  tedeum,
 ];

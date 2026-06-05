@@ -9,7 +9,7 @@ export const estructurales: Prayer = {
       id: 'padre-nuestro',
       title: 'Padre Nuestro',
       categoryId: 'oraciones',
-      imageUrl: '/images/holy-family.jpeg',
+      imageUrl: '/images/resurrection.jpeg',
       content: `Padre Nuestro, que estás en el cielo, santificado sea Tu Nombre; venga a nosotros Tu Reino; hágase Tu Voluntad en la tierra como en el Cielo.
 Danos hoy nuestro pan de cada día; perdona nuestras ofensas, como también nosotros perdonamos a los que nos ofenden; no nos dejes caer en la tentación, y líbranos del mal.
 Amén.`
@@ -27,7 +27,7 @@ Amén.`
       id: 'gloria',
       title: 'Gloria',
       categoryId: 'oraciones',
-      imageUrl: '/images/holy-trinity.jpeg',
+      imageUrl: '/images/resurrection.jpeg',
       content: `Gloria al Padre, al Hijo y al Espíritu Santo.
 Como era en el principio, ahora y siempre, por los siglos de los siglos.
 Amén.`
@@ -36,6 +36,7 @@ Amén.`
       id: 'credo',
       title: 'Credo',
       categoryId: 'oraciones',
+      imageUrl: '/images/resurrection.jpeg',
       content: `Creo en Dios Padre Todopoderoso, Creador del cielo y de la tierra.
 Creo en Jesucristo su Único Hijo Nuestro Señor, que fue concebido por obra y gracia del Espíritu Santo, nació de Santa María Virgen, padeció bajo el poder de Poncio Pilato; fue crucificado, muerto y sepultado; descendió a los infiernos, al tercer día resucitó de entre los muertos, subió a los Cielos, y está sentado a la derecha de Dios Padre Todopoderoso, desde allí ha de venir a juzgar a los vivos y muertos.
 Creo en el Espíritu Santo, en la Santa Iglesia Católica, en la Comunión de los santos, en el perdón de los pecados, la resurrección de la carne, y la vida eterna.

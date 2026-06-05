@@ -4,7 +4,6 @@ export const mesdeMaria: Prayer = {
   id: 'mes-de-maria',
   title: 'Mes de María',
   categoryId: 'plan-de-vida',
-  isDaySpecific: true,
   prayers: [
     {
       id: 'oracion-mes-de-maria-inicial',

@@ -1,8 +1,9 @@
 import type { Prayer } from '@/lib/types';
 
 export const oracionDeLaFamilia: Prayer = {
-  id: 'oraciones-varias-predeterminadas-7',
+  id: 'oracion-familia',
   categoryId: 'oraciones',
+  imageUrl: '/images/holy-family.jpeg',
   title: 'Oración de la Familia',
   content: `Quédate en nuestras familias, ilumínalas en sus dudas, sostenlas en sus dificultades, consuélalas en sus sufrimientos y en la fatiga de cada día.
 
