@@ -107,6 +107,12 @@ const lecturaEspiritual: Prayer = {
       categoryId: 'plan-de-vida',
       content: 'EPUBs personales para lectura espiritual.',
     },
+    {
+      id: 'lectura-espiritual-audios',
+      title: 'Audios',
+      categoryId: 'plan-de-vida',
+      content: 'Audios para meditación.',
+    },
   ]
 };
 

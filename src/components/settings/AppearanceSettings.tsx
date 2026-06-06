@@ -19,6 +19,17 @@ import { Form } from '@/components/ui/form';
 import { cn } from '@/lib/utils';
 import { extractThemeColorsFromImageUrl, clampNumber, type ThemeColors } from '@/lib/theme-utils';
 import ImageCropper from '@/components/ui/ImageCropper';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 const imageFormSchema = z.object({});
 type ImageFormValues = z.infer<typeof imageFormSchema>;
@@ -48,6 +59,8 @@ export default function AppearanceSettings() {
     addUserHomeBackground,
     removeUserHomeBackground,
     allHomeBackgrounds,
+    prayerTextZoom,
+    setPrayerTextZoom,
   } = useSettings();
 
   const { toast } = useToast();
@@ -135,28 +148,30 @@ export default function AppearanceSettings() {
     <div className="space-y-6 animate-in fade-in-0 duration-500">
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline text-base">Apariencia General</CardTitle>
+          <CardTitle className="font-headline text-base">Lectura y Navegación</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="nav-mode-select" className="text-sm">
-              Modo de navegación
+            <Label htmlFor="nav-mode-select" className="text-sm font-medium">
+              Modo de navegación táctil
             </Label>
             <Select value={navMode} onValueChange={(value) => setNavMode(value as any)}>
               <SelectTrigger id="nav-mode-select">
                 <SelectValue placeholder="Seleccionar modo" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="touch">Zonas de toque</SelectItem>
-                <SelectItem value="bubble">Globo de flechas</SelectItem>
+                <SelectItem value="bubble">Globo de flechas (Flotante)</SelectItem>
+                <SelectItem value="touch">Zonas de toque (Lados)</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-[10px] text-muted-foreground italic">
+              * Determina cómo avanzas en Planes Personalizados y Rosario.
+            </p>
           </div>
           {navMode === 'bubble' && (
-            <div className="space-y-2">
-              <Label className="flex flex-col gap-1 text-sm">
-                <span>Tamaño de globos de flechas</span>
-                <span className="text-xs text-muted-foreground">Ajusta el tamaño en Plan Personalizado y Rosario.</span>
+            <div className="space-y-2 animate-in slide-in-from-top-1 duration-300">
+              <Label className="flex flex-col gap-1 text-sm font-medium">
+                <span>Tamaño del globo flotante</span>
               </Label>
               <Select value={arrowBubbleSize} onValueChange={(value) => setArrowBubbleSize(value as any)}>
                 <SelectTrigger>
@@ -171,44 +186,48 @@ export default function AppearanceSettings() {
             </div>
           )}
 
-          {isAndroidNative && (
-            <div className="space-y-2">
-              <Label className="flex flex-col gap-1 text-sm">
-                <span>Widget chico del santoral</span>
-                <span className="text-xs text-muted-foreground">
-                  En tamaños muy pequeños puedes priorizar mostrar todo reducido o solo el nombre del santo en grande.
-                </span>
-              </Label>
-              <Select value={smallWidgetMode} onValueChange={(value) => setSmallWidgetMode(value as any)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar comportamiento" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="full">Mostrar todo reducido</SelectItem>
-                  <SelectItem value="saint_priority">Solo santo en grande si falta espacio</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          <Separator />
 
-          <div className="flex items-center justify-between">
-            <Label htmlFor="dark-mode-switch" className="flex items-center gap-2 text-sm">
-              Modo Oscuro
-            </Label>
-            <div className="flex items-center gap-2">
-              <Icon.Sun className={`size-5 ${theme === 'light' ? 'text-primary' : 'text-muted-foreground'}`} />
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="pinch-zoom-switch" className="flex flex-col gap-1 text-sm font-medium">
+                <span>Pellizcar para Zoom</span>
+                <span className="text-xs font-normal text-muted-foreground">Cambia el tamaño de letra con gestos sobre el texto.</span>
+              </Label>
               <Switch
-                id="dark-mode-switch"
-                checked={theme === 'dark'}
-                onCheckedChange={handleThemeChange}
+                id="pinch-zoom-switch"
+                checked={pinchToZoomEnabled}
+                onCheckedChange={setPinchToZoomEnabled}
               />
-              <Icon.Moon className={`size-5 ${theme === 'dark' ? 'text-primary' : 'text-muted-foreground'}`} />
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <Label className="flex flex-col gap-1 text-sm font-medium">
+              <span>Tamaño de letra (Oraciones)</span>
+              <span className="text-xs text-muted-foreground">Ajusta el tamaño del contenido de las oraciones.</span>
+            </Label>
+            <div className="pt-1">
+              <Slider
+                min={0.5}
+                max={2.0}
+                step={0.05}
+                value={[prayerTextZoom]}
+                onValueChange={(values) => {
+                  setPrayerTextZoom(values[0]);
+                }}
+              />
+            </div>
+            <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono">
+              <span>50%</span>
+              <span>ACTUAL: {Math.round(prayerTextZoom * 100)}%</span>
+              <span>200%</span>
             </div>
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="font-family-select" className="text-sm">
-              Fuente del texto
+            <Label htmlFor="font-family-select" className="text-sm font-medium">
+              Tipo de letra
             </Label>
             <Select value={fontFamily} onValueChange={setFontFamily}>
               <SelectTrigger id="font-family-select">
@@ -223,35 +242,33 @@ export default function AppearanceSettings() {
               </SelectContent>
             </Select>
           </div>
+        </CardContent>
+      </Card>
 
-          <div className="space-y-3">
-            <Label className="flex flex-col gap-1 text-sm">
-              <span>Tamaño de letra</span>
-              <span className="text-xs text-muted-foreground">Ajusta el tamaño del texto en toda la aplicación.</span>
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-headline text-base">Interfaz y Tema</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="dark-mode-switch" className="flex items-center gap-2 text-sm font-medium">
+              Modo Oscuro
             </Label>
-            <div className="pt-1">
-              <Slider
-                min={11}
-                max={21}
-                step={1}
-                value={[fontSizeDisplay]}
-                onValueChange={(values) => {
-                  const next = values[0];
-                  if (typeof next === 'number' && Number.isFinite(next)) setFontSize(next);
-                }}
+            <div className="flex items-center gap-2">
+              <Icon.Sun className={`size-4 ${theme === 'light' ? 'text-primary' : 'text-muted-foreground'}`} />
+              <Switch
+                id="dark-mode-switch"
+                checked={theme === 'dark'}
+                onCheckedChange={handleThemeChange}
               />
-            </div>
-            <div className="flex items-center justify-between text-xs text-muted-foreground tabular-nums">
-              <span>11</span>
-              <span>{fontSizeDisplay}px</span>
-              <span>21</span>
+              <Icon.Moon className={`size-4 ${theme === 'dark' ? 'text-primary' : 'text-muted-foreground'}`} />
             </div>
           </div>
-          
+
           <div className="flex items-center justify-between">
-            <Label htmlFor="plan-tracker-switch" className="flex flex-col gap-1 text-sm">
+            <Label htmlFor="plan-tracker-switch" className="flex flex-col gap-1 text-sm font-medium">
                <span>Rastreador de Plan de Vida</span>
-               <span className="text-xs text-muted-foreground">Muestra casillas en el Plan de Vida.</span>
+               <span className="text-xs font-normal text-muted-foreground">Muestra casillas de verificación en las listas.</span>
             </Label>
             <Switch
               id="plan-tracker-switch"
@@ -260,17 +277,25 @@ export default function AppearanceSettings() {
             />
           </div>
 
-          <div className="flex items-center justify-between">
-            <Label htmlFor="pinch-zoom-switch" className="flex flex-col gap-1 text-sm">
-               <span>Pellizcar para Zoom</span>
-               <span className="text-xs text-muted-foreground">Cambia el tamaño de letra con gestos.</span>
-            </Label>
-            <Switch
-              id="pinch-zoom-switch"
-              checked={pinchToZoomEnabled}
-              onCheckedChange={setPinchToZoomEnabled}
-            />
-          </div>
+          {isAndroidNative && (
+            <div className="space-y-2 pt-2 border-t">
+              <Label className="flex flex-col gap-1 text-sm font-medium">
+                <span>Visualización del Widget</span>
+                <span className="text-xs font-normal text-muted-foreground">
+                  Ajuste para el widget de escritorio (Android).
+                </span>
+              </Label>
+              <Select value={smallWidgetMode} onValueChange={(value) => setSmallWidgetMode(value as any)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar comportamiento" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="full">Mostrar todo reducido</SelectItem>
+                  <SelectItem value="saint_priority">Solo santo en grande si falta espacio</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -314,17 +339,28 @@ export default function AppearanceSettings() {
                     </div>
                   )}
                    {image.isUserDefined && (
-                     <Button
-                       variant="destructive"
-                       size="icon"
-                       className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                       onClick={(e) => {
-                         e.stopPropagation();
-                         removeUserHomeBackground(image.id);
-                       }}
-                     >
-                       <Icon.Trash2 className="h-4 w-4" />
-                     </Button>
+                     <AlertDialog>
+                       <AlertDialogTrigger asChild>
+                         <Button
+                           variant="destructive"
+                           size="icon"
+                           className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                           onClick={(e) => e.stopPropagation()}
+                         >
+                           <Icon.Trash2 className="h-4 w-4" />
+                         </Button>
+                       </AlertDialogTrigger>
+                       <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                         <AlertDialogHeader>
+                           <AlertDialogTitle>¿Eliminar fondo?</AlertDialogTitle>
+                           <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
+                         </AlertDialogHeader>
+                         <AlertDialogFooter>
+                           <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                           <AlertDialogAction onClick={() => removeUserHomeBackground(image.id)}>Eliminar</AlertDialogAction>
+                         </AlertDialogFooter>
+                       </AlertDialogContent>
+                     </AlertDialog>
                    )}
                 </div>
               ))}

@@ -76,6 +76,7 @@ export default function MainApp() {
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [showAnnuum, setShowAnnuum] = useState(false);
   const [showLettersInfo, setShowLettersInfo] = useState(false);
+  const [showErrorReport, setShowErrorReport] = useState(false);
   const [activeSpiritualReadingAudio, setActiveSpiritualReadingAudio] = useState<string | null>(null);
   const { toast, dismiss } = useToast();
   const dismissToastRef = useRef(dismiss);
@@ -114,6 +115,7 @@ export default function MainApp() {
     navMode,
     cartasReminderEnabled,
     setCartasReminderEnabled,
+    shakeToOpenEnabled,
   } = useSettings();
   const customPlanTouchNavEnabled = navMode === 'touch';
   const customPlanExitAdvanceRef = useRef<{
@@ -136,6 +138,47 @@ export default function MainApp() {
       customPlanExitToastIdRef.current = null;
     }
   }, []);
+
+  useEffect(() => {
+    if (!shakeToOpenEnabled || typeof window === 'undefined') return;
+
+    let lastShake = 0;
+    const SHAKE_THRESHOLD = 15;
+    const COOLDOWN = 2000;
+
+    const handleMotion = (event: DeviceMotionEvent) => {
+      const acc = event.accelerationIncludingGravity;
+      if (!acc) return;
+
+      const { x, y, z } = acc;
+      if (x == null || y == null || z == null) return;
+
+      const acceleration = Math.sqrt(x * x + y * y + z * z);
+      const now = Date.now();
+
+      if (acceleration > SHAKE_THRESHOLD && now - lastShake > COOLDOWN) {
+        lastShake = now;
+        setShowErrorReport(true);
+        pushDevLiveTrace({
+          level: 'info',
+          source: 'shake',
+          message: 'Agitación detectada, abriendo reporte de errores.',
+        });
+      }
+    };
+
+    if (typeof (DeviceMotionEvent as any).requestPermission === 'function') {
+      (DeviceMotionEvent as any).requestPermission()
+        .then((state: string) => {
+          if (state === 'granted') window.addEventListener('devicemotion', handleMotion);
+        })
+        .catch(console.error);
+    } else {
+      window.addEventListener('devicemotion', handleMotion);
+    }
+
+    return () => window.removeEventListener('devicemotion', handleMotion);
+  }, [shakeToOpenEnabled, toast, pushDevLiveTrace]);
 
   const [isDraggingAnnuum, setIsDraggingAnnuum] = useState(false);
   const AnnuumDragStart = useRef({ x: 0, y: 0 });
@@ -667,7 +710,7 @@ export default function MainApp() {
         if (currentPrayer.id === 'cartas') {
           return <div className="p-4">{renderCategory()}</div>;
         }
-        if (currentPrayer.id === 'lectura-espiritual-container') {
+        if (currentPrayer.id === 'lectura-espiritual-audios') {
           const spiritualAudios = [
             { title: 'Discurso San Josemaría', src: '/media/Discurso San Josemaría.mp3' },
             { title: 'Discurso San Juan Pablo II', src: '/media/Discurso San Juan Pablo II.mp3' },
@@ -697,13 +740,6 @@ export default function MainApp() {
                   ))}
                 </div>
               </div>
-              <PrayerList
-                prayers={currentPrayer.prayers!}
-                onSelectPrayer={handleSelectPrayer}
-                onOpenPrayerById={handleOpenPrayerById}
-                categoryId={currentPrayer.id || ''}
-                prayerPathLength={prayerPath.length}
-              />
             </div>
           );
         }
@@ -1023,7 +1059,14 @@ export default function MainApp() {
         : undefined;
 
   return (
-    <div className={cn("h-full w-full text-foreground relative", navState.activeView === 'home' ? "bg-transparent" : "bg-background")}>
+    <div className={cn(
+      "h-full w-full text-foreground relative flex flex-col",
+      navState.activeView === 'home' ? "bg-transparent" : "bg-background"
+    )}>
+      {/* Safe Area Overlays for Fullscreen Mode */}
+      <div className="fixed top-0 inset-x-0 h-[env(safe-area-inset-top)] bg-background z-[100] pointer-events-none" />
+      <div className="fixed bottom-0 inset-x-0 h-[env(safe-area-inset-bottom)] bg-background z-[100] pointer-events-none" />
+
       {isSeason && !hasViewedAnnuum && navState.activeView === 'home' && (
         <div
           className="absolute z-40 cursor-pointer animate-in fade-in zoom-in duration-500 hover:scale-110 transition-transform"
@@ -1152,6 +1195,75 @@ export default function MainApp() {
           <AlertDialogAction onClick={() => setShowTimerFinishedAlert(false)}>
             Aceptar
           </AlertDialogAction>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showErrorReport} onOpenChange={setShowErrorReport}>
+        <AlertDialogContent className="max-w-[90vw] sm:max-w-md rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-center font-headline text-xl">Reporte de error</AlertDialogTitle>
+            <AlertDialogDescription className="text-center pt-2">
+              ¿Detectaste algún fallo en Cotidie? <br/>
+              Selecciona una vía para informar al desarrollador:
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="grid grid-cols-3 gap-4 py-6">
+            <button
+              onClick={() => {
+                window.location.href = "mailto:balcaldegm@gmail.com?subject=Reporte de error";
+                setShowErrorReport(false);
+              }}
+              className="flex flex-col items-center gap-2 group transition-transform active:scale-95"
+            >
+              <div className="size-14 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-600 group-hover:bg-blue-500/20 transition-colors">
+                <Icon.Mail className="size-7" />
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Email</span>
+            </button>
+
+            <button
+              onClick={() => {
+                window.location.href = "https://wa.me/56981899137?text=Reporte%20de%20error:";
+                setShowErrorReport(false);
+              }}
+              className="flex flex-col items-center gap-2 group transition-transform active:scale-95"
+            >
+              <div className="size-14 rounded-2xl bg-green-500/10 flex items-center justify-center text-green-600 group-hover:bg-green-500/20 transition-colors">
+                <Icon.MessageCircle className="size-7" />
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">WhatsApp</span>
+            </button>
+
+            <button
+              onClick={() => {
+                const username = 'benja_alcalde';
+                const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+                if (isMobile) {
+                  // Direct message intent if possible, else profile
+                  window.location.href = `https://ig.me/m/${username}`;
+                } else {
+                  window.open(`https://instagram.com/${username}`, '_blank');
+                }
+                setShowErrorReport(false);
+              }}
+              className="flex flex-col items-center gap-2 group transition-transform active:scale-95"
+            >
+              <div className="size-14 rounded-2xl bg-pink-500/10 flex items-center justify-center text-pink-600 group-hover:bg-pink-500/20 transition-colors">
+                <Icon.Instagram className="size-7" />
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Instagram</span>
+            </button>
+          </div>
+
+          <div className="flex justify-center border-t pt-4">
+            <AlertDialogAction
+              onClick={() => setShowErrorReport(false)}
+              className="bg-secondary text-secondary-foreground hover:bg-secondary/80 border-0 shadow-none px-8"
+            >
+              Cancelar
+            </AlertDialogAction>
+          </div>
         </AlertDialogContent>
       </AlertDialog>
 

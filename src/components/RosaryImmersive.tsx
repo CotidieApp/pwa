@@ -281,7 +281,7 @@ export default function RosaryImmersive({
   mysteryGroup: initialGroup,
   mysteryContent: initialContent,
 }: ImmersiveRosaryProps) {
-  const { isDistractionFree, theme, arrowBubbleSize, navMode } = useSettings();
+  const { isDistractionFree, theme, arrowBubbleSize, navMode, prayerTextZoom } = useSettings();
   const touchNavEnabled = navMode === 'touch';
 
   const navBubbleClass = {
@@ -533,6 +533,8 @@ export default function RosaryImmersive({
   }, [jaculatorias, formatJaculatorias]);
 
   const [isSalveActive, setIsSalveActive] = useState(false);
+  const rosaryExitAdvanceRef = useRef<{ expiresAt: number } | null>(null);
+  const { toast } = useToast();
 
   const currentPreStep = preSteps[preStepIndex];
   const currentStep = sequence[currentStepIndex];
@@ -571,7 +573,17 @@ export default function RosaryImmersive({
       if (postStepIndex < postSteps.length - 1) {
         setPostStepIndex(prev => prev + 1);
       } else {
-        // onClose(); // Never close automatically
+        const now = Date.now();
+        if (rosaryExitAdvanceRef.current && now < rosaryExitAdvanceRef.current.expiresAt) {
+          rosaryExitAdvanceRef.current = null;
+          onClose();
+        } else {
+          rosaryExitAdvanceRef.current = { expiresAt: now + 3000 };
+          toast({
+            title: "Fin del Santo Rosario",
+            description: "Vuelve a avanzar para volver al menú principal.",
+          });
+        }
       }
       return;
     }
@@ -1366,6 +1378,7 @@ export default function RosaryImmersive({
 
             <div
               data-no-touch-nav
+              style={{ fontSize: `${prayerTextZoom}em` }}
               className="text-lg sm:text-xl opacity-90 leading-relaxed max-h-[35vh] overflow-y-auto px-4 scrollbar-hide w-full">
               {isPreRosaryActive
                 ? <div>{renderRosaryText(currentPreStep?.content ?? '')}</div>

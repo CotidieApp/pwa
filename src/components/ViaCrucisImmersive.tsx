@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight, X, Image as ImageIcon, Cross, Sparkles, Hear
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useSettings } from '@/context/SettingsContext';
+import { useToast } from '@/hooks/use-toast';
 import { viaCrucis } from '@/lib/prayers/plan-de-vida/via-crucis';
 import ImmersivePrayerIndexOverlay, { type ImmersiveIndexSection } from '@/components/immersive/ImmersivePrayerIndexOverlay';
 
@@ -36,7 +37,7 @@ type ImmersiveViaCrucisProps = {
 };
 
 export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps) {
-  const { isDistractionFree, theme, arrowBubbleSize, navMode } = useSettings();
+  const { isDistractionFree, theme, arrowBubbleSize, navMode, prayerTextZoom } = useSettings();
   const touchNavEnabled = navMode === 'touch';
 
   const navBubbleClass = {
@@ -70,6 +71,8 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
 
   const [phase, setPhase] = useState<'intro' | 'stations' | 'outro'>('intro');
   const [outroStepIndex, setOutroStepIndex] = useState(0);
+  const viaCrucisExitAdvanceRef = useRef<{ expiresAt: number } | null>(null);
+  const { toast } = useToast();
 
   const [showBackground, setShowBackground] = useState(true);
   const [navPos, setNavPos] = useState<{ x: number; y: number } | null>(null);
@@ -215,7 +218,17 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
       if (outroStepIndex < outroData.length - 1) {
         setOutroStepIndex(prev => prev + 1);
       } else {
-        onClose();
+        const now = Date.now();
+        if (viaCrucisExitAdvanceRef.current && now < viaCrucisExitAdvanceRef.current.expiresAt) {
+          viaCrucisExitAdvanceRef.current = null;
+          onClose();
+        } else {
+          viaCrucisExitAdvanceRef.current = { expiresAt: now + 3000 };
+          toast({
+            title: "Fin del Vía Crucis",
+            description: "Vuelve a avanzar para volver al menú principal.",
+          });
+        }
       }
     }
   };
@@ -422,6 +435,7 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
         {/* Content Text */}
         <div
           data-no-touch-nav
+          style={{ fontSize: `${prayerTextZoom}em` }}
           className="text-lg sm:text-xl opacity-90 leading-relaxed px-4 max-h-[30vh] overflow-y-auto scrollbar-hide overscroll-contain">
           {mainText}
         </div>

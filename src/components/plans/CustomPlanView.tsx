@@ -367,13 +367,27 @@ export default function CustomPlanView({ slot, onOpenPrayerId, onOpenPlanPrayerA
       >
         <ArrowDown className={arrowIconClass} />
       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeCustomPlanPrayerAt(slot, index)}
-                      >
-                        <Trash2 />
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="hover:text-destructive"
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>¿Quitar de la lista?</AlertDialogTitle>
+                            <AlertDialogDescription>Esta oración se quitará de este plan personalizado.</AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => removeCustomPlanPrayerAt(slot, index)}>Quitar</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   )}
                 </div>

@@ -5,6 +5,7 @@ import android.appwidget.AppWidgetManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Bundle;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -40,7 +41,8 @@ public final class SaintWidgetUpdater {
 
         int[] smallIds = manager.getAppWidgetIds(new ComponentName(context, SaintWidgetSmallProvider.class));
         for (int id : smallIds) {
-            RemoteViews views = buildSmallViews(context, content);
+            Bundle options = manager.getAppWidgetOptions(id);
+            RemoteViews views = buildSmallViews(context, content, options);
             manager.updateAppWidget(id, views);
         }
     }
@@ -110,10 +112,10 @@ public final class SaintWidgetUpdater {
         }
     }
 
-    private static RemoteViews buildSmallViews(Context context, SaintWidgetContent content) {
+    private static RemoteViews buildSmallViews(Context context, SaintWidgetContent content, Bundle options) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_saint_small);
         applyCommon(context, views, content);
-        applyLegacySmallWidgetFormat(views, content);
+        applyLegacySmallWidgetFormat(views, content, options);
         return views;
     }
 
@@ -220,14 +222,20 @@ public final class SaintWidgetUpdater {
         return 4;
     }
 
-    private static void applyLegacySmallWidgetFormat(RemoteViews views, SaintWidgetContent content) {
-        views.setInt(R.id.widget_saint_name, "setMaxLines", 2);
+    private static void applyLegacySmallWidgetFormat(RemoteViews views, SaintWidgetContent content, Bundle options) {
+        int minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0);
+        boolean isSmallHeight = minHeight > 0 && minHeight < 100;
+
+        views.setInt(R.id.widget_saint_name, "setMaxLines", isSmallHeight ? 1 : 2);
+
         if (content.bio == null || content.bio.trim().isEmpty()) {
             views.setViewVisibility(R.id.widget_saint_bio, View.GONE);
             return;
         }
+
         views.setViewVisibility(R.id.widget_saint_bio, View.VISIBLE);
-        views.setInt(R.id.widget_saint_bio, "setMaxLines", 5);    }
+        views.setInt(R.id.widget_saint_bio, "setMaxLines", isSmallHeight ? 2 : 5);
+    }
 
     private static int dpToPx(Context context, int dp) {
         float density = context.getResources().getDisplayMetrics().density;

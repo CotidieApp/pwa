@@ -14,6 +14,17 @@ import { Share } from '@capacitor/share';
 import { Prayer } from '@/lib/types';
 import { generateSaintsICS } from '@/lib/ics-generator';
 import { isAnnuumSeason } from '@/lib/movable-feasts';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface ContentSettingsProps {
   onShowAnnuum?: () => void;
@@ -210,104 +221,34 @@ export default function ContentSettings({ onShowAnnuum }: ContentSettingsProps) 
     event.target.value = '';
   };
 
-  const daySpecificPrayers = allPrayers.filter((p): p is Prayer & { id: string } => (p.showOnDay !== undefined || p.isDaySpecific === true) && !!p.id);
-  const daysOfWeek = ['Domingos', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábados'];
-
-  const getPrayerDisplayName = (prayerId: string) => {
-    const prayer = daySpecificPrayers.find(p => p.id === prayerId);
-    return prayer?.title || 'Oración sin título';
-  };
-
-  const isSeason = useMemo(() => {
-    if (forceAnnuumSeason) return true;
-    const now = simulatedDate ? new Date(simulatedDate) : new Date();
-    return isAnnuumSeason(now);
-  }, [simulatedDate, forceAnnuumSeason]);
-
-  return (
-    <div className="space-y-6 animate-in fade-in-0 duration-500">
-      {isSeason && hasViewedAnnuum && onShowAnnuum && (
-        <Card className="bg-gradient-to-br from-yellow-500/10 to-amber-500/10 border-yellow-500/20">
-            <CardHeader>
-                <CardTitle className="font-headline text-base flex items-center gap-2">
-                    <span>✨</span> Resumen del Año
-                </CardTitle>
-            </CardHeader>
-            <CardContent>
-                <Button 
-                    onClick={onShowAnnuum} 
-                    className="w-full bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-600 hover:to-amber-700 text-white border-0 shadow-lg shadow-yellow-500/20"
-                >
-                    <Icon.Play className="mr-2 h-4 w-4 fill-current" />
-                    Ver Cotidie Annuum {new Date().getFullYear()}
-                </Button>
-                <p className="text-xs text-muted-foreground mt-2 text-center">
-                    Revive tus momentos de oración de este año.
-                </p>
-            </CardContent>
-        </Card>
-      )}
-
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline text-base">Visibilidad de Oraciones</CardTitle>
+          <CardTitle className="font-headline text-base">Mis Datos y Respaldo</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {daySpecificPrayers.map((prayer) => (
-            <div key={prayer.id} className="flex items-center justify-between">
-              <Label htmlFor={`show-prayer-${prayer.id}`} className="flex flex-col gap-1 text-sm">
-                <span>{getPrayerDisplayName(prayer.id)}</span>
-                {prayer.showOnDay !== undefined && prayer.showOnDay < 7 && (
-                  <span className="text-xs text-muted-foreground">
-                    Originalmente solo los {daysOfWeek[prayer.showOnDay]}
-                  </span>
-                )}
-                 {prayer.id === 'mes-de-maria' ? (
-                  <span className="text-xs text-muted-foreground">
-                    Visible por defecto del 8 de noviembre al 8 de diciembre
-                  </span>
-                ) : prayer.id === 'cartas' ? (
-                  <span className="text-xs text-muted-foreground">
-                    Visible por defecto
-                  </span>
-                ) : prayer.isDaySpecific && prayer.showOnDay === undefined ? (
-                  <span className="text-xs text-muted-foreground">
-                    Oculto por defecto
-                  </span>
-                ) : null}
-              </Label>
-              <Switch
-                id={`show-prayer-${prayer.id}`}
-                checked={alwaysShowPrayers.includes(prayer.id)}
-                onCheckedChange={() => toggleAlwaysShowPrayer(prayer.id)}
-              />
-            </div>
-          ))}
-        </CardContent>
-         <CardFooter>
-          <p className="text-xs text-muted-foreground">
-            Activa el interruptor para mostrar siempre la oración, independientemente del día.
-          </p>
-        </CardFooter>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-headline text-base">Exportación de Datos</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
              <div className="space-y-2">
-                <Button onClick={handleExport} variant="outline" className="w-full justify-start">
-                    <Icon.Download className="mr-2 h-4 w-4" />
-                    Exportar Copia de Seguridad
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Icon.Download className="size-4 text-primary" />
+                  <span>Copia de seguridad</span>
+                </div>
+                <Button onClick={handleExport} variant="outline" className="w-full justify-start h-auto py-3 px-4">
+                    <div className="text-left">
+                      <div className="text-sm font-semibold">Exportar archivo .ctd</div>
+                      <p className="text-[10px] text-muted-foreground">Guarda oraciones, devociones, cartas y ajustes.</p>
+                    </div>
                 </Button>
-                <p className="text-xs text-muted-foreground ml-2">Guarda tus oraciones, devociones y cartas en un archivo .ctd.</p>
              </div>
 
              <div className="space-y-2">
-                <Button onClick={handleImportClick} variant="outline" className="w-full justify-start">
-                    <Icon.Upload className="mr-2 h-4 w-4" />
-                    Importar Copia de Seguridad
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Icon.Upload className="size-4 text-primary" />
+                  <span>Restaurar datos</span>
+                </div>
+                <Button onClick={handleImportClick} variant="outline" className="w-full justify-start h-auto py-3 px-4">
+                    <div className="text-left">
+                      <div className="text-sm font-semibold">Importar archivo .ctd</div>
+                      <p className="text-[10px] text-muted-foreground">Carga un respaldo previamente exportado.</p>
+                    </div>
                 </Button>
                 <input
                   id="import-data-file"
@@ -319,37 +260,74 @@ export default function ContentSettings({ onShowAnnuum }: ContentSettingsProps) 
                   className="hidden"
                   aria-label="Importar archivo de respaldo"
                 />
-                 <p className="text-xs text-muted-foreground ml-2">Restaura datos desde un archivo .ctd o .json previamente exportado.</p>
              </div>
 
-             <div className="space-y-2 pt-2 border-t">
-                <Button onClick={() => handleExportCalendar()} variant="outline" className="w-full justify-start">
-                    <Icon.Calendar className="mr-2 h-4 w-4" />
-                    Descargar Santoral Completo (.ics)
+             <div className="space-y-2 pt-4 border-t">
+                <div className="flex items-center gap-2 text-sm font-medium mb-1">
+                  <Icon.Calendar className="size-4 text-primary" />
+                  <span>Exportación de Santoral</span>
+                </div>
+                <Button onClick={() => handleExportCalendar()} variant="outline" className="w-full justify-start h-auto py-3 px-4">
+                    <div className="text-left">
+                      <div className="text-sm font-semibold">Calendario Completo (.ics)</div>
+                      <p className="text-[10px] text-muted-foreground">Todos los santos del año para Google/Outlook.</p>
+                    </div>
                 </Button>
                 <div className="flex gap-2">
-                    <Button onClick={() => handleExportCalendar(1)} variant="ghost" size="sm" className="flex-1 text-xs h-8">
+                    <Button onClick={() => handleExportCalendar(1)} variant="ghost" size="sm" className="flex-1 text-[10px] h-8 border border-dashed">
                         1º Semestre (Ene-Jun)
                     </Button>
-                    <Button onClick={() => handleExportCalendar(2)} variant="ghost" size="sm" className="flex-1 text-xs h-8">
+                    <Button onClick={() => handleExportCalendar(2)} variant="ghost" size="sm" className="flex-1 text-[10px] h-8 border border-dashed">
                         2º Semestre (Jul-Dic)
                     </Button>
                 </div>
-                <p className="text-xs text-muted-foreground ml-2">
-                    Añade los santos del año a tu calendario. Si falla la importación completa, intenta por semestres.
-                </p>
              </div>
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-headline text-base">Visibilidad en Listas</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-[11px] text-muted-foreground italic mb-2">
+            * Activa para mostrar siempre, aunque no corresponda al día de hoy.
+          </p>
+          <div className="grid gap-3">
+            {daySpecificPrayers.map((prayer) => (
+              <div key={prayer.id} className="flex items-center justify-between p-3 rounded-lg border bg-muted/20">
+                <Label htmlFor={`show-prayer-${prayer.id}`} className="flex flex-col gap-0.5 text-sm cursor-pointer flex-1">
+                  <span className="font-medium">{getPrayerDisplayName(prayer.id)}</span>
+                  {prayer.showOnDay !== undefined && prayer.showOnDay < 7 && (
+                    <span className="text-[10px] text-muted-foreground">
+                      Solo {daysOfWeek[prayer.showOnDay]}
+                    </span>
+                  )}
+                  {prayer.id === 'mes-de-maria' && (
+                    <span className="text-[10px] text-muted-foreground">
+                      8 Nov - 8 Dic
+                    </span>
+                  )}
+                </Label>
+                <Switch
+                  id={`show-prayer-${prayer.id}`}
+                  checked={alwaysShowPrayers.includes(prayer.id)}
+                  onCheckedChange={() => toggleAlwaysShowPrayer(prayer.id)}
+                />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
       {isDeveloperMode && (
-        <Card>
+        <Card className="border-red-500/20 bg-red-500/5">
           <CardHeader>
-            <CardTitle className="text-base">Control de Contenido (Avanzado)</CardTitle>
+            <CardTitle className="text-base text-red-600 dark:text-red-400">Control de Contenido (Avanzado)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
-              <Label htmlFor="edit-mode-switch" className="flex flex-col gap-1">
+              <Label htmlFor="edit-mode-switch" className="flex flex-col gap-1 cursor-pointer">
                 <span>Habilitar Edición y Eliminación</span>
                 <span className="text-xs font-normal text-muted-foreground">Permite editar y borrar todas las oraciones.</span>
               </Label>
@@ -360,14 +338,26 @@ export default function ContentSettings({ onShowAnnuum }: ContentSettingsProps) 
               />
             </div>
             
-            <Button
-              onClick={restoreAllPredefinedPrayers}
-              variant="outline"
-              className="w-full"
-            >
-              <Icon.RotateCcw className="mr-2 size-4" />
-              Restaurar oraciones predeterminadas
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" className="w-full border-red-200 hover:bg-red-50 dark:border-red-900/50 dark:hover:bg-red-950/20">
+                  <Icon.RotateCcw className="mr-2 size-4" />
+                  Restaurar oraciones predeterminadas
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Restaurar todo?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Se perderán todas las ediciones hechas sobre oraciones predeterminadas y volverán a mostrarse las ocultas. Las oraciones creadas por ti no se verán afectadas.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={restoreAllPredefinedPrayers}>Restaurar</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </CardContent>
         </Card>
       )}

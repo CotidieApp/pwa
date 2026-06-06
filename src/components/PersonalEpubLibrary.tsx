@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import EpubReader from '@/components/EpubReader';
+import { Trash2, BookOpen } from 'lucide-react';
 
 type StoredPersonalEpubMeta = {
   id: string;
@@ -152,19 +153,33 @@ export default function PersonalEpubLibrary() {
           <p className="text-sm text-muted-foreground">Aún no has agregado EPUBs personales.</p>
         ) : (
           epubs.map((item) => (
-            <div key={item.id} className="rounded-md border border-border p-3 flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <div className="text-sm font-medium truncate">{item.name}</div>
-                <div className="text-xs text-muted-foreground">
+            <div
+              key={item.id}
+              className="rounded-md border border-border p-3 flex items-center justify-between gap-2 cursor-pointer hover:bg-muted/50 transition-colors"
+              onClick={() => onOpen(item.id)}
+            >
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium truncate flex items-center gap-2">
+                  <BookOpen className="size-3 text-muted-foreground shrink-0" />
+                  {item.name}
+                </div>
+                <div className="text-xs text-muted-foreground ml-5">
                   {new Date(item.updatedAt).toLocaleString()} · {Math.max(1, Math.round(item.sizeBytes / 1024 / 1024))}MB
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Button size="sm" variant="outline" onClick={() => onOpen(item.id)}>
-                  Abrir
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => onDelete(item.id)}>
-                  Eliminar
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-destructive hover:bg-destructive/10 hover:text-destructive shrink-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (window.confirm('¿Estás seguro de que deseas eliminar este libro?')) {
+                      onDelete(item.id);
+                    }
+                  }}
+                >
+                  <Trash2 className="size-4" />
                 </Button>
               </div>
             </div>

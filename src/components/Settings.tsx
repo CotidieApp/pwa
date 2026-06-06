@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import * as Icon from 'lucide-react';
 
-type SettingsTab = 'visual' | 'alertas' | 'datos' | 'otros';
+type SettingsTab = 'datos' | 'alertas' | 'visual' | 'otros';
 
 interface SettingsProps {
   onOpenDeveloperDashboard?: () => void;
@@ -17,13 +17,13 @@ interface SettingsProps {
 }
 
 export default function Settings({ onOpenDeveloperDashboard, onShowAnnuum }: SettingsProps) {
-  const [activeTab, setActiveTab] = useState<SettingsTab>('visual');
+  const [activeTab, setActiveTab] = useState<SettingsTab>('datos');
   const containerRef = useRef<HTMLDivElement>(null);
 
   const tabs: { id: SettingsTab; label: string; icon: React.ElementType }[] = [
-    { id: 'visual', label: 'Visual', icon: Icon.Palette },
+    { id: 'datos', label: 'Contenido', icon: Icon.BookOpen },
     { id: 'alertas', label: 'Alertas', icon: Icon.Bell },
-    { id: 'datos', label: 'Datos', icon: Icon.Database },
+    { id: 'visual', label: 'Apariencia', icon: Icon.Palette },
     { id: 'otros', label: 'Otros', icon: Icon.Settings2 },
   ];
 
@@ -74,9 +74,7 @@ export default function Settings({ onOpenDeveloperDashboard, onShowAnnuum }: Set
 
     if (isLeftSwipe && activeIndex < tabs.length - 1) {
         setActiveTab(tabs[activeIndex + 1].id);
-    }
-
-    if (isRightSwipe && activeIndex > 0) {
+    } else if (isRightSwipe && activeIndex > 0) {
         setActiveTab(tabs[activeIndex - 1].id);
     }
 

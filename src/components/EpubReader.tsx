@@ -259,7 +259,7 @@ export default function EpubReader({
   sourceBase64 = null,
   context = 'nt',
 }: EpubReaderProps) {
-  const { theme, pushDevLiveTrace } = useSettings();
+  const { theme, pushDevLiveTrace, prayerTextZoom } = useSettings();
   useScreenWakeLock(true);
   const isNtContext = context === 'nt';
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -1089,7 +1089,11 @@ export default function EpubReader({
         className="relative rounded-lg border border-border bg-card/40 overflow-hidden flex-1 min-h-0"
         style={{ height: isReaderFullscreen ? undefined : '78vh' }}
       >
-        <div ref={containerRef} className="h-full w-full" />
+        <div
+          ref={containerRef}
+          className="h-full w-full"
+          style={{ fontSize: `${prayerTextZoom}em` }}
+        />
         {isReaderFullscreen ? <div className="pointer-events-none absolute inset-0 z-[5] bg-black/28" /> : null}
         <div className="absolute inset-0 z-[30]">
           <button

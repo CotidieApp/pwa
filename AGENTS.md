@@ -85,6 +85,79 @@ Historial de intervenciones del asistente en el repo.
 - `src/lib/prayers/oraciones/exposicion-bendicion.ts`
 - `AGENTS.md`
 
+### [2026-06-05 12:15] 233. Refuerzo de importación, UI de oraciones y ajustes
+**Planificación:**
+- Corregir el flujo de importación de archivos `.ctd` asegurando que los cambios se apliquen y notifiquen correctamente.
+- Ajustar el encuadre de oraciones estructurales y el diseño de bloques de texto cortos.
+- Garantizar el respeto a las safe areas en modo pantalla completa.
+- Corregir el pinch-to-zoom para que afecte solo al texto de la oración.
+- Reorganizar y pulir la sección de Ajustes con gestos más naturales.
+- Implementar confirmaciones de eliminación en toda la app.
+- Añadir detección experimental de agitación (shake) para abrir oraciones al azar.
+
+**Ejecución:**
+- **Importación**: Se robustecieron los validadores de payload en `SettingsContext.tsx` y se mejoraron las trazas y notificaciones de éxito/duplicado.
+- **Encuadre**: Se configuró `object-position: top` para Padre Nuestro, Ave María, Gloria y Credo en `lib/image-display.ts`.
+- **UI de Oraciones**: `PrayerDetail.tsx` ahora usa `h-fit` y `max-h-full` para que el marco del texto no ocupe toda la pantalla en oraciones breves. Se aplicó `env(safe-area-inset-*)` para proteger el contenido en modo inmersivo.
+- **Zoom**: Se migró la lógica de pinch-to-zoom de `fontSize` global a `prayerTextZoom` específico de la oración.
+- **Audios**: Se movió el reproductor de audio a una subsección dedicada "Audios" dentro de Lectura Espiritual.
+- **EPUB**: Se eliminó el botón "Abrir" (ahora es por toque en tarjeta), se añadió ícono de basura rojo y confirmación de borrado.
+- **Confirmaciones**: Se integró `AlertDialog` en todas las acciones de eliminación (citas, fondos, planes, oraciones).
+- **Ajustes**: Se reordenaron las pestañas (Contenido, Alertas, Apariencia, Otros) y se refinó la sensibilidad del swipe horizontal.
+- **Shake**: Se implementó un detector de agitación en `MainApp.tsx` que abre una oración aleatoria cuando está habilitado.
+- **Navegación**: El fin de Rosario y Vía Crucis inmersivos ahora requiere doble avance para volver a Plan de Vida.
+
+**Validación:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- Verificación de lógica de importación y gestos: OK.
+
+**Archivos Modificados:**
+- `src/lib/image-display.ts`
+- `src/context/SettingsContext.tsx`
+- `src/components/main/MainApp.tsx`
+- `src/components/PrayerDetail.tsx`
+- `src/components/PersonalEpubLibrary.tsx`
+- `src/components/settings/AppearanceSettings.tsx`
+- `src/components/settings/ContentSettings.tsx`
+- `src/components/settings/DeveloperSettings.tsx`
+- `src/components/settings/NotificationSettings.tsx`
+- `src/components/plans/CustomPlanView.tsx`
+- `src/components/RosaryImmersive.tsx`
+- `src/components/ViaCrucisImmersive.tsx`
+- `src/components/Settings.tsx`
+- `src/lib/data.tsx`
+- `android/app/src/main/res/xml/widget_saint_small.xml`
+- `android/app/src/main/res/layout/widget_saint_small.xml`
+- `android/app/src/main/res/layout/widget_saint_small.xml`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java`
+- `AGENTS.md`
+
+### [2026-06-05 12:25] 235. Widget chico: visibilidad permanente de nombre y biografía en 2x1
+**Planificación:**
+- Asegurar que tanto el nombre del santo como su biografía sean visibles siempre en el widget pequeño, incluso en el tamaño mínimo de 2x1.
+- Ajustar la lógica adaptativa para reducir líneas en lugar de ocultar componentes.
+
+**Ejecución:**
+- **Lógica en Java**: Se modificó `SaintWidgetUpdater.java` para eliminar el ocultamiento de la biografía cuando el widget tiene poca altura. En su lugar, cuando el widget es de una sola fila (2x1), ahora limita el nombre a 1 línea y la biografía a 2 líneas, garantizando que ambos elementos compartan el espacio disponible.
+- **Layout**: Se mantiene el uso de auto-dimensionamiento de texto en el XML para maximizar la legibilidad en espacios reducidos.
+
+**Validación:**
+- Verificación de lógica de líneas en Java: OK. Both name and bio remain visible.
+
+**Archivos Modificados:**
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java`
+- `AGENTS.md`
+
+**Validación:**
+- Revisión manual de dimensiones XML: OK.
+- Verificación de lógica de ocultamiento en Java: OK.
+
+**Archivos Modificados:**
+- `android/app/src/main/res/xml/widget_saint_small.xml`
+- `android/app/src/main/res/layout/widget_saint_small.xml`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java`
+- `AGENTS.md`
+
 ### [2026-06-05 11:55] 232. Corrección de errores en recursos XML de Widget
 **Planificación:**
 - Investigar y corregir los errores reportados en `widget_bg_round.xml` y `widget_saint_small.xml`.

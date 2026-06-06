@@ -331,8 +331,8 @@ const PrayerContent = ({
     scrollPositions,
     theme,
     pinchToZoomEnabled,
-    fontSize,
-    setFontSize,
+    prayerTextZoom,
+    setPrayerTextZoom,
     prayerLanguagePreferences,
     setPrayerLanguagePreference,
   } = useSettings();
@@ -340,7 +340,7 @@ const PrayerContent = ({
 
   // Pinch-to-zoom logic
   const [initialDistance, setInitialDistance] = useState<number | null>(null);
-  const [initialFontSize, setInitialFontSize] = useState<number | null>(null);
+  const [initialZoom, setInitialZoom] = useState<number | null>(null);
 
   useEffect(() => {
     const el = scrollContainerRef?.current;
@@ -348,19 +348,19 @@ const PrayerContent = ({
 
     const handleTouchStart = (e: TouchEvent) => {
       if (e.touches.length === 2) {
-        e.preventDefault(); // Prevent default browser zoom/scroll behavior
+        // Only prevent default if we're actually starting a pinch
         const d = Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,
           e.touches[0].clientY - e.touches[1].clientY
         );
         setInitialDistance(d);
-        setInitialFontSize(fontSize);
+        setInitialZoom(prayerTextZoom);
       }
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (e.touches.length === 2 && initialDistance !== null && initialFontSize !== null) {
-        e.preventDefault(); // Prevent default browser zoom/scroll behavior
+      if (e.touches.length === 2 && initialDistance !== null && initialZoom !== null) {
+        e.preventDefault(); // Prevent default browser zoom
         const d = Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,
           e.touches[0].clientY - e.touches[1].clientY
@@ -369,22 +369,21 @@ const PrayerContent = ({
         // Calculate scale factor
         const scale = d / initialDistance;
 
-        // New font size
-        let newSize = initialFontSize * scale;
+        // New zoom
+        let newZoom = initialZoom * scale;
 
-        // Clamp
-        newSize = Math.max(10, Math.min(newSize, 40));
+        // Clamp between 0.5 and 2.0 (same as SettingsContext normalization)
+        newZoom = Math.max(0.5, Math.min(newZoom, 2.0));
 
-        setFontSize(Math.round(newSize));
+        setPrayerTextZoom(newZoom);
       }
     };
 
     const handleTouchEnd = () => {
       setInitialDistance(null);
-      setInitialFontSize(null);
+      setInitialZoom(null);
     };
 
-    // Use { passive: false } to allow preventDefault()
     el.addEventListener('touchstart', handleTouchStart, { passive: false });
     el.addEventListener('touchmove', handleTouchMove, { passive: false });
     el.addEventListener('touchend', handleTouchEnd);
@@ -394,7 +393,7 @@ const PrayerContent = ({
       el.removeEventListener('touchmove', handleTouchMove);
       el.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [pinchToZoomEnabled, initialDistance, initialFontSize, fontSize, setFontSize, scrollContainerRef]);
+  }, [pinchToZoomEnabled, initialDistance, initialZoom, prayerTextZoom, setPrayerTextZoom, scrollContainerRef]);
 
   const themeMode: 'light' | 'dark' = theme === 'dark' ? 'dark' : 'light';
   const prayerId: string = prayer.id ?? '';
@@ -491,7 +490,10 @@ const PrayerContent = ({
   if (typeof prayer.content === 'string') {
     const { term = '', activeIndex = -1 } = searchState || {};
     return (
-      <div className="text-foreground/90 leading-relaxed touch-pan-y">
+      <div
+        className="text-foreground/90 leading-relaxed touch-pan-y"
+        style={{ fontSize: `${prayerTextZoom}em` }}
+      >
         {isCamino
           ? renderCaminoLines(prayer.content, term, activeIndex, themeMode)
           : term
@@ -536,7 +538,10 @@ const PrayerContent = ({
             </Button>
           )}
         </div>
-        <div className="text-foreground/90 leading-relaxed">
+        <div
+          className="text-foreground/90 leading-relaxed"
+          style={{ fontSize: `${prayerTextZoom}em` }}
+        >
           {renderText(displayedContent)}
         </div>
       </div>
@@ -578,7 +583,12 @@ export default function PrayerDetail({
   const objectPosition = getImageObjectPosition(prayer.id);
 
   return (
-    <div className={cn('flex min-h-0 flex-col h-full bg-background', isDistractionFree ? 'py-20' : 'p-0')}>
+    <div className={cn(
+      'flex min-h-0 flex-col h-full bg-background',
+      isDistractionFree
+        ? 'pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] px-0'
+        : 'p-0'
+    )}>
       {prayer.imageUrl && (
         <div className="bg-background px-4 py-4 shrink-0 sticky top-0 z-10">
           <div
@@ -615,10 +625,10 @@ export default function PrayerDetail({
           </div>
         )}
 
-        <div className={cn("flex-1 min-h-0 flex flex-col", !isDistractionFree && "px-4 pb-4")}>
+        <div className={cn("flex-1 min-h-0 flex flex-col justify-center", !isDistractionFree && "px-4 pb-4")}>
           <Card
             className={cn(
-              'overflow-hidden border bg-card shadow-md flex-1 flex flex-col min-h-0',
+              'overflow-hidden border bg-card shadow-md flex flex-col min-h-0 max-h-full h-fit mx-auto w-full',
               isDistractionFree && 'border-0 bg-transparent shadow-none'
             )}
           >

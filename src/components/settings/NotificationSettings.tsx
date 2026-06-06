@@ -11,6 +11,17 @@ import { Combobox } from '@/components/ui/combobox';
 import * as Icon from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 export default function NotificationSettings() {
   const {
@@ -147,14 +158,27 @@ export default function NotificationSettings() {
                         checked={r.enabled}
                         onCheckedChange={(enabled) => updateDailyReminder(r.id, { enabled })}
                       />
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        onClick={() => removeDailyReminder(r.id)}
-                        aria-label="Eliminar recordatorio"
-                      >
-                        <Icon.Trash2 className="h-4 w-4" />
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            aria-label="Eliminar recordatorio"
+                          >
+                            <Icon.Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>¿Eliminar recordatorio?</AlertDialogTitle>
+                            <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => removeDailyReminder(r.id)}>Eliminar</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
 

@@ -266,6 +266,9 @@ type Settings = {
   smallWidgetMode: SmallWidgetMode;
   setSmallWidgetMode: (mode: SmallWidgetMode) => void;
 
+  shakeToOpenEnabled: boolean;
+  setShakeToOpenEnabled: (enabled: boolean) => void;
+
   userHomeBackgrounds: ImagePlaceholder[];
   allHomeBackgrounds: ImagePlaceholder[];
 
@@ -331,7 +334,8 @@ const isCustomPlanPayload = (data: any): data is Partial<CustomPlan> & { name: s
     !!data &&
     typeof data === 'object' &&
     typeof data.name === 'string' &&
-    Array.isArray(data.prayerIds)
+    Array.isArray(data.prayerIds) &&
+    data.prayerIds.length > 0
   );
 };
 
@@ -345,7 +349,8 @@ const isFullAppStatePayload = (data: any): boolean => {
       typeof data.fontFamily === 'string' ||
       typeof data.timerDuration === 'number' ||
       typeof data.notificationsEnabled === 'boolean' ||
-      typeof data.isDeveloperMode === 'boolean')
+      typeof data.isDeveloperMode === 'boolean' ||
+      Array.isArray(data.customPlans))
   );
 };
 
@@ -883,6 +888,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [navMode, setNavMode] = useState<NavMode>('bubble');
   const [arrowBubbleSize, setArrowBubbleSize] = useState<ArrowBubbleSize>('sm');
   const [smallWidgetMode, setSmallWidgetMode] = useState<SmallWidgetMode>('full');
+  const [shakeToOpenEnabled, setShakeToOpenEnabled] = useState(false);
 
   const [userHomeBackgrounds, setUserHomeBackgrounds] = useState<ImagePlaceholder[]>([]);
   const [scrollPositions, setScrollPositions] = useState<{ [k: string]: number }>({});
@@ -1059,6 +1065,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setNavMode(snapshot.navMode);
     setArrowBubbleSize(snapshot.arrowBubbleSize);
     setSmallWidgetMode(snapshot.smallWidgetMode);
+    setShakeToOpenEnabled(snapshot.shakeToOpenEnabled ?? false);
     setSkipNotificationIfChecked(snapshot.skipNotificationIfChecked ?? true);
     setUserHomeBackgrounds(snapshot.userHomeBackgrounds);
     setScrollPositions(snapshot.scrollPositions);
@@ -1757,6 +1764,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const resetSettings = () => {
     setTheme('light');
     setFontSize(15);
+    setPrayerTextZoom(1);
     setHomeBackgroundId(defaultHomeBackgroundId);
     setOverlayPositions(defaultOverlayPositions);
     setNavMode('bubble');
@@ -2035,11 +2043,22 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         lastProcessedPendingImportRef.current = raw;
         window.localStorage.removeItem(PENDING_IMPORT_STORAGE_KEY);
 
+        pushDevLiveTrace({
+          level: 'info',
+          source: 'import',
+          message: 'Procesando importacion pendiente...',
+        });
+
         const parsed = JSON.parse(raw);
         const result = importUserData(parsed, { silent: true });
 
         if (result.status === 'applied' || result.status === 'duplicate') {
-          toast({ title: result.title, description: result.description });
+          toast({
+            title: result.status === 'duplicate' ? 'Sin cambios necesarios' : '¡Carga exitosa!',
+            description: result.status === 'duplicate'
+              ? 'Los datos del archivo ya están presentes en la aplicación.'
+              : (result.description || result.title)
+          });
           return;
         }
 
@@ -2048,11 +2067,12 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           title: result.title,
           description: result.description,
         });
-      } catch {
+      } catch (err) {
         pushDevLiveTrace({
           level: 'error',
           source: 'import',
           message: 'Fallo al procesar archivo compartido.',
+          data: err instanceof Error ? err.message : String(err)
         });
         toast({
           variant: 'destructive',
@@ -3491,6 +3511,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         setArrowBubbleSize,
         smallWidgetMode,
         setSmallWidgetMode,
+        shakeToOpenEnabled,
+        setShakeToOpenEnabled,
         userHomeBackgrounds,
         allHomeBackgrounds,
         addUserHomeBackground,

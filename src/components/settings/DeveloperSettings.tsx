@@ -22,6 +22,8 @@ import {
 import { cn } from '@/lib/utils';
 import { appVersion } from '@/lib/version';
 
+import { Switch } from '@/components/ui/switch';
+
 interface DeveloperSettingsProps {
   onOpenDashboard?: () => void;
 }
@@ -32,6 +34,8 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
     hardResetApp,
     isDeveloperMode,
     loginAsDeveloper,
+    shakeToOpenEnabled,
+    setShakeToOpenEnabled,
   } = useSettings();
 
   const { toast } = useToast();
@@ -175,13 +179,48 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
     <div className="space-y-6 animate-in fade-in-0 duration-500 pb-4">
       <Card>
         <CardHeader>
+          <CardTitle className="font-headline text-base">Funciones Experimentales</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="shake-switch" className="flex flex-col gap-1 cursor-pointer">
+              <span>Detectar Agitación</span>
+              <span className="text-xs font-normal text-muted-foreground">Abrir una oración al azar al sacudir el dispositivo.</span>
+            </Label>
+            <Switch
+              id="shake-switch"
+              checked={shakeToOpenEnabled}
+              onCheckedChange={setShakeToOpenEnabled}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle className="font-headline text-base">General</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-           <Button variant="outline" onClick={resetSettings}>
-            <Icon.RotateCcw className="mr-2 size-4" />
-            Restablecer ajustes
-          </Button>
+           <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline">
+                <Icon.RotateCcw className="mr-2 size-4" />
+                Restablecer ajustes
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>¿Restablecer ajustes?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Se restaurará la configuración visual, de alertas y de navegación a sus valores por defecto. Tus oraciones, devociones y cartas no se borrarán.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={resetSettings}>Restablecer</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           <Button variant="outline" onClick={handleForceUpdate}>
             <Icon.RefreshCw className="mr-2 size-4" />

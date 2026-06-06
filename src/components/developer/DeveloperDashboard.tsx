@@ -26,6 +26,7 @@ import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Quote, ImagePlaceholder } from '@/lib/types';
 import { catholicQuotes } from '@/lib/quotes';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -648,14 +649,27 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
                                 {userQuotes.map(quote => (
                                 <div key={quote.id} className="flex items-center justify-between text-sm p-2 bg-slate-900 rounded-md border border-slate-800">
                                     <span className="truncate pr-2 text-slate-300">"{quote.text.substring(0, 25)}..."</span>
-                                    <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6 text-slate-500 hover:text-red-400 hover:bg-slate-800"
-                                    onClick={() => removeUserQuote(quote.id!)}
-                                    >
-                                    <Icon.Trash2 className="h-4 w-4" />
-                                    </Button>
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-6 w-6 text-slate-500 hover:text-red-400 hover:bg-slate-800"
+                                            >
+                                                <Icon.Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent className="bg-slate-900 border-slate-800 text-slate-100">
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>¿Eliminar cita?</AlertDialogTitle>
+                                                <AlertDialogDescription className="text-slate-400">Esta acción no se puede deshacer.</AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel className="bg-slate-800 text-slate-100 border-slate-700 hover:bg-slate-700">Cancelar</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => removeUserQuote(quote.id!)} className="bg-red-600 text-white hover:bg-red-700">Eliminar</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
                                 </div>
                                 ))}
                             </div>
