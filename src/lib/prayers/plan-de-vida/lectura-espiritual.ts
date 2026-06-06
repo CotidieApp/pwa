@@ -139,7 +139,6 @@ El apostolado es servicio: el que está lleno de Dios, naturalmente comparte la 
     id: 'lectura-8',
     title: 'Texto 8: La hija de Jairo',
     categoryId: 'plan-de-vida',
-    audio: '/media/Discurso San Juan Pablo II.mp3',
     isLongText: true,
     content: `*Evangelio (Mc 5, 21-43):*
 Cuando Jesús regresó en la barca a la otra orilla, una gran multitud se reunió a su alrededor, y él se quedó junto al mar. Entonces llegó uno de los jefes de la sinagoga, llamado Jairo, y al verlo, se arrojó a sus pies, rogándole con insistencia: “Mi hijita se está muriendo; ven a imponerle las manos, para que se cure y viva”. Jesús fue con él, y lo seguía una gran multitud que lo apretaba por todos lados... (continúa hasta el final del pasaje).
@@ -231,14 +230,5 @@ En este pasaje del Evangelio, Marta es ejemplo de las tres actitudes mencionadas
 
 9.- El celular —que malvado no es— tendemos a utilizarlo de mala manera, y en ese caso es cuando se vuelve malvado para tu día.
 —¿Por qué no fuiste a Misa? ¿Será acaso que estabas muy ocupado con “algo de suma importancia”?`
-  },
-  {
-    id: 'lectura-audio',
-    title: 'Reproductor de Audio',
-    categoryId: 'plan-de-vida',
-    audio: '',
-    content: `*Reproductor de Audio*
-
-Aquí puedes escuchar audios para tu oración. Si tienes grabaciones propias, puedes añadirlas en la sección de Oraciones Personales.`
   }
 ];

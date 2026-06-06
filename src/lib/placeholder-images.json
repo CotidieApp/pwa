@@ -169,6 +169,24 @@
       "description": "Anunciación del Señor",
       "imageUrl": "/images/rosario/gozoso-1.jpg",
       "imageHint": "annunciation mary angel"
+    },
+    {
+      "id": "pentecost-image",
+      "description": "Venida del Espíritu Santo",
+      "imageUrl": "/images/pentecost.jpeg",
+      "imageHint": "pentecost spirit fire"
+    },
+    {
+      "id": "holy-trinity-image",
+      "description": "Santísima Trinidad",
+      "imageUrl": "/images/holy-trinity.jpeg",
+      "imageHint": "holy trinity"
+    },
+    {
+      "id": "corpus-christi-image",
+      "description": "Cuerpo y Sangre de Cristo",
+      "imageUrl": "/images/eucharist.jpeg",
+      "imageHint": "eucharist corpus christi"
     }
   ]
 }

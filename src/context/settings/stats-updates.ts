@@ -10,6 +10,7 @@ type AngelusKeyList = (value?: string) => string[];
 
 export const applyPlanDeVidaAggregateIncrement = (prev: UserStats, id: string): UserStats => ({
   ...prev,
+  totalPrayersOpened: (prev.totalPrayersOpened || 0) + 1,
   planDeVidaCompletedTotal: (prev.planDeVidaCompletedTotal || 0) + 1,
   planDeVidaCompletedHistory: {
     ...(prev.planDeVidaCompletedHistory || {}),
@@ -76,13 +77,7 @@ export const applyPrayerOpenIncrement = ({
   let newLastMassDate = prev.lastMassDate;
 
   const prayer = getPrayerById(subKey, allPrayers);
-  const isMassPrayer =
-    subKey === 'santa-misa' ||
-    subKey === 'antes-misa' ||
-    subKey === 'despues-misa' ||
-    subKey === 'misal' ||
-    (prayer?.categoryId === 'santa-misa') ||
-    (getRootPlanDeVidaId(subKey) === 'santa-misa');
+  const isMassPrayer = subKey === 'santa-misa';
 
   if (isMassPrayer && newLastMassDate !== todayKey) {
     const yesterday = getPastoralDayDate(eventDate);
@@ -115,7 +110,6 @@ export const applyPrayerOpenIncrement = ({
   const next: UserStats = {
     ...prev,
     prayersOpenedHistory: history,
-    totalPrayersOpened: prev.totalPrayersOpened + 1,
     massStreak: newMassStreak,
     massDaysCount: newMassDaysCount,
     morningDaysCount: newMorningDaysCount,

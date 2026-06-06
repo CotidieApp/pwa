@@ -130,16 +130,44 @@ const movableFeastsDefinitions: Record<string, MovableFeastDefinition> = {
   maryMotherOfChurch: {
     offset: 50, // Lunes siguiente a Pentecostés
     name: "María, Madre de la Iglesia",
-    bio: "Celebración en honor a María como Madre de la Iglesia, que acompaña a los fieles en su misión evangelizadora.",
+    bio: "Celebración en honor a María como Madre de la Iglesia, que acompaña a los fieles en su misión evangelizadora. Memoria instituida por el Papa Francisco.",
     title: "Memoria",
-    type: "celebration",
+    type: "marian",
   },
   christHighPriest: {
-    offset: 53,
+    offset: 53, // Jueves posterior a Pentecostés
     name: "Jesucristo, Sumo y Eterno Sacerdote",
     bio: "Solemnidad que reconoce a Jesús como sumo sacerdote, ofrecimiento perpetuo y mediador entre Dios y la humanidad.",
     title: "Solemnidad",
     type: "celebration",
+  },
+  trinity: {
+    offset: 56, // Domingo siguiente a Pentecostés
+    name: "Santísima Trinidad",
+    bio: "Solemnidad en honor al misterio central de la fe y de la vida cristiana: el misterio de Dios en sí mismo.",
+    title: "Solemnidad",
+    type: "celebration",
+  },
+  corpusChristi: {
+    offset: 63, // Domingo siguiente a la Trinidad (en Chile)
+    name: "Corpus Christi",
+    bio: "Solemnidad del Cuerpo y la Sangre de Cristo. Celebramos la presencia real de Jesús en la Eucaristía.",
+    title: "Solemnidad",
+    type: "celebration",
+  },
+  sacredHeart: {
+    offset: 68, // Viernes posterior al segundo domingo después de Pentecostés
+    name: "Sagrado Corazón de Jesús",
+    bio: "Solemnidad que nos invita a meditar sobre el amor infinito de Dios manifestado en el Corazón de su Hijo.",
+    title: "Solemnidad",
+    type: "celebration",
+  },
+  immaculateHeart: {
+    offset: 69, // Sábado posterior al Sagrado Corazón
+    name: "Inmaculado Corazón de María",
+    bio: "Memoria del Corazón de María, que guardaba todas las cosas meditándolas en su interior, ejemplo de entrega y pureza.",
+    title: "Memoria",
+    type: "marian",
   },
   christTheKing: {
     offset: 0, // Placeholder, calculated separately

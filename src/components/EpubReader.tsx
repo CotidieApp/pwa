@@ -548,16 +548,22 @@ export default function EpubReader({
             const cfi = location?.start?.cfi;
             const href = location?.start?.href;
             if (typeof cfi === 'string' && cfi.length > 0) {
+              const locationPayload = serializeStoredReaderLocation({
+                cfi,
+                ...(typeof href === 'string' && href.length > 0 ? { href } : {}),
+              });
               try {
-                window.localStorage.setItem(
-                  locationStorageKey,
-                  serializeStoredReaderLocation({
-                    cfi,
-                    ...(typeof href === 'string' && href.length > 0 ? { href } : {}),
-                  })
-                );
+                window.localStorage.setItem(locationStorageKey, locationPayload);
               } catch {}
               setCurrentCfi(cfi);
+
+              // Emit event for debug or external sync if needed
+              pushDevLiveTrace({
+                level: 'info',
+                source: 'epub-reader',
+                message: 'Ubicacion guardada.',
+                data: `cfi=${cfi.slice(0, 30)}...`,
+              });
             }
           } catch (err) {
             const message = err instanceof Error ? err.message : 'Fallo en callback relocated.';
@@ -606,8 +612,15 @@ export default function EpubReader({
 
         const savedLocation = parseStoredReaderLocation(window.localStorage.getItem(locationStorageKey));
         try {
-          await rendition.display(savedLocation?.cfi || savedLocation?.href || undefined);
-        } catch {
+          if (savedLocation?.cfi) {
+            await rendition.display(savedLocation.cfi);
+          } else if (savedLocation?.href) {
+            await rendition.display(savedLocation.href);
+          } else {
+            await rendition.display(undefined);
+          }
+        } catch (err) {
+          console.warn('Fallo al restaurar ubicacion guardada:', err);
           if (!cancelled) {
             await rendition.display(undefined).catch(() => undefined);
           }

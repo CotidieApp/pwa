@@ -59,6 +59,8 @@ export default function AddPrayerForm({
   const [finalCroppedImage, setFinalCroppedImage] = useState<string | null>(null);
   const unmountedRef = useRef(false);
 
+  const draftStorageKey = useMemo(() => `cotidie_draft_${formType}`, [formType]);
+
   const isContentEditable = useMemo(() => {
     if (!existingPrayer) return true;
     if (typeof existingPrayer.content === 'string') return true;
@@ -74,6 +76,40 @@ export default function AddPrayerForm({
     },
     mode: 'onSubmit',
   });
+
+  // === Carga de borrador al iniciar
+  useEffect(() => {
+    if (existingPrayer) return; // No cargar borrador si editamos algo existente
+
+    try {
+      const saved = window.localStorage.getItem(draftStorageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.title || parsed?.content) {
+          form.reset({
+            title: parsed.title || '',
+            content: parsed.content || '',
+            imageUrl: parsed.imageUrl || '',
+          });
+        }
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftStorageKey, existingPrayer]);
+
+  // === Guardado automático de borrador
+  useEffect(() => {
+    if (existingPrayer) return;
+
+    const interval = setInterval(() => {
+      const values = form.getValues();
+      if (values.title.trim() || values.content.trim()) {
+        window.localStorage.setItem(draftStorageKey, JSON.stringify(values));
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [draftStorageKey, existingPrayer, form]);
 
   // === Relleno / limpieza al cambiar modo o elemento
   useEffect(() => {
@@ -123,6 +159,7 @@ export default function AddPrayerForm({
     setIsSubmitting(true);
     try {
       await Promise.resolve(onSave(data));
+      window.localStorage.removeItem(draftStorageKey);
       form.reset({ title: '', content: '', imageUrl: '' });
       if (!unmountedRef.current) {
         onCancel();
@@ -254,10 +291,26 @@ export default function AddPrayerForm({
                           Seleccionar imagen
                         </label>
                       </Button>
-                      {selectedImageFileName ? (
-                        <p className="text-xs text-muted-foreground font-body break-all">
-                          {selectedImageFileName} {finalCroppedImage ? '(Recortada)' : ''}
-                        </p>
+                      {field.value || selectedImageFileName ? (
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs text-muted-foreground font-body break-all flex-1">
+                            {selectedImageFileName || 'Imagen cargada'} {finalCroppedImage ? '(Recortada)' : ''}
+                          </p>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive"
+                            onClick={() => {
+                              field.onChange('');
+                              setSelectedImageFileName(null);
+                              setFinalCroppedImage(null);
+                              setImageToCrop(null);
+                            }}
+                          >
+                            <Icon.Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       ) : null}
                     </div>
                   </FormControl>

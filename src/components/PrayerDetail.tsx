@@ -611,41 +611,6 @@ export default function PrayerDetail({
                   Selecciona un audio para escuchar
                 </div>
               )}
-
-              {prayer.id === 'lectura-audio' && (
-                <div className="mt-2 space-y-2">
-                  <div className="flex flex-col gap-1">
-                    {predefinedAudios.map((audio, idx) => (
-                      <Button
-                        key={idx}
-                        variant="ghost"
-                        size="sm"
-                        className={cn(
-                          'w-full justify-start text-left',
-                          localAudioSrc === audio.src && 'border-primary bg-primary/5 text-primary'
-                        )}
-                        onClick={() => setLocalAudioSrc(audio.src)}
-                      >
-                        <Icon.Play className="mr-2 h-4 w-4" />
-                        {audio.title}
-                      </Button>
-                    ))}
-                  </div>
-
-                  <div className="border-t pt-2">
-                    <Label htmlFor="audio-upload" className="mb-2 block text-sm font-medium">
-                      O subir archivo personal (.mp3)
-                    </Label>
-                    <Input
-                      id="audio-upload"
-                      type="file"
-                      accept="audio/*"
-                      onChange={handleFileUpload}
-                      className="cursor-pointer"
-                    />
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         )}
@@ -661,7 +626,7 @@ export default function PrayerDetail({
               <div
                 ref={scrollContainerRef}
                 data-app-scroll-container="true"
-                className="flex-1 min-h-0 overflow-y-auto touch-pan-y scrollbar-hide overscroll-contain"
+                className="flex-1 min-h-0 overflow-y-auto touch-pan-y overscroll-contain pr-6 scroll-smooth"
               >
                 {prayer.content ? (
                   <PrayerContent prayer={prayer} searchState={searchState} scrollContainerRef={scrollContainerRef} />

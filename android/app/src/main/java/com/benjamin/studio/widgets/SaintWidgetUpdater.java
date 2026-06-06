@@ -221,13 +221,13 @@ public final class SaintWidgetUpdater {
     }
 
     private static void applyLegacySmallWidgetFormat(RemoteViews views, SaintWidgetContent content) {
-        views.setInt(R.id.widget_saint_name, "setMaxLines", 3);
+        views.setInt(R.id.widget_saint_name, "setMaxLines", 2);
         if (content.bio == null || content.bio.trim().isEmpty()) {
             views.setViewVisibility(R.id.widget_saint_bio, View.GONE);
             return;
         }
         views.setViewVisibility(R.id.widget_saint_bio, View.VISIBLE);
-        views.setInt(R.id.widget_saint_bio, "setMaxLines", 6);    }
+        views.setInt(R.id.widget_saint_bio, "setMaxLines", 5);    }
 
     private static int dpToPx(Context context, int dp) {
         float density = context.getResources().getDisplayMetrics().density;

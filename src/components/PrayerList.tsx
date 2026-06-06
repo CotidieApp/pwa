@@ -7,6 +7,8 @@ import { useMemo } from 'react';
 import SaintOfTheDayCard from '@/components/saints/SaintOfTheDayCard';
 import { useSettings } from '@/context/SettingsContext';
 import { Button } from './ui/button';
+import Image from 'next/image';
+import { cn } from '@/lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -98,6 +100,17 @@ export default function PrayerList({
   const isPlanDeVidaCategory = categoryId === 'plan-de-vida';
   const showTracker = isPlanDeVidaCategory && planDeVidaTrackerEnabled && prayerPathLength === 0;
 
+  // Lógica específica para "Oraciones" (Subcategorías)
+  const isOracionesRoot = categoryId === 'oraciones' && prayerPathLength === 0;
+
+  const { subcategories, otherPrayers } = useMemo(() => {
+    if (!isOracionesRoot) return { subcategories: [], otherPrayers: filteredPrayers };
+
+    const sub = filteredPrayers.filter(p => p.id?.startsWith('subcat-'));
+    const other = filteredPrayers.filter(p => !p.id?.startsWith('subcat-'));
+    return { subcategories: sub, otherPrayers: other };
+  }, [isOracionesRoot, filteredPrayers]);
+
   return (
     <div className="space-y-3 pb-4 touch-pan-y overscroll-contain">
       {/* Santo del día arriba solo en devociones */}
@@ -105,12 +118,43 @@ export default function PrayerList({
         <SaintOfTheDayCard onOpenPrayerById={onOpenPrayerById} />
       )}
 
-      {/* Lista de oraciones */}
-      {filteredPrayers.length > 0 ? (
-        filteredPrayers.map((prayer, index) => (
+      {/* Grid de Subcategorías para Oraciones */}
+      {isOracionesRoot && subcategories.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          {subcategories.map((sub, idx) => (
+            <Card
+              key={sub.id || idx}
+              className="relative aspect-square overflow-hidden flex flex-col items-center justify-center text-center cursor-pointer hover:opacity-90 transition-opacity bg-black border-0 shadow-lg"
+              onClick={() => onSelectPrayer(sub)}
+            >
+              {sub.imageUrl && (
+                <div className="absolute inset-0 opacity-40">
+                  <Image
+                    src={sub.imageUrl}
+                    alt={sub.title}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+              <CardTitle className="relative z-10 px-2 font-headline text-lg text-white leading-tight">
+                {sub.title}
+              </CardTitle>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Lista de oraciones (normal o después del grid) */}
+      {otherPrayers.length > 0 ? (
+        otherPrayers.map((prayer, index) => (
           <Card
             key={prayer.id || index}
-            className="bg-card/80 shadow-md backdrop-blur-sm border-border/50 p-4 flex flex-col gap-2 cursor-pointer hover:bg-accent/20 transition-colors"
+            className={cn(
+              "bg-card/80 shadow-md backdrop-blur-sm border-border/50 p-4 flex flex-col gap-2 cursor-pointer hover:bg-accent/20 transition-colors",
+              isOracionesRoot && index === 0 && subcategories.length > 0 && "mt-4"
+            )}
             onClick={() => onSelectPrayer(prayer)}
           >
             <div className="flex items-center justify-between">
@@ -176,11 +220,9 @@ export default function PrayerList({
                 <ChevronRight className="size-5 text-muted-foreground" />
               </div>
             </div>
-
-            {/* No mostrar resumen bajo el título en las listas */}
           </Card>
         ))
-      ) : showEmptyState ? (
+      ) : (showEmptyState && !isOracionesRoot) ? (
         <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-border/80 bg-card/50 h-96 text-center p-4">
           <h3 className="text-lg font-semibold text-foreground/80">No se encontraron oraciones</h3>
           <p className="text-muted-foreground mt-2 text-sm">

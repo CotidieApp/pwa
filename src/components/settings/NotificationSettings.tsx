@@ -26,6 +26,8 @@ export default function NotificationSettings() {
     removeDailyReminder,
     allPrayers,
     categories,
+    skipNotificationIfChecked,
+    setSkipNotificationIfChecked,
   } = useSettings();
 
   const { toast } = useToast();
@@ -114,6 +116,21 @@ export default function NotificationSettings() {
               id="notifications-switch"
               checked={notificationsEnabled}
               onCheckedChange={setNotificationsEnabled}
+            />
+          </div>
+
+          <div className={cn("flex items-center justify-between", !notificationsEnabled && "opacity-50")}>
+            <div className="space-y-0.5">
+              <Label htmlFor="skip-notif-switch" className="text-sm">Omitir si ya se rezó</Label>
+              <p className="text-[10px] text-muted-foreground max-w-[200px]">
+                No envía recordatorios de oraciones marcadas hoy en Plan de Vida.
+              </p>
+            </div>
+            <Switch
+              id="skip-notif-switch"
+              checked={skipNotificationIfChecked}
+              onCheckedChange={setSkipNotificationIfChecked}
+              disabled={!notificationsEnabled}
             />
           </div>
 

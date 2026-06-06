@@ -39,6 +39,7 @@ export interface SaintOfTheDay {
   bio: string;
   title: string;
   type: string;
+  isHighImportance?: boolean;
 }
 
 // Cita (frase espiritual)

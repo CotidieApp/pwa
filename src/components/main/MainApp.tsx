@@ -22,10 +22,12 @@ import PersonalEpubLibrary from '@/components/PersonalEpubLibrary';
 import SearchCamino from '@/components/SearchCamino';
 import { letanias as letaniasRosarioBase } from '@/lib/prayers/plan-de-vida/santo-rosario/letanias';
 import { cn } from '@/lib/utils';
+import { Switch } from '@/components/ui/switch';
 import { AnimatePresence } from 'framer-motion';
 import { isAnnuumSeason } from '@/lib/movable-feasts';
 import AnnuumStory from '../AnnuumStory';
 import Image from 'next/image';
+import { Play } from 'lucide-react';
 import DeveloperDashboard from '@/components/developer/DeveloperDashboard';
 import { useToast } from '@/hooks/use-toast';
 import { useNavPersistence } from '@/components/main/useNavPersistence';
@@ -71,6 +73,8 @@ export default function MainApp() {
   const navStateRef = useRef(navState);
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [showAnnuum, setShowAnnuum] = useState(false);
+  const [showLettersInfo, setShowLettersInfo] = useState(false);
+  const [activeSpiritualReadingAudio, setActiveSpiritualReadingAudio] = useState<string | null>(null);
   const { toast, dismiss } = useToast();
   const dismissToastRef = useRef(dismiss);
   const [searchState, setSearchState] = useState(DEFAULT_CAMINO_SEARCH_STATE);
@@ -659,6 +663,46 @@ export default function MainApp() {
         if (currentPrayer.id === 'cartas') {
           return <div className="p-4">{renderCategory()}</div>;
         }
+        if (currentPrayer.id === 'lectura-espiritual-container') {
+          const spiritualAudios = [
+            { title: 'Discurso San Josemaría', src: '/media/Discurso San Josemaría.mp3' },
+            { title: 'Discurso San Juan Pablo II', src: '/media/Discurso San Juan Pablo II.mp3' },
+          ];
+          const audioSrc = activeSpiritualReadingAudio || spiritualAudios[0].src;
+
+          return (
+            <div className="p-4 space-y-4">
+              <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-4 rounded-xl border shadow-sm shrink-0 space-y-4">
+                <AudioPlayer src={audioSrc} title={spiritualAudios.find(a => a.src === audioSrc)?.title || 'Audio seleccionado'} />
+                <div className="grid grid-cols-1 gap-2">
+                  <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground ml-1">Meditaciones disponibles</p>
+                  {spiritualAudios.map((audio) => (
+                    <Button
+                      key={audio.src}
+                      variant="ghost"
+                      size="sm"
+                      className={cn(
+                        'w-full justify-start text-left h-auto py-2 px-3 rounded-lg border border-transparent',
+                        activeSpiritualReadingAudio === audio.src && 'border-primary/20 bg-primary/5 text-primary'
+                      )}
+                      onClick={() => setActiveSpiritualReadingAudio(audio.src)}
+                    >
+                      <Play className={cn("mr-2 h-4 w-4", activeSpiritualReadingAudio === audio.src ? "fill-primary" : "text-muted-foreground")} />
+                      <span className="truncate">{audio.title}</span>
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              <PrayerList
+                prayers={currentPrayer.prayers!}
+                onSelectPrayer={handleSelectPrayer}
+                onOpenPrayerById={handleOpenPrayerById}
+                categoryId={currentPrayer.id || ''}
+                prayerPathLength={prayerPath.length}
+              />
+            </div>
+          );
+        }
         if (currentPrayer.prayers && currentPrayer.prayers.length > 0) {
           return (
             <div className="p-4">
@@ -1043,6 +1087,8 @@ export default function MainApp() {
             onEdit={
               currentPrayerEditAction
             }
+            showInfoButton={currentPrayer?.id === 'cartas'}
+            onInfo={() => setShowLettersInfo(true)}
           />
         )}
         <div
@@ -1050,7 +1096,7 @@ export default function MainApp() {
             'flex-1 overflow-x-hidden pb-[max(0px,env(safe-area-inset-bottom))]',
             navState.activeView === 'home'
               ? 'overflow-y-hidden'
-              : 'overflow-y-auto'
+              : 'overflow-y-auto pr-2'
           )}
           data-app-scroll-container={navState.activeView !== 'prayer' ? 'true' : undefined}
           onClick={(e) => {
@@ -1102,6 +1148,50 @@ export default function MainApp() {
           <AlertDialogAction onClick={() => setShowTimerFinishedAlert(false)}>
             Aceptar
           </AlertDialogAction>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={showLettersInfo}
+        onOpenChange={setShowLettersInfo}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Información sobre Cartas</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-4">
+                <p>
+                  Escribe una carta al Señor. Agradece lo vivido, pide claridad por lo que se viene,
+                  ruega ante una necesidad..., pero, sobre todo, háblale; no como un servidor a su señor,
+                  sino como un hijo a su Padre. Amor de Padre es el Suyo, no lo olvides.
+                </p>
+                <div className="rounded-md border border-border/60 bg-muted/30 p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-1 flex-1">
+                      <div className="font-medium text-foreground">Recordatorio de Cartas</div>
+                      <p className="text-xs text-foreground/75 leading-relaxed">
+                        Si pasan 30 días sin escribir una carta nueva, Cotidie te enviará una notificación
+                        para invitarte a retomar este hábito filial.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={cartasReminderEnabled}
+                      onCheckedChange={setCartasReminderEnabled}
+                      aria-label="Activar recordatorio de Cartas"
+                    />
+                  </div>
+                  <p className="text-[10px] text-muted-foreground italic">
+                    * El contador se reinicia automáticamente al crear una carta nueva.
+                  </p>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex justify-end">
+            <AlertDialogAction onClick={() => setShowLettersInfo(false)}>
+              Entendido
+            </AlertDialogAction>
+          </div>
         </AlertDialogContent>
       </AlertDialog>
 

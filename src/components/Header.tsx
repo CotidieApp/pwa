@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
-import { ArrowLeft, ChevronLeft, ChevronRight, RotateCcw, Expand, Minimize, Search, Pencil, Calendar } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, RotateCcw, Expand, Minimize, Search, Pencil, Calendar, Info } from 'lucide-react';
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
 import { useSettings } from '@/context/SettingsContext';
@@ -38,6 +38,8 @@ type HeaderProps = {
   showEditButton?: boolean;
   onEdit?: () => void;
   editDisabled?: boolean;
+  showInfoButton?: boolean;
+  onInfo?: () => void;
 };
 
 const DragHandle = () => {
@@ -77,6 +79,8 @@ export default function Header({
   showEditButton = false,
   onEdit,
   editDisabled = false,
+  showInfoButton = false,
+  onInfo,
 }: HeaderProps) {
 
   const { isDistractionFree: isGlobalDistractionFree, timerEnabled, overlayPositions, setOverlayPosition, arrowBubbleSize } =
@@ -321,6 +325,18 @@ export default function Header({
                 title="Editar"
               >
                 <Pencil />
+              </Button>
+            )}
+
+            {showInfoButton && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-primary-foreground"
+                onClick={onInfo}
+                title="Información"
+              >
+                <Info />
               </Button>
             )}
 

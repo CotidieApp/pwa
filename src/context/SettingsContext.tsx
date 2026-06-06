@@ -189,6 +189,9 @@ type Settings = {
     options?: { silent?: boolean; preferredCustomPlanSlot?: 1 | 2 | 3 | 4 | null }
   ) => ImportResult;
 
+  skipNotificationIfChecked: boolean;
+  setSkipNotificationIfChecked: (enabled: boolean) => void;
+
   timerEnabled: boolean;
   setTimerEnabled: (enabled: boolean) => void;
   timerDuration: number;
@@ -197,6 +200,9 @@ type Settings = {
   timerActive: boolean;
   toggleTimer: () => void;
   resetTimer: () => void;
+
+  skipNotificationIfChecked: boolean;
+  setSkipNotificationIfChecked: (enabled: boolean) => void;
 
   overlayPositions: OverlayPositions;
   setOverlayPosition: (key: keyof OverlayPositions, pos: OverlayPosition) => void;
@@ -847,6 +853,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [isDeveloperMode, setIsDeveloperMode] = useState(false);
   const [isEditModeEnabled, setIsEditModeEnabled] = useState(false);
 
+  const [skipNotificationIfChecked, setSkipNotificationIfChecked] = useState(true);
+
   const [timerEnabled, setTimerEnabled] = useState(false);
   const [timerDuration, setTimerDuration] = useState(15);
   const [timerTime, setTimerTime] = useState(15 * 60);
@@ -1053,6 +1061,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setNavMode(snapshot.navMode);
     setArrowBubbleSize(snapshot.arrowBubbleSize);
     setSmallWidgetMode(snapshot.smallWidgetMode);
+    setSkipNotificationIfChecked(snapshot.skipNotificationIfChecked ?? true);
     setUserHomeBackgrounds(snapshot.userHomeBackgrounds);
     setScrollPositions(snapshot.scrollPositions);
     setPrayerLanguagePreferences(snapshot.prayerLanguagePreferences);
@@ -2352,11 +2361,17 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   // Combined prayers list
   const allPrayers = useMemo(() => {
+    const base = applyPredefinedPrayerState(initialPrayers, hiddenPrayerIds, predefinedPrayerOverrides);
+    const withLetters = base.map(p => {
+      if (p.id === 'cartas') {
+        return { ...p, prayers: userLetters };
+      }
+      return p;
+    });
     return [
-      ...applyPredefinedPrayerState(initialPrayers, hiddenPrayerIds, predefinedPrayerOverrides),
+      ...withLetters,
       ...userDevotions,
       ...userPrayers,
-      ...userLetters,
     ];
   }, [initialPrayers, hiddenPrayerIds, predefinedPrayerOverrides, userDevotions, userPrayers, userLetters]);
 
@@ -2433,6 +2448,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       prayerLastOpened: {},
       prayerLastIncrementTimestamp: {},
       planDeVidaCompletedHistory: {},
+      totalPrayersOpened: 0,
     };
 
     const orderedDates = Object.keys(calendar).sort((a, b) => a.localeCompare(b));
@@ -2459,6 +2475,13 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         });
       });
     });
+
+    // Ensure totalPrayersOpened matches total checks
+    let totalChecks = 0;
+    Object.values(calendar).forEach(dayList => {
+      totalChecks += dayList.length;
+    });
+    summary.totalPrayersOpened = totalChecks;
 
     return summary;
   }, [allPrayers, getPrayerById, getRootPlanDeVidaId]);
@@ -2547,6 +2570,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     if ((stats.lastMassDate ?? null) === (previousSummary.lastMassDate ?? null) || !stats.lastMassDate) {
       nextStats.lastMassDate = nextSummary.lastMassDate;
       nextStats.massStreak = nextSummary.massStreak;
+      nextStats.massDaysCount = nextSummary.massDaysCount;
     }
 
     return nextStats;
@@ -2804,6 +2828,14 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           const fireAt = new Date(base);
           fireAt.setDate(base.getDate() + offset);
           const dateKey = toDateKey(fireAt);
+
+          if (skipNotificationIfChecked && r.target.type === 'prayer') {
+            const rootId = getRootPlanDeVidaId(r.target.id);
+            const targetId = rootId || r.target.id;
+            const alreadyChecked = (planDeVidaCalendar[dateKey] || []).includes(targetId);
+            if (alreadyChecked) continue;
+          }
+
           const id = toNotificationId(`cotidie:${r.id}:${dateKey}`);
           notifications.push({
             id,
@@ -2909,8 +2941,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           const id = toNotificationId(`dev:test:5m:${minute}`);
           notifications.push({
             id,
-            title: 'Notificacion de prueba (Dev)',
-            body: 'Recordatorio automatico cada 5 minutos.',
+            title: 'Notificación de prueba (Dev)',
+            body: 'Recordatorio automático cada 5 minutos.',
             channelId: 'cotidie-reminders',
             smallIcon: icon,
             largeIcon: devImageDrawable,
@@ -3052,15 +3084,17 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       scheduleMovable(now.getFullYear() + 1, 49, 'Pentecostés', 'Solemnidad. Invoca al Espíritu Santo y deja que renueve tu vida.', 'pentecost', 9, 0);
       scheduleMovable(now.getFullYear(), 50, 'María, Madre de la Iglesia', 'Memoria litúrgica: honra a María como Madre de la Iglesia. Confía en su maternal intercesión.', 'mary-mother-of-church', 9, 0);
       scheduleMovable(now.getFullYear() + 1, 50, 'María, Madre de la Iglesia', 'Memoria litúrgica: honra a María como Madre de la Iglesia. Confía en su maternal intercesión.', 'mary-mother-of-church', 9, 0);
-      scheduleMovable(now.getFullYear(), 56, 'Santísima Trinidad', 'Solemnidad. Alaba al Padre, al Hijo y al Espíritu Santo con fe y gratitud.', 'trinity', 9, 0);
-      scheduleMovable(now.getFullYear() + 1, 56, 'Santísima Trinidad', 'Solemnidad. Alaba al Padre, al Hijo y al Espíritu Santo con fe y gratitud.', 'trinity', 9, 0);
-      scheduleMovable(now.getFullYear(), 60, 'Corpus Christi', 'Solemnidad del Cuerpo y la Sangre de Cristo. Adora la Eucaristía y renueva tu amor por ella.', 'corpus-christi', 9, 0);
-      scheduleMovable(now.getFullYear() + 1, 60, 'Corpus Christi', 'Solemnidad del Cuerpo y la Sangre de Cristo. Adora la Eucaristía y renueva tu amor por ella.', 'corpus-christi', 9, 0);
-      scheduleMovable(now.getFullYear(), 68, 'Sagrado Corazón de Jesús', 'Solemnidad. Consagra tu corazón al Corazón de Jesús y confía en su amor.', 'sacred-heart', 9, 0);
-      scheduleMovable(now.getFullYear() + 1, 68, 'Sagrado Corazón de Jesús', 'Solemnidad. Consagra tu corazón al Corazón de Jesús y confía en su amor.', 'sacred-heart', 9, 0);
-      // Jesús, Sumo y Eterno Sacerdote - calculado a partir de Pascua (offset 53)
       scheduleMovable(now.getFullYear(), 53, 'Jesucristo, Sumo y Eterno Sacerdote', 'Solemnidad que reconoce a Jesús como Sumo y Eterno Sacerdote. Ofrece tu agradecimiento y oración.', 'christ-high-priest', 9, 0);
       scheduleMovable(now.getFullYear() + 1, 53, 'Jesucristo, Sumo y Eterno Sacerdote', 'Solemnidad que reconoce a Jesús como Sumo y Eterno Sacerdote. Ofrece tu agradecimiento y oración.', 'christ-high-priest', 9, 0);
+      scheduleMovable(now.getFullYear(), 56, 'Santísima Trinidad', 'Solemnidad. Alaba al Padre, al Hijo y al Espíritu Santo con fe y gratitud.', 'trinity', 9, 0);
+      scheduleMovable(now.getFullYear() + 1, 56, 'Santísima Trinidad', 'Solemnidad. Alaba al Padre, al Hijo y al Espíritu Santo con fe y gratitud.', 'trinity', 9, 0);
+      scheduleMovable(now.getFullYear(), 63, 'Corpus Christi', 'Solemnidad del Cuerpo y la Sangre de Cristo. Adora la Eucaristía y renueva tu amor por ella.', 'corpus-christi', 9, 0);
+      scheduleMovable(now.getFullYear() + 1, 63, 'Corpus Christi', 'Solemnidad del Cuerpo y la Sangre de Cristo. Adora la Eucaristía y renueva tu amor por ella.', 'corpus-christi', 9, 0);
+      scheduleMovable(now.getFullYear(), 68, 'Sagrado Corazón de Jesús', 'Solemnidad. Consagra tu corazón al Corazón de Jesús y confía en su amor.', 'sacred-heart', 9, 0);
+      scheduleMovable(now.getFullYear() + 1, 68, 'Sagrado Corazón de Jesús', 'Solemnidad. Consagra tu corazón al Corazón de Jesús y confía en su amor.', 'sacred-heart', 9, 0);
+      scheduleMovable(now.getFullYear(), 69, 'Inmaculado Corazón de María', 'Memoria. Pon tu confianza en el Corazón de María y pídele su intercesión maternal.', 'immaculate-heart-feast', 9, 0);
+      scheduleMovable(now.getFullYear() + 1, 69, 'Inmaculado Corazón de María', 'Memoria. Pon tu confianza en el Corazón de María y pídele su intercesión maternal.', 'immaculate-heart-feast', 9, 0);
+
       const annuumYearsAhead = 10;
       for (let i = 0; i <= annuumYearsAhead; i++) {
         scheduleCotidieAnnuumStart(now.getFullYear() + i);
@@ -3254,11 +3288,22 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     // Priority logic based on user setting
     // If enabled: Movable takes precedence (e.g. Ash Wednesday > San Simeón)
     // If disabled: Fixed takes precedence (e.g. San Simeón > Ash Wednesday)
-    const effectiveSaint = movableFeastsEnabled 
+    const effectiveSaintBase = movableFeastsEnabled
       ? (movable || fixed) 
       : (fixed || movable);
+
+    // Task 16: Combine names if a movable feast overlaps a high importance fixed saint
+    let effectiveSaint = effectiveSaintBase;
+    if (movableFeastsEnabled && movable && fixed && fixed.isHighImportance && movable.name !== fixed.name) {
+      effectiveSaint = {
+        ...movable,
+        name: `${movable.name} / ${fixed.name}`,
+        bio: `**${movable.name}**: ${movable.bio}\n\n**${fixed.name}**: ${fixed.bio}`,
+      };
+    }
+
     const hiddenFixedSaint =
-      movableFeastsEnabled && movable && fixed
+      movableFeastsEnabled && movable && fixed && !fixed.isHighImportance
         ? fixed
         : null;
 
@@ -3276,6 +3321,12 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       if (currentMonth === 12 && (currentDay === 24 || currentDay === 25)) {
         const christmasImage = PlaceHolderImages.find((img) => img.id === 'christmas-image') || null;
         image = christmasImage || dayImage;
+      } else if (saint?.name?.includes('Pentecostés')) {
+        image = PlaceHolderImages.find((img) => img.id === 'pentecost-image') || dayImage;
+      } else if (saint?.name?.includes('Santísima Trinidad')) {
+        image = PlaceHolderImages.find((img) => img.id === 'holy-trinity-image') || dayImage;
+      } else if (saint?.name?.includes('Corpus Christi')) {
+        image = PlaceHolderImages.find((img) => img.id === 'corpus-christi-image') || dayImage;
       } else {
         const isMarian = Boolean(
           (saint as any)?.type === 'marian' || (saint?.name && marianNamePattern.test(saint.name))

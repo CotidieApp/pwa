@@ -59,6 +59,18 @@ import { venicreator } from './prayers/oraciones/veni-creator';
 import { pangelingua } from './prayers/oraciones/pange-lingua';
 import { tedeum } from './prayers/oraciones/te-deum';
 import { oracionAlSagradoCorazonDeJesus } from './prayers/oraciones/oracion-al-sagrado-corazon';
+import { exposicionBendicion } from './prayers/oraciones/exposicion-bendicion';
+import {
+  actoContricion,
+  angelGuarda,
+  bendicionMesa,
+  magnificat,
+  consagracionVirgen,
+  almaDeCristo,
+  oracionSanFrancisco,
+  aceptacionMuerte,
+  oracionTrabajo
+} from './prayers/oraciones/fundamentales';
 
 export const categories: Category[] = [
   {
@@ -98,6 +110,85 @@ const lecturaEspiritual: Prayer = {
   ]
 };
 
+const oracionesSubcategories: Prayer[] = [
+  {
+    id: 'subcat-comunes',
+    title: 'Oraciones Comunes',
+    categoryId: 'oraciones',
+    imageUrl: '/images/resurrection.jpeg',
+    prayers: [
+      ...estructurales.prayers!,
+      actoContricion,
+      angelGuarda,
+      bendicionMesa,
+      comunionEspiritualAntes,
+      comunionEspiritual,
+    ]
+  },
+  {
+    id: 'subcat-marianas',
+    title: 'Devoción Mariana',
+    categoryId: 'oraciones',
+    imageUrl: '/images/immaculate-conception.jpeg',
+    prayers: [
+      acordaos,
+      magnificat,
+      consagracionVirgen,
+      avesMariasPureza,
+      salveRegina,
+    ]
+  },
+  {
+    id: 'subcat-espiritu',
+    title: 'Al Espíritu Santo',
+    categoryId: 'oraciones',
+    imageUrl: '/images/holy-family.jpeg', // Fallback image
+    prayers: [
+      oracionAlEspirituSanto,
+      venicreator,
+    ]
+  },
+  {
+    id: 'subcat-momentos',
+    title: 'Momentos del Día',
+    categoryId: 'oraciones',
+    imageUrl: '/images/eucharist.jpeg',
+    prayers: [
+      oracionTrabajo,
+      oracionJuventudInquieta,
+      queBienSeEstaContigo,
+      aceptacionMuerte,
+    ]
+  },
+  {
+    id: 'subcat-santos',
+    title: 'Intercesión y Santos',
+    categoryId: 'oraciones',
+    imageUrl: '/images/holy-family.jpeg',
+    prayers: [
+      oracionporelPapa,
+      oracionPorLasVocaciones,
+      oracionPorLosDifuntos,
+      oracionDeLaFamilia,
+      oracionSanFrancisco,
+      almaDeCristo,
+    ]
+  },
+  {
+    id: 'subcat-himnos',
+    title: 'Himnos y Letanías',
+    categoryId: 'oraciones',
+    imageUrl: '/images/crucifixion.jpeg',
+    prayers: [
+      oracionAlSagradoCorazonDeJesus,
+      letaniasHumildad,
+      pangelingua,
+      tedeum,
+      exposicionBendicion,
+    ]
+  }
+];
+
 export const initialPrayers: Prayer[] = [
   // Devociones
   sanJosemariaPrayer,
@@ -136,20 +227,6 @@ export const initialPrayers: Prayer[] = [
   preces,
   viaCrucis,
 
-  // Oraciones Varias
-  estructurales,
-  comunionEspiritualAntes,
-  comunionEspiritual,
-  oracionporelPapa,
-  oracionPorLasVocaciones,
-  oracionAlEspirituSanto,
-  oracionJuventudInquieta,
-  queBienSeEstaContigo,
-  oracionPorLosDifuntos,
-  oracionDeLaFamilia,
-  oracionAlSagradoCorazonDeJesus,
-  letaniasHumildad,
-  venicreator,
-  pangelingua,
-  tedeum,
+  // Oraciones Varias (Agrupadas)
+  ...oracionesSubcategories,
 ];

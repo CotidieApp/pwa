@@ -2,6 +2,90 @@
 
 Historial de intervenciones del asistente en el repo.
 
+### [2026-06-05 10:15] 229. Organización visual de sección Oraciones y nuevos contenidos
+**Planificación:**
+- Transformar la sección de "Oraciones" en una "Biblioteca Visual" organizada por subcategorías para evitar una lista plana demasiado larga.
+- Clasificar todas las oraciones existentes en grupos lógicos (Comunes, Marianas, Espíritu Santo, etc.).
+- Incorporar oraciones fundamentales que faltaban en el catálogo.
+
+**Ejecución:**
+- **Datos y Contenido**: se creó `src/lib/prayers/oraciones/fundamentales.ts` con 9 oraciones esenciales: Acto de contrición, Ángel de mi guarda, Bendición de la mesa, Magnificat, Consagración a la Virgen, Alma de Cristo, Oración de San Francisco, Aceptación de la muerte y Oración ante el trabajo/estudio.
+- **Estructura**: en `src/lib/data.tsx` se implementaron 6 subcategorías (`subcat-*`) con imágenes asociadas para agrupar todo el catálogo de oraciones.
+- **Interfaz**: `src/components/PrayerList.tsx` se modificó para renderizar una cuadrícula (grid) de tarjetas visuales con imagen y degradado cuando el usuario entra en la raíz de la sección "Oraciones".
+- **UX**: se mantuvo la compatibilidad con oraciones creadas por el usuario, que aparecen listadas debajo del menú de categorías.
+
+**Validación:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- Navegación entre categorías y subcategorías: OK.
+
+**Archivos Modificados:**
+- `src/lib/prayers/oraciones/fundamentales.ts`
+- `src/lib/data.tsx`
+- `src/components/PrayerList.tsx`
+- `AGENTS.md`
+
+### [2026-06-05 10:05] 230. Ajustes de scroll y diseño de imagen anclada
+**Planificación:**
+- Corregir el bloqueo de scroll en textos largos y asegurar que las oraciones comiencen siempre desde el inicio.
+- Ajustar el diseño visual de las imágenes dentro del detalle de oración para que queden ancladas y con un marco de color de fondo consistente.
+
+**Ejecución:**
+- **Scroll Inteligente**: `src/components/PrayerDetail.tsx` ahora resetea la posición al inicio al abrir cualquier oración, excepto para las marcadas como `isLongText` (como Camino), que preservan su progreso.
+- **Diseño Sticky**: se aplicó `sticky top-0` a la imagen de la oración con un contenedor `bg-background` y padding vertical. Esto logra la secuencia visual: Encabezado -> Franja fondo -> Imagen -> Franja fondo -> Texto.
+- **Margen de Seguridad**: se añadió un relleno derecho (`pr-6`) al área de texto para que la barra de desplazamiento no oculte caracteres, y un margen preventivo (`pr-2`) en los contenedores de listas de `MainApp.tsx`.
+- **Flexbox**: se reforzó la estructura de contenedores con `flex-1` y `min-h-0` para garantizar que el scroll nativo se active correctamente en dispositivos móviles.
+
+**Validación:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- Verificación visual de márgenes y comportamiento sticky: OK.
+
+**Archivos Modificados:**
+- `src/components/PrayerDetail.tsx`
+- `src/components/main/MainApp.tsx`
+- `AGENTS.md`
+
+### [2026-06-05 11:45] 231. Hardening y correcciones de UI
+**Planificación:**
+- Realizar una serie de mejoras técnicas y visuales en widgets, calendario litúrgico, persistencia de lectura, notificaciones y gestión de contenido de usuario.
+- Corregir errores de navegación en la sección de "Cartas" y sincronizar estadísticas con el calendario de Plan de Vida.
+- Asegurar la precisión litúrgica según el canon de Chile (Santiago) y añadir festividades móviles faltantes.
+
+**Ejecución:**
+- **Widget**: se ajustó `widget_saint_small.xml` con mayor padding (14dp/12dp) y se redujo el radio de esquinas a 16dp para evitar recortes de texto. Se alineó la configuración de líneas en `SaintWidgetUpdater.java`.
+- **Liturgia**: se revisaron los colores litúrgicos; se confirmó que San Juan Bautista de Rossi es blanco por ser tiempo de Pascua y ser presbítero. Se añadió el 16 de julio (Vírgen del Carmen) como solemnidad blanca para Chile.
+- **Navegación y Textos**: se eliminó la marca `isLongText` del Vía Crucis para tratarlo como oración corta. Se corrigió el acceso a las entradas de "Cartas" anidando `userLetters` bajo el nodo raíz en `SettingsContext`.
+- **EPUB**: se mejoró la persistencia de la ubicación en `EpubReader.tsx`, asegurando que el CFI se guarde en `onRelocated` y se restaure correctamente al abrir el libro.
+- **Estadísticas**: se refactorizó la lógica de conteo para que `totalPrayersOpened` coincida exactamente con los checks del calendario. La racha de Misa ahora se basa exclusivamente en la entrada "Santa Misa".
+- **Notificaciones**: se implementó `skipNotificationIfChecked` para omitir recordatorios de oraciones ya rezadas. Se añadieron fiestas móviles: María Madre de la Iglesia, Trinidad, Corpus Christi, Sagrado e Inmaculado Corazón. Se corrigieron acentos en mensajes automáticos.
+- **Contenido de Usuario**: se añadió un botón para eliminar imágenes cargadas por el usuario en `AddPrayerForm`. Se implementó un guardado automático de borradores cada segundo en `localStorage`.
+- **Interfaz "Cartas"**: se movió el toggle de recordatorio a un diálogo de información accesible desde el encabezado.
+- **Nuevos Contenidos**: se agregó el rito de "Exposición y Bendición con el Santísimo" en `src/lib/prayers/oraciones/exposicion-bendicion.ts`.
+- **Solapamiento de Santos**: se implementó una lógica en `SettingsContext` para mostrar nombres combinados ("Fiesta Móvil / Santo Importante") cuando coinciden celebraciones de alta importancia.
+
+**Validación:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- Verificación de lógica de racha y conteo sincronizado: OK.
+- Navegación recursiva en Cartas corregida: OK.
+
+**Archivos Modificados:**
+- `android/app/src/main/res/layout/widget_saint_small.xml`
+- `android/app/src/main/res/drawable/widget_bg_round.xml`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java`
+- `src/context/SettingsContext.tsx`
+- `src/context/settings/stats-updates.ts`
+- `src/components/EpubReader.tsx`
+- `src/components/Header.tsx`
+- `src/components/main/MainApp.tsx`
+- `src/components/main/CartasIntro.tsx`
+- `src/components/settings/NotificationSettings.tsx`
+- `src/components/AddPrayerForm.tsx`
+- `src/lib/liturgical-color-rules.ts`
+- `src/lib/movable-feasts.ts`
+- `src/lib/placeholder-images.json`
+- `src/lib/prayers/plan-de-vida/via-crucis.ts`
+- `src/lib/prayers/oraciones/exposicion-bendicion.ts`
+- `AGENTS.md`
+
 ### [2026-06-04 00:00] 227. Activacion parcial del proyecto en nuevo entorno
 **Planificacion:**
 - Leer la guia externa `C:\Users\balca\Downloads\instrucciones-codex-activar-otro-equipo.md` y contrastarla con el estado real de esta copia restaurada.
@@ -144,6 +228,48 @@ Historial de intervenciones del asistente en el repo.
 - `src/components/main/MainApp.tsx`
 - `AGENTS.md`
 
+### [2026-06-05 11:45] 231. Hardening y correcciones de UI
+**Planificación:**
+- Realizar una serie de mejoras técnicas y visuales en widgets, calendario litúrgico, persistencia de lectura, notificaciones y gestión de contenido de usuario.
+- Corregir errores de navegación en la sección de "Cartas" y sincronizar estadísticas con el calendario de Plan de Vida.
+- Asegurar la precisión litúrgica según el canon de Chile (Santiago) y añadir festividades móviles faltantes.
+
+**Ejecución:**
+- **Widget**: se ajustó `widget_saint_small.xml` con mayor padding (14dp/12dp) y se redujo el radio de esquinas a 16dp para evitar recortes de texto. Se alineó la configuración de líneas en `SaintWidgetUpdater.java`.
+- **Liturgia**: se revisaron los colores litúrgicos; se confirmó que San Juan Bautista de Rossi es blanco por ser tiempo de Pascua y ser presbítero. Se añadió el 16 de julio (Vírgen del Carmen) como solemnidad blanca para Chile.
+- **Navegación y Textos**: se eliminó la marca `isLongText` del Vía Crucis para tratarlo como oración corta. Se corrigió el acceso a las entradas de "Cartas" anidando `userLetters` bajo el nodo raíz en `SettingsContext`.
+- **EPUB**: se mejoró la persistencia de la ubicación en `EpubReader.tsx`, asegurando que el CFI se guarde en `onRelocated` y se restaure correctamente al abrir el libro.
+- **Estadísticas**: se refactorizó la lógica de conteo para que `totalPrayersOpened` coincida exactamente con los checks del calendario. La racha de Misa ahora se basa exclusivamente en la entrada "Santa Misa".
+- **Notificaciones**: se implementó `skipNotificationIfChecked` para omitir recordatorios de oraciones ya rezadas. Se añadieron fiestas móviles: María Madre de la Iglesia, Trinidad, Corpus Christi, Sagrado e Inmaculado Corazón. Se corrigieron acentos en mensajes automáticos.
+- **Contenido de Usuario**: se añadió un botón para eliminar imágenes cargadas por el usuario en `AddPrayerForm`. Se implementó un guardado automático de borradores cada segundo en `localStorage`.
+- **Interfaz "Cartas"**: se movió el toggle de recordatorio a un diálogo de información accesible desde el encabezado.
+- **Nuevos Contenidos**: se agregó el rito de "Exposición y Bendición con el Santísimo" en `src/lib/prayers/oraciones/exposicion-bendicion.ts`.
+- **Solapamiento de Santos**: se implementó una lógica en `SettingsContext` para mostrar nombres combinados ("Fiesta Móvil / Santo Importante") cuando coinciden celebraciones de alta importancia.
+
+**Validación:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- Verificación de lógica de racha y conteo sincronizado: OK.
+- Navegación recursiva en Cartas corregida: OK.
+
+**Archivos Modificados:**
+- `android/app/src/main/res/layout/widget_saint_small.xml`
+- `android/app/src/main/res/drawable/widget_bg_round.xml`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java`
+- `src/context/SettingsContext.tsx`
+- `src/context/settings/stats-updates.ts`
+- `src/components/EpubReader.tsx`
+- `src/components/Header.tsx`
+- `src/components/main/MainApp.tsx`
+- `src/components/main/CartasIntro.tsx`
+- `src/components/settings/NotificationSettings.tsx`
+- `src/components/AddPrayerForm.tsx`
+- `src/lib/liturgical-color-rules.ts`
+- `src/lib/movable-feasts.ts`
+- `src/lib/placeholder-images.json`
+- `src/lib/prayers/plan-de-vida/via-crucis.ts`
+- `src/lib/prayers/oraciones/exposicion-bendicion.ts`
+- `AGENTS.md`
+
 ### [2026-03-29 17:59] 221. Widget chico 2x1 real, edge-to-edge reforzado, scroll normal en Mes de María e importación `.ctd` sin repetición
 **Planificación:**
 - Ajustar el widget chico para que el mínimo real vuelva a ser `2x1` y mantenga resize libre en cualquier tamaño superior.
@@ -214,6 +340,48 @@ Historial de intervenciones del asistente en el repo.
 - `android/app/src/main/res/layout/activity_main.xml`
 - `android/app/src/main/res/values/styles.xml`
 - `src/components/main/MainApp.tsx`
+- `AGENTS.md`
+
+### [2026-06-05 11:45] 231. Hardening y correcciones de UI
+**Planificación:**
+- Realizar una serie de mejoras técnicas y visuales en widgets, calendario litúrgico, persistencia de lectura, notificaciones y gestión de contenido de usuario.
+- Corregir errores de navegación en la sección de "Cartas" y sincronizar estadísticas con el calendario de Plan de Vida.
+- Asegurar la precisión litúrgica según el canon de Chile (Santiago) y añadir festividades móviles faltantes.
+
+**Ejecución:**
+- **Widget**: se ajustó `widget_saint_small.xml` con mayor padding (14dp/12dp) y se redujo el radio de esquinas a 16dp para evitar recortes de texto. Se alineó la configuración de líneas en `SaintWidgetUpdater.java`.
+- **Liturgia**: se revisaron los colores litúrgicos; se confirmó que San Juan Bautista de Rossi es blanco por ser tiempo de Pascua y ser presbítero. Se añadió el 16 de julio (Vírgen del Carmen) como solemnidad blanca para Chile.
+- **Navegación y Textos**: se eliminó la marca `isLongText` del Vía Crucis para tratarlo como oración corta. Se corrigió el acceso a las entradas de "Cartas" anidando `userLetters` bajo el nodo raíz en `SettingsContext`.
+- **EPUB**: se mejoró la persistencia de la ubicación en `EpubReader.tsx`, asegurando que el CFI se guarde en `onRelocated` y se restaure correctamente al abrir el libro.
+- **Estadísticas**: se refactorizó la lógica de conteo para que `totalPrayersOpened` coincida exactamente con los checks del calendario. La racha de Misa ahora se basa exclusivamente en la entrada "Santa Misa".
+- **Notificaciones**: se implementó `skipNotificationIfChecked` para omitir recordatorios de oraciones ya rezadas. Se añadieron fiestas móviles: María Madre de la Iglesia, Trinidad, Corpus Christi, Sagrado e Inmaculado Corazón. Se corrigieron acentos en mensajes automáticos.
+- **Contenido de Usuario**: se añadió un botón para eliminar imágenes cargadas por el usuario en `AddPrayerForm`. Se implementó un guardado automático de borradores cada segundo en `localStorage`.
+- **Interfaz "Cartas"**: se movió el toggle de recordatorio a un diálogo de información accesible desde el encabezado.
+- **Nuevos Contenidos**: se agregó el rito de "Exposición y Bendición con el Santísimo" en `src/lib/prayers/oraciones/exposicion-bendicion.ts`.
+- **Solapamiento de Santos**: se implementó una lógica en `SettingsContext` para mostrar nombres combinados ("Fiesta Móvil / Santo Importante") cuando coinciden celebraciones de alta importancia.
+
+**Validación:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- Verificación de lógica de racha y conteo sincronizado: OK.
+- Navegación recursiva en Cartas corregida: OK.
+
+**Archivos Modificados:**
+- `android/app/src/main/res/layout/widget_saint_small.xml`
+- `android/app/src/main/res/drawable/widget_bg_round.xml`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java`
+- `src/context/SettingsContext.tsx`
+- `src/context/settings/stats-updates.ts`
+- `src/components/EpubReader.tsx`
+- `src/components/Header.tsx`
+- `src/components/main/MainApp.tsx`
+- `src/components/main/CartasIntro.tsx`
+- `src/components/settings/NotificationSettings.tsx`
+- `src/components/AddPrayerForm.tsx`
+- `src/lib/liturgical-color-rules.ts`
+- `src/lib/movable-feasts.ts`
+- `src/lib/placeholder-images.json`
+- `src/lib/prayers/plan-de-vida/via-crucis.ts`
+- `src/lib/prayers/oraciones/exposicion-bendicion.ts`
 - `AGENTS.md`
 
 ### [2026-03-27 11:39] 218. Notificaciones Android con imagen en banner expandido
@@ -812,6 +980,48 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `src/components/main/MainApp.tsx`
 - `AGENTS.md`
 
+### [2026-06-05 11:45] 231. Hardening y correcciones de UI
+**Planificación:**
+- Realizar una serie de mejoras técnicas y visuales en widgets, calendario litúrgico, persistencia de lectura, notificaciones y gestión de contenido de usuario.
+- Corregir errores de navegación en la sección de "Cartas" y sincronizar estadísticas con el calendario de Plan de Vida.
+- Asegurar la precisión litúrgica según el canon de Chile (Santiago) y añadir festividades móviles faltantes.
+
+**Ejecución:**
+- **Widget**: se ajustó `widget_saint_small.xml` con mayor padding (14dp/12dp) y se redujo el radio de esquinas a 16dp para evitar recortes de texto. Se alineó la configuración de líneas en `SaintWidgetUpdater.java`.
+- **Liturgia**: se revisaron los colores litúrgicos; se confirmó que San Juan Bautista de Rossi es blanco por ser tiempo de Pascua y ser presbítero. Se añadió el 16 de julio (Vírgen del Carmen) como solemnidad blanca para Chile.
+- **Navegación y Textos**: se eliminó la marca `isLongText` del Vía Crucis para tratarlo como oración corta. Se corrigió el acceso a las entradas de "Cartas" anidando `userLetters` bajo el nodo raíz en `SettingsContext`.
+- **EPUB**: se mejoró la persistencia de la ubicación en `EpubReader.tsx`, asegurando que el CFI se guarde en `onRelocated` y se restaure correctamente al abrir el libro.
+- **Estadísticas**: se refactorizó la lógica de conteo para que `totalPrayersOpened` coincida exactamente con los checks del calendario. La racha de Misa ahora se basa exclusivamente en la entrada "Santa Misa".
+- **Notificaciones**: se implementó `skipNotificationIfChecked` para omitir recordatorios de oraciones ya rezadas. Se añadieron fiestas móviles: María Madre de la Iglesia, Trinidad, Corpus Christi, Sagrado e Inmaculado Corazón. Se corrigieron acentos en mensajes automáticos.
+- **Contenido de Usuario**: se añadió un botón para eliminar imágenes cargadas por el usuario en `AddPrayerForm`. Se implementó un guardado automático de borradores cada segundo en `localStorage`.
+- **Interfaz "Cartas"**: se movió el toggle de recordatorio a un diálogo de información accesible desde el encabezado.
+- **Nuevos Contenidos**: se agregó el rito de "Exposición y Bendición con el Santísimo" en `src/lib/prayers/oraciones/exposicion-bendicion.ts`.
+- **Solapamiento de Santos**: se implementó una lógica en `SettingsContext` para mostrar nombres combinados ("Fiesta Móvil / Santo Importante") cuando coinciden celebraciones de alta importancia.
+
+**Validación:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- Verificación de lógica de racha y conteo sincronizado: OK.
+- Navegación recursiva en Cartas corregida: OK.
+
+**Archivos Modificados:**
+- `android/app/src/main/res/layout/widget_saint_small.xml`
+- `android/app/src/main/res/drawable/widget_bg_round.xml`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java`
+- `src/context/SettingsContext.tsx`
+- `src/context/settings/stats-updates.ts`
+- `src/components/EpubReader.tsx`
+- `src/components/Header.tsx`
+- `src/components/main/MainApp.tsx`
+- `src/components/main/CartasIntro.tsx`
+- `src/components/settings/NotificationSettings.tsx`
+- `src/components/AddPrayerForm.tsx`
+- `src/lib/liturgical-color-rules.ts`
+- `src/lib/movable-feasts.ts`
+- `src/lib/placeholder-images.json`
+- `src/lib/prayers/plan-de-vida/via-crucis.ts`
+- `src/lib/prayers/oraciones/exposicion-bendicion.ts`
+- `AGENTS.md`
+
 ### [2026-03-23 01:10] 189. Redefinicion de destinos de `crear respaldo`
 **Planificación:**
 - Ajustar el script de backup y el comando PowerShell `crear respaldo` a los tres destinos corregidos por el usuario: `drive`, `documents` y `disco`.
@@ -937,6 +1147,48 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 
 **Archivos Modificados:**
 - `src/components/main/MainApp.tsx`
+- `AGENTS.md`
+
+### [2026-06-05 11:45] 231. Hardening y correcciones de UI
+**Planificación:**
+- Realizar una serie de mejoras técnicas y visuales en widgets, calendario litúrgico, persistencia de lectura, notificaciones y gestión de contenido de usuario.
+- Corregir errores de navegación en la sección de "Cartas" y sincronizar estadísticas con el calendario de Plan de Vida.
+- Asegurar la precisión litúrgica según el canon de Chile (Santiago) y añadir festividades móviles faltantes.
+
+**Ejecución:**
+- **Widget**: se ajustó `widget_saint_small.xml` con mayor padding (14dp/12dp) y se redujo el radio de esquinas a 16dp para evitar recortes de texto. Se alineó la configuración de líneas en `SaintWidgetUpdater.java`.
+- **Liturgia**: se revisaron los colores litúrgicos; se confirmó que San Juan Bautista de Rossi es blanco por ser tiempo de Pascua y ser presbítero. Se añadió el 16 de julio (Vírgen del Carmen) como solemnidad blanca para Chile.
+- **Navegación y Textos**: se eliminó la marca `isLongText` del Vía Crucis para tratarlo como oración corta. Se corrigió el acceso a las entradas de "Cartas" anidando `userLetters` bajo el nodo raíz en `SettingsContext`.
+- **EPUB**: se mejoró la persistencia de la ubicación en `EpubReader.tsx`, asegurando que el CFI se guarde en `onRelocated` y se restaure correctamente al abrir el libro.
+- **Estadísticas**: se refactorizó la lógica de conteo para que `totalPrayersOpened` coincida exactamente con los checks del calendario. La racha de Misa ahora se basa exclusivamente en la entrada "Santa Misa".
+- **Notificaciones**: se implementó `skipNotificationIfChecked` para omitir recordatorios de oraciones ya rezadas. Se añadieron fiestas móviles: María Madre de la Iglesia, Trinidad, Corpus Christi, Sagrado e Inmaculado Corazón. Se corrigieron acentos en mensajes automáticos.
+- **Contenido de Usuario**: se añadió un botón para eliminar imágenes cargadas por el usuario en `AddPrayerForm`. Se implementó un guardado automático de borradores cada segundo en `localStorage`.
+- **Interfaz "Cartas"**: se movió el toggle de recordatorio a un diálogo de información accesible desde el encabezado.
+- **Nuevos Contenidos**: se agregó el rito de "Exposición y Bendición con el Santísimo" en `src/lib/prayers/oraciones/exposicion-bendicion.ts`.
+- **Solapamiento de Santos**: se implementó una lógica en `SettingsContext` para mostrar nombres combinados ("Fiesta Móvil / Santo Importante") cuando coinciden celebraciones de alta importancia.
+
+**Validación:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- Verificación de lógica de racha y conteo sincronizado: OK.
+- Navegación recursiva en Cartas corregida: OK.
+
+**Archivos Modificados:**
+- `android/app/src/main/res/layout/widget_saint_small.xml`
+- `android/app/src/main/res/drawable/widget_bg_round.xml`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java`
+- `src/context/SettingsContext.tsx`
+- `src/context/settings/stats-updates.ts`
+- `src/components/EpubReader.tsx`
+- `src/components/Header.tsx`
+- `src/components/main/MainApp.tsx`
+- `src/components/main/CartasIntro.tsx`
+- `src/components/settings/NotificationSettings.tsx`
+- `src/components/AddPrayerForm.tsx`
+- `src/lib/liturgical-color-rules.ts`
+- `src/lib/movable-feasts.ts`
+- `src/lib/placeholder-images.json`
+- `src/lib/prayers/plan-de-vida/via-crucis.ts`
+- `src/lib/prayers/oraciones/exposicion-bendicion.ts`
 - `AGENTS.md`
 
 ### [2026-03-20 12:05] 183. Detección robusta de carpeta Drive en build de APK
@@ -1512,6 +1764,48 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `src/components/main/MainApp.tsx`
 - `AGENTS.md`
 
+### [2026-06-05 11:45] 231. Hardening y correcciones de UI
+**Planificación:**
+- Realizar una serie de mejoras técnicas y visuales en widgets, calendario litúrgico, persistencia de lectura, notificaciones y gestión de contenido de usuario.
+- Corregir errores de navegación en la sección de "Cartas" y sincronizar estadísticas con el calendario de Plan de Vida.
+- Asegurar la precisión litúrgica según el canon de Chile (Santiago) y añadir festividades móviles faltantes.
+
+**Ejecución:**
+- **Widget**: se ajustó `widget_saint_small.xml` con mayor padding (14dp/12dp) y se redujo el radio de esquinas a 16dp para evitar recortes de texto. Se alineó la configuración de líneas en `SaintWidgetUpdater.java`.
+- **Liturgia**: se revisaron los colores litúrgicos; se confirmó que San Juan Bautista de Rossi es blanco por ser tiempo de Pascua y ser presbítero. Se añadió el 16 de julio (Vírgen del Carmen) como solemnidad blanca para Chile.
+- **Navegación y Textos**: se eliminó la marca `isLongText` del Vía Crucis para tratarlo como oración corta. Se corrigió el acceso a las entradas de "Cartas" anidando `userLetters` bajo el nodo raíz en `SettingsContext`.
+- **EPUB**: se mejoró la persistencia de la ubicación en `EpubReader.tsx`, asegurando que el CFI se guarde en `onRelocated` y se restaure correctamente al abrir el libro.
+- **Estadísticas**: se refactorizó la lógica de conteo para que `totalPrayersOpened` coincida exactamente con los checks del calendario. La racha de Misa ahora se basa exclusivamente en la entrada "Santa Misa".
+- **Notificaciones**: se implementó `skipNotificationIfChecked` para omitir recordatorios de oraciones ya rezadas. Se añadieron fiestas móviles: María Madre de la Iglesia, Trinidad, Corpus Christi, Sagrado e Inmaculado Corazón. Se corrigieron acentos en mensajes automáticos.
+- **Contenido de Usuario**: se añadió un botón para eliminar imágenes cargadas por el usuario en `AddPrayerForm`. Se implementó un guardado automático de borradores cada segundo en `localStorage`.
+- **Interfaz "Cartas"**: se movió el toggle de recordatorio a un diálogo de información accesible desde el encabezado.
+- **Nuevos Contenidos**: se agregó el rito de "Exposición y Bendición con el Santísimo" en `src/lib/prayers/oraciones/exposicion-bendicion.ts`.
+- **Solapamiento de Santos**: se implementó una lógica en `SettingsContext` para mostrar nombres combinados ("Fiesta Móvil / Santo Importante") cuando coinciden celebraciones de alta importancia.
+
+**Validación:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- Verificación de lógica de racha y conteo sincronizado: OK.
+- Navegación recursiva en Cartas corregida: OK.
+
+**Archivos Modificados:**
+- `android/app/src/main/res/layout/widget_saint_small.xml`
+- `android/app/src/main/res/drawable/widget_bg_round.xml`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java`
+- `src/context/SettingsContext.tsx`
+- `src/context/settings/stats-updates.ts`
+- `src/components/EpubReader.tsx`
+- `src/components/Header.tsx`
+- `src/components/main/MainApp.tsx`
+- `src/components/main/CartasIntro.tsx`
+- `src/components/settings/NotificationSettings.tsx`
+- `src/components/AddPrayerForm.tsx`
+- `src/lib/liturgical-color-rules.ts`
+- `src/lib/movable-feasts.ts`
+- `src/lib/placeholder-images.json`
+- `src/lib/prayers/plan-de-vida/via-crucis.ts`
+- `src/lib/prayers/oraciones/exposicion-bendicion.ts`
+- `AGENTS.md`
+
 ### [2026-03-12 23:40] 151. Hardening de git push en android:apk
 **Planificación:**
 - Revisar por que el paso final de `git push` en `npm run android:apk` falla aunque el mismo push manual funciona.
@@ -1585,6 +1879,48 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `src/components/main/MainApp.tsx`
 - `AGENTS.md`
 
+### [2026-06-05 11:45] 231. Hardening y correcciones de UI
+**Planificación:**
+- Realizar una serie de mejoras técnicas y visuales en widgets, calendario litúrgico, persistencia de lectura, notificaciones y gestión de contenido de usuario.
+- Corregir errores de navegación en la sección de "Cartas" y sincronizar estadísticas con el calendario de Plan de Vida.
+- Asegurar la precisión litúrgica según el canon de Chile (Santiago) y añadir festividades móviles faltantes.
+
+**Ejecución:**
+- **Widget**: se ajustó `widget_saint_small.xml` con mayor padding (14dp/12dp) y se redujo el radio de esquinas a 16dp para evitar recortes de texto. Se alineó la configuración de líneas en `SaintWidgetUpdater.java`.
+- **Liturgia**: se revisaron los colores litúrgicos; se confirmó que San Juan Bautista de Rossi es blanco por ser tiempo de Pascua y ser presbítero. Se añadió el 16 de julio (Vírgen del Carmen) como solemnidad blanca para Chile.
+- **Navegación y Textos**: se eliminó la marca `isLongText` del Vía Crucis para tratarlo como oración corta. Se corrigió el acceso a las entradas de "Cartas" anidando `userLetters` bajo el nodo raíz en `SettingsContext`.
+- **EPUB**: se mejoró la persistencia de la ubicación en `EpubReader.tsx`, asegurando que el CFI se guarde en `onRelocated` y se restaure correctamente al abrir el libro.
+- **Estadísticas**: se refactorizó la lógica de conteo para que `totalPrayersOpened` coincida exactamente con los checks del calendario. La racha de Misa ahora se basa exclusivamente en la entrada "Santa Misa".
+- **Notificaciones**: se implementó `skipNotificationIfChecked` para omitir recordatorios de oraciones ya rezadas. Se añadieron fiestas móviles: María Madre de la Iglesia, Trinidad, Corpus Christi, Sagrado e Inmaculado Corazón. Se corrigieron acentos en mensajes automáticos.
+- **Contenido de Usuario**: se añadió un botón para eliminar imágenes cargadas por el usuario en `AddPrayerForm`. Se implementó un guardado automático de borradores cada segundo en `localStorage`.
+- **Interfaz "Cartas"**: se movió el toggle de recordatorio a un diálogo de información accesible desde el encabezado.
+- **Nuevos Contenidos**: se agregó el rito de "Exposición y Bendición con el Santísimo" en `src/lib/prayers/oraciones/exposicion-bendicion.ts`.
+- **Solapamiento de Santos**: se implementó una lógica en `SettingsContext` para mostrar nombres combinados ("Fiesta Móvil / Santo Importante") cuando coinciden celebraciones de alta importancia.
+
+**Validación:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- Verificación de lógica de racha y conteo sincronizado: OK.
+- Navegación recursiva en Cartas corregida: OK.
+
+**Archivos Modificados:**
+- `android/app/src/main/res/layout/widget_saint_small.xml`
+- `android/app/src/main/res/drawable/widget_bg_round.xml`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java`
+- `src/context/SettingsContext.tsx`
+- `src/context/settings/stats-updates.ts`
+- `src/components/EpubReader.tsx`
+- `src/components/Header.tsx`
+- `src/components/main/MainApp.tsx`
+- `src/components/main/CartasIntro.tsx`
+- `src/components/settings/NotificationSettings.tsx`
+- `src/components/AddPrayerForm.tsx`
+- `src/lib/liturgical-color-rules.ts`
+- `src/lib/movable-feasts.ts`
+- `src/lib/placeholder-images.json`
+- `src/lib/prayers/plan-de-vida/via-crucis.ts`
+- `src/lib/prayers/oraciones/exposicion-bendicion.ts`
+- `AGENTS.md`
+
 ### [2026-03-11 18:24] 147. Ajuste final de secuencia lineal en Plan Personalizado
 **Planificaci?n:**
 - Ajustar el fix anterior para que la navegaci?n del plan sea estrictamente lineal entre ?tems.
@@ -1599,6 +1935,48 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 
 **Archivos Modificados:**
 - `src/components/main/MainApp.tsx`
+- `AGENTS.md`
+
+### [2026-06-05 11:45] 231. Hardening y correcciones de UI
+**Planificación:**
+- Realizar una serie de mejoras técnicas y visuales en widgets, calendario litúrgico, persistencia de lectura, notificaciones y gestión de contenido de usuario.
+- Corregir errores de navegación en la sección de "Cartas" y sincronizar estadísticas con el calendario de Plan de Vida.
+- Asegurar la precisión litúrgica según el canon de Chile (Santiago) y añadir festividades móviles faltantes.
+
+**Ejecución:**
+- **Widget**: se ajustó `widget_saint_small.xml` con mayor padding (14dp/12dp) y se redujo el radio de esquinas a 16dp para evitar recortes de texto. Se alineó la configuración de líneas en `SaintWidgetUpdater.java`.
+- **Liturgia**: se revisaron los colores litúrgicos; se confirmó que San Juan Bautista de Rossi es blanco por ser tiempo de Pascua y ser presbítero. Se añadió el 16 de julio (Vírgen del Carmen) como solemnidad blanca para Chile.
+- **Navegación y Textos**: se eliminó la marca `isLongText` del Vía Crucis para tratarlo como oración corta. Se corrigió el acceso a las entradas de "Cartas" anidando `userLetters` bajo el nodo raíz en `SettingsContext`.
+- **EPUB**: se mejoró la persistencia de la ubicación en `EpubReader.tsx`, asegurando que el CFI se guarde en `onRelocated` y se restaure correctamente al abrir el libro.
+- **Estadísticas**: se refactorizó la lógica de conteo para que `totalPrayersOpened` coincida exactamente con los checks del calendario. La racha de Misa ahora se basa exclusivamente en la entrada "Santa Misa".
+- **Notificaciones**: se implementó `skipNotificationIfChecked` para omitir recordatorios de oraciones ya rezadas. Se añadieron fiestas móviles: María Madre de la Iglesia, Trinidad, Corpus Christi, Sagrado e Inmaculado Corazón. Se corrigieron acentos en mensajes automáticos.
+- **Contenido de Usuario**: se añadió un botón para eliminar imágenes cargadas por el usuario en `AddPrayerForm`. Se implementó un guardado automático de borradores cada segundo en `localStorage`.
+- **Interfaz "Cartas"**: se movió el toggle de recordatorio a un diálogo de información accesible desde el encabezado.
+- **Nuevos Contenidos**: se agregó el rito de "Exposición y Bendición con el Santísimo" en `src/lib/prayers/oraciones/exposicion-bendicion.ts`.
+- **Solapamiento de Santos**: se implementó una lógica en `SettingsContext` para mostrar nombres combinados ("Fiesta Móvil / Santo Importante") cuando coinciden celebraciones de alta importancia.
+
+**Validación:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- Verificación de lógica de racha y conteo sincronizado: OK.
+- Navegación recursiva en Cartas corregida: OK.
+
+**Archivos Modificados:**
+- `android/app/src/main/res/layout/widget_saint_small.xml`
+- `android/app/src/main/res/drawable/widget_bg_round.xml`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java`
+- `src/context/SettingsContext.tsx`
+- `src/context/settings/stats-updates.ts`
+- `src/components/EpubReader.tsx`
+- `src/components/Header.tsx`
+- `src/components/main/MainApp.tsx`
+- `src/components/main/CartasIntro.tsx`
+- `src/components/settings/NotificationSettings.tsx`
+- `src/components/AddPrayerForm.tsx`
+- `src/lib/liturgical-color-rules.ts`
+- `src/lib/movable-feasts.ts`
+- `src/lib/placeholder-images.json`
+- `src/lib/prayers/plan-de-vida/via-crucis.ts`
+- `src/lib/prayers/oraciones/exposicion-bendicion.ts`
 - `AGENTS.md`
 
 ### [2026-03-11 18:09] 146. Fix back en Plan Personalizado entre categor?as
@@ -1870,6 +2248,48 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 
 **Archivos Modificados:**
 - `src/components/main/MainApp.tsx`
+- `AGENTS.md`
+
+### [2026-06-05 11:45] 231. Hardening y correcciones de UI
+**Planificación:**
+- Realizar una serie de mejoras técnicas y visuales en widgets, calendario litúrgico, persistencia de lectura, notificaciones y gestión de contenido de usuario.
+- Corregir errores de navegación en la sección de "Cartas" y sincronizar estadísticas con el calendario de Plan de Vida.
+- Asegurar la precisión litúrgica según el canon de Chile (Santiago) y añadir festividades móviles faltantes.
+
+**Ejecución:**
+- **Widget**: se ajustó `widget_saint_small.xml` con mayor padding (14dp/12dp) y se redujo el radio de esquinas a 16dp para evitar recortes de texto. Se alineó la configuración de líneas en `SaintWidgetUpdater.java`.
+- **Liturgia**: se revisaron los colores litúrgicos; se confirmó que San Juan Bautista de Rossi es blanco por ser tiempo de Pascua y ser presbítero. Se añadió el 16 de julio (Vírgen del Carmen) como solemnidad blanca para Chile.
+- **Navegación y Textos**: se eliminó la marca `isLongText` del Vía Crucis para tratarlo como oración corta. Se corrigió el acceso a las entradas de "Cartas" anidando `userLetters` bajo el nodo raíz en `SettingsContext`.
+- **EPUB**: se mejoró la persistencia de la ubicación en `EpubReader.tsx`, asegurando que el CFI se guarde en `onRelocated` y se restaure correctamente al abrir el libro.
+- **Estadísticas**: se refactorizó la lógica de conteo para que `totalPrayersOpened` coincida exactamente con los checks del calendario. La racha de Misa ahora se basa exclusivamente en la entrada "Santa Misa".
+- **Notificaciones**: se implementó `skipNotificationIfChecked` para omitir recordatorios de oraciones ya rezadas. Se añadieron fiestas móviles: María Madre de la Iglesia, Trinidad, Corpus Christi, Sagrado e Inmaculado Corazón. Se corrigieron acentos en mensajes automáticos.
+- **Contenido de Usuario**: se añadió un botón para eliminar imágenes cargadas por el usuario en `AddPrayerForm`. Se implementó un guardado automático de borradores cada segundo en `localStorage`.
+- **Interfaz "Cartas"**: se movió el toggle de recordatorio a un diálogo de información accesible desde el encabezado.
+- **Nuevos Contenidos**: se agregó el rito de "Exposición y Bendición con el Santísimo" en `src/lib/prayers/oraciones/exposicion-bendicion.ts`.
+- **Solapamiento de Santos**: se implementó una lógica en `SettingsContext` para mostrar nombres combinados ("Fiesta Móvil / Santo Importante") cuando coinciden celebraciones de alta importancia.
+
+**Validación:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- Verificación de lógica de racha y conteo sincronizado: OK.
+- Navegación recursiva en Cartas corregida: OK.
+
+**Archivos Modificados:**
+- `android/app/src/main/res/layout/widget_saint_small.xml`
+- `android/app/src/main/res/drawable/widget_bg_round.xml`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java`
+- `src/context/SettingsContext.tsx`
+- `src/context/settings/stats-updates.ts`
+- `src/components/EpubReader.tsx`
+- `src/components/Header.tsx`
+- `src/components/main/MainApp.tsx`
+- `src/components/main/CartasIntro.tsx`
+- `src/components/settings/NotificationSettings.tsx`
+- `src/components/AddPrayerForm.tsx`
+- `src/lib/liturgical-color-rules.ts`
+- `src/lib/movable-feasts.ts`
+- `src/lib/placeholder-images.json`
+- `src/lib/prayers/plan-de-vida/via-crucis.ts`
+- `src/lib/prayers/oraciones/exposicion-bendicion.ts`
 - `AGENTS.md`
 
 ### [2026-02-26 03:10] 135. Zonas táctiles + acciones en notificaciones
@@ -2204,6 +2624,48 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 **Archivos Modificados:**
 - `src/components/NewTestamentEpubReader.tsx`
 - `src/components/main/MainApp.tsx`
+- `AGENTS.md`
+
+### [2026-06-05 11:45] 231. Hardening y correcciones de UI
+**Planificación:**
+- Realizar una serie de mejoras técnicas y visuales en widgets, calendario litúrgico, persistencia de lectura, notificaciones y gestión de contenido de usuario.
+- Corregir errores de navegación en la sección de "Cartas" y sincronizar estadísticas con el calendario de Plan de Vida.
+- Asegurar la precisión litúrgica según el canon de Chile (Santiago) y añadir festividades móviles faltantes.
+
+**Ejecución:**
+- **Widget**: se ajustó `widget_saint_small.xml` con mayor padding (14dp/12dp) y se redujo el radio de esquinas a 16dp para evitar recortes de texto. Se alineó la configuración de líneas en `SaintWidgetUpdater.java`.
+- **Liturgia**: se revisaron los colores litúrgicos; se confirmó que San Juan Bautista de Rossi es blanco por ser tiempo de Pascua y ser presbítero. Se añadió el 16 de julio (Vírgen del Carmen) como solemnidad blanca para Chile.
+- **Navegación y Textos**: se eliminó la marca `isLongText` del Vía Crucis para tratarlo como oración corta. Se corrigió el acceso a las entradas de "Cartas" anidando `userLetters` bajo el nodo raíz en `SettingsContext`.
+- **EPUB**: se mejoró la persistencia de la ubicación en `EpubReader.tsx`, asegurando que el CFI se guarde en `onRelocated` y se restaure correctamente al abrir el libro.
+- **Estadísticas**: se refactorizó la lógica de conteo para que `totalPrayersOpened` coincida exactamente con los checks del calendario. La racha de Misa ahora se basa exclusivamente en la entrada "Santa Misa".
+- **Notificaciones**: se implementó `skipNotificationIfChecked` para omitir recordatorios de oraciones ya rezadas. Se añadieron fiestas móviles: María Madre de la Iglesia, Trinidad, Corpus Christi, Sagrado e Inmaculado Corazón. Se corrigieron acentos en mensajes automáticos.
+- **Contenido de Usuario**: se añadió un botón para eliminar imágenes cargadas por el usuario en `AddPrayerForm`. Se implementó un guardado automático de borradores cada segundo en `localStorage`.
+- **Interfaz "Cartas"**: se movió el toggle de recordatorio a un diálogo de información accesible desde el encabezado.
+- **Nuevos Contenidos**: se agregó el rito de "Exposición y Bendición con el Santísimo" en `src/lib/prayers/oraciones/exposicion-bendicion.ts`.
+- **Solapamiento de Santos**: se implementó una lógica en `SettingsContext` para mostrar nombres combinados ("Fiesta Móvil / Santo Importante") cuando coinciden celebraciones de alta importancia.
+
+**Validación:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- Verificación de lógica de racha y conteo sincronizado: OK.
+- Navegación recursiva en Cartas corregida: OK.
+
+**Archivos Modificados:**
+- `android/app/src/main/res/layout/widget_saint_small.xml`
+- `android/app/src/main/res/drawable/widget_bg_round.xml`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java`
+- `src/context/SettingsContext.tsx`
+- `src/context/settings/stats-updates.ts`
+- `src/components/EpubReader.tsx`
+- `src/components/Header.tsx`
+- `src/components/main/MainApp.tsx`
+- `src/components/main/CartasIntro.tsx`
+- `src/components/settings/NotificationSettings.tsx`
+- `src/components/AddPrayerForm.tsx`
+- `src/lib/liturgical-color-rules.ts`
+- `src/lib/movable-feasts.ts`
+- `src/lib/placeholder-images.json`
+- `src/lib/prayers/plan-de-vida/via-crucis.ts`
+- `src/lib/prayers/oraciones/exposicion-bendicion.ts`
 - `AGENTS.md`
 
 ### [2026-02-25 12:20] 114. Ajuste de paginación táctil EPUB (sin detección CFI forzada)

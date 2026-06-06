@@ -28,6 +28,7 @@ const SPECIAL_FIXED_DATE_COLORS: Record<string, LiturgicalColorName> = {
   '03-25': 'Blanco',
   '06-24': 'Blanco',
   '06-29': 'Rojo',
+  '07-16': 'Blanco',
   '08-06': 'Blanco',
   '08-15': 'Blanco',
   '09-14': 'Rojo',
