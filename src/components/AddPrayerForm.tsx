@@ -18,9 +18,10 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import type { Prayer } from '@/lib/types';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSettings } from '@/context/SettingsContext';
-import { Eye } from 'lucide-react';
+import { Eye, Trash2 } from 'lucide-react';
 import { renderText } from '@/lib/textFormatter';
 import ImageCropper from '@/components/ui/ImageCropper';
+import * as Icon from 'lucide-react';
 
 const formSchema = z.object({
   title: z.string().min(1, { message: 'El título es requerido.' }),
@@ -308,7 +309,7 @@ export default function AddPrayerForm({
                               setImageToCrop(null);
                             }}
                           >
-                            <Icon.Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       ) : null}

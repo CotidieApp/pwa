@@ -201,9 +201,6 @@ type Settings = {
   toggleTimer: () => void;
   resetTimer: () => void;
 
-  skipNotificationIfChecked: boolean;
-  setSkipNotificationIfChecked: (enabled: boolean) => void;
-
   overlayPositions: OverlayPositions;
   setOverlayPosition: (key: keyof OverlayPositions, pos: OverlayPosition) => void;
 
@@ -795,6 +792,7 @@ const normalizeBackupState = (raw: any) => {
     devTestNotificationEnabled: normalizeBoolean(source.devTestNotificationEnabled),
     devLiveTraceEnabled: normalizeBoolean(source.devLiveTraceEnabled),
     devLiveTraceEvents: normalizeDevTraceEventsValue(source.devLiveTraceEvents),
+    skipNotificationIfChecked: normalizeBoolean(source.skipNotificationIfChecked, true),
     userStats: normalizeUserStatsValue(source.userStats),
     globalUserStats: normalizeUserStatsValue(source.globalUserStats),
     statsYear: Math.floor(normalizeNumber(source.statsYear, new Date().getFullYear())),
@@ -1148,6 +1146,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         devTestNotificationEnabled,
         devLiveTraceEnabled,
         devLiveTraceEvents,
+        skipNotificationIfChecked,
         userStats,
         globalUserStats,
         statsYear,
@@ -3525,6 +3524,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         updateUserStats,
         globalUserStats,
         incrementGlobalStat,
+        skipNotificationIfChecked,
+        setSkipNotificationIfChecked,
         forceAnnuumSeason,
         setForceAnnuumSeason,
         showZeroStats,

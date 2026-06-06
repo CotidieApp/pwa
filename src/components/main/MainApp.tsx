@@ -10,6 +10,7 @@ import PrayerList from '@/components/PrayerList';
 import PrayerDetail from '@/components/PrayerDetail';
 import Settings from '@/components/Settings';
 import AddPrayerForm from '@/components/AddPrayerForm';
+import { Button } from '@/components/ui/button';
 import PrayerAccordion from '@/components/PrayerAccordion';
 import HomePage from '../home/HomePage';
 import CustomPlanView from '../plans/CustomPlanView';
@@ -20,6 +21,7 @@ import ViaCrucisImmersive from '../ViaCrucisImmersive';
 import EpubReader from '@/components/EpubReader';
 import PersonalEpubLibrary from '@/components/PersonalEpubLibrary';
 import SearchCamino from '@/components/SearchCamino';
+import { AudioPlayer } from '@/components/AudioPlayer';
 import { letanias as letaniasRosarioBase } from '@/lib/prayers/plan-de-vida/santo-rosario/letanias';
 import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
@@ -110,6 +112,8 @@ export default function MainApp() {
     setHasViewedAnnuum,
     pushDevLiveTrace,
     navMode,
+    cartasReminderEnabled,
+    setCartasReminderEnabled,
   } = useSettings();
   const customPlanTouchNavEnabled = navMode === 'touch';
   const customPlanExitAdvanceRef = useRef<{
