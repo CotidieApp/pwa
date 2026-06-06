@@ -631,7 +631,8 @@
       "name": "San José, esposo de la Virgen María",
       "bio": "Solemnidad en honor al esposo de María y padre adoptivo de Jesús. Patrono de la Iglesia universal.",
       "title": "Solemnidad",
-      "type": "celebration"
+      "type": "celebration",
+      "isHighImportance": true
     },
     {
       "month": 3,
@@ -679,7 +680,8 @@
       "name": "Anunciación del Señor",
       "bio": "Solemnidad que conmemora el anuncio del ángel Gabriel a María y la encarnación del Verbo. Misterio central de la fe cristiana.",
       "title": "Solemnidad",
-      "type": "celebration"
+      "type": "celebration",
+      "isHighImportance": true
     },
     {
       "month": 3,
@@ -1215,7 +1217,8 @@
       "name": "Visitación de la Virgen María",
       "bio": "María visita a su prima Isabel, llevando en su seno a Cristo. Es signo de caridad y de misión.",
       "title": "Fiesta",
-      "type": "marian"
+      "type": "marian",
+      "isHighImportance": true
     },
     {
       "month": 6,
@@ -1447,7 +1450,8 @@
       "name": "Santos Pedro y Pablo, apóstoles",
       "bio": "Pedro, primer papa; Pablo, apóstol de los gentiles. Ambos dieron su vida en Roma por Cristo.",
       "title": "Solemnidad",
-      "type": "apostle"
+      "type": "apostle",
+      "isHighImportance": true
     },
     {
       "month": 6,
@@ -1823,7 +1827,8 @@
       "name": "Asunción de la Virgen María",
       "bio": "María, al terminar su vida terrena, fue llevada en cuerpo y alma al cielo; signo de esperanza para los fieles.",
       "title": "Solemnidad",
-      "type": "marian"
+      "type": "marian",
+      "isHighImportance": true
     },
     {
       "month": 8,
@@ -2447,7 +2452,8 @@
       "name": "Todos los Santos",
       "bio": "Solemnidad en honor a todos los santos, conocidos y desconocidos, que ya gozan de la visión de Dios.",
       "title": "Solemnidad",
-      "type": "celebration"
+      "type": "celebration",
+      "isHighImportance": true
     },
     {
       "month": 11,
@@ -2743,7 +2749,8 @@
       "name": "Inmaculada Concepción de la Virgen María",
       "bio": "Solemnidad que celebra que María fue preservada del pecado original desde su concepción; patrona de Chile.",
       "title": "Solemnidad",
-      "type": "marian"
+      "type": "marian",
+      "isHighImportance": true
     },
     {
       "month": 12,
