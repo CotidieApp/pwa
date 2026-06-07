@@ -77,7 +77,7 @@ tasks.register('copyNotificationIconsToDrawable', Copy) {
     into("${project.projectDir}/src/main/res/drawable")
 }
 
-def toDrawableResourceName = { String relativePath ->
+def toDrawableResourceName = { relativePath ->
     def normalized = relativePath.replace('\\', '/').toLowerCase()
     def ext = ''
     if (normalized.lastIndexOf('.') > normalized.lastIndexOf('/')) {
@@ -135,6 +135,6 @@ try {
     if (servicesJSON.text) {
         apply plugin: 'com.google.gms.google-services'
     }
-} catch(Exception e) {
+} catch(e) {
     logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
 }
