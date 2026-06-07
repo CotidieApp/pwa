@@ -21,9 +21,6 @@ export default function ThemeManager({ children }: { children: React.ReactNode }
       root.classList.add(theme);
     }
 
-    const clampedFontSize = Math.min(21, Math.max(11, Number.isFinite(fontSize) ? (fontSize as number) : 15));
-    root.style.fontSize = `${clampedFontSize}px`;
-
     if (fontFamily) {
       root.classList.add(`font-${fontFamily}`);
     } else {

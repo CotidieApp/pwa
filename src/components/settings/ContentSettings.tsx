@@ -221,6 +221,44 @@ export default function ContentSettings({ onShowAnnuum }: ContentSettingsProps) 
     event.target.value = '';
   };
 
+  const daySpecificPrayers = allPrayers.filter((p): p is Prayer & { id: string } => (p.showOnDay !== undefined || p.isDaySpecific === true) && !!p.id);
+  const daysOfWeek = ['Domingos', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábados'];
+
+  const getPrayerDisplayName = (prayerId: string) => {
+    const prayer = daySpecificPrayers.find(p => p.id === prayerId);
+    return prayer?.title || 'Oración sin título';
+  };
+
+  const isSeason = useMemo(() => {
+    if (forceAnnuumSeason) return true;
+    const now = simulatedDate ? new Date(simulatedDate) : new Date();
+    return isAnnuumSeason(now);
+  }, [simulatedDate, forceAnnuumSeason]);
+
+  return (
+    <div className="space-y-6 animate-in fade-in-0 duration-500">
+      {isSeason && hasViewedAnnuum && onShowAnnuum && (
+        <Card className="bg-gradient-to-br from-yellow-500/10 to-amber-500/10 border-yellow-500/20">
+            <CardHeader>
+                <CardTitle className="font-headline text-base flex items-center gap-2">
+                    <span>✨</span> Resumen del Año
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <Button
+                    onClick={onShowAnnuum}
+                    className="w-full bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-600 hover:to-amber-700 text-white border-0 shadow-lg shadow-yellow-500/20"
+                >
+                    <Icon.Play className="mr-2 h-4 w-4 fill-current" />
+                    Ver Cotidie Annuum {new Date().getFullYear()}
+                </Button>
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                    Revive tus momentos de oración de este año.
+                </p>
+            </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="font-headline text-base">Mis Datos y Respaldo</CardTitle>

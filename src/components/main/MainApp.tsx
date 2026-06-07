@@ -30,6 +30,7 @@ import { isAnnuumSeason } from '@/lib/movable-feasts';
 import AnnuumStory from '../AnnuumStory';
 import Image from 'next/image';
 import { Play } from 'lucide-react';
+import * as Icon from 'lucide-react';
 import DeveloperDashboard from '@/components/developer/DeveloperDashboard';
 import { useToast } from '@/hooks/use-toast';
 import { useNavPersistence } from '@/components/main/useNavPersistence';

@@ -17,6 +17,7 @@ import * as z from 'zod';
 import { Capacitor } from '@capacitor/core';
 import { Form } from '@/components/ui/form';
 import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
 import { extractThemeColorsFromImageUrl, clampNumber, type ThemeColors } from '@/lib/theme-utils';
 import ImageCropper from '@/components/ui/ImageCropper';
 import {

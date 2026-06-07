@@ -7,6 +7,7 @@ import { ChevronDown, ChevronLeft, ChevronRight, X, Plus, Trash2, Settings2, Ima
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useSettings } from '@/context/SettingsContext';
+import { useToast } from '@/hooks/use-toast';
 import { santoRosario } from '@/lib/prayers/plan-de-vida/santo-rosario';
 import { letanias as letaniasData } from '@/lib/prayers/plan-de-vida/santo-rosario/letanias';
 import type { Prayer } from '@/lib/types';
