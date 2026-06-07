@@ -9,6 +9,7 @@ export default function ThemeManager({ children }: { children: React.ReactNode }
   const theme = settings?.theme;
   const fontSize = settings?.fontSize;
   const fontFamily = settings?.fontFamily;
+  const appScale = settings?.appScale ?? 1.0;
   const activeThemeColors = settings?.activeThemeColors;
 
   useEffect(() => {
@@ -21,13 +22,18 @@ export default function ThemeManager({ children }: { children: React.ReactNode }
       root.classList.add(theme);
     }
 
+    // Task 5: App-wide scaling
+    const baseSize = 15;
+    const scaledSize = baseSize * appScale;
+    root.style.fontSize = `${scaledSize}px`;
+
     if (fontFamily) {
       root.classList.add(`font-${fontFamily}`);
     } else {
       root.classList.add('font-literata');
     }
 
-  }, [settings, theme, fontSize, fontFamily]);
+  }, [settings, theme, appScale, fontFamily]);
 
   useEffect(() => {
     if (!settings || !activeThemeColors) return;

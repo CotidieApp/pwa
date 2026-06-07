@@ -10,13 +10,16 @@ type DateInput = Date | string | null | undefined;
 
 export function getLiturgicalColor(
   saint: LiturgicalSaintLike,
-  dateInput?: DateInput
+  dateInput?: DateInput,
+  ignoreSpecialDate?: boolean
 ) {
-  const protectedColorName = getSpecialDateLiturgicalColorName(dateInput);
-  if (protectedColorName) return LITURGICAL_COLOR_HEX[protectedColorName];
+  if (!ignoreSpecialDate) {
+    const protectedColorName = getSpecialDateLiturgicalColorName(dateInput);
+    if (protectedColorName) return LITURGICAL_COLOR_HEX[protectedColorName];
 
-  const yearlyColorName = getYearlyChileLiturgicalColorName(dateInput);
-  if (yearlyColorName) return LITURGICAL_COLOR_HEX[yearlyColorName];
+    const yearlyColorName = getYearlyChileLiturgicalColorName(dateInput);
+    if (yearlyColorName) return LITURGICAL_COLOR_HEX[yearlyColorName];
+  }
 
-  return getGeneralLiturgicalColor(saint, dateInput);
+  return getGeneralLiturgicalColor(saint, dateInput, ignoreSpecialDate);
 }

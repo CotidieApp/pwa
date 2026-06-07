@@ -130,10 +130,10 @@ export default function NotificationSettings() {
             />
           </div>
 
-          <div className={cn("flex items-center justify-between", !notificationsEnabled && "opacity-50")}>
-            <div className="space-y-0.5">
-              <Label htmlFor="skip-notif-switch" className="text-sm">Omitir si ya se rezó</Label>
-              <p className="text-[10px] text-muted-foreground max-w-[200px]">
+          <div className={cn("flex items-center justify-between gap-3", !notificationsEnabled && "opacity-50")}>
+            <div className="space-y-0.5 flex-1">
+              <Label htmlFor="skip-notif-switch" className="text-sm font-medium">Omitir si ya se rezó</Label>
+              <p className="text-[10px] text-muted-foreground leading-tight">
                 No envía recordatorios de oraciones marcadas hoy en Plan de Vida.
               </p>
             </div>
@@ -151,9 +151,9 @@ export default function NotificationSettings() {
               const timeValue = `${String(r.time.hours).padStart(2, '0')}:${String(r.time.minutes).padStart(2, '0')}`;
               return (
                 <div key={r.id} className="rounded-md border p-3 space-y-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <Label className="text-sm">Activo</Label>
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between gap-4">
+                    <Label className="text-sm font-medium">Recordatorio Activo</Label>
+                    <div className="flex items-center gap-2 shrink-0">
                       <Switch
                         checked={r.enabled}
                         onCheckedChange={(enabled) => updateDailyReminder(r.id, { enabled })}
@@ -163,6 +163,7 @@ export default function NotificationSettings() {
                           <Button
                             variant="destructive"
                             size="icon"
+                            className="h-8 w-8"
                             aria-label="Eliminar recordatorio"
                           >
                             <Icon.Trash2 className="h-4 w-4" />

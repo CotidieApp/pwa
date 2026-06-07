@@ -266,6 +266,9 @@ type Settings = {
   smallWidgetMode: SmallWidgetMode;
   setSmallWidgetMode: (mode: SmallWidgetMode) => void;
 
+  appScale: number;
+  setAppScale: (scale: number) => void;
+
   shakeToOpenEnabled: boolean;
   setShakeToOpenEnabled: (enabled: boolean) => void;
 
@@ -679,6 +682,7 @@ const FULL_BACKUP_KEYS = [
   'isCustomThemeActive',
   'pinchToZoomEnabled',
   'prayerTextZoom',
+  'appScale',
   'navMode',
   'arrowBubbleSize',
   'smallWidgetMode',
@@ -776,6 +780,7 @@ const normalizeBackupState = (raw: any) => {
     isCustomThemeActive: normalizeBoolean(source.isCustomThemeActive),
     pinchToZoomEnabled: normalizeBoolean(source.pinchToZoomEnabled, true),
     prayerTextZoom: isFiniteNumber(source.prayerTextZoom) ? Math.min(2, Math.max(0.5, Number(source.prayerTextZoom))) : 1,
+    appScale: isFiniteNumber(source.appScale) ? Math.min(1.5, Math.max(0.7, Number(source.appScale))) : 1,
     navMode,
     arrowBubbleSize,
     smallWidgetMode,
@@ -795,7 +800,7 @@ const normalizeBackupState = (raw: any) => {
     dailyReminders: normalizeDailyRemindersValue(source.dailyReminders),
     cartasReminderEnabled: normalizeBoolean(source.cartasReminderEnabled, true),
     cartasReminderAnchorAt: Math.max(1, Math.floor(normalizeNumber(source.cartasReminderAnchorAt, Date.now()))),
-    shakeToOpenEnabled: normalizeBoolean(source.shakeToOpenEnabled, false),
+    shakeToOpenEnabled: normalizeBoolean(source.shakeToOpenEnabled, true),
     devTestNotificationEnabled: normalizeBoolean(source.devTestNotificationEnabled),
     devLiveTraceEnabled: normalizeBoolean(source.devLiveTraceEnabled),
     devLiveTraceEvents: normalizeDevTraceEventsValue(source.devLiveTraceEvents),
@@ -890,7 +895,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [navMode, setNavMode] = useState<NavMode>('bubble');
   const [arrowBubbleSize, setArrowBubbleSize] = useState<ArrowBubbleSize>('sm');
   const [smallWidgetMode, setSmallWidgetMode] = useState<SmallWidgetMode>('full');
-  const [shakeToOpenEnabled, setShakeToOpenEnabled] = useState(false);
+  const [appScale, setAppScale] = useState(1.0);
+  const [shakeToOpenEnabled, setShakeToOpenEnabled] = useState(true);
 
   const [userHomeBackgrounds, setUserHomeBackgrounds] = useState<ImagePlaceholder[]>([]);
   const [scrollPositions, setScrollPositions] = useState<{ [k: string]: number }>({});
@@ -1067,7 +1073,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setNavMode(snapshot.navMode);
     setArrowBubbleSize(snapshot.arrowBubbleSize);
     setSmallWidgetMode(snapshot.smallWidgetMode);
-    setShakeToOpenEnabled(snapshot.shakeToOpenEnabled ?? false);
+    setAppScale(snapshot.appScale ?? 1.0);
+    setShakeToOpenEnabled(snapshot.shakeToOpenEnabled ?? true);
     setSkipNotificationIfChecked(snapshot.skipNotificationIfChecked ?? true);
     setUserHomeBackgrounds(snapshot.userHomeBackgrounds);
     setScrollPositions(snapshot.scrollPositions);
@@ -1198,37 +1205,40 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       customThemeColors,
       isCustomThemeActive,
       pinchToZoomEnabled,
-      navMode,
-      arrowBubbleSize,
-      smallWidgetMode,
-      userHomeBackgrounds,
-      scrollPositions,
-      prayerLanguagePreferences,
-      quoteOfTheDay,
-      recentQuoteIds,
-      lastQuoteDate,
-      shownEasterEggQuoteIds,
-      saintOfTheDay,
-      saintOfTheDayImage,
-      lastSaintUpdate,
-      simulatedQuoteId,
-      customPlans,
-      notificationsEnabled,
-      dailyReminders,
-      cartasReminderEnabled,
-      cartasReminderAnchorAt,
-      devTestNotificationEnabled,
-      devLiveTraceEnabled,
-      devLiveTraceEvents,
-      userStats,
-      globalUserStats,
-      statsYear,
-      simulatedStats,
-      forceAnnuumSeason,
-      showZeroStats,
-      hasViewedAnnuum,
-    ]
-  );
+    prayerTextZoom,
+    appScale,
+    navMode,
+    arrowBubbleSize,
+    smallWidgetMode,
+    shakeToOpenEnabled,
+    userHomeBackgrounds,
+    scrollPositions,
+    prayerLanguagePreferences,
+    quoteOfTheDay,
+    recentQuoteIds,
+    lastQuoteDate,
+    shownEasterEggQuoteIds,
+    saintOfTheDay,
+    saintOfTheDayImage,
+    lastSaintUpdate,
+    simulatedQuoteId,
+    customPlans,
+    notificationsEnabled,
+    dailyReminders,
+    cartasReminderEnabled,
+    cartasReminderAnchorAt,
+    devTestNotificationEnabled,
+    devLiveTraceEnabled,
+    devLiveTraceEvents,
+    skipNotificationIfChecked,
+    userStats,
+    globalUserStats,
+    statsYear,
+    simulatedStats,
+    forceAnnuumSeason,
+    showZeroStats,
+    hasViewedAnnuum,
+  ]);
 
   const getBackupSnapshot = useCallback(() => backupSnapshot, [backupSnapshot]);
 
@@ -2052,7 +2062,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           message: 'Procesando importacion pendiente...',
         });
 
-        const parsed = JSON.parse(raw);
+        const parsed = JSON.parse(raw.replace(/^\uFEFF/, ''));
         const result = importUserData(parsed, { silent: true });
 
         if (result.status === 'applied' || result.status === 'duplicate') {
@@ -3514,6 +3524,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         setArrowBubbleSize,
         smallWidgetMode,
         setSmallWidgetMode,
+        appScale,
+        setAppScale,
         shakeToOpenEnabled,
         setShakeToOpenEnabled,
         userHomeBackgrounds,

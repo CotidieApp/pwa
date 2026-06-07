@@ -21,9 +21,9 @@ export default function Settings({ onOpenDeveloperDashboard, onShowAnnuum }: Set
   const containerRef = useRef<HTMLDivElement>(null);
 
   const tabs: { id: SettingsTab; label: string; icon: React.ElementType }[] = [
+    { id: 'visual', label: 'Apariencia', icon: Icon.Palette },
     { id: 'datos', label: 'Contenido', icon: Icon.BookOpen },
     { id: 'alertas', label: 'Alertas', icon: Icon.Bell },
-    { id: 'visual', label: 'Apariencia', icon: Icon.Palette },
     { id: 'otros', label: 'Otros', icon: Icon.Settings2 },
   ];
 
@@ -119,20 +119,11 @@ export default function Settings({ onOpenDeveloperDashboard, onShowAnnuum }: Set
         })}
       </div>
 
-      <div className="overflow-hidden min-h-[500px]" ref={containerRef}>
-        <div 
-            className="flex w-full transition-transform duration-300 ease-out will-change-transform"
-            style={{ transform: `translateX(-${activeIndex * 100}%)` }}
-        >
-            {tabs.map((tab) => (
-                <div key={tab.id} className="w-full shrink-0 px-1">
-                    {tab.id === 'visual' && <AppearanceSettings />}
-                    {tab.id === 'alertas' && <NotificationSettings />}
-                    {tab.id === 'datos' && <ContentSettings onShowAnnuum={onShowAnnuum} />}
-                    {tab.id === 'otros' && <DeveloperSettings onOpenDashboard={onOpenDeveloperDashboard} />}
-                </div>
-            ))}
-        </div>
+      <div className="min-h-[500px] px-4 md:px-0">
+        {activeTab === 'datos' && <ContentSettings onShowAnnuum={onShowAnnuum} />}
+        {activeTab === 'alertas' && <NotificationSettings />}
+        {activeTab === 'visual' && <AppearanceSettings />}
+        {activeTab === 'otros' && <DeveloperSettings onOpenDashboard={onOpenDeveloperDashboard} />}
       </div>
     </div>
   );

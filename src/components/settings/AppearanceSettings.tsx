@@ -62,6 +62,8 @@ export default function AppearanceSettings() {
     allHomeBackgrounds,
     prayerTextZoom,
     setPrayerTextZoom,
+    appScale,
+    setAppScale,
   } = useSettings();
 
   const { toast } = useToast();
@@ -187,6 +189,29 @@ export default function AppearanceSettings() {
             </div>
           )}
 
+          <div className="space-y-3">
+            <Label className="flex flex-col gap-1 text-sm font-medium">
+              <span>Tamaño de la aplicación</span>
+              <span className="text-xs text-muted-foreground">Ajusta el tamaño global de botones y menús.</span>
+            </Label>
+            <div className="pt-1">
+              <Slider
+                min={0.7}
+                max={1.5}
+                step={0.05}
+                value={[appScale]}
+                onValueChange={(values) => {
+                  setAppScale(values[0]);
+                }}
+              />
+            </div>
+            <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono">
+              <span>70%</span>
+              <span>ACTUAL: {Math.round(appScale * 100)}%</span>
+              <span>150%</span>
+            </div>
+          </div>
+
           <Separator />
 
           <div className="space-y-3">
@@ -251,25 +276,25 @@ export default function AppearanceSettings() {
           <CardTitle className="font-headline text-base">Interfaz y Tema</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="dark-mode-switch" className="flex items-center gap-2 text-sm font-medium">
+          <div className="flex items-center justify-between gap-4">
+            <Label htmlFor="dark-mode-switch" className="flex items-center gap-2 text-sm font-medium flex-1">
               Modo Oscuro
             </Label>
-            <div className="flex items-center gap-2">
-              <Icon.Sun className={`size-4 ${theme === 'light' ? 'text-primary' : 'text-muted-foreground'}`} />
+            <div className="flex items-center gap-2 shrink-0">
+              <Icon.Sun className={cn("size-4 transition-colors", theme === 'light' ? 'text-primary' : 'text-muted-foreground')} />
               <Switch
                 id="dark-mode-switch"
                 checked={theme === 'dark'}
                 onCheckedChange={handleThemeChange}
               />
-              <Icon.Moon className={`size-4 ${theme === 'dark' ? 'text-primary' : 'text-muted-foreground'}`} />
+              <Icon.Moon className={cn("size-4 transition-colors", theme === 'dark' ? 'text-primary' : 'text-muted-foreground')} />
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
-            <Label htmlFor="plan-tracker-switch" className="flex flex-col gap-1 text-sm font-medium">
+          <div className="flex items-center justify-between gap-4">
+            <Label htmlFor="plan-tracker-switch" className="flex flex-col gap-1 text-sm font-medium flex-1">
                <span>Rastreador de Plan de Vida</span>
-               <span className="text-xs font-normal text-muted-foreground">Muestra casillas de verificación en las listas.</span>
+               <span className="text-xs font-normal text-muted-foreground leading-tight">Muestra casillas de verificación en las listas.</span>
             </Label>
             <Switch
               id="plan-tracker-switch"

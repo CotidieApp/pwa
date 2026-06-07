@@ -319,8 +319,8 @@ const getSaintCelebrationColorName = (
   const name = normalizeLiturgicalText(saint.name);
   const rank = parseCelebrationRank(saint.title ?? '');
 
-  if (rank === 'feria' || rank === 'optional_memorial') return null;
-  if (rank !== 'solemnity' && rank !== 'feast' && rank !== 'memorial' && rank !== 'commemoration') {
+  if (rank === 'feria') return null;
+  if (rank !== 'solemnity' && rank !== 'feast' && rank !== 'memorial' && rank !== 'commemoration' && rank !== 'optional_memorial') {
     return null;
   }
 
@@ -361,13 +361,16 @@ const getSaintCelebrationColorName = (
 
 export const getGeneralLiturgicalColorName = (
   saint: LiturgicalSaintLike,
-  dateInput?: DateInput
+  dateInput?: DateInput,
+  ignoreSpecialDate?: boolean
 ): LiturgicalColorName => {
   const date = normalizeDate(dateInput ?? new Date());
   if (!date) return 'Verde';
 
-  const specialDateColor = getSpecialDateLiturgicalColorName(date);
-  if (specialDateColor) return specialDateColor;
+  if (!ignoreSpecialDate) {
+    const specialDateColor = getSpecialDateLiturgicalColorName(date);
+    if (specialDateColor) return specialDateColor;
+  }
 
   const saintColor = getSaintCelebrationColorName(saint, date);
   if (saintColor) return saintColor;
@@ -382,5 +385,6 @@ export const getGeneralLiturgicalColorName = (
 
 export const getGeneralLiturgicalColor = (
   saint: LiturgicalSaintLike,
-  dateInput?: DateInput
-) => LITURGICAL_COLOR_HEX[getGeneralLiturgicalColorName(saint, dateInput)];
+  dateInput?: DateInput,
+  ignoreSpecialDate?: boolean
+) => LITURGICAL_COLOR_HEX[getGeneralLiturgicalColorName(saint, dateInput, ignoreSpecialDate)];

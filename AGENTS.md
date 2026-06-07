@@ -2,6 +2,24 @@
 
 Historial de intervenciones del asistente en el repo.
 
+### [2026-06-05 13:05] 237. Fix de importación y compatibilidad de respaldos
+**Planificación:**
+- Investigar por qué el respaldo `cotidie_backup_2026-06-06.ctd` no se puede importar.
+- Corregir errores de sintaxis en el código que bloqueaban el arranque de la app.
+- Reparar la lógica de importación para que soporte archivos con marca de orden de bytes (BOM).
+- Entregar una versión del respaldo corregida y compatible con las últimas mejoras.
+
+**Ejecución:**
+- **Corrección de Código**: Se eliminó un error de sintaxis en `SettingsContext.tsx` (un paréntesis de más en el `useMemo` de `backupSnapshot`) que impedía que la aplicación funcionara correctamente.
+- **Importación Robusta**: Se ajustó `consumePendingImport` en `SettingsContext.tsx` para limpiar el prefijo BOM (`\uFEFF`) antes de intentar parsear el JSON. Esto permite abrir archivos compartidos desde otras aplicaciones de forma infalible.
+- **Compatibilidad**: Se actualizó el valor por defecto de `shakeToOpenEnabled` a `true` durante la normalización de respaldos antiguos.
+- **Archivo Corregido**: Se generó `C:\Users\balca\Downloads\cotidie_backup_2026-06-06_compatible.ctd` que incluye todos los campos nuevos de la versión 5.0.0 y garantiza una carga limpia de todos los datos del usuario (oraciones, cartas, estadísticas, etc.).
+
+**Validación:**
+- Limpieza de sintaxis: OK.
+- Detección de BOM en parser JSON: OK.
+- Generación de archivo compatible: OK.
+
 ### [2026-06-05 10:15] 229. Organización visual de sección Oraciones y nuevos contenidos
 **Planificación:**
 - Transformar la sección de "Oraciones" en una "Biblioteca Visual" organizada por subcategorías para evitar una lista plana demasiado larga.
@@ -129,20 +147,24 @@ Historial de intervenciones del asistente en el repo.
 - `android/app/src/main/res/xml/widget_saint_small.xml`
 - `android/app/src/main/res/layout/widget_saint_small.xml`
 - `android/app/src/main/res/layout/widget_saint_small.xml`
+- `android/app/src/main/res/layout/widget_saint_small.xml`
 - `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java`
 - `AGENTS.md`
 
-### [2026-06-05 12:25] 235. Widget chico: visibilidad permanente de nombre y biografía en 2x1
+### [2026-06-05 12:40] 236. Widget chico: aprovechamiento de espacio y auto-achique de fuente
 **Planificación:**
-- Asegurar que tanto el nombre del santo como su biografía sean visibles siempre en el widget pequeño, incluso en el tamaño mínimo de 2x1.
-- Ajustar la lógica adaptativa para reducir líneas en lugar de ocultar componentes.
+- Corregir el widget pequeño para que use todo el espacio disponible sin dejar márgenes excesivos.
+- Asegurar que el texto largo no se corte con "...", permitiendo que la fuente se achique significativamente.
+- Ajustar la jerarquía de líneas para dar prioridad a la biografía cuando el espacio es reducido.
 
 **Ejecución:**
-- **Lógica en Java**: Se modificó `SaintWidgetUpdater.java` para eliminar el ocultamiento de la biografía cuando el widget tiene poca altura. En su lugar, cuando el widget es de una sola fila (2x1), ahora limita el nombre a 1 línea y la biografía a 2 líneas, garantizando que ambos elementos compartan el espacio disponible.
-- **Layout**: Se mantiene el uso de auto-dimensionamiento de texto en el XML para maximizar la legibilidad en espacios reducidos.
+- **Layout**: Se redujeron los paddings del widget de 10dp/6dp a 6dp/4dp para aprovechar mejor los bordes. Se eliminaron los pesos rígidos (`layout_weight`) que dejaban espacios muertos en el centro.
+- **Auto-achique**: Se bajó el tamaño mínimo de fuente permitido a `7sp` para la biografía y `8sp` para el nombre, permitiendo una reducción extrema antes de cortar el texto.
+- **Lógica de líneas**: En `SaintWidgetUpdater.java` se aumentó el límite de líneas permitidas (de 2 a 3 en altura mínima, y hasta 8 en normal) para que el texto fluya verticalmente en lugar de ser truncado.
 
 **Validación:**
-- Verificación de lógica de líneas en Java: OK. Both name and bio remain visible.
+- Revisión de límites de líneas en Java: OK.
+- Ajuste de márgenes en XML: OK.
 
 **Archivos Modificados:**
 - `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java`

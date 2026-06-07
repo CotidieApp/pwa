@@ -234,7 +234,8 @@ public final class SaintWidgetUpdater {
         }
 
         views.setViewVisibility(R.id.widget_saint_bio, View.VISIBLE);
-        views.setInt(R.id.widget_saint_bio, "setMaxLines", isSmallHeight ? 2 : 5);
+        // Task: Allow bio to shrink significantly and use more lines to avoid "..."
+        views.setInt(R.id.widget_saint_bio, "setMaxLines", isSmallHeight ? 3 : 8);
     }
 
     private static int dpToPx(Context context, int dp) {

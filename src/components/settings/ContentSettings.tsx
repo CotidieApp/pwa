@@ -264,29 +264,31 @@ export default function ContentSettings({ onShowAnnuum }: ContentSettingsProps) 
           <CardTitle className="font-headline text-base">Mis Datos y Respaldo</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-             <div className="space-y-2">
+             <div className="space-y-2 border-b pb-4">
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <Icon.Download className="size-4 text-primary" />
                   <span>Copia de seguridad</span>
                 </div>
-                <Button onClick={handleExport} variant="outline" className="w-full justify-start h-auto py-3 px-4">
-                    <div className="text-left">
-                      <div className="text-sm font-semibold">Exportar archivo .ctd</div>
-                      <p className="text-[10px] text-muted-foreground">Guarda oraciones, devociones, cartas y ajustes.</p>
+                <Button onClick={handleExport} variant="outline" className="w-full justify-start h-auto py-4 px-5">
+                    <div className="text-left flex-1 min-w-0">
+                      <div className="text-sm font-bold">Exportar archivo .ctd</div>
+                      <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">Guarda oraciones, devociones, cartas y ajustes.</p>
                     </div>
+                    <Icon.ChevronRight className="size-4 text-muted-foreground/50 shrink-0 ml-2" />
                 </Button>
              </div>
 
-             <div className="space-y-2">
+             <div className="space-y-2 border-b pb-4">
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <Icon.Upload className="size-4 text-primary" />
                   <span>Restaurar datos</span>
                 </div>
-                <Button onClick={handleImportClick} variant="outline" className="w-full justify-start h-auto py-3 px-4">
-                    <div className="text-left">
-                      <div className="text-sm font-semibold">Importar archivo .ctd</div>
-                      <p className="text-[10px] text-muted-foreground">Carga un respaldo previamente exportado.</p>
+                <Button onClick={handleImportClick} variant="outline" className="w-full justify-start h-auto py-4 px-5">
+                    <div className="text-left flex-1 min-w-0">
+                      <div className="text-sm font-bold">Importar archivo .ctd</div>
+                      <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">Carga un respaldo previamente exportado.</p>
                     </div>
+                    <Icon.ChevronRight className="size-4 text-muted-foreground/50 shrink-0 ml-2" />
                 </Button>
                 <input
                   id="import-data-file"
@@ -300,23 +302,24 @@ export default function ContentSettings({ onShowAnnuum }: ContentSettingsProps) 
                 />
              </div>
 
-             <div className="space-y-2 pt-4 border-t">
+             <div className="space-y-2 pt-2">
                 <div className="flex items-center gap-2 text-sm font-medium mb-1">
                   <Icon.Calendar className="size-4 text-primary" />
                   <span>Exportación de Santoral</span>
                 </div>
-                <Button onClick={() => handleExportCalendar()} variant="outline" className="w-full justify-start h-auto py-3 px-4">
-                    <div className="text-left">
-                      <div className="text-sm font-semibold">Calendario Completo (.ics)</div>
-                      <p className="text-[10px] text-muted-foreground">Todos los santos del año para Google/Outlook.</p>
+                <Button onClick={() => handleExportCalendar()} variant="outline" className="w-full justify-start h-auto py-4 px-5 mb-2">
+                    <div className="text-left flex-1 min-w-0">
+                      <div className="text-sm font-bold">Calendario Completo (.ics)</div>
+                      <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">Todos los santos del año para Google/Outlook.</p>
                     </div>
+                    <Icon.ChevronRight className="size-4 text-muted-foreground/50 shrink-0 ml-2" />
                 </Button>
                 <div className="flex gap-2">
-                    <Button onClick={() => handleExportCalendar(1)} variant="ghost" size="sm" className="flex-1 text-[10px] h-8 border border-dashed">
-                        1º Semestre (Ene-Jun)
+                    <Button onClick={() => handleExportCalendar(1)} variant="ghost" size="sm" className="flex-1 text-[10px] h-10 border border-dashed hover:bg-muted/50">
+                        1º Sem. (Ene-Jun)
                     </Button>
-                    <Button onClick={() => handleExportCalendar(2)} variant="ghost" size="sm" className="flex-1 text-[10px] h-8 border border-dashed">
-                        2º Semestre (Jul-Dic)
+                    <Button onClick={() => handleExportCalendar(2)} variant="ghost" size="sm" className="flex-1 text-[10px] h-10 border border-dashed hover:bg-muted/50">
+                        2º Sem. (Jul-Dic)
                     </Button>
                 </div>
              </div>

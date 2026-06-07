@@ -79,6 +79,9 @@ export default function MainApp() {
   const [showLettersInfo, setShowLettersInfo] = useState(false);
   const [showErrorReport, setShowErrorReport] = useState(false);
   const [activeSpiritualReadingAudio, setActiveSpiritualReadingAudio] = useState<string | null>(null);
+  const shakeCountRef = useRef(0);
+  const lastShakeTimeRef = useRef(0);
+  const shakeResetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { toast, dismiss } = useToast();
   const dismissToastRef = useRef(dismiss);
   const [searchState, setSearchState] = useState(DEFAULT_CAMINO_SEARCH_STATE);
@@ -141,11 +144,7 @@ export default function MainApp() {
   }, []);
 
   useEffect(() => {
-    if (!shakeToOpenEnabled || typeof window === 'undefined') return;
-
-    let lastShake = 0;
-    const SHAKE_THRESHOLD = 15;
-    const COOLDOWN = 2000;
+    if (typeof window === 'undefined') return;
 
     const handleMotion = (event: DeviceMotionEvent) => {
       const acc = event.accelerationIncludingGravity;
@@ -157,14 +156,27 @@ export default function MainApp() {
       const acceleration = Math.sqrt(x * x + y * y + z * z);
       const now = Date.now();
 
-      if (acceleration > SHAKE_THRESHOLD && now - lastShake > COOLDOWN) {
-        lastShake = now;
-        setShowErrorReport(true);
-        pushDevLiveTrace({
-          level: 'info',
-          source: 'shake',
-          message: 'Agitación detectada, abriendo reporte de errores.',
-        });
+      // Increased threshold for more insistence
+      if (acceleration > 55) {
+        if (now - lastShakeTimeRef.current > 400) { // Cooldown between individual shakes
+          lastShakeTimeRef.current = now;
+          shakeCountRef.current += 1;
+
+          if (shakeResetTimeoutRef.current) clearTimeout(shakeResetTimeoutRef.current);
+          shakeResetTimeoutRef.current = setTimeout(() => {
+            shakeCountRef.current = 0;
+          }, 2000); // Reset count after 2s of stillness
+
+          if (shakeCountRef.current >= 3) {
+            shakeCountRef.current = 0;
+            setShowErrorReport(true);
+            pushDevLiveTrace({
+              level: 'info',
+              source: 'shake',
+              message: 'Triple agitación detectada, abriendo reporte de errores.',
+            });
+          }
+        }
       }
     };
 
@@ -178,8 +190,11 @@ export default function MainApp() {
       window.addEventListener('devicemotion', handleMotion);
     }
 
-    return () => window.removeEventListener('devicemotion', handleMotion);
-  }, [shakeToOpenEnabled, toast, pushDevLiveTrace]);
+    return () => {
+      window.removeEventListener('devicemotion', handleMotion);
+      if (shakeResetTimeoutRef.current) clearTimeout(shakeResetTimeoutRef.current);
+    };
+  }, [pushDevLiveTrace]);
 
   const [isDraggingAnnuum, setIsDraggingAnnuum] = useState(false);
   const AnnuumDragStart = useRef({ x: 0, y: 0 });
@@ -1060,14 +1075,35 @@ export default function MainApp() {
         : undefined;
 
   return (
-    <div className={cn(
-      "h-full w-full text-foreground relative flex flex-col",
-      navState.activeView === 'home' ? "bg-transparent" : "bg-background"
-    )}>
-      {/* Safe Area Overlays for Fullscreen Mode */}
-      <div className="fixed top-0 inset-x-0 h-[env(safe-area-inset-top)] bg-background z-[100] pointer-events-none" />
-      <div className="fixed bottom-0 inset-x-0 h-[env(safe-area-inset-bottom)] bg-background z-[100] pointer-events-none" />
-
+    <div
+      className={cn(
+        "min-h-[100svh] w-full text-foreground relative flex flex-col transition-colors duration-500",
+        navState.activeView === 'home' ? "bg-transparent" : "bg-background"
+      )}
+      style={navState.activeView === 'home' ? {
+        backgroundImage: 'var(--home-bg-image)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center top',
+        backgroundAttachment: 'fixed'
+      } : undefined}
+    >
+      {/* Dynamic System Bar Overlays */}
+      {!isDistractionFree && (
+        <>
+          <div
+            className={cn(
+              "fixed top-0 inset-x-0 h-[env(safe-area-inset-top)] z-[100] pointer-events-none transition-colors duration-500",
+              navState.activeView === 'home' ? "bg-transparent" : "bg-primary"
+            )}
+          />
+          <div
+            className={cn(
+              "fixed bottom-0 inset-x-0 h-[env(safe-area-inset-bottom)] z-[100] pointer-events-none transition-colors duration-500",
+              navState.activeView === 'home' ? "bg-transparent" : "bg-background"
+            )}
+          />
+        </>
+      )}
       {isSeason && !hasViewedAnnuum && navState.activeView === 'home' && (
         <div
           className="absolute z-40 cursor-pointer animate-in fade-in zoom-in duration-500 hover:scale-110 transition-transform"
@@ -1141,7 +1177,7 @@ export default function MainApp() {
         )}
         <div
           className={cn(
-            'flex-1 overflow-x-hidden pb-[max(0px,env(safe-area-inset-bottom))]',
+            'flex-1 overflow-x-hidden',
             navState.activeView === 'home'
               ? 'overflow-y-hidden'
               : 'overflow-y-auto pr-2'
@@ -1212,7 +1248,7 @@ export default function MainApp() {
           <div className="grid grid-cols-3 gap-4 py-6">
             <button
               onClick={() => {
-                window.location.href = "mailto:balcaldegm@gmail.com?subject=Reporte de error";
+                window.location.href = "mailto:cotidieapp@gmail.com?subject=Reporte de error";
                 setShowErrorReport(false);
               }}
               className="flex flex-col items-center gap-2 group transition-transform active:scale-95"
@@ -1225,7 +1261,7 @@ export default function MainApp() {
 
             <button
               onClick={() => {
-                window.location.href = "https://wa.me/56981899137?text=Reporte%20de%20error:";
+                window.location.href = "https://wa.me/56929474804?text=Reporte%20de%20error:";
                 setShowErrorReport(false);
               }}
               className="flex flex-col items-center gap-2 group transition-transform active:scale-95"
@@ -1238,10 +1274,9 @@ export default function MainApp() {
 
             <button
               onClick={() => {
-                const username = 'benja_alcalde';
+                const username = 'cotidieapp';
                 const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
                 if (isMobile) {
-                  // Direct message intent if possible, else profile
                   window.location.href = `https://ig.me/m/${username}`;
                 } else {
                   window.open(`https://instagram.com/${username}`, '_blank');

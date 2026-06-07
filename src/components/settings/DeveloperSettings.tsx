@@ -34,8 +34,6 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
     hardResetApp,
     isDeveloperMode,
     loginAsDeveloper,
-    shakeToOpenEnabled,
-    setShakeToOpenEnabled,
   } = useSettings();
 
   const { toast } = useToast();
@@ -177,25 +175,6 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
 
   return (
     <div className="space-y-6 animate-in fade-in-0 duration-500 pb-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-headline text-base">Funciones Experimentales</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="shake-switch" className="flex flex-col gap-1 cursor-pointer">
-              <span>Detectar Agitación</span>
-              <span className="text-xs font-normal text-muted-foreground">Abrir una oración al azar al sacudir el dispositivo.</span>
-            </Label>
-            <Switch
-              id="shake-switch"
-              checked={shakeToOpenEnabled}
-              onCheckedChange={setShakeToOpenEnabled}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
       <Card>
         <CardHeader>
           <CardTitle className="font-headline text-base">General</CardTitle>

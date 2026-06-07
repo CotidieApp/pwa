@@ -55,7 +55,7 @@ export default function SaintOfTheDayCard({ onOpenPrayerById }: SaintOfTheDayCar
     ? resolveDevotionDayPrayerId(activeSaint)
     : saintOfTheDayPrayerId ?? resolveDevotionDayPrayerId(activeSaint);
   const isClickable = Boolean(activePrayerId && onOpenPrayerById);
-  const color = getLiturgicalColor(activeSaint, simulatedDate);
+  const color = getLiturgicalColor(activeSaint, simulatedDate, isShowingHiddenSaint);
   const isLightColor = isLightHexColor(color);
   const textColor = isLightColor ? 'text-slate-800' : 'text-white';
   const objectPosition = getImageObjectPosition(activeImage?.id);

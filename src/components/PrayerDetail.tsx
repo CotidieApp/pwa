@@ -625,7 +625,7 @@ export default function PrayerDetail({
           </div>
         )}
 
-        <div className={cn("flex-1 min-h-0 flex flex-col justify-center", !isDistractionFree && "px-4 pb-4")}>
+        <div className={cn("flex-1 min-h-0 flex flex-col justify-start", !isDistractionFree && "px-4 pb-4")}>
           <Card
             className={cn(
               'overflow-hidden border bg-card shadow-md flex flex-col min-h-0 max-h-full h-fit mx-auto w-full',

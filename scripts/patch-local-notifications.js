@@ -77,6 +77,7 @@ if (!source.includes('NotificationCompat.BigPictureStyle')) {
         String bigPictureSummaryText = localNotification.getBody() != null
             ? localNotification.getBody()
             : localNotification.getSummaryText();
+
         if (imageDrawable != null) {
             android.graphics.Bitmap bigPicture = localNotification.getLargeIcon(context);
             if (bigPicture != null) {
@@ -88,10 +89,16 @@ if (!source.includes('NotificationCompat.BigPictureStyle')) {
                         .setSummaryText(bigPictureSummaryText)
                 );
             }
+        } else if (localNotification.getBody() != null) {
+            mBuilder.setStyle(
+                new NotificationCompat.BigTextStyle()
+                    .bigText(localNotification.getBody())
+                    .setBigContentTitle(localNotification.getTitle())
+            );
         }
 
         String sound = localNotification.getSound(context, getDefaultSound(context));`,
-    'big picture style'
+    'big picture and big text style'
   );
 }
 
