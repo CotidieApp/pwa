@@ -133,7 +133,7 @@ public class MainActivity extends BridgeActivity {
             }
         }
 
-        if (uri == null || !isSupportedImportUri(uri)) return;
+        if (uri == null) return;
 
         String payload = readTextFromUri(uri);
         clearHandledImportIntent(intent);
@@ -220,9 +220,9 @@ public class MainActivity extends BridgeActivity {
         final String payload = pendingImportPayload;
         pendingImportPayload = null;
 
-        String js = "try{localStorage.setItem('" + PENDING_IMPORT_KEY + "',"
+        String js = "try{window." + PENDING_IMPORT_KEY + " = "
                 + JSONObject.quote(payload)
-                + ");window.dispatchEvent(new Event('cotidie-pending-import'));}catch(e){}";
+                + ";window.dispatchEvent(new Event('cotidie-pending-import'));}catch(e){}";
 
         pendingFlushRetries = 0;
         runOnUiThread(() -> bridge.getWebView().evaluateJavascript(js, null));

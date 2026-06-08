@@ -51,6 +51,7 @@ export default function ContentSettings({ onShowAnnuum }: ContentSettingsProps) 
     isDeveloperMode,
     forceAnnuumSeason,
     hasViewedAnnuum,
+    pushDevLiveTrace,
   } = useSettings();
 
   const { toast } = useToast();
@@ -200,10 +201,28 @@ export default function ContentSettings({ onShowAnnuum }: ContentSettingsProps) 
     const file = event.target.files?.[0];
     if (!file) return;
 
+    pushDevLiveTrace({
+      level: 'info',
+      source: 'import',
+      message: 'Archivo seleccionado manualmente.',
+      data: `name=${file.name}, type=${file.type}, size=${file.size}`,
+    });
+
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
         const text = (e.target?.result as string).replace(/^\uFEFF/, '');
+
+        // Basic validation before parsing
+        if (!text.trim().startsWith('{') && !text.trim().startsWith('[')) {
+          toast({
+            variant: 'destructive',
+            title: 'Archivo no compatible',
+            description: 'El archivo seleccionado no parece ser un respaldo de Cotidie válido.'
+          });
+          return;
+        }
+
         const data = JSON.parse(text);
         const result = importUserData(data, { silent: true });
 
@@ -296,8 +315,9 @@ export default function ContentSettings({ onShowAnnuum }: ContentSettingsProps) 
                   type="file"
                   ref={importFileRef}
                   onChange={handleFileImport}
-                  accept=".json,.ctd"
-                  className="hidden"
+                  accept="*/*"
+                  className="sr-only"
+                  style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0,0,0,0)', border: 0 }}
                   aria-label="Importar archivo de respaldo"
                 />
              </div>

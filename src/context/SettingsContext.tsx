@@ -1037,6 +1037,11 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   );
 
   const applyBackupSnapshot = useCallback((snapshot: ReturnType<typeof normalizeBackupState>) => {
+    pushDevLiveTrace({
+      level: 'info',
+      source: 'import',
+      message: 'Aplicando snapshot de respaldo al estado vivo.',
+    });
     setTheme(snapshot.theme);
     setFontSize(snapshot.fontSize);
     setFontFamily(snapshot.fontFamily);
@@ -1143,6 +1148,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         navMode,
         arrowBubbleSize,
         smallWidgetMode,
+        appScale,
         shakeToOpenEnabled,
         userHomeBackgrounds,
         scrollPositions,
@@ -1916,25 +1922,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
               ])[0]
             )
           : null;
-        const duplicateSlot = duplicateComparable
-          ? backupSnapshot.customPlans.findIndex((plan) => plan && stableSerialize(plan) === duplicateComparable)
-          : -1;
-        if (duplicateSlot >= 0) {
-          const duplicateResult: ImportResult = {
-            status: 'duplicate',
-            kind: 'custom-plan',
-            title: 'Importacion innecesaria',
-            description: 'Ese plan personalizado ya existe y no se importo.',
-          };
-          pushDevLiveTrace({
-            level: 'warn',
-            source: 'import',
-            message: 'Plan personalizado omitido por duplicado.',
-            data: 'slot=' + String(duplicateSlot + 1),
-          });
-          return notifyIfNeeded(duplicateResult);
-        }
-
         const nextPlans = backupSnapshot.customPlans.map((entry) => (entry ? { ...entry } : null));
         nextPlans[targetSlot - 1] = {
           id: importedPlanId || 'custom-plan-' + String(targetSlot) + '-' + String(Date.now()),
@@ -1967,21 +1954,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
       if (isFullAppStatePayload(data)) {
         const nextSnapshot = normalizeBackupState(data);
-        if (stableSerialize(nextSnapshot) === stableSerialize(backupSnapshot)) {
-          const duplicateResult: ImportResult = {
-            status: 'duplicate',
-            kind: 'full',
-            title: 'Importacion innecesaria',
-            description: 'Ese respaldo ya coincide con la app actual y no se importo.',
-          };
-          pushDevLiveTrace({
-            level: 'warn',
-            source: 'import',
-            message: 'Respaldo completo omitido por duplicado.',
-          });
-          return notifyIfNeeded(duplicateResult);
-        }
-
         applyBackupSnapshot(nextSnapshot);
         const appliedResult: ImportResult = {
           status: 'applied',
@@ -1999,6 +1971,14 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
       const partialPayload = normalizePartialImportPayload(data);
       const partialKeys = Object.keys(partialPayload);
+
+      pushDevLiveTrace({
+        level: 'info',
+        source: 'import',
+        message: 'Identificado como importacion parcial.',
+        data: `keys=${partialKeys.join(',')}`,
+      });
+
       if (partialKeys.length === 0) {
         pushDevLiveTrace({
           level: 'warn',
@@ -2006,22 +1986,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           message: 'Importacion rechazada: no contiene campos reconocidos.',
         });
         return notifyIfNeeded(invalidResult);
-      }
-
-      const currentSubset = pickSnapshotKeys(backupSnapshot as Record<string, any>, partialKeys);
-      if (stableSerialize(currentSubset) === stableSerialize(partialPayload)) {
-        const duplicateResult: ImportResult = {
-          status: 'duplicate',
-          kind: 'partial',
-          title: 'Importacion innecesaria',
-          description: 'Los datos importados ya coinciden con los actuales y no se aplicaron cambios.',
-        };
-        pushDevLiveTrace({
-          level: 'warn',
-          source: 'import',
-          message: 'Importacion parcial omitida por duplicado.',
-        });
-        return notifyIfNeeded(duplicateResult);
       }
 
       const nextSnapshot = normalizeBackupState({
@@ -2050,10 +2014,21 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
     const consumePendingImport = () => {
       try {
-        const raw = window.localStorage.getItem(PENDING_IMPORT_STORAGE_KEY);
+        // We now check window object directly to avoid LocalStorage quota limits with large backup files
+        const raw = (window as any)[PENDING_IMPORT_STORAGE_KEY] || window.localStorage.getItem(PENDING_IMPORT_STORAGE_KEY);
         if (!raw || raw === lastProcessedPendingImportRef.current) return;
 
         lastProcessedPendingImportRef.current = raw;
+
+        pushDevLiveTrace({
+          level: 'info',
+          source: 'import',
+          message: 'Datos recibidos desde el sistema.',
+          data: `length=${raw.length}`,
+        });
+
+        // Clean up both possible locations
+        delete (window as any)[PENDING_IMPORT_STORAGE_KEY];
         window.localStorage.removeItem(PENDING_IMPORT_STORAGE_KEY);
 
         pushDevLiveTrace({
@@ -2062,15 +2037,22 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           message: 'Procesando importacion pendiente...',
         });
 
-        const parsed = JSON.parse(raw.replace(/^\uFEFF/, ''));
+        const sanitized = raw.trim().replace(/^\uFEFF/, '').trim();
+        pushDevLiveTrace({
+          level: 'info',
+          source: 'import',
+          message: 'Intentando parsear JSON...',
+          data: sanitized.substring(0, 50) + '...'
+        });
+        const parsed = JSON.parse(sanitized);
         const result = importUserData(parsed, { silent: true });
 
         if (result.status === 'applied' || result.status === 'duplicate') {
           toast({
-            title: result.status === 'duplicate' ? 'Sin cambios necesarios' : '¡Carga exitosa!',
+            title: result.status === 'duplicate' ? 'Datos ya actualizados' : '¡Carga completa con éxito!',
             description: result.status === 'duplicate'
-              ? 'Los datos del archivo ya están presentes en la aplicación.'
-              : (result.description || result.title)
+              ? 'El archivo ya coincide con tu estado actual.'
+              : 'Se han restaurado tus oraciones, devociones y ajustes.'
           });
           return;
         }
