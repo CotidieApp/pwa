@@ -69,11 +69,14 @@ export default function PrayerList({
     const isMesDeMaria =
       (now.getMonth() === 10 && now.getDate() >= 8) ||
       (now.getMonth() === 11 && now.getDate() <= 8);
+    const isSagradoCorazon = now.getMonth() === 5; // Junio
+
     return (prayers as Prayer[]).filter((prayer) => {
       if (!prayer || !prayer.id) return false;
       if (alwaysShowPrayers.includes(prayer.id)) return true;
 
       if (prayer.id === 'mes-de-maria') return isMesDeMaria;
+      if (prayer.id === 'sagrado-corazon') return isSagradoCorazon;
 
       // Manejo de oraciones generales
       if (prayer.isDaySpecific && prayer.showOnDay === undefined) return false;

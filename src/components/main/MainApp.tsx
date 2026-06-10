@@ -1077,7 +1077,7 @@ export default function MainApp() {
   return (
     <div
       className={cn(
-        "min-h-[100svh] w-full text-foreground relative flex flex-col transition-colors duration-500",
+        "h-[100svh] w-full text-foreground relative flex flex-col",
         navState.activeView === 'home' ? "bg-transparent" : "bg-background"
       )}
       style={navState.activeView === 'home' ? {
@@ -1092,13 +1092,13 @@ export default function MainApp() {
         <>
           <div
             className={cn(
-              "fixed top-0 inset-x-0 h-[env(safe-area-inset-top)] z-[100] pointer-events-none transition-colors duration-500",
+              "fixed top-0 inset-x-0 h-[env(safe-area-inset-top)] z-[100] pointer-events-none",
               navState.activeView === 'home' ? "bg-transparent" : "bg-primary"
             )}
           />
           <div
             className={cn(
-              "fixed bottom-0 inset-x-0 h-[env(safe-area-inset-bottom)] z-[100] pointer-events-none transition-colors duration-500",
+              "fixed bottom-0 inset-x-0 h-[env(safe-area-inset-bottom)] z-[100] pointer-events-none",
               navState.activeView === 'home' ? "bg-transparent" : "bg-background"
             )}
           />
@@ -1106,7 +1106,7 @@ export default function MainApp() {
       )}
       {isSeason && !hasViewedAnnuum && navState.activeView === 'home' && (
         <div
-          className="absolute z-40 cursor-pointer animate-in fade-in zoom-in duration-500 hover:scale-110 transition-transform"
+          className="absolute z-40 cursor-pointer hover:scale-110 transition-transform"
           style={{
             top: overlayPositions.AnnuumBubble?.y ?? 48,
             left: overlayPositions.AnnuumBubble?.x ?? 16,
@@ -1177,12 +1177,14 @@ export default function MainApp() {
         )}
         <div
           className={cn(
-            'flex-1 overflow-x-hidden',
+            'flex-1 overflow-x-hidden overscroll-none',
             navState.activeView === 'home'
               ? 'overflow-y-hidden'
-              : 'overflow-y-auto pr-2'
+              : navState.activeView === 'prayer'
+                ? 'overflow-hidden'
+                : 'overflow-y-auto pr-2'
           )}
-          data-app-scroll-container={navState.activeView !== 'prayer' ? 'true' : undefined}
+          data-app-scroll-container={navState.activeView !== 'home' && navState.activeView !== 'prayer' ? 'true' : undefined}
           onClick={(e) => {
             if (!customPlanTouchNavEnabled) return
             if (!hasCustomPlanPrayerNav) return
@@ -1195,7 +1197,7 @@ export default function MainApp() {
             const x = e.clientX - rect.left
             const width = rect.width
 
-            if (x < width * 0.33) {
+            if (x < width * 0.25) {
               goToCustomPlanPrev()
             } else if (x > width * 0.66) {
               goToCustomPlanNext()

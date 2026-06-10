@@ -255,7 +255,7 @@ export default function ContentSettings({ onShowAnnuum }: ContentSettingsProps) 
   }, [simulatedDate, forceAnnuumSeason]);
 
   return (
-    <div className="space-y-6 animate-in fade-in-0 duration-500">
+    <div className="space-y-6">
       {isSeason && hasViewedAnnuum && onShowAnnuum && (
         <Card className="bg-gradient-to-br from-yellow-500/10 to-amber-500/10 border-yellow-500/20">
             <CardHeader>
@@ -367,6 +367,11 @@ export default function ContentSettings({ onShowAnnuum }: ContentSettingsProps) 
                   {prayer.id === 'mes-de-maria' && (
                     <span className="text-[10px] text-muted-foreground">
                       8 Nov - 8 Dic
+                    </span>
+                  )}
+                  {prayer.id === 'sagrado-corazon' && (
+                    <span className="text-[10px] text-muted-foreground">
+                      Junio
                     </span>
                   )}
                 </Label>

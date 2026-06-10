@@ -36,6 +36,7 @@ import { salmoII } from './prayers/plan-de-vida/salmo-ii';
 import { adoroTeDevote } from './prayers/plan-de-vida/adoro-te-devote';
 import { salveRegina } from './prayers/plan-de-vida/salve-regina';
 import { mesdeMaria } from './prayers/plan-de-vida/mes-de-maria';
+import { sagradoCorazon } from './prayers/plan-de-vida/sagrado-corazon';
 import { preces } from './prayers/plan-de-vida/preces';
 import { viaCrucis } from './prayers/plan-de-vida/via-crucis';
 import { camino } from './prayers/plan-de-vida/camino';
@@ -218,6 +219,7 @@ export const initialPrayers: Prayer[] = [
   lecturaNuevoTestamento,
   visitaSantisimo,
   mesdeMaria,
+  sagradoCorazon,
   angelusReginaCoeli,
   santoRosario,
   lecturaEspiritual,

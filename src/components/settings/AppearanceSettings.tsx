@@ -148,7 +148,7 @@ export default function AppearanceSettings() {
   const isAndroidNative = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
 
   return (
-    <div className="space-y-6 animate-in fade-in-0 duration-500">
+    <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="font-headline text-base">Lectura y Navegación</CardTitle>

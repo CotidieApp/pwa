@@ -100,7 +100,7 @@
     background-size: cover;
     background-position: center top;
     background-attachment: fixed;
-    overscroll-behavior-y: contain;
+    overscroll-behavior-y: none;
   }
   body {
     @apply text-foreground;
@@ -161,11 +161,11 @@
 
 /* ==== Scrolls internos ==== */
 .scrollable {
-  overscroll-behavior: contain;
+  overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;
 }
 [data-radix-scroll-area-viewport] {
-  overscroll-behavior: contain;
+  overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;
 }
 

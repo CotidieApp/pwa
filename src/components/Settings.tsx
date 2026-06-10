@@ -21,9 +21,9 @@ export default function Settings({ onOpenDeveloperDashboard, onShowAnnuum }: Set
   const containerRef = useRef<HTMLDivElement>(null);
 
   const tabs: { id: SettingsTab; label: string; icon: React.ElementType }[] = [
-    { id: 'visual', label: 'Apariencia', icon: Icon.Palette },
     { id: 'datos', label: 'Contenido', icon: Icon.BookOpen },
     { id: 'alertas', label: 'Alertas', icon: Icon.Bell },
+    { id: 'visual', label: 'Apariencia', icon: Icon.Palette },
     { id: 'otros', label: 'Otros', icon: Icon.Settings2 },
   ];
 

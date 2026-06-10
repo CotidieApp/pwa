@@ -584,13 +584,13 @@ export default function PrayerDetail({
 
   return (
     <div className={cn(
-      'flex min-h-0 flex-col h-full bg-background',
+      'flex min-h-0 flex-col h-full bg-background overscroll-none',
       isDistractionFree
         ? 'pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] px-0'
         : 'p-0'
     )}>
       {prayer.imageUrl && (
-        <div className="bg-background px-4 py-4 shrink-0 sticky top-0 z-10">
+        <div className="bg-background px-4 py-4 shrink-0 z-10">
           <div
             className={cn(
               'relative overflow-hidden rounded-lg shadow-sm border border-border/10',
@@ -625,18 +625,18 @@ export default function PrayerDetail({
           </div>
         )}
 
-        <div className={cn("flex-1 min-h-0 flex flex-col justify-start", !isDistractionFree && "px-4 pb-4")}>
+        <div className={cn("flex-1 min-h-0 flex flex-col", !isDistractionFree && "px-4 pb-4")}>
           <Card
             className={cn(
-              'overflow-hidden border bg-card shadow-md flex flex-col min-h-0 max-h-full h-fit mx-auto w-full',
-              isDistractionFree && 'border-0 bg-transparent shadow-none'
+              'overflow-hidden border bg-card shadow-md flex flex-col min-h-0 max-h-full mx-auto w-full',
+              isDistractionFree ? 'border-0 bg-transparent shadow-none h-full' : 'flex-1'
             )}
           >
-            <CardContent className={cn('p-6 pt-6 flex flex-1 flex-col min-h-0', isDistractionFree && 'p-0 pt-0 text-[1.05rem] leading-[1.85]')}>
+            <CardContent className={cn('flex flex-1 flex-col min-h-0', isDistractionFree ? 'p-0 pt-0 text-[1.05rem] leading-[1.85]' : 'p-6 pt-6')}>
               <div
                 ref={scrollContainerRef}
                 data-app-scroll-container="true"
-                className="flex-1 min-h-0 overflow-y-auto touch-pan-y overscroll-contain pr-6 scroll-smooth"
+                className="flex-1 min-h-0 overflow-y-auto touch-pan-y overscroll-none pr-6"
               >
                 {prayer.content ? (
                   <PrayerContent prayer={prayer} searchState={searchState} scrollContainerRef={scrollContainerRef} />

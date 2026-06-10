@@ -175,7 +175,7 @@ export default function HomePage({ onSelectCategory, onOpenCustomPlan, onCreateC
       {/* Background Image */}
       <div className="fixed inset-0 z-0">
         <div
-          className="h-full w-full bg-cover bg-no-repeat transition-all duration-500"
+          className="h-full w-full bg-cover bg-no-repeat"
           style={{
             backgroundImage: "var(--home-bg-image)",
             backgroundPosition: objectPosition,
@@ -199,7 +199,7 @@ export default function HomePage({ onSelectCategory, onOpenCustomPlan, onCreateC
         />
         <main className="flex flex-col flex-1 min-h-0 items-center justify-center text-center px-4 py-[clamp(0.75rem,2vh,1.5rem)]">
           <div className="md:max-w-md mx-auto">
-            <h1 className="!text-[clamp(4.25rem,18vw,8rem)] leading-none font-premium text-white [text-shadow:0_4px_16px_rgba(0,0,0,0.9)] transition-opacity duration-300 w-full px-2 break-words">
+            <h1 className="!text-[clamp(4.25rem,18vw,8rem)] leading-none font-premium text-white [text-shadow:0_4px_16px_rgba(0,0,0,0.9)] w-full px-2 break-words">
               <span
                 role="button"
                 tabIndex={0}

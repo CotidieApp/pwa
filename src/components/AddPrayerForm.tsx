@@ -187,7 +187,7 @@ export default function AddPrayerForm({
   // === Render principal ===
   return (
     <>
-      <Card className="bg-card shadow-md border-border/50 animate-in fade-in-0 duration-500">
+      <Card className="bg-card shadow-md border-border/50">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="p-6 space-y-4">

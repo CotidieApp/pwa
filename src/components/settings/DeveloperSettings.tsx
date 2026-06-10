@@ -174,7 +174,7 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in-0 duration-500 pb-4">
+    <div className="space-y-6 pb-4">
       <Card>
         <CardHeader>
           <CardTitle className="font-headline text-base">General</CardTitle>

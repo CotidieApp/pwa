@@ -72,7 +72,7 @@ export default function NotificationSettings() {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in-0 duration-500">
+    <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="font-headline text-base">Temporizador</CardTitle>
