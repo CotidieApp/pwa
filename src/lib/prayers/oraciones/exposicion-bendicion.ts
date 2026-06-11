@@ -10,13 +10,28 @@ export const exposicionBendicion: Prayer = {
 V. Alabado sea el Santísimo Sacramento del Altar.
 R. Sea por siempre bendito y alabado.
 
-(Se reza tres veces)
-
-*Padre nuestro... Ave María... Gloria al Padre...*
+(Se reza tres veces el Padre nuestro, Ave María y Gloria)
 
 ---
 
-*HIMNO (Tantum Ergo)*
+*EXPOSICIÓN*
+(Mientras se expone el Santísimo, se puede cantar)
+
+Oh buen Jesús, que estás en el altar,
+mi corazón te vengo a entregar.
+Toma mi vida, tómala Señor,
+y haz que en ella viva siempre tu amor.
+
+---
+
+*HIMNO (Pange Lingua / Tantum Ergo)*
+
+Canta, oh lengua, el misterio
+del cuerpo glorioso
+y de la sangre preciosa
+que el Rey de las naciones,
+fruto de un vientre generoso,
+derramó como rescate del mundo.
 
 Veneremos, pues, inclinados
 tan grande Sacramento;
@@ -58,6 +73,17 @@ Bendito sea san José, su castísimo Esposo.
 Bendito sea Dios en sus Ángeles y en sus Santos.
 
 *RESERVA*
+(Mientras se reserva el Santísimo)
+
 V. Corazón de Jesús, en Vos confío.
-R. Sagrado Corazón de Jesús, en Vos confío.`
+R. Sagrado Corazón de Jesús, en Vos confío.
+
+Cantemos al amor de los amores,
+cantemos al Señor.
+Dios está aquí, venid adoradores,
+adoremos a Cristo Redentor.
+¡Gloria a Cristo Jesús! Cielos y tierra,
+bendecid al Señor.
+Honor y gloria a ti, Rey de la gloria,
+amor por siempre a ti, Dios del amor.`
 };

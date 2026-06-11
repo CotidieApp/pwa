@@ -27,6 +27,7 @@ export const magnificat: Prayer = {
   id: 'magnificat',
   title: 'Magnificat',
   categoryId: 'oraciones',
+  imageUrl: '/images/immaculate-conception.jpeg',
   content: `Proclama mi alma la grandeza del Señor, se alegra mi espíritu en Dios, mi Salvador; porque ha mirado la humillación de su esclava. Desde ahora me felicitarán todas las generaciones, porque el Poderoso ha hecho obras grandes por mí: su nombre es santo, y su misericordia llega a sus fieles de generación en generación.
 
 Él hace proezas con su brazo: dispersa a los soberbios de corazón, derriba del trono a los poderosos y enaltece a los humildes, a los hambrientos los colma de bienes y a los ricos los despide vacíos.

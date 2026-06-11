@@ -138,25 +138,6 @@
   .enjoy-animation-container {
     @apply fixed inset-0 p-8 pointer-events-none z-50;
   }
-
-  .enjoy-balloon {
-    @apply absolute bottom-0 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-base font-bold px-6 py-3 rounded-full shadow-lg;
-    animation: riseAndFade 36s linear forwards;
-  }
-
-  @keyframes riseAndFade {
-    0% {
-      transform: translate(-50%, 100%);
-      opacity: 1;
-    }
-    80% {
-      opacity: 1;
-    }
-    100% {
-      transform: translate(-50%, -100vh);
-      opacity: 0;
-    }
-  }
 }
 
 /* ==== Scrolls internos ==== */

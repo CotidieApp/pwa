@@ -10,7 +10,6 @@ type AngelusKeyList = (value?: string) => string[];
 
 export const applyPlanDeVidaAggregateIncrement = (prev: UserStats, id: string): UserStats => ({
   ...prev,
-  totalPrayersOpened: (prev.totalPrayersOpened || 0) + 1,
   planDeVidaCompletedTotal: (prev.planDeVidaCompletedTotal || 0) + 1,
   planDeVidaCompletedHistory: {
     ...(prev.planDeVidaCompletedHistory || {}),
@@ -109,6 +108,7 @@ export const applyPrayerOpenIncrement = ({
 
   const next: UserStats = {
     ...prev,
+    totalPrayersOpened: (prev.totalPrayersOpened || 0) + 1,
     prayersOpenedHistory: history,
     massStreak: newMassStreak,
     massDaysCount: newMassDaysCount,

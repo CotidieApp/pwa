@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { motion, AnimatePresence } from "framer-motion";
 import { ChevronRight, Edit, Trash2 } from "lucide-react";
 
 interface HomePageProps {
@@ -379,19 +380,29 @@ export default function HomePage({ onSelectCategory, onOpenCustomPlan, onCreateC
         </DialogContent>
       </Dialog>
 
-      {easterEggQuotes.length > 0 && (
-        <div className="enjoy-animation-container pointer-events-none absolute inset-0 flex flex-col items-center justify-center z-20">
-          {easterEggQuotes.map((quote) => (
-            <div
-              key={quote.id}
-              className="enjoy-balloon text-center max-w-xs bg-black/50 rounded-xl p-4 text-white shadow-lg animate-bounce"
-            >
-              <p>"{quote.text}"</p>
-              <p className="text-sm mt-1">- {quote.author}</p>
-            </div>
-          ))}
-        </div>
-      )}
+      <AnimatePresence>
+        {easterEggQuotes.length > 0 && (
+          <div className="enjoy-animation-container pointer-events-none absolute inset-0 flex flex-col items-center justify-center z-20">
+            {easterEggQuotes.map((quote) => (
+              <motion.div
+                key={quote.id}
+                initial={{ opacity: 0, y: 100, x: "-50%", scale: 0.9 }}
+                animate={{ opacity: 1, y: -250, x: "-50%", scale: 1 }}
+                exit={{ opacity: 0, scale: 1.05, transition: { duration: 1.5, ease: "easeIn" } }}
+                transition={{
+                  y: { duration: SAINT_QUOTE_BALLOON_MS / 1000, ease: "easeOut" },
+                  opacity: { duration: 1 },
+                  scale: { duration: 0.8 }
+                }}
+                className="absolute bottom-0 left-1/2 text-center max-w-xs bg-black/60 backdrop-blur-md rounded-2xl p-6 text-white shadow-2xl border border-white/10"
+              >
+                <p className="text-lg font-serif italic">"{quote.text}"</p>
+                <p className="text-sm mt-3 font-bold text-primary-foreground/80">- {quote.author}</p>
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </AnimatePresence>
     </>
   );
 }
