@@ -240,7 +240,7 @@ final class SaintWidgetContentFactory {
         map.put("santotomasdeaquino-image", "public/images/santo-tomas.jpeg");
         map.put("sanjose-image", "public/images/san-jose.jpg");
         map.put("nativity-image", "public/images/nativity.jpeg");
-        map.put("christmas-image", "public/images/christmas-image.png");
+        map.put("christmas-image", "public/images/christmas-image.jpg");
         cachedPlaceholderAssetPaths = map;
         return cachedPlaceholderAssetPaths;
     }
@@ -559,8 +559,8 @@ final class SaintWidgetContentFactory {
         easterFeasts.put(50, new SaintEntry(0, 0, "María Madre de la Iglesia", "Memoria de la Bienaventurada Virgen María, Madre de la Iglesia.", "Memoria", "celebration;marian"));
         easterFeasts.put(56, new SaintEntry(0, 0, "Santísima Trinidad", "Misterio central de nuestra fe: un solo Dios en tres Personas.", "Solemnidad", "celebration"));
         easterFeasts.put(63, new SaintEntry(0, 0, "Corpus Christi", "Cuerpo y Sangre de Cristo. Celebramos la presencia real de Jesús en la Eucaristía.", "Solemnidad", "celebration;eucharist"));
-        easterFeasts.put(68, new SaintEntry(0, 0, "Sagrado Corazón de Jesús", "Fiesta del Amor de Dios manifestado en el Corazón de su Hijo.", "Solemnidad", "celebration;sacred-heart"));
-        easterFeasts.put(69, new SaintEntry(0, 0, "Inmaculado Corazón de María", "Memoria del Corazón de María, modelo de amor a Dios y a los hombres.", "Memoria", "celebration;marian"));
+        easterFeasts.put(61, new SaintEntry(0, 0, "Sagrado Corazón de Jesús", "Fiesta del Amor de Dios manifestado en el Corazón de su Hijo.", "Solemnidad", "celebration;sacred-heart"));
+        easterFeasts.put(62, new SaintEntry(0, 0, "Inmaculado Corazón de María", "Memoria del Corazón de María, modelo de amor a Dios y a los hombres.", "Memoria", "celebration;marian"));
 
         long currentMillis = startOfDay(current).getTimeInMillis();
         long easterMillis = startOfDay(easter).getTimeInMillis();

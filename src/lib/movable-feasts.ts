@@ -156,14 +156,14 @@ const movableFeastsDefinitions: Record<string, MovableFeastDefinition> = {
     type: "celebration",
   },
   sacredHeart: {
-    offset: 68, // Viernes posterior al segundo domingo después de Pentecostés
+    offset: 61, // Viernes posterior al segundo domingo después de Pentecostés
     name: "Sagrado Corazón de Jesús",
     bio: "Solemnidad que nos invita a meditar sobre el amor infinito de Dios manifestado en el Corazón de su Hijo.",
     title: "Solemnidad",
     type: "celebration",
   },
   immaculateHeart: {
-    offset: 69, // Sábado posterior al Sagrado Corazón
+    offset: 62, // Sábado posterior al Sagrado Corazón
     name: "Inmaculado Corazón de María",
     bio: "Memoria del Corazón de María, que guardaba todas las cosas meditándolas en su interior, ejemplo de entrega y pureza.",
     title: "Memoria",
