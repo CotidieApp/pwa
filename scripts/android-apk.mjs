@@ -291,13 +291,13 @@ runNodeScript(resolveNpmCliPath(), ["run", "build"], rootDir);
 runNodeScript(resolveCapacitorCliPath(), ["sync", "android"], rootDir);
 
 if (process.platform === "win32") {
-  runBatchCommand("gradlew.bat assembleDebug", path.join(rootDir, "android"));
+  runBatchCommand("gradlew.bat assembleRelease", path.join(rootDir, "android"));
 } else {
-  runCommand("./gradlew", ["assembleDebug"], path.join(rootDir, "android"));
+  runCommand("./gradlew", ["assembleRelease"], path.join(rootDir, "android"));
 }
 
-const apkDir = path.join(rootDir, "android", "app", "build", "outputs", "apk", "debug");
-const srcApk = path.join(apkDir, "app-debug.apk");
+const apkDir = path.join(rootDir, "android", "app", "build", "outputs", "apk", "release");
+const srcApk = path.join(apkDir, "app-release.apk");
 if (!fs.existsSync(srcApk)) {
   throw new Error("No se encontró app-debug.apk.");
 }

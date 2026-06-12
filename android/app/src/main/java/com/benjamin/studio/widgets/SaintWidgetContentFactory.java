@@ -47,7 +47,9 @@ final class SaintWidgetContentFactory {
             new DevotionImageEntry("santotomasdeaquino", "public/images/santo-tomas.jpeg",
                     new String[] {"santo tomas de aquino"}),
             new DevotionImageEntry("devocion-san-jose", "public/images/san-jose.jpg",
-                    new String[] {"san jose esposo de la virgen maria", "san jose obrero"})
+                    new String[] {"san jose esposo de la virgen maria", "san jose obrero"}),
+            new DevotionImageEntry("sagrado-corazon", "public/images/sacred-heart.jpeg",
+                    new String[] {"sagrado corazon", "sagrado corazon de jesus"})
     };
 
     static SaintWidgetContent forNow(Context context) {
@@ -554,12 +556,19 @@ final class SaintWidgetContentFactory {
         easterFeasts.put(0, new SaintEntry(0, 0, "Domingo de Resurrección", "¡Cristo ha resucitado!...", "Solemnidad", "celebration"));
         easterFeasts.put(39, new SaintEntry(0, 0, "Ascensión del Señor", "Jesús asciende al cielo...", "Solemnidad", "celebration"));
         easterFeasts.put(49, new SaintEntry(0, 0, "Pentecostés", "Venida del Espíritu Santo...", "Solemnidad", "celebration;pentecostés"));
+        easterFeasts.put(50, new SaintEntry(0, 0, "María Madre de la Iglesia", "Memoria de la Bienaventurada Virgen María, Madre de la Iglesia.", "Memoria", "celebration;marian"));
+        easterFeasts.put(56, new SaintEntry(0, 0, "Santísima Trinidad", "Misterio central de nuestra fe: un solo Dios en tres Personas.", "Solemnidad", "celebration"));
+        easterFeasts.put(63, new SaintEntry(0, 0, "Corpus Christi", "Cuerpo y Sangre de Cristo. Celebramos la presencia real de Jesús en la Eucaristía.", "Solemnidad", "celebration;eucharist"));
+        easterFeasts.put(68, new SaintEntry(0, 0, "Sagrado Corazón de Jesús", "Fiesta del Amor de Dios manifestado en el Corazón de su Hijo.", "Solemnidad", "celebration;sacred-heart"));
+        easterFeasts.put(69, new SaintEntry(0, 0, "Inmaculado Corazón de María", "Memoria del Corazón de María, modelo de amor a Dios y a los hombres.", "Memoria", "celebration;marian"));
 
-        for (Map.Entry<Integer, SaintEntry> entry : easterFeasts.entrySet()) {
-            Calendar feastDate = addDays(easter, entry.getKey());
-            if (isSameDay(current, feastDate)) {
-                return entry.getValue();
-            }
+        long currentMillis = startOfDay(current).getTimeInMillis();
+        long easterMillis = startOfDay(easter).getTimeInMillis();
+        long diffDays = Math.round((currentMillis - easterMillis) / (24.0 * 60.0 * 60.0 * 1000.0));
+
+        SaintEntry entry = easterFeasts.get((int) diffDays);
+        if (entry != null) {
+            return entry;
         }
 
         return null;
