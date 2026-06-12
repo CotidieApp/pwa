@@ -60,6 +60,14 @@ const buildCommandEnv = () => {
     }
   }
 
+  // Force licensed SDK path to avoid "License not accepted" in Temp folders
+  const sdkPath = "C:\\Users\\balca\\AppData\\Local\\Android\\Sdk";
+  if (fs.existsSync(sdkPath)) {
+    env.ANDROID_HOME = sdkPath;
+    env.ANDROID_SDK_ROOT = sdkPath;
+    console.log(`Setting ANDROID_HOME to ${sdkPath}`);
+  }
+
   return env;
 };
 
@@ -299,7 +307,7 @@ if (process.platform === "win32") {
 const apkDir = path.join(rootDir, "android", "app", "build", "outputs", "apk", "release");
 const srcApk = path.join(apkDir, "app-release.apk");
 if (!fs.existsSync(srcApk)) {
-  throw new Error("No se encontró app-debug.apk.");
+  throw new Error("No se encontró app-release.apk.");
 }
 
 try {

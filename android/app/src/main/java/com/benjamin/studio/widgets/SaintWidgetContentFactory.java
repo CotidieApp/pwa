@@ -537,30 +537,24 @@ final class SaintWidgetContentFactory {
         // 39: Ascension
         // 49: Pentecost
         
-        // We can check offsets directly
-        long diffMillis = current.getTimeInMillis() - easter.getTimeInMillis();
-        long diffDays = diffMillis / (24 * 60 * 60 * 1000);
-        // Approximation due to DST can be tricky, better to iterate or use careful date logic.
-        // Or loop through definitions.
-        
         // Let's iterate definitions
         Map<Integer, SaintEntry> easterFeasts = new HashMap<>();
         easterFeasts.put(-46, new SaintEntry(0, 0, "Miércoles de Ceniza", "Inicio de la Cuaresma, un tiempo de penitencia y conversión de cuarenta días en preparación para la Pascua. Se caracteriza por la imposición de la ceniza en la frente.", "Conmemoración", "celebration;lent;ceniza"));
-        easterFeasts.put(-7, new SaintEntry(0, 0, "Domingo de Ramos", "Inicio de la Semana Santa, día de la entrada triunfal de Jesús en Jerusalén, aclamado por la multitud con ramas de olivo y palmas.", "Celebración del Día", "celebration;lent;ramos"));
-        easterFeasts.put(-6, new SaintEntry(0, 0, "Lunes Santo", "Día para preparar el alma...", "Celebración del Día", "celebration;lent"));
-        easterFeasts.put(-5, new SaintEntry(0, 0, "Martes Santo", "Día para preparar el alma...", "Celebración del Día", "celebration;lent"));
-        easterFeasts.put(-4, new SaintEntry(0, 0, "Miércoles Santo", "Día para preparar el alma...", "Celebración del Día", "celebration;lent"));
-        easterFeasts.put(-3, new SaintEntry(0, 0, "Jueves Santo", "La Última Cena...", "Celebración del Día", "celebration;lent"));
-        easterFeasts.put(-2, new SaintEntry(0, 0, "Viernes Santo", "La Crucifixión del Señor...", "Conmemoración", "celebration;lent;pasión"));
-        easterFeasts.put(-1, new SaintEntry(0, 0, "Sábado Santo", "Día de silencio y espera...", "Conmemoración", "celebration;lent"));
-        easterFeasts.put(0, new SaintEntry(0, 0, "Domingo de Resurrección", "¡Cristo ha resucitado!...", "Solemnidad", "celebration"));
-        easterFeasts.put(39, new SaintEntry(0, 0, "Ascensión del Señor", "Jesús asciende al cielo...", "Solemnidad", "celebration"));
-        easterFeasts.put(49, new SaintEntry(0, 0, "Pentecostés", "Venida del Espíritu Santo...", "Solemnidad", "celebration;pentecostés"));
-        easterFeasts.put(50, new SaintEntry(0, 0, "María Madre de la Iglesia", "Memoria de la Bienaventurada Virgen María, Madre de la Iglesia.", "Memoria", "celebration;marian"));
-        easterFeasts.put(56, new SaintEntry(0, 0, "Santísima Trinidad", "Misterio central de nuestra fe: un solo Dios en tres Personas.", "Solemnidad", "celebration"));
-        easterFeasts.put(63, new SaintEntry(0, 0, "Corpus Christi", "Cuerpo y Sangre de Cristo. Celebramos la presencia real de Jesús en la Eucaristía.", "Solemnidad", "celebration;eucharist"));
-        easterFeasts.put(61, new SaintEntry(0, 0, "Sagrado Corazón de Jesús", "Fiesta del Amor de Dios manifestado en el Corazón de su Hijo.", "Solemnidad", "celebration;sacred-heart"));
-        easterFeasts.put(62, new SaintEntry(0, 0, "Inmaculado Corazón de María", "Memoria del Corazón de María, modelo de amor a Dios y a los hombres.", "Memoria", "celebration;marian"));
+        easterFeasts.put(-7, new SaintEntry(0, 0, "Domingo de Ramos", "Inicio de la Semana Santa. Se conmemora la entrada triunfal de Jesús en Jerusalén, aclamado por la multitud con ramos de olivo y palma.", "Celebración del Día", "celebration;lent;ramos"));
+        easterFeasts.put(-6, new SaintEntry(0, 0, "Lunes Santo", "Día para preparar el alma para la crucifixión, muerte y resurrección del Señor. Ocasión de reflexión y meditación. Lunes, conmemoración de los Santos Arcángeles.", "Celebración del Día", "celebration;lent"));
+        easterFeasts.put(-5, new SaintEntry(0, 0, "Martes Santo", "Día para preparar el alma para la crucifixión, muerte y resurrección del Señor. Ocasión de reflexión y meditación. Martes, conmemoración de la filiación divina.", "Celebración del Día", "celebration;lent"));
+        easterFeasts.put(-4, new SaintEntry(0, 0, "Miércoles Santo", "Día para preparar el alma para la crucifixión, muerte y resurrección del Señor. Ocasión de reflexión y meditación. Miércoles, conmemoración a San José.", "Celebración del Día", "celebration;lent"));
+        easterFeasts.put(-3, new SaintEntry(0, 0, "Jueves Santo", "Se conmemora la Última Cena de Jesús con sus apóstoles, la institución de la Eucaristía y del sacerdocio, y el lavatorio de los pies.", "Celebración del Día", "celebration;lent"));
+        easterFeasts.put(-2, new SaintEntry(0, 0, "Viernes Santo", "La crucifixión del Señor. Día de luto y penitencia en el que se recuerda la Pasión y Muerte de Jesucristo en la Cruz para la salvación del mundo.", "Conmemoración", "celebration;lent;pasión"));
+        easterFeasts.put(-1, new SaintEntry(0, 0, "Sábado Santo", "Día de silencio y espera. La Iglesia medita junto al sepulcro del Señor, aguardando su Resurrección. Por la noche, se celebra la Vigilia Pascual.", "Conmemoración", "celebration;lent"));
+        easterFeasts.put(0, new SaintEntry(0, 0, "Domingo de Resurrección", "¡Cristo ha resucitado! Es la fiesta central del cristianismo, la celebración de la victoria de Jesús sobre la muerte, que nos abre las puertas a la vida eterna.", "Solemnidad", "celebration"));
+        easterFeasts.put(39, new SaintEntry(0, 0, "Ascensión del Señor", "Cuarenta días después de su Resurrección, Jesús asciende al cielo en presencia de sus discípulos, prometiendo el envío del Espíritu Santo.", "Solemnidad", "celebration"));
+        easterFeasts.put(49, new SaintEntry(0, 0, "Pentecostés", "Cincuenta días después de la Resurrección, el Espíritu Santo desciende sobre los Apóstoles, marcando el nacimiento de la Iglesia y el inicio de su misión evangelizadora.", "Solemnidad", "celebration;pentecostés"));
+        easterFeasts.put(50, new SaintEntry(0, 0, "María, Madre de la Iglesia", "Celebración en honor a María como Madre de la Iglesia, que acompaña a los fieles en su misión evangelizadora. Memoria instituida por el Papa Francisco.", "Memoria", "celebration;marian"));
+        easterFeasts.put(56, new SaintEntry(0, 0, "Santísima Trinidad", "Solemnidad en honor al misterio central de la fe y de la vida cristiana: el misterio de Dios en sí mismo.", "Solemnidad", "celebration"));
+        easterFeasts.put(63, new SaintEntry(0, 0, "Corpus Christi", "Solemnidad del Cuerpo y la Sangre de Cristo. Celebramos la presencia real de Jesús en la Eucaristía.", "Solemnidad", "celebration;eucharist"));
+        easterFeasts.put(61, new SaintEntry(0, 0, "Sagrado Corazón de Jesús", "Solemnidad que nos invita a meditar sobre el amor infinito de Dios manifestado en el Corazón de su Hijo.", "Solemnidad", "celebration;sacred-heart"));
+        easterFeasts.put(62, new SaintEntry(0, 0, "Inmaculado Corazón de María", "Memoria del Corazón de María, que guardaba todas las cosas meditándolas en su interior, ejemplo de entrega y pureza.", "Memoria", "celebration;marian"));
 
         long currentMillis = startOfDay(current).getTimeInMillis();
         long easterMillis = startOfDay(easter).getTimeInMillis();
