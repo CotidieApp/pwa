@@ -15,12 +15,9 @@ import { useToast } from '@/hooks/use-toast';
 import { appVersion } from '@/lib/version';
 import AnnuumStory from '@/components/AnnuumStory';
 import MassStreakSparkPreview from '@/components/developer/MassStreakSparkPreview';
-import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Combobox } from '@/components/ui/combobox';
-import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -41,82 +38,11 @@ const quoteFormSchema = z.object({
 });
 type QuoteFormValues = z.infer<typeof quoteFormSchema>;
 
-const ColorPicker = ({
-  label,
-  color,
-  onColorChange,
-}: {
-  label: string;
-  color: { h: number; s: number };
-  onColorChange: (newColor: { h: number; s: number }) => void;
-}) => {
-  const hexColor = useMemo(() => {
-    const hslToHex = (h: number, s: number, l: number) => {
-      l /= 100;
-      const a = (s * Math.min(l, 1 - l)) / 100;
-      const f = (n: number) => {
-        const k = (n + h / 30) % 12;
-        const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
-        return Math.round(255 * color)
-          .toString(16)
-          .padStart(2, '0');
-      };
-      return `#${f(0)}${f(8)}${f(4)}`;
-    };
-    return hslToHex(color.h, color.s, 50);
-  }, [color]);
-
-  const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const hex = e.target.value;
-    let r = 0, g = 0, b = 0;
-    if (hex.length === 4) {
-      r = parseInt(hex[1] + hex[1], 16);
-      g = parseInt(hex[2] + hex[2], 16);
-      b = parseInt(hex[3] + hex[3], 16);
-    } else if (hex.length === 7) {
-      r = parseInt(hex.substring(1, 3), 16);
-      g = parseInt(hex.substring(3, 5), 16);
-      b = parseInt(hex.substring(5, 7), 16);
-    }
-    r /= 255; g /= 255; b /= 255;
-    const max = Math.max(r, g, b), min = Math.min(r, g, b);
-    let h = 0, s = 0;
-    const l = (max + min) / 2;
-    if (max !== min) {
-      const d = max - min;
-      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-      switch (max) {
-        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-        case g: h = (b - r) / d + 2; break;
-        case b: h = (r - g) / d + 4; break;
-      }
-      h /= 6;
-    }
-    onColorChange({ h: Math.round(h * 360), s: Math.round(s * 100) });
-  };
-
-  return (
-    <div className="flex items-center justify-between">
-      <Label className="text-slate-300">{label}</Label>
-      <div className="relative">
-        <Input
-          type="color"
-          value={hexColor}
-          onChange={handleColorChange}
-          className="absolute inset-0 opacity-0 cursor-pointer"
-        />
-        <div
-          className="w-10 h-6 rounded-md border border-slate-700"
-          style={{ backgroundColor: hexColor }}
-        />
-      </div>
-    </div>
-  );
-};
-
 interface DeveloperDashboardProps {
   onBack: () => void;
 }
+
+type DevTab = 'status' | 'metrics' | 'content' | 'trace';
 
 export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) {
   const {
@@ -131,7 +57,6 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
     setSimulatedStats,
     globalUserStats,
     logoutDeveloper,
-    // New additions
     simulatedDate,
     setSimulatedDate,
     userQuotes,
@@ -150,152 +75,31 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
     clearDevLiveTraceEvents,
     allPrayers,
     userHomeBackgrounds,
-    isCustomThemeActive,
-    setIsCustomThemeActive,
-    activeThemeColors,
-    setCustomThemeColor,
-    resetCustomTheme
   } = useSettings();
 
-  const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState<DevTab>('status');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showAnnuumPreview, setShowAnnuumPreview] = useState(false);
   const [showMassStreakPreview, setShowMassStreakPreview] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const traceEndRef = useRef<HTMLDivElement | null>(null);
-
-  // Stats Editor State
-  const [isEditingStats, setIsEditingStats] = useState(false);
-  const [tempStats, setTempStats] = useState<UserStats>(simulatedStats ?? realUserStats);
-
-  // Content State
   const [selectedImage, setSelectedImage] = useState<ImagePlaceholder | null>(null);
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
+  const { toast } = useToast();
 
-  // Forms
-  const quoteForm = useForm<QuoteFormValues>({
+  const form = useForm<QuoteFormValues>({
     resolver: zodResolver(quoteFormSchema),
     defaultValues: { text: '', author: '' },
   });
 
-  useEffect(() => {
-    if (!isEditingStats) {
-      setTempStats(simulatedStats ?? realUserStats);
-    }
-  }, [isEditingStats, simulatedStats, realUserStats]);
-
-  useEffect(() => {
-    if (!devLiveTraceEnabled) return;
-    traceEndRef.current?.scrollIntoView({ block: 'end' });
-  }, [devLiveTraceEnabled, devLiveTraceEvents]);
-
-  const traceRows = useMemo(() => {
-    return devLiveTraceEvents.map((event: DevTraceEvent) => {
-      const date = new Date(event.ts);
-      const hh = String(date.getHours()).padStart(2, '0');
-      const mm = String(date.getMinutes()).padStart(2, '0');
-      const ss = String(date.getSeconds()).padStart(2, '0');
-      return { ...event, time: `${hh}:${mm}:${ss}` };
-    });
-  }, [devLiveTraceEvents]);
-
-  const handleStatChange = (key: keyof UserStats, value: string) => {
-    if (value === '') {
-        setTempStats(prev => ({ ...prev, [key]: 0 }));
-        return;
-    }
-    const numValue = parseInt(value);
-    if (!isNaN(numValue)) {
-      setTempStats(prev => ({ ...prev, [key]: numValue }));
-    }
-  };
-
-  const saveStats = () => {
-    setSimulatedStats(tempStats);
-    setIsEditingStats(false);
-    toast({ title: 'Estadísticas simuladas activas.' });
-  };
-
-  const revertStats = () => {
-    setTempStats(realUserStats);
-    toast({ title: 'Valores en editor revertidos a reales.' });
-  };
-
-  const restoreRealStats = () => {
-    setSimulatedStats(null);
-    setTempStats(realUserStats);
-    toast({ title: 'Usando estadísticas reales.' });
+  const onAddQuote: SubmitHandler<QuoteFormValues> = (data) => {
+    addUserQuote({ ...data, isUserDefined: true });
+    form.reset();
+    toast({ title: 'Cita agregada correctamente.' });
   };
 
   const handleLogout = () => {
     logoutDeveloper();
     onBack();
-    toast({ title: 'Sesión de desarrollador cerrada' });
   };
-
-  const onQuoteSubmit: SubmitHandler<QuoteFormValues> = (data) => {
-    addUserQuote(data);
-    quoteForm.reset();
-    toast({ title: 'Cita agregada' });
-  };
-
-  const handleExportCalendar = () => {
-    try {
-        const icsContent = generateSaintsICS();
-        const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', 'santoral_cotidie.ics');
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        toast({ title: 'Calendario exportado correctamente' });
-    } catch (error) {
-        console.error(error);
-        toast({ title: 'Error al exportar calendario', variant: 'destructive' });
-    }
-  };
-
-  // Memos for Selectors
-  const allQuotesForSelector = useMemo(() => {
-    const quotes: Quote[] = [
-      ...catholicQuotes.map((q, i) => ({...q, id: `cq_${i}`})), 
-      ...userQuotes
-    ];
-    return quotes.map(q => ({
-      value: q.id!,
-      label: `"${q.text.length > 50 ? q.text.substring(0, 50) + '...' : q.text}" - ${q.author}`
-    }));
-  }, [userQuotes]);
-
-  const allImagesForSelector = useMemo(() => {
-    const imageMap = new Map<string, ImagePlaceholder>();
-
-    PlaceHolderImages.forEach(img => {
-      if(img.imageUrl) imageMap.set(img.imageUrl, img);
-    });
-
-    userHomeBackgrounds.forEach(img => {
-      if(img.imageUrl) imageMap.set(img.imageUrl, img);
-    });
-
-    allPrayers.forEach(prayer => {
-      if (prayer.imageUrl) {
-        imageMap.set(prayer.imageUrl, {
-          id: prayer.id || prayer.title,
-          imageUrl: prayer.imageUrl,
-          description: prayer.title,
-          imageHint: prayer.imageHint
-        });
-      }
-    });
-    
-    return Array.from(imageMap.values()).map(img => ({
-      value: img.id,
-      label: img.description
-    }));
-  }, [allPrayers, userHomeBackgrounds]);
 
   const handleImageSelection = (id: string | null) => {
     if (!id) {
@@ -305,6 +109,7 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
     const allImages = [...PlaceHolderImages, ...userHomeBackgrounds, ...allPrayers.filter(p => p.imageUrl).map(p => ({ id: p.id!, imageUrl: p.imageUrl!, description: p.title, imageHint: p.imageHint }))]
     const foundImage = allImages.find(img => img.id === id);
     setSelectedImage(foundImage || null);
+    setIsImageViewerOpen(true);
   };
 
   return (
@@ -344,16 +149,16 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
             isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}>
           <NavButton 
-            active={activeTab === 'overview'} 
-            onClick={() => { setActiveTab('overview'); setIsSidebarOpen(false); }} 
+            active={activeTab === 'status'}
+            onClick={() => { setActiveTab('status'); setIsSidebarOpen(false); }}
             icon={Icon.Activity} 
-            label="Resumen" 
+            label="Estado"
           />
           <NavButton 
-            active={activeTab === 'stats'} 
-            onClick={() => { setActiveTab('stats'); setIsSidebarOpen(false); }} 
+            active={activeTab === 'metrics'}
+            onClick={() => { setActiveTab('metrics'); setIsSidebarOpen(false); }}
             icon={Icon.Database} 
-            label="Estadísticas" 
+            label="Métricas"
           />
           <NavButton 
             active={activeTab === 'content'} 
@@ -361,36 +166,18 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
             icon={Icon.Files} 
             label="Contenido" 
           />
-          <NavButton 
-            active={activeTab === 'tools'} 
-            onClick={() => { setActiveTab('tools'); setIsSidebarOpen(false); }} 
-            icon={Icon.Wrench} 
-            label="Herramientas" 
-          />
           <NavButton
             active={activeTab === 'trace'}
             onClick={() => { setActiveTab('trace'); setIsSidebarOpen(false); }}
             icon={Icon.ActivitySquare}
             label="Trazas"
           />
-           <NavButton 
-            active={activeTab === 'global'} 
-            onClick={() => { setActiveTab('global'); setIsSidebarOpen(false); }} 
-            icon={Icon.Globe} 
-            label="Globales" 
-          />
-          <NavButton 
-            active={activeTab === 'system'} 
-            onClick={() => { setActiveTab('system'); setIsSidebarOpen(false); }} 
-            icon={Icon.Cpu} 
-            label="Sistema" 
-          />
           <div className="mt-auto pt-2 border-t border-slate-800">
             <NavButton 
               active={false} 
               onClick={handleLogout} 
               icon={Icon.LogOut} 
-              label="Salir" 
+              label="Cerrar"
               variant="destructive"
             />
           </div>
@@ -408,594 +195,217 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
         <div className="flex-1 overflow-y-auto p-6 bg-slate-950">
           <div className="max-w-4xl mx-auto space-y-6">
             
-            {activeTab === 'overview' && (
+            {activeTab === 'status' && (
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <StatCard 
-                    title="Estado de Sesión" 
-                    value={simulatedStats ? "SIMULADO" : "EN VIVO"} 
-                    icon={Icon.Radio}
+                    title="Modo"
+                    value={simulatedStats ? "SIMULADO" : "PROD"}
+                    icon={Icon.Zap}
                     color={simulatedStats ? "text-yellow-500" : "text-green-500"}
                   />
                   <StatCard 
-                    title="Oraciones Totales" 
+                    title="Oraciones Hoy"
                     value={realUserStats.totalPrayersOpened} 
-                    icon={Icon.BookOpen}
+                    icon={Icon.CheckCircle2}
                   />
                   <StatCard 
-                    title="Racha de Misa" 
-                    value={realUserStats.massStreak || 0} 
-                    icon={Icon.Flame}
+                    title="Versión Core"
+                    value={appVersion}
+                    icon={Icon.Cpu}
                   />
                 </div>
 
                 <Card className="bg-slate-900 border-slate-800 text-slate-200">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Icon.Settings className="size-4" /> Ajustes Rápidos
+                      <Icon.Settings className="size-4" /> Configuración de Sesión
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="grid gap-6">
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
-                        <Label className="text-base">Forzar Temporada Annuum</Label>
-                        <p className="text-xs text-slate-400">Habilita la burbuja de resumen de fin de año.</p>
+                        <Label className="text-base">Simular Fecha</Label>
+                        <p className="text-xs text-slate-400">Afecta santoral y rotación de fondos.</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                         {simulatedDate && (
+                            <span className="text-[10px] text-yellow-500 font-bold bg-yellow-500/10 px-2 py-0.5 rounded border border-yellow-500/20">
+                               {format(new Date(simulatedDate), 'dd/MM/yyyy')}
+                            </span>
+                         )}
+                         <Button
+                            variant="outline"
+                            size="sm"
+                            className="bg-slate-950 border-slate-700 h-8"
+                            onClick={() => setSimulatedDate(simulatedDate ? null : new Date().toISOString())}
+                         >
+                            {simulatedDate ? 'Reset' : 'Activar'}
+                         </Button>
+                      </div>
+                    </div>
+                    <Separator className="bg-slate-800" />
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">Temporada Annuum</Label>
+                        <p className="text-xs text-slate-400">Burbuja de resumen activa.</p>
                       </div>
                       <Switch checked={forceAnnuumSeason} onCheckedChange={setForceAnnuumSeason} />
                     </div>
                     <Separator className="bg-slate-800" />
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
-                        <Label className="text-base">Mostrar Estadísticas en Cero</Label>
-                        <p className="text-xs text-slate-400">Muestra contadores vacíos en Annuum.</p>
-                      </div>
-                      <Switch checked={showZeroStats} onCheckedChange={setShowZeroStats} />
-                    </div>
-                    <Separator className="bg-slate-800" />
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label className="text-base">Notificación Test (5 min)</Label>
-                        <p className="text-xs text-slate-400">Envía una notificación cada 5 minutos.</p>
-                      </div>
-                      <Switch checked={devTestNotificationEnabled} onCheckedChange={setDevTestNotificationEnabled} />
-                    </div>
-                    <Separator className="bg-slate-800" />
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label className="text-base">Trazas en Vivo</Label>
-                        <p className="text-xs text-slate-400">Registra errores y acciones de la app en tiempo real.</p>
+                        <Label className="text-base">Trazas en Tiempo Real</Label>
+                        <p className="text-xs text-slate-400">Captura errores y navegación.</p>
                       </div>
                       <Switch checked={devLiveTraceEnabled} onCheckedChange={setDevLiveTraceEnabled} />
                     </div>
+                    <Separator className="bg-slate-800" />
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5 text-destructive font-bold">Reseteo Maestro</div>
+                      <div className="flex gap-2">
+                         <Button variant="outline" size="sm" className="border-red-900/50 hover:bg-red-950/20" onClick={resetSettings}>Ajustes</Button>
+                         <Button variant="destructive" size="sm" onClick={hardResetApp}>TODO</Button>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
-                
-                <div className="grid gap-3 md:grid-cols-2">
-                  <Button 
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
-                    onClick={() => setShowAnnuumPreview(true)}
-                  >
-                    <Icon.Play className="mr-2 size-4" /> Iniciar Vista Previa Annuum
-                  </Button>
-                  <Button
-                    className="w-full bg-amber-500 text-slate-950 hover:bg-amber-400"
-                    onClick={() => setShowMassStreakPreview(true)}
-                  >
-                    <Icon.Flame className="mr-2 size-4" /> Probar Racha de Misa
-                  </Button>
-                </div>
               </div>
             )}
 
-            {activeTab === 'stats' && (
-               <Card className="bg-slate-900 border-slate-800 text-slate-200">
-                  <CardHeader className="flex flex-row items-center justify-between">
-                     <div>
-                        <CardTitle>Estadísticas del Año Actual</CardTitle>
-                        <CardDescription className="text-slate-400">
-                            Modificar estos valores activará el Modo Simulación.
-                        </CardDescription>
-                     </div>
-                     <div className="flex gap-2">
-                        {simulatedStats && (
-                            <Button variant="outline" size="sm" onClick={restoreRealStats} className="border-slate-700 hover:bg-slate-800">
-                                <Icon.RotateCcw className="mr-2 size-3" /> Restaurar Reales
-                            </Button>
-                        )}
-                        <Button 
-                            variant={isEditingStats ? "destructive" : "secondary"} 
-                            size="sm"
-                            onClick={() => setIsEditingStats(!isEditingStats)}
-                        >
-                            {isEditingStats ? "Cancelar" : "Editar"}
-                        </Button>
-                     </div>
-                  </CardHeader>
-                  <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {(['daysActive', 'massStreak', 'massDaysCount', 'morningDaysCount', 'nightDaysCount', 'totalPrayersOpened', 'rosaryCount', 'angelusCount', 'examinationCount', 'saintQuotesOpened', 'lettersWritten', 'devotionsCreated', 'prayersCreated'] as const).map(key => {
-                            const labels: Record<string, string> = {
-                                daysActive: 'Días Activo (App)',
-                                massStreak: 'Racha de Misa',
-                                massDaysCount: 'Días Totales Misa',
-                                morningDaysCount: 'Días Oración Mañana',
-                                nightDaysCount: 'Días Oración Noche',
-                                totalPrayersOpened: 'Oraciones Abiertas',
-                                rosaryCount: 'Rosarios',
-  angelusCount: 'Ángelus',
-                                examinationCount: 'Examen Conciencia',
-                                saintQuotesOpened: 'Citas Santos',
-                                lettersWritten: 'Cartas Escritas',
-                                devotionsCreated: 'Devociones Creadas',
-                                prayersCreated: 'Oraciones Creadas'
-                            };
-                            return (
-                            <div key={key} className="flex items-center justify-between p-2 rounded bg-slate-950 border border-slate-800">
-                                <Label className="text-xs font-mono text-slate-400">{labels[key] || key}</Label>
-                                {isEditingStats ? (
-                                    <Input 
-                                        type="number" 
-                                        className="h-6 w-24 text-right font-mono text-xs bg-slate-900 border-slate-700"
-                                        value={tempStats[key] as number}
-                                        onChange={(e) => handleStatChange(key, e.target.value)}
-                                    />
-                                ) : (
-                                    <div className="text-right">
-                                        <span className={cn("font-mono font-bold block", simulatedStats ? "text-yellow-500" : "text-slate-200")}>
-                                            {(simulatedStats ?? realUserStats)[key]}
-                                        </span>
-                                        {key === 'daysActive' && (
-                                            <span className="text-[10px] text-slate-400 block">
-                                                No usada: {Math.max(0, Math.floor((new Date().getTime() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24)) - ((simulatedStats ?? realUserStats).daysActive || 0))} días
-                                            </span>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                            );
-                        })}
+            {activeTab === 'metrics' && (
+               <div className="space-y-6">
+                 <Card className="bg-slate-900 border-slate-800 text-slate-200">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                       <div>
+                          <CardTitle>Contadores Anuales</CardTitle>
+                          <CardDescription className="text-slate-400">Datos registrados en el ciclo actual.</CardDescription>
+                       </div>
+                       {simulatedStats && <Button variant="ghost" size="sm" className="text-yellow-500" onClick={() => setSimulatedStats(null)}>Limpiar Simulación</Button>}
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                       <MetricInput label="Misa (Racha)" value={realUserStats.massStreak} onChange={v => setSimulatedStats({ ...realUserStats, massStreak: v })} />
+                       <MetricInput label="Misa (Días)" value={realUserStats.massDaysCount} onChange={v => setSimulatedStats({ ...realUserStats, massDaysCount: v })} />
+                       <MetricInput label="Rosarios" value={realUserStats.rosaryCount} onChange={v => setSimulatedStats({ ...realUserStats, rosaryCount: v })} />
+                       <MetricInput label="Ángelus" value={realUserStats.angelusCount} onChange={v => setSimulatedStats({ ...realUserStats, angelusCount: v })} />
+                       <MetricInput label="Días Activo" value={realUserStats.daysActive} onChange={v => setSimulatedStats({ ...realUserStats, daysActive: v })} />
+                       <MetricInput label="Exámenes" value={realUserStats.examinationCount} onChange={v => setSimulatedStats({ ...realUserStats, examinationCount: v })} />
+                       <MetricInput label="Citas Santos" value={realUserStats.saintQuotesOpened} onChange={v => setSimulatedStats({ ...realUserStats, saintQuotesOpened: v })} />
+                       <MetricInput label="Cartas" value={realUserStats.lettersWritten} onChange={v => setSimulatedStats({ ...realUserStats, lettersWritten: v })} />
+                    </CardContent>
+                 </Card>
+
+                 <Card className="bg-slate-900 border-slate-800 text-slate-200">
+                   <CardHeader>
+                      <CardTitle>Histórico Global</CardTitle>
+                      <CardDescription className="text-slate-400">Total acumulado desde la instalación.</CardDescription>
+                   </CardHeader>
+                   <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="p-3 bg-slate-950 rounded-lg border border-slate-800">
+                         <div className="text-[10px] text-slate-500 uppercase">Días Totales</div>
+                         <div className="text-xl font-bold">{globalUserStats.daysActive}</div>
                       </div>
-                      {isEditingStats && (
-                          <div className="mt-4 flex justify-end gap-2">
-                              <Button size="sm" variant="ghost" onClick={revertStats}>Reiniciar Formulario</Button>
-                              <Button size="sm" onClick={saveStats} className="bg-green-600 hover:bg-green-700 text-white">Aplicar Simulación</Button>
-                          </div>
-                      )}
-                  </CardContent>
-               </Card>
+                      <div className="p-3 bg-slate-950 rounded-lg border border-slate-800">
+                         <div className="text-[10px] text-slate-500 uppercase">Oraciones Totales</div>
+                         <div className="text-xl font-bold">{globalUserStats.totalPrayersOpened}</div>
+                      </div>
+                      <div className="p-3 bg-slate-950 rounded-lg border border-slate-800">
+                         <div className="text-[10px] text-slate-500 uppercase">Rosarios</div>
+                         <div className="text-xl font-bold">{globalUserStats.rosaryCount}</div>
+                      </div>
+                      <div className="p-3 bg-slate-950 rounded-lg border border-slate-800">
+                         <div className="text-[10px] text-slate-500 uppercase">Misa</div>
+                         <div className="text-xl font-bold">{globalUserStats.massDaysCount}</div>
+                      </div>
+                   </CardContent>
+                 </Card>
+
+                 <div className="grid gap-3 md:grid-cols-2">
+                    <Button variant="outline" className="bg-indigo-950/20 border-indigo-900/50 text-indigo-400" onClick={() => setShowAnnuumPreview(true)}>
+                       <Icon.Play className="mr-2 size-4" /> Simular Cotidie Annuum
+                    </Button>
+                    <Button variant="outline" className="bg-amber-950/20 border-amber-900/50 text-amber-400" onClick={() => setShowMassStreakPreview(true)}>
+                       <Icon.Flame className="mr-2 size-4" /> Simular Racha de Misa
+                    </Button>
+                 </div>
+               </div>
             )}
 
             {activeTab === 'content' && (
                <div className="space-y-6">
-                 {/* Quotes Manager */}
                  <Card className="bg-slate-900 border-slate-800 text-slate-200">
-                    <CardHeader>
-                        <CardTitle>Gestión de Citas</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        <div className='space-y-2'>
-                            <Label>Forzar Frase del Día</Label>
-                             <div className="flex gap-2">
-                                <div className="flex-1">
-                                    <Combobox
-                                        items={allQuotesForSelector}
-                                        value={simulatedQuoteId}
-                                        onSelect={(value) => {
-                                            setSimulatedQuoteId(value);
-                                            if (value) incrementStat('saintQuotesOpened');
-                                        }}
-                                        placeholder="Seleccionar frase..."
-                                        searchPlaceholder="Buscar frase..."
-                                        noResultsText="No se encontró la frase."
-                                        className="bg-slate-900 border-slate-700 text-slate-200 hover:bg-slate-800 hover:text-white"
-                                    />
-                                </div>
-                                <Button onClick={() => setSimulatedQuoteId(null)} variant="outline" size="sm" className="border-slate-700 bg-transparent text-slate-200 hover:bg-slate-800 hover:text-white">
-                                    <Icon.RotateCcw className="size-4" />
-                                </Button>
-                             </div>
-                        </div>
-
-                        <Separator className="bg-slate-800" />
-
-                        <Form {...quoteForm}>
-                            <form onSubmit={quoteForm.handleSubmit(onQuoteSubmit)} className="space-y-4 p-4 border border-slate-800 rounded-lg bg-slate-950/50">
-                            <h4 className="font-medium text-sm text-slate-400">Agregar Nueva Cita</h4>
-                            <FormField
-                                control={quoteForm.control}
-                                name="text"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <Label className="text-xs">Texto</Label>
-                                    <FormControl>
-                                    <Textarea 
-                                        placeholder="El amor es la única fuerza..." 
-                                        {...field} 
-                                        className="bg-slate-900 border-slate-700 resize-none"
-                                    />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={quoteForm.control}
-                                name="author"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <Label className="text-xs">Autor</Label>
-                                    <FormControl>
-                                    <Input 
-                                        placeholder="San Juan Pablo II" 
-                                        {...field} 
-                                        className="bg-slate-900 border-slate-700"
-                                    />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                            <Button type="submit" size="sm" className="w-full bg-slate-800 hover:bg-slate-700">
-                                <Icon.PlusCircle className="mr-2 size-4" />
-                                Agregar Cita
-                            </Button>
-                            </form>
-                        </Form>
-
-                        {userQuotes.length > 0 && (
-                            <div className="space-y-2">
-                            <h4 className="font-medium text-sm text-slate-400">Citas Personales</h4>
-                            <div className="max-h-48 overflow-y-auto space-y-2 rounded-md border border-slate-800 p-2 bg-slate-950">
-                                {userQuotes.map(quote => (
-                                <div key={quote.id} className="flex items-center justify-between text-sm p-2 bg-slate-900 rounded-md border border-slate-800">
-                                    <span className="truncate pr-2 text-slate-300">"{quote.text.substring(0, 25)}..."</span>
-                                    <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-6 w-6 text-slate-500 hover:text-red-400 hover:bg-slate-800"
-                                            >
-                                                <Icon.Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent className="bg-slate-900 border-slate-800 text-slate-100">
-                                            <AlertDialogHeader>
-                                                <AlertDialogTitle>¿Eliminar cita?</AlertDialogTitle>
-                                                <AlertDialogDescription className="text-slate-400">Esta acción no se puede deshacer.</AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                                <AlertDialogCancel className="bg-slate-800 text-slate-100 border-slate-700 hover:bg-slate-700">Cancelar</AlertDialogCancel>
-                                                <AlertDialogAction onClick={() => removeUserQuote(quote.id!)} className="bg-red-600 text-white hover:bg-red-700">Eliminar</AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
-                                </div>
-                                ))}
-                            </div>
-                            </div>
-                        )}
-                    </CardContent>
+                   <CardHeader>
+                      <CardTitle>Utilidades de Contenido</CardTitle>
+                   </CardHeader>
+                   <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                         <Button variant="outline" className="bg-slate-950 border-slate-800" onClick={() => {
+                            const ics = generateSaintsICS();
+                            const blob = new Blob([ics], { type: 'text/calendar' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = 'cotidie-saints.ics';
+                            a.click();
+                         }}>
+                            <Icon.Calendar className="mr-2 size-4" /> Exportar Calendario ICS
+                         </Button>
+                         <div className="flex items-center justify-between p-3 bg-slate-950 rounded-lg border border-slate-800">
+                            <Label>Fiestas Móviles</Label>
+                            <Switch checked={movableFeastsEnabled} onCheckedChange={setMovableFeastsEnabled} />
+                         </div>
+                      </div>
+                   </CardContent>
                  </Card>
 
-                 {/* Image Viewer */}
                  <Card className="bg-slate-900 border-slate-800 text-slate-200">
-                    <CardHeader>
-                        <CardTitle>Visor de Imágenes</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className='space-y-2'>
-                            <Label>Explorador de Recursos</Label>
-                            <Combobox
-                                items={allImagesForSelector}
-                                value={selectedImage?.id || null}
-                                onSelect={handleImageSelection}
-                                placeholder="Seleccionar imagen..."
-                                searchPlaceholder="Buscar imagen..."
-                                noResultsText="No se encontró la imagen."
-                                className="bg-slate-900 border-slate-700 text-slate-200 hover:bg-slate-800 hover:text-white"
-                            />
-                            {selectedImage && (
-                            <div className="space-y-2 mt-4">
-                                <div className="relative w-full h-56 rounded-md overflow-hidden border border-slate-800 bg-black">
-                                <Image
-                                    src={selectedImage.imageUrl}
-                                    alt={selectedImage.description || 'Imagen seleccionada'}
-                                    fill
-                                    className="object-cover"
-                                    style={{ objectPosition: getImageObjectPosition(selectedImage.id) }}
-                                    sizes="(max-width: 768px) 100vw, 50vw"
-                                    priority={false}
-                                />
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <code className="text-[10px] text-slate-500 bg-slate-950 px-2 py-1 rounded border border-slate-800 truncate max-w-[200px]">
-                                        {selectedImage.imageUrl.substring(0, 30)}...
-                                    </code>
-                                    <Button size="sm" variant="outline" onClick={() => setIsImageViewerOpen(true)} className="border-slate-700 bg-transparent text-slate-200 hover:bg-slate-800 hover:text-white">
-                                        Pantalla completa
-                                    </Button>
-                                </div>
+                   <CardHeader>
+                      <CardTitle>Explorador de Medios</CardTitle>
+                   </CardHeader>
+                   <CardContent>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        {PlaceHolderImages.map(img => (
+                          <div key={img.id} className="group relative aspect-video cursor-pointer overflow-hidden rounded border border-slate-800" onClick={() => handleImageSelection(img.id)}>
+                            <Image src={img.imageUrl} alt={img.id} fill className="object-cover transition-transform group-hover:scale-110" />
+                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <span className="text-[10px] text-white font-bold">{img.id}</span>
                             </div>
-                            )}
-                        </div>
-                    </CardContent>
+                          </div>
+                        ))}
+                      </div>
+                   </CardContent>
                  </Card>
-
-                 {/* Calendar Export */}
-                 <Card className="bg-slate-900 border-slate-800 text-slate-200">
-                    <CardHeader>
-                        <CardTitle>Calendario Litúrgico</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                        <Label className="text-slate-400">Exportación de Datos</Label>
-                        <Button 
-                            onClick={handleExportCalendar} 
-                            variant="outline" 
-                            className="w-full justify-start border-slate-700 bg-transparent hover:bg-slate-800 text-slate-300 hover:text-white"
-                        >
-                            <Icon.Download className="mr-2 h-4 w-4" />
-                            Descargar Santoral (.ics)
-                        </Button>
-                        <p className="text-xs text-slate-500">
-                            Genera un archivo ICS con todos los santos fijos del año. Importable en Google Calendar, Outlook, etc.
-                        </p>
-                    </CardContent>
-                 </Card>
-               </div> 
-            )}
-
-            {activeTab === 'tools' && (
-                <div className="space-y-6">
-                    {/* Date Simulator */}
-                    <Card className="bg-slate-900 border-slate-800 text-slate-200">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Icon.Calendar className="size-5" /> Herramientas de Calendario
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            <div className="flex items-center justify-between">
-                                <div className="space-y-0.5">
-                                    <Label className="text-base">Priorizar Fiestas Móviles</Label>
-                                    <p className="text-xs text-slate-400">Si está activo, las fiestas móviles (Pascua, Ceniza, etc.) anulan al santo fijo.</p>
-                                </div>
-                                <Switch checked={movableFeastsEnabled} onCheckedChange={setMovableFeastsEnabled} />
-                            </div>
-                            <Separator className="bg-slate-800" />
-                            <div className="space-y-2">
-                                <Label className="text-slate-400">Simulador de Fecha</Label>
-                                <div className="flex flex-col sm:flex-row gap-4">
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <Button
-                                            variant={"outline"}
-                                            className={cn(
-                                                "w-full justify-start text-left font-normal border-slate-700 bg-slate-950 text-slate-200 hover:bg-slate-900 hover:text-white",
-                                                !simulatedDate && "text-muted-foreground"
-                                            )}
-                                            >
-                                            <Icon.Calendar className="mr-2 h-4 w-4" />
-                                            {simulatedDate ? format(new Date(simulatedDate), "PPP", { locale: es }) : <span>Seleccionar fecha...</span>}
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0 bg-slate-900 border-slate-800 text-slate-200">
-                                            <Calendar
-                                            mode="single"
-                                            selected={simulatedDate ? new Date(simulatedDate) : undefined}
-                                            onSelect={(date) => setSimulatedDate(date?.toISOString() ?? null)}
-                                            locale={es}
-                                            weekStartsOn={1}
-                                            initialFocus
-                                            className="bg-slate-950"
-                                            />
-                                        </PopoverContent>
-                                    </Popover>
-                                    <Button 
-                                        onClick={() => setSimulatedDate(null)} 
-                                        variant="secondary" 
-                                        className="bg-slate-800 text-slate-300 hover:bg-slate-700"
-                                        disabled={!simulatedDate}
-                                    >
-                                        Restablecer Hoy
-                                    </Button>
-                                </div>
-                                <p className="text-xs text-slate-500">Altera la fecha percibida para el "Santo del Día" y liturgias.</p>
-                            </div>
-
-                            <Separator className="bg-slate-800" />
-
-                            {/* Removed export button from here */}
-                        </CardContent>
-                    </Card>
-
-                    {/* Theme Editor */}
-                    <Card className="bg-slate-900 border-slate-800 text-slate-200">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Icon.Palette className="size-5" /> Editor de Tema
-                            </CardTitle>
-                            <CardDescription className="text-slate-400">
-                                Personaliza los colores de la aplicación en tiempo real.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="flex items-center justify-between p-3 bg-slate-950 rounded-lg border border-slate-800">
-                                <Label htmlFor="custom-theme-switch" className="flex flex-col gap-1">
-                                    <span>Activar Tema Personalizado</span>
-                                    <span className="text-xs font-normal text-slate-500">Sobrescribe el tema automático.</span>
-                                </Label>
-                                <Switch
-                                    id="custom-theme-switch"
-                                    checked={isCustomThemeActive}
-                                    onCheckedChange={setIsCustomThemeActive}
-                                />
-                            </div>
-                            
-                            <div className={cn("space-y-4 p-4 border border-slate-800 rounded-lg bg-slate-950/50 transition-opacity", !isCustomThemeActive && "opacity-50 pointer-events-none")}>
-                                <ColorPicker 
-                                    label="Principal (Primary)"
-                                    color={activeThemeColors.primary}
-                                    onColorChange={(newColor) => setCustomThemeColor('primary', newColor)}
-                                />
-                                <ColorPicker 
-                                    label="Fondo (Background)"
-                                    color={activeThemeColors.background}
-                                    onColorChange={(newColor) => setCustomThemeColor('background', newColor)}
-                                />
-                                <ColorPicker 
-                                    label="Acento (Accent)"
-                                    color={activeThemeColors.accent}
-                                    onColorChange={(newColor) => setCustomThemeColor('accent', newColor)}
-                                />
-                                <Button onClick={resetCustomTheme} variant="outline" size="sm" className="w-full mt-2 border-slate-700 bg-transparent text-slate-200 hover:bg-slate-800 hover:text-white">
-                                    Restablecer Colores
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
+               </div>
             )}
 
             {activeTab === 'trace' && (
-              <Card className="bg-slate-900 border-slate-800 text-slate-200">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Icon.ActivitySquare className="size-5" /> Trazas en Vivo
-                  </CardTitle>
-                  <CardDescription className="text-slate-400">
-                    Registro en tiempo real de errores y acciones relevantes de la app.
-                  </CardDescription>
+              <Card className="bg-slate-900 border-slate-800 text-slate-200 h-[60vh] flex flex-col">
+                <CardHeader className="flex flex-row items-center justify-between shrink-0">
+                  <div>
+                    <CardTitle>Log de Eventos</CardTitle>
+                    <CardDescription className="text-slate-400">Monitor en vivo de la aplicación.</CardDescription>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={clearDevLiveTraceEvents} className="text-slate-400 hover:text-red-400">
+                    <Icon.Trash2 className="size-4" />
+                  </Button>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="space-y-1">
-                      <Label>Activar trazas</Label>
-                      <p className="text-xs text-slate-500">Solo disponible durante sesión de desarrollador.</p>
-                    </div>
-                    <Switch checked={devLiveTraceEnabled} onCheckedChange={setDevLiveTraceEnabled} />
-                  </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs text-slate-500">
-                      Eventos: {traceRows.length}
-                    </p>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-slate-700 bg-transparent text-slate-200 hover:bg-slate-800 hover:text-white"
-                      onClick={clearDevLiveTraceEvents}
-                      disabled={traceRows.length === 0}
-                    >
-                      Limpiar
-                    </Button>
-                  </div>
-                  <div className="h-[52vh] overflow-y-auto rounded-md border border-slate-800 bg-slate-950">
-                    {traceRows.length === 0 ? (
-                      <p className="p-4 text-xs text-slate-500">Sin eventos aún.</p>
-                    ) : (
-                      <div className="divide-y divide-slate-800">
-                        {traceRows.map((event) => (
-                          <div key={event.id} className="px-3 py-2 text-xs">
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono text-slate-400">{event.time}</span>
-                              <span
-                                className={cn(
-                                  'rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wide',
-                                  event.level === 'error'
-                                    ? 'bg-red-900/40 text-red-300'
-                                    : event.level === 'warn'
-                                      ? 'bg-yellow-900/40 text-yellow-300'
-                                      : 'bg-slate-800 text-slate-300'
-                                )}
-                              >
-                                {event.level}
-                              </span>
-                              <span className="text-slate-300">{event.source}</span>
-                            </div>
-                            <p className="mt-1 text-slate-200">{event.message}</p>
-                            {event.data && <p className="mt-1 font-mono text-[11px] text-slate-400 break-all">{event.data}</p>}
-                          </div>
-                        ))}
-                        <div ref={traceEndRef} />
+                <CardContent className="flex-1 overflow-y-auto font-mono text-[10px] space-y-1 p-4 bg-slate-950/50">
+                  {devLiveTraceEvents.length === 0 ? (
+                    <div className="text-slate-600 italic">No hay eventos registrados...</div>
+                  ) : (
+                    devLiveTraceEvents.map((ev) => (
+                      <div key={ev.id} className={cn("border-l-2 pl-2 py-0.5",
+                        ev.level === 'error' ? "border-red-500 text-red-400" :
+                        ev.level === 'warn' ? "border-yellow-500 text-yellow-400" :
+                        "border-slate-700 text-slate-400")}>
+                        <span className="opacity-50">[{new Date(ev.ts).toLocaleTimeString()}]</span>{" "}
+                        <span className="font-bold">[{ev.source.toUpperCase()}]</span>: {ev.message}
+                        {ev.data && <div className="ml-4 opacity-70 break-all">{ev.data}</div>}
                       </div>
-                    )}
-                  </div>
+                    )).reverse()
+                  )}
                 </CardContent>
               </Card>
-            )}
-
-            {activeTab === 'global' && (
-                <Card className="bg-slate-900 border-slate-800 text-slate-200">
-                    <CardHeader>
-                        <CardTitle>Estadísticas Globales Históricas</CardTitle>
-                        <CardDescription className="text-slate-400">
-                            Datos agregados desde la instalación (o migración). Solo lectura.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                             <StatCard 
-                                title="Oraciones Históricas" 
-                                value={globalUserStats.totalPrayersOpened} 
-                                icon={Icon.Globe}
-                                className="bg-slate-950"
-                              />
-                             <StatCard 
-                                title="Días Históricos" 
-                                value={globalUserStats.daysActive} 
-                                icon={Icon.Calendar}
-                                className="bg-slate-950"
-                              />
-                              <StatCard 
-                                title="Mejor Racha Misa" 
-                                value={globalUserStats.massStreak || 0} 
-                                icon={Icon.Trophy}
-                                className="bg-slate-950"
-                              />
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
-
-            {activeTab === 'system' && (
-                <div className="space-y-6">
-                    <Card className="bg-slate-900 border-slate-800 text-slate-200">
-                        <CardHeader>
-                            <CardTitle>Zona de Peligro</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="flex items-center justify-between p-3 border border-red-900/50 bg-red-950/10 rounded-lg">
-                                <div>
-                                    <div className="font-bold text-red-400">Restablecer Ajustes</div>
-                                    <div className="text-xs text-red-400/70">Restaura la configuración predeterminada. Mantiene datos.</div>
-                                </div>
-                                <Button variant="destructive" size="sm" onClick={resetSettings}>Restablecer</Button>
-                            </div>
-                            
-                            <div className="flex items-center justify-between p-3 border border-red-900/50 bg-red-950/10 rounded-lg">
-                                <div>
-                                    <div className="font-bold text-red-400">Reinicio Completo de App</div>
-                                    <div className="text-xs text-red-400/70">Borra TODOS los datos y ajustes. Irreversible.</div>
-                                </div>
-                                <Button variant="destructive" size="sm" onClick={() => {
-                                    if(confirm("¿ESTÁS SEGURO? Esto borrará todo.")) hardResetApp();
-                                }}>ELIMINAR TODO</Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                    
-                    <Card className="bg-slate-900 border-slate-800 text-slate-200">
-                        <CardHeader>
-                            <CardTitle>Entorno</CardTitle>
-                        </CardHeader>
-                        <CardContent className="font-mono text-xs space-y-2 text-slate-400">
-                            <p>User Agent: {typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A'}</p>
-                            <p>Pantalla: {typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : 'N/A'}</p>
-                            <p>Pixel Ratio: {typeof window !== 'undefined' ? window.devicePixelRatio : 'N/A'}</p>
-                            <p>Hora: {new Date().toISOString()}</p>
-                        </CardContent>
-                    </Card>
-                </div>
             )}
             
           </div>
@@ -1003,12 +413,12 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
       </div>
       
         {showAnnuumPreview && (
-           <div className="fixed inset-0 z-50 bg-black">
+           <div className="fixed inset-0 z-[100] bg-black">
                <Button 
-                  className="absolute top-4 right-4 z-50 bg-white text-black hover:bg-gray-200" 
+                  className="absolute top-4 right-4 z-[110] bg-white text-black hover:bg-gray-200"
                  onClick={() => setShowAnnuumPreview(false)}
                >
-                  Salir de Vista Previa
+                  Salir
                </Button>
               <AnnuumStory onClose={() => setShowAnnuumPreview(false)} />
            </div>
@@ -1043,7 +453,7 @@ function NavButton({ active, onClick, icon: Icon, label, variant = 'default' }: 
         <button
             onClick={onClick}
             className={cn(
-                "flex items-center gap-3 px-4 py-4 rounded-md text-sm transition-colors w-full text-left", // Increased padding (py-4) and px-4
+                "flex items-center gap-3 px-4 py-3 rounded-md text-sm transition-colors w-full text-left",
                 variant === 'destructive' 
                     ? "text-red-400 hover:bg-red-950/30" 
                     : active 
@@ -1051,8 +461,8 @@ function NavButton({ active, onClick, icon: Icon, label, variant = 'default' }: 
                         : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
             )}
         >
-            <Icon className="size-5" /> {/* Increased icon size */}
-            <span className="text-base">{label}</span> {/* Increased text size */}
+            <Icon className="size-4" />
+            <span>{label}</span>
         </button>
     )
 }
@@ -1060,15 +470,32 @@ function NavButton({ active, onClick, icon: Icon, label, variant = 'default' }: 
 function StatCard({ title, value, icon: Icon, color, className }: { title: string, value: string | number, icon: any, color?: string, className?: string }) {
     return (
         <Card className={cn("bg-slate-900 border-slate-800", className)}>
-            <CardContent className="p-6 flex items-center gap-4">
-                <div className={cn("p-3 rounded-full bg-slate-950 border border-slate-800", color || "text-slate-400")}>
-                    <Icon className="size-6" />
+            <CardContent className="p-4 flex items-center gap-3">
+                <div className={cn("p-2 rounded-full bg-slate-950 border border-slate-800", color || "text-slate-400")}>
+                    <Icon className="size-5" />
                 </div>
                 <div>
-                    <div className="text-sm text-slate-400 font-medium">{title}</div>
-                    <div className={cn("text-2xl font-bold tracking-tight text-slate-200")}>{value}</div>
+                    <div className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">{title}</div>
+                    <div className={cn("text-xl font-black text-slate-200")}>{value}</div>
                 </div>
             </CardContent>
         </Card>
+    )
+}
+
+function MetricInput({ label, value, onChange }: { label: string, value: number, onChange: (v: number) => void }) {
+    return (
+        <div className="space-y-1">
+            <Label className="text-[10px] text-slate-500 uppercase">{label}</Label>
+            <Input
+                type="number"
+                value={value}
+                onChange={e => {
+                    const v = parseInt(e.target.value);
+                    onChange(isNaN(v) ? 0 : v);
+                }}
+                className="bg-slate-950 border-slate-800 h-8 text-sm"
+            />
+        </div>
     )
 }

@@ -115,7 +115,7 @@ export default function PrayerList({
   }, [isOracionesRoot, filteredPrayers]);
 
   return (
-    <div className="space-y-3 pb-4 touch-pan-y overscroll-contain">
+    <div className="space-y-3 pb-4">
       {/* Santo del día arriba solo en devociones */}
       {categoryId === 'devociones' && prayerPathLength === 0 && (
         <SaintOfTheDayCard onOpenPrayerById={onOpenPrayerById} />

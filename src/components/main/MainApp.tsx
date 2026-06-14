@@ -1092,14 +1092,14 @@ export default function MainApp() {
         <>
           <div
             className={cn(
-              "fixed top-0 inset-x-0 h-[env(safe-area-inset-top)] z-[100] pointer-events-none",
-              navState.activeView === 'home' ? "bg-transparent" : "bg-primary"
+              "fixed top-0 inset-x-0 h-[env(safe-area-inset-top)] z-[100] pointer-events-none transition-colors duration-200",
+              (navState.activeView === 'home' || navState.activeView === 'viaCrucis' || navState.activeView === 'rosary' || navState.activeView === 'rosaryMeditated' || showAnnuum) ? "bg-transparent" : "bg-primary"
             )}
           />
           <div
             className={cn(
-              "fixed bottom-0 inset-x-0 h-[env(safe-area-inset-bottom)] z-[100] pointer-events-none",
-              navState.activeView === 'home' ? "bg-transparent" : "bg-background"
+              "fixed bottom-0 inset-x-0 h-[env(safe-area-inset-bottom)] z-[100] pointer-events-none transition-colors duration-200",
+              (navState.activeView === 'home' || navState.activeView === 'viaCrucis' || navState.activeView === 'rosary' || navState.activeView === 'rosaryMeditated' || showAnnuum) ? "bg-transparent" : "bg-background"
             )}
           />
         </>
@@ -1180,11 +1180,11 @@ export default function MainApp() {
             'flex-1 overflow-x-hidden overscroll-none',
             navState.activeView === 'home'
               ? 'overflow-y-hidden'
-              : navState.activeView === 'prayer'
+              : (navState.activeView === 'prayer' && currentPrayer && !currentPrayer.prayers?.length)
                 ? 'overflow-hidden'
                 : 'overflow-y-auto pr-2'
           )}
-          data-app-scroll-container={navState.activeView !== 'home' && navState.activeView !== 'prayer' ? 'true' : undefined}
+          data-app-scroll-container={(navState.activeView !== 'home' && (navState.activeView !== 'prayer' || (currentPrayer && currentPrayer.prayers?.length))) ? 'true' : undefined}
           onClick={(e) => {
             if (!customPlanTouchNavEnabled) return
             if (!hasCustomPlanPrayerNav) return

@@ -147,6 +147,7 @@ const movableFeastsDefinitions: Record<string, MovableFeastDefinition> = {
     bio: "Solemnidad en honor al misterio central de la fe y de la vida cristiana: el misterio de Dios en sí mismo.",
     title: "Solemnidad",
     type: "celebration",
+    isHighImportance: true,
   },
   corpusChristi: {
     offset: 63, // Domingo siguiente a la Trinidad (en Chile)
@@ -154,20 +155,23 @@ const movableFeastsDefinitions: Record<string, MovableFeastDefinition> = {
     bio: "Solemnidad del Cuerpo y la Sangre de Cristo. Celebramos la presencia real de Jesús en la Eucaristía.",
     title: "Solemnidad",
     type: "celebration",
+    isHighImportance: true,
   },
   sacredHeart: {
-    offset: 61, // Viernes posterior al segundo domingo después de Pentecostés
+    offset: 68, // Viernes posterior al segundo domingo después de Pentecostés
     name: "Sagrado Corazón de Jesús",
     bio: "Solemnidad que nos invita a meditar sobre el amor infinito de Dios manifestado en el Corazón de su Hijo.",
     title: "Solemnidad",
     type: "celebration",
+    isHighImportance: true,
   },
   immaculateHeart: {
-    offset: 62, // Sábado posterior al Sagrado Corazón
+    offset: 69, // Sábado posterior al Sagrado Corazón
     name: "Inmaculado Corazón de María",
     bio: "Memoria del Corazón de María, que guardaba todas las cosas meditándolas en su interior, ejemplo de entrega y pureza.",
     title: "Memoria",
     type: "marian",
+    isHighImportance: true,
   },
   christTheKing: {
     offset: 0, // Placeholder, calculated separately

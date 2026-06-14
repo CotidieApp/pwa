@@ -62,7 +62,7 @@
     },
     {
       "id": "home-sacred-heart",
-      "description": "Santísimo Sacramento del Altar",
+      "description": "Sagrado Corazón de Jesús",
       "imageUrl": "/images/sacred-heart.jpeg",
       "imageHint": "sacred heart",
       "themeColors": {
@@ -77,6 +77,26 @@
         "accent": {
           "h": 35,
           "s": 70
+        }
+      }
+    },
+    {
+      "id": "home-immaculate-heart",
+      "description": "Inmaculado Corazón de María",
+      "imageUrl": "/images/immaculate-heart.jpeg",
+      "imageHint": "immaculate heart mary",
+      "themeColors": {
+        "primary": {
+          "h": 340,
+          "s": 75
+        },
+        "background": {
+          "h": 345,
+          "s": 25
+        },
+        "accent": {
+          "h": 15,
+          "s": 80
         }
       }
     },

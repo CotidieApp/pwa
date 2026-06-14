@@ -964,7 +964,7 @@ export default function EpubReader({
 
   return (
     <div
-      className={isReaderFullscreen ? 'fixed inset-0 z-[80] bg-black flex flex-col gap-3' : 'p-4 space-y-3'}
+      className={isReaderFullscreen ? 'fixed inset-0 z-[80] bg-black flex flex-col gap-3' : 'flex flex-col h-full gap-3'}
       style={
         isReaderFullscreen
           ? {
@@ -1087,7 +1087,6 @@ export default function EpubReader({
 
       <div
         className="relative rounded-lg border border-border bg-card/40 overflow-hidden flex-1 min-h-0"
-        style={{ height: isReaderFullscreen ? undefined : '78vh' }}
       >
         <div
           ref={containerRef}

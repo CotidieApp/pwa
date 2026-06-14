@@ -49,7 +49,9 @@ final class SaintWidgetContentFactory {
             new DevotionImageEntry("devocion-san-jose", "public/images/san-jose.jpg",
                     new String[] {"san jose esposo de la virgen maria", "san jose obrero"}),
             new DevotionImageEntry("sagrado-corazon", "public/images/sacred-heart.jpeg",
-                    new String[] {"sagrado corazon", "sagrado corazon de jesus"})
+                    new String[] {"sagrado corazon", "sagrado corazon de jesus"}),
+            new DevotionImageEntry("immaculate-heart", "public/images/immaculate-heart.jpeg",
+                    new String[] {"inmaculado corazon", "inmaculado corazon de maria"})
     };
 
     static SaintWidgetContent forNow(Context context) {
@@ -59,9 +61,16 @@ final class SaintWidgetContentFactory {
         int day = now.get(Calendar.DAY_OF_MONTH);
 
         Calendar easter = getEasterDate(year);
+        boolean movableEnabled = SaintWidgetPreferences.isMovableFeastsEnabled(context);
         SaintEntry movable = getMovableFeast(now, easter);
         SaintEntry fixed = getSaintForDate(context, month, day);
-        SaintEntry saint = (movable != null) ? movable : fixed;
+        
+        SaintEntry saint;
+        if (movableEnabled) {
+            saint = (movable != null) ? movable : fixed;
+        } else {
+            saint = (fixed != null) ? fixed : movable;
+        }
 
         String name = saint != null && saint.name != null ? saint.name : "Santo del Dia";
         String bio = saint != null && saint.bio != null ? saint.bio : "";
@@ -554,7 +563,7 @@ final class SaintWidgetContentFactory {
         easterFeasts.put(56, new SaintEntry(0, 0, "Santísima Trinidad", "Solemnidad en honor al misterio central de la fe y de la vida cristiana: el misterio de Dios en sí mismo.", "Solemnidad", "celebration"));
         easterFeasts.put(63, new SaintEntry(0, 0, "Corpus Christi", "Solemnidad del Cuerpo y la Sangre de Cristo. Celebramos la presencia real de Jesús en la Eucaristía.", "Solemnidad", "celebration;eucharist"));
         easterFeasts.put(61, new SaintEntry(0, 0, "Sagrado Corazón de Jesús", "Solemnidad que nos invita a meditar sobre el amor infinito de Dios manifestado en el Corazón de su Hijo.", "Solemnidad", "celebration;sacred-heart"));
-        easterFeasts.put(62, new SaintEntry(0, 0, "Inmaculado Corazón de María", "Memoria del Corazón de María, que guardaba todas las cosas meditándolas en su interior, ejemplo de entrega y pureza.", "Memoria", "celebration;marian"));
+        easterFeasts.put(62, new SaintEntry(0, 0, "Inmaculado Corazón de María", "Memoria del Corazón de María, modelo de amor a Dios y a los hombres.", "Memoria", "celebration;marian"));
 
         long currentMillis = startOfDay(current).getTimeInMillis();
         long easterMillis = startOfDay(easter).getTimeInMillis();

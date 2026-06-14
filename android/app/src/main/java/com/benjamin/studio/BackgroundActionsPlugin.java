@@ -71,4 +71,15 @@ public class BackgroundActionsPlugin extends Plugin {
         result.put("mode", mode);
         call.resolve(result);
     }
+
+    @PluginMethod
+    public void setMovableFeastsEnabled(PluginCall call) {
+        boolean enabled = call.getBoolean("enabled", true);
+        Context context = getContext();
+        if (context != null) {
+            SaintWidgetPreferences.setMovableFeastsEnabled(context, enabled);
+            SaintWidgetUpdater.updateAll(context);
+        }
+        call.resolve();
+    }
 }

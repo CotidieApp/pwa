@@ -884,7 +884,13 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [userQuotes, setUserQuotes] = useState<Quote[]>([]);
   const [showTimerFinishedAlert, setShowTimerFinishedAlert] = useState(false);
 
-  const [movableFeastsEnabled, setMovableFeastsEnabled] = useState(true);
+  const [movableFeastsEnabled, setMovableFeastsEnabledState] = useState(true);
+  const setMovableFeastsEnabled = useCallback((enabled: boolean) => {
+    setMovableFeastsEnabledState(enabled);
+    if (Capacitor.isNativePlatform()) {
+      BackgroundActions.setMovableFeastsEnabled({ enabled });
+    }
+  }, []);
 
   const [customThemeColors, setCustomThemeColors] =
     useState<CustomThemeColors>(defaultThemeColors);
@@ -3341,6 +3347,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         image = PlaceHolderImages.find((img) => img.id === 'holy-trinity-image') || dayImage;
       } else if (saint?.name?.includes('Corpus Christi')) {
         image = PlaceHolderImages.find((img) => img.id === 'corpus-christi-image') || dayImage;
+      } else if (saint?.name?.includes('Sagrado Corazón')) {
+        image = PlaceHolderImages.find((img) => img.id === 'home-sacred-heart') || dayImage;
+      } else if (saint?.name?.includes('Inmaculado Corazón')) {
+        image = PlaceHolderImages.find((img) => img.id === 'home-immaculate-heart') || dayImage;
       } else {
         const isMarian = Boolean(
           (saint as any)?.type === 'marian' || (saint?.name && marianNamePattern.test(saint.name))

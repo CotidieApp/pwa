@@ -126,65 +126,67 @@ export default function PersonalEpubLibrary() {
   }
 
   return (
-    <div className="p-4 space-y-4">
-      <div className="flex items-center gap-2">
-        <Button variant="outline" onClick={() => inputRef.current?.click()}>
-          Subir EPUB
-        </Button>
-        <span className="text-xs text-muted-foreground">Se guardan localmente en este dispositivo (máx. 25MB por archivo).</span>
-      </div>
-      {errorMessage ? <p className="text-xs text-destructive">{errorMessage}</p> : null}
-        <input
-          ref={inputRef}
-          id="personal-epub-upload"
-          name="personal-epub-upload"
-          type="file"
-          accept=".epub,application/epub+zip"
-          className="hidden"
-          aria-label="Subir EPUB personal"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) onUpload(file);
-            e.currentTarget.value = '';
-          }}
-        />
-      <div className="space-y-2">
-        {epubs.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Aún no has agregado EPUBs personales.</p>
-        ) : (
-          epubs.map((item) => (
-            <div
-              key={item.id}
-              className="rounded-md border border-border p-3 flex items-center justify-between gap-2 cursor-pointer hover:bg-muted/50 transition-colors"
-              onClick={() => onOpen(item.id)}
-            >
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium truncate flex items-center gap-2">
-                  <BookOpen className="size-3 text-muted-foreground shrink-0" />
-                  {item.name}
+    <div className="flex flex-col h-full min-h-0">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollable">
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => inputRef.current?.click()}>
+            Subir EPUB
+          </Button>
+          <span className="text-xs text-muted-foreground">Se guardan localmente en este dispositivo (máx. 25MB por archivo).</span>
+        </div>
+        {errorMessage ? <p className="text-xs text-destructive">{errorMessage}</p> : null}
+          <input
+            ref={inputRef}
+            id="personal-epub-upload"
+            name="personal-epub-upload"
+            type="file"
+            accept=".epub,application/epub+zip"
+            className="hidden"
+            aria-label="Subir EPUB personal"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) onUpload(file);
+              e.currentTarget.value = '';
+            }}
+          />
+        <div className="space-y-2">
+          {epubs.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Aún no has agregado EPUBs personales.</p>
+          ) : (
+            epubs.map((item) => (
+              <div
+                key={item.id}
+                className="rounded-md border border-border p-3 flex items-center justify-between gap-2 cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => onOpen(item.id)}
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-medium truncate flex items-center gap-2">
+                    <BookOpen className="size-3 text-muted-foreground shrink-0" />
+                    {item.name}
+                  </div>
+                  <div className="text-xs text-muted-foreground ml-5">
+                    {new Date(item.updatedAt).toLocaleString()} · {Math.max(1, Math.round(item.sizeBytes / 1024 / 1024))}MB
+                  </div>
                 </div>
-                <div className="text-xs text-muted-foreground ml-5">
-                  {new Date(item.updatedAt).toLocaleString()} · {Math.max(1, Math.round(item.sizeBytes / 1024 / 1024))}MB
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-destructive hover:bg-destructive/10 hover:text-destructive shrink-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (window.confirm('¿Estás seguro de que deseas eliminar este libro?')) {
+                        onDelete(item.id);
+                      }
+                    }}
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-destructive hover:bg-destructive/10 hover:text-destructive shrink-0"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (window.confirm('¿Estás seguro de que deseas eliminar este libro?')) {
-                      onDelete(item.id);
-                    }
-                  }}
-                >
-                  <Trash2 className="size-4" />
-                </Button>
-              </div>
-            </div>
-          ))
-        )}
+            ))
+          )}
+        </div>
       </div>
     </div>
   );

@@ -584,7 +584,7 @@ export default function PrayerDetail({
 
   return (
     <div className={cn(
-      'flex min-h-0 flex-col h-full bg-background overscroll-none',
+      'flex min-h-0 flex-col h-full bg-background overscroll-contain',
       isDistractionFree
         ? 'pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] px-0'
         : 'p-0'
@@ -628,15 +628,15 @@ export default function PrayerDetail({
         <div className={cn("flex-1 min-h-0 flex flex-col", !isDistractionFree && "px-4 pb-4")}>
           <Card
             className={cn(
-              'overflow-hidden border bg-card shadow-md flex flex-col min-h-0 max-h-full mx-auto w-full',
-              isDistractionFree ? 'border-0 bg-transparent shadow-none h-full' : 'flex-1'
+              'overflow-hidden border bg-card shadow-md flex flex-col min-h-0 h-full mx-auto w-full',
+              isDistractionFree ? 'border-0 bg-transparent shadow-none' : 'flex-1'
             )}
           >
-            <CardContent className={cn('flex flex-1 flex-col min-h-0', isDistractionFree ? 'p-0 pt-0 text-[1.05rem] leading-[1.85]' : 'p-6 pt-6')}>
+            <CardContent className={cn('p-6 flex flex-1 flex-col min-h-0', isDistractionFree && 'p-0 text-[1.05rem] leading-[1.85]')}>
               <div
                 ref={scrollContainerRef}
                 data-app-scroll-container="true"
-                className="flex-1 min-h-0 overflow-y-auto touch-pan-y overscroll-none pr-6"
+                className="flex-1 min-h-0 overflow-y-auto touch-pan-y overscroll-contain pr-6 scroll-smooth"
               >
                 {prayer.content ? (
                   <PrayerContent prayer={prayer} searchState={searchState} scrollContainerRef={scrollContainerRef} />
