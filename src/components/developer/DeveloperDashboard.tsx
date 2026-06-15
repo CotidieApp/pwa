@@ -91,7 +91,7 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
   });
 
   const onAddQuote: SubmitHandler<QuoteFormValues> = (data) => {
-    addUserQuote({ ...data, isUserDefined: true });
+    addUserQuote(data);
     form.reset();
     toast({ title: 'Cita agregada correctamente.' });
   };

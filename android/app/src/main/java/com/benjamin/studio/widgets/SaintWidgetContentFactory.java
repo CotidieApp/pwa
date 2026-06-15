@@ -562,8 +562,8 @@ final class SaintWidgetContentFactory {
         easterFeasts.put(50, new SaintEntry(0, 0, "María, Madre de la Iglesia", "Celebración en honor a María como Madre de la Iglesia, que acompaña a los fieles en su misión evangelizadora. Memoria instituida por el Papa Francisco.", "Memoria", "celebration;marian"));
         easterFeasts.put(56, new SaintEntry(0, 0, "Santísima Trinidad", "Solemnidad en honor al misterio central de la fe y de la vida cristiana: el misterio de Dios en sí mismo.", "Solemnidad", "celebration"));
         easterFeasts.put(63, new SaintEntry(0, 0, "Corpus Christi", "Solemnidad del Cuerpo y la Sangre de Cristo. Celebramos la presencia real de Jesús en la Eucaristía.", "Solemnidad", "celebration;eucharist"));
-        easterFeasts.put(61, new SaintEntry(0, 0, "Sagrado Corazón de Jesús", "Solemnidad que nos invita a meditar sobre el amor infinito de Dios manifestado en el Corazón de su Hijo.", "Solemnidad", "celebration;sacred-heart"));
-        easterFeasts.put(62, new SaintEntry(0, 0, "Inmaculado Corazón de María", "Memoria del Corazón de María, modelo de amor a Dios y a los hombres.", "Memoria", "celebration;marian"));
+        easterFeasts.put(68, new SaintEntry(0, 0, "Sagrado Corazón de Jesús", "Solemnidad que nos invita a meditar sobre el amor infinito de Dios manifestado en el Corazón de su Hijo.", "Solemnidad", "celebration;sacred-heart"));
+        easterFeasts.put(69, new SaintEntry(0, 0, "Inmaculado Corazón de María", "Memoria del Corazón de María, modelo de amor a Dios y a los hombres.", "Memoria", "celebration;marian"));
 
         long currentMillis = startOfDay(current).getTimeInMillis();
         long easterMillis = startOfDay(easter).getTimeInMillis();
