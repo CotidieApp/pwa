@@ -8,6 +8,28 @@ Historial de intervenciones del asistente en el repo.
 - Esta obligacion aplica aunque el usuario pida tocar solo lo estrictamente necesario: el registro en `AGENTS.md` se considera parte estrictamente necesaria de cualquier edicion del repo.
 - Si una instruccion del usuario prohibe explicitamente editar `AGENTS.md`, el agente debe pedir aclaracion antes de modificar otros archivos.
 
+### [2026-07-09 00:35] 242. Hardening de arranque por notificaciones nativas
+**Planificacion:**
+- Corregir el cierre de la app al abrir tras actualizar, priorizando la zona modificada recientemente: sincronizacion nativa de notificaciones.
+- Evitar que la sincronizacion automatica al arranque pida permisos o envie una carga grande al puente JS-nativo.
+- Proteger el parche de alarmas exactas para que una excepcion de Android no cierre el proceso.
+
+**Ejecucion:**
+- **Sin permisos en frio**: `SettingsContext.tsx` ahora solo sincroniza notificaciones al arrancar si el permiso ya esta concedido; no llama `requestPermissions()` automaticamente durante el inicio.
+- **Sincronizacion defensiva**: se agregaron `catch` locales al cancelado de pendientes, verificacion de permisos, canal Android y programacion, para que un fallo de notificaciones no derribe la app.
+- **Programacion por tandas**: las notificaciones se envian al plugin en grupos de 24 para reducir carga en el puente JS-nativo.
+- **Fallback nativo**: `scripts/patch-local-notifications.js` ahora parchea `LocalNotificationManager.java` con un fallback seguro: si falla una alarma exacta, baja a una alarma inexacta en vez de lanzar una excepcion sin capturar.
+
+**Validacion:**
+- `node scripts\patch-local-notifications.js` OK, aplicando el parche al plugin local de `node_modules`.
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `npm.cmd run build` OK.
+
+**Archivos Modificados:**
+- `src/context/SettingsContext.tsx`
+- `scripts/patch-local-notifications.js`
+- `AGENTS.md`
+
 ### [2026-07-09 00:20] 241. Correccion de Gradle wrapper para build Android
 **Planificacion:**
 - Revisar la incompatibilidad reportada por `armar cotidie` entre Android Gradle Plugin y Gradle wrapper.

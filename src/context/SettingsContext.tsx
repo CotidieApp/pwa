@@ -41,6 +41,7 @@ const CARTAS_REMINDER_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000;
 const CARTAS_REMINDER_REACTIVATION_DELAY_MS = 60 * 1000;
 const MONTHLY_FIXED_NOTIFICATION_OCCURRENCES_ANDROID = 24;
 const MONTHLY_FIXED_NOTIFICATION_OCCURRENCES_IOS = 12;
+const NOTIFICATION_SCHEDULE_BATCH_SIZE = 24;
 const FORCED_DAILY_QUOTES: Record<string, Quote> = {
   '06-26': {
     id: 'forced-quote-06-26',
@@ -2761,22 +2762,18 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           ? ((pending as any).notifications as Array<{ id: number }>).map((n) => n.id).filter(Number.isFinite)
           : [];
       if (pendingIds.length > 0) {
-        await LocalNotifications.cancel({ notifications: pendingIds.map((id) => ({ id })) });
+        await LocalNotifications.cancel({ notifications: pendingIds.map((id) => ({ id })) }).catch((error) => {
+          console.warn('Failed to cancel pending notifications', error);
+        });
       }
 
       if (active.length === 0 && fixedActive.length === 0 && !cartasReminderActive) return;
 
-      const currentPerms = await LocalNotifications.checkPermissions();
-      const perms = currentPerms.display === 'granted'
-        ? currentPerms
-        : await LocalNotifications.requestPermissions();
-
-      if (perms.display !== 'granted') {
-        toast({
-          variant: 'destructive',
-          title: 'Notificaciones desactivadas',
-          description: 'No hay permiso para mostrar notificaciones.',
-        });
+      const currentPerms = await LocalNotifications.checkPermissions().catch((error) => {
+        console.warn('Failed to check notification permissions', error);
+        return null;
+      });
+      if (!currentPerms || currentPerms.display !== 'granted') {
         return;
       }
 
@@ -2807,7 +2804,9 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
-      await ensureAndroidNotificationChannel();
+      await ensureAndroidNotificationChannel().catch((error) => {
+        console.warn('Failed to ensure Android notification channel', error);
+      });
 
       const icon = theme === 'dark' ? 'small_icon_white' : 'small_icon_black';
 
@@ -3140,8 +3139,13 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       }
 
       try {
-        await LocalNotifications.schedule({ notifications });
-      } catch {
+        for (let index = 0; index < notifications.length; index += NOTIFICATION_SCHEDULE_BATCH_SIZE) {
+          const batch = notifications.slice(index, index + NOTIFICATION_SCHEDULE_BATCH_SIZE);
+          if (batch.length === 0) continue;
+          await LocalNotifications.schedule({ notifications: batch });
+        }
+      } catch (error) {
+        console.warn('Failed to schedule notifications', error);
         toast({
           variant: 'destructive',
           title: 'Error al programar recordatorios',

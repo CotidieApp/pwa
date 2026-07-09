@@ -102,7 +102,7 @@ if (!source.includes('NotificationCompat.BigPictureStyle')) {
   );
 }
 
-if (!source.includes('AlarmClockInfo(trigger, showIntent)')) {
+if (!source.includes('Cotidie exact alarm safe fallback v2')) {
   replaceOnce(
     /    private void setExactIfPossible\(\r?\n        AlarmManager alarmManager,\r?\n        LocalNotificationSchedule schedule,\r?\n        long trigger,\r?\n        PendingIntent pendingIntent\r?\n    \) \{[\s\S]*?\r?\n    \}\r?\n\r?\n    public void cancel\(PluginCall call\) \{/,
     `    private void setExactIfPossible(
@@ -111,6 +111,7 @@ if (!source.includes('AlarmClockInfo(trigger, showIntent)')) {
         long trigger,
         PendingIntent pendingIntent
     ) {
+        // Cotidie exact alarm safe fallback v2
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
             Logger.warn(
                 "Capacitor/LocalNotification",
@@ -130,17 +131,38 @@ if (!source.includes('AlarmClockInfo(trigger, showIntent)')) {
                 return;
             } catch (Exception ignored) {}
 
-            if (schedule.allowWhileIdle()) {
-                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, trigger, pendingIntent);
-            } else {
-                alarmManager.set(AlarmManager.RTC_WAKEUP, trigger, pendingIntent);
-            }
-        } else {
+            setInexactFallback(alarmManager, schedule, trigger, pendingIntent);
+            return;
+        }
+
+        try {
             if (schedule.allowWhileIdle()) {
                 alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, trigger, pendingIntent);
             } else {
                 alarmManager.setExact(AlarmManager.RTC_WAKEUP, trigger, pendingIntent);
             }
+        } catch (Exception exactError) {
+            Logger.warn(
+                "Capacitor/LocalNotification",
+                "Exact alarm scheduling failed. Notification scheduled with inexact fallback."
+            );
+            setInexactFallback(alarmManager, schedule, trigger, pendingIntent);
+        }
+    }
+
+    private void setInexactFallback(
+        AlarmManager alarmManager,
+        LocalNotificationSchedule schedule,
+        long trigger,
+        PendingIntent pendingIntent
+    ) {
+        try {
+            if (schedule.allowWhileIdle()) {
+                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, trigger, pendingIntent);
+            } else {
+                alarmManager.set(AlarmManager.RTC_WAKEUP, trigger, pendingIntent);
+            }
+        } catch (Exception ignored) {
         }
     }
 
