@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import EpubReader from '@/components/EpubReader';
-import { Trash2, BookOpen } from 'lucide-react';
+import { Trash2, BookOpen, Pencil } from 'lucide-react';
 
 type StoredPersonalEpubMeta = {
   id: string;
@@ -90,6 +90,18 @@ export default function PersonalEpubLibrary() {
     }
   };
 
+  const onRename = (id: string) => {
+    const item = epubs.find((epub) => epub.id === id);
+    if (!item) return;
+    const nextName = window.prompt('Nuevo nombre visible', item.name)?.trim();
+    if (!nextName || nextName === item.name) return;
+    const next = epubs.map((epub) =>
+      epub.id === id ? { ...epub, name: nextName, updatedAt: Date.now() } : epub
+    );
+    setEpubs(next);
+    saveStoredEpubs(next);
+  };
+
   const onOpen = (id: string) => {
     setErrorMessage(null);
     const raw = window.localStorage.getItem(toFileKey(id));
@@ -115,6 +127,14 @@ export default function PersonalEpubLibrary() {
             Volver a Personales
           </Button>
           <span className="text-xs text-muted-foreground truncate">{selected.name}</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Editar nombre visible"
+            onClick={() => onRename(selected.id)}
+          >
+            <Pencil className="size-4" />
+          </Button>
         </div>
         <EpubReader
           fileName={`personal-${selected.id}.epub`}
@@ -169,6 +189,18 @@ export default function PersonalEpubLibrary() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="shrink-0"
+                    aria-label="Editar nombre visible"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRename(item.id);
+                    }}
+                  >
+                    <Pencil className="size-4" />
+                  </Button>
                   <Button
                     size="sm"
                     variant="ghost"

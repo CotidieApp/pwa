@@ -4,6 +4,7 @@ export type FixedNotificationEntry = {
   text: string;
   route?: string; // e.g. "inicio/plan-de-vida/Santa-Misa"
   image?: string; // URL o path local para banner expandido en Android e attachment en iOS
+  requiresNotificationsEnabled?: boolean; // si es true, respeta el interruptor general
   devOnly?: boolean; // si es true, solo se programa cuando el modo desarrollador está activo
 };
 
@@ -18,13 +19,15 @@ export const fixedNotifications: FixedNotificationEntry[] = [
     date: 'j1 9:00', // Recuerdo a las vocaciones
     title: 'Oración por las vocaciones',
     text: 'Unámonos en oración este primer jueves de mes por las vocaciones al sacerdocio que tanta falta hacen en la actualidad.',
-    route: 'inicio/oraciones/oracion-por-las-vocaciones'
+    route: 'inicio/oraciones/oracion-por-las-vocaciones',
+    requiresNotificationsEnabled: true
   },
   {
     date: 'd1 9:00', // Recuerdo al Papa
     title: 'Oración por el Papa',
     text: 'Dediquemos los rezos de este primer domingo de mes por el Papa, cabeza de la Iglesia, y por todos los obispos, pastores de esta comunidad.',
-    route: 'inicio/oracion/oracion-por-el-papa'
+    route: 'inicio/oracion/oracion-por-el-papa',
+    requiresNotificationsEnabled: true
   },
   {
     date: '25/12 7:00', // Navidad

@@ -441,6 +441,18 @@ export default function MainApp() {
     setAudioPendingDelete(null);
   }, [activeSpiritualReadingAudioId, audioPendingDelete, userSpiritualAudios]);
 
+  const renameUserSpiritualAudio = useCallback((id: string) => {
+    const item = userSpiritualAudios.find((audio) => audio.id === id);
+    if (!item) return;
+    const nextTitle = window.prompt('Nuevo nombre visible', item.title)?.trim();
+    if (!nextTitle || nextTitle === item.title) return;
+    const next = userSpiritualAudios.map((audio) =>
+      audio.id === id ? { ...audio, title: nextTitle, updatedAt: Date.now() } : audio
+    );
+    setUserSpiritualAudios(next);
+    saveStoredSpiritualAudios(next);
+  }, [userSpiritualAudios]);
+
   // Effect to handle browser history (popstate for back/forward buttons)
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
@@ -993,15 +1005,26 @@ export default function MainApp() {
                         <span className="truncate">{audio.title}</span>
                       </Button>
                       {audio.isUser ? (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                          aria-label={`Eliminar ${audio.title}`}
-                          onClick={() => setAudioPendingDelete(audio as StoredSpiritualAudioItem)}
-                        >
-                          <Icon.Trash2 className="size-4" />
-                        </Button>
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="shrink-0"
+                            aria-label={`Editar ${audio.title}`}
+                            onClick={() => renameUserSpiritualAudio(audio.id)}
+                          >
+                            <Icon.Pencil className="size-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            aria-label={`Eliminar ${audio.title}`}
+                            onClick={() => setAudioPendingDelete(audio as StoredSpiritualAudioItem)}
+                          >
+                            <Icon.Trash2 className="size-4" />
+                          </Button>
+                        </>
                       ) : null}
                     </div>
                   ))}

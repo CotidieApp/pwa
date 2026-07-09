@@ -39,6 +39,8 @@ const saintsData = saintsDataRaw as { saints: SaintOfTheDay[] };
 const NOTIFICATION_ACTION_TYPE_ID = 'cotidie-prayer-actions';
 const CARTAS_REMINDER_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000;
 const CARTAS_REMINDER_REACTIVATION_DELAY_MS = 60 * 1000;
+const MONTHLY_FIXED_NOTIFICATION_OCCURRENCES_ANDROID = 24;
+const MONTHLY_FIXED_NOTIFICATION_OCCURRENCES_IOS = 12;
 const FORCED_DAILY_QUOTES: Record<string, Quote> = {
   '06-26': {
     id: 'forced-quote-06-26',
@@ -936,6 +938,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [cartasReminderEnabled, setCartasReminderEnabledState] = useState(true);
   const [cartasReminderAnchorAt, setCartasReminderAnchorAt] = useState<number>(() => Date.now());
   const [devTestNotificationEnabled, setDevTestNotificationEnabledState] = useState(false);
+  const [notificationSyncVersion, setNotificationSyncVersion] = useState(0);
   const [devLiveTraceEnabled, setDevLiveTraceEnabledState] = useState(false);
   const [devLiveTraceEvents, setDevLiveTraceEvents] = useState<DevTraceEvent[]>([]);
   const [userStats, setUserStats] = useState<UserStats>(defaultUserStats);
@@ -2260,6 +2263,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     const subPromise = App.addListener('appStateChange', (state) => {
       if (!state.isActive) return;
       void applyPending();
+      setNotificationSyncVersion((version) => version + 1);
     });
 
     return () => {
@@ -2733,13 +2737,19 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     if (!Capacitor.isNativePlatform()) return;
 
     const active = notificationsEnabled ? dailyReminders.filter((r) => r.enabled) : [];
-    const fixedActive = notificationsEnabled ? fixedNotifications : [];
+    const fixedActive = fixedNotifications
+      .map((entry, index) => ({ entry, index }))
+      .filter(({ entry }) => notificationsEnabled || !entry.requiresNotificationsEnabled);
     const cartasReminderActive = notificationsEnabled && cartasReminderEnabled;
 
     const sync = async () => {
       const now = new Date();
       const platform = Capacitor.getPlatform();
       const maxTotal = platform === 'ios' ? 60 : 180;
+      const monthlyFixedOccurrenceLimit =
+        platform === 'ios'
+          ? MONTHLY_FIXED_NOTIFICATION_OCCURRENCES_IOS
+          : MONTHLY_FIXED_NOTIFICATION_OCCURRENCES_ANDROID;
       const totalSources = active.length + fixedActive.length + (cartasReminderActive ? 1 : 0);
       const horizonDays = Math.min(30, Math.max(1, Math.floor(maxTotal / Math.max(1, totalSources))));
       const horizonEnd = new Date(now);
@@ -2754,7 +2764,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         await LocalNotifications.cancel({ notifications: pendingIds.map((id) => ({ id })) });
       }
 
-      if (!notificationsEnabled || (active.length === 0 && fixedActive.length === 0 && !cartasReminderActive)) return;
+      if (active.length === 0 && fixedActive.length === 0 && !cartasReminderActive) return;
 
       const currentPerms = await LocalNotifications.checkPermissions();
       const perms = currentPerms.display === 'granted'
@@ -2905,7 +2915,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (fixedActive.length > 0) {
-        fixedActive.forEach((entry: FixedNotificationEntry, index: number) => {
+        fixedActive.forEach(({ entry, index }: { entry: FixedNotificationEntry; index: number }) => {
           if (entry.devOnly && !isDeveloperMode) return;
           const parsed = parseFixedNotificationDate(entry.date, now);
           if (!parsed) {
@@ -2913,7 +2923,14 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
             return;
           }
           let next = getNextOccurrence(parsed.date, parsed.kind, now, parsed.relative);
-          while (next.getTime() <= horizonEnd.getTime()) {
+          const fixedOccurrenceLimit =
+            parsed.kind === 'monthly' || parsed.kind === 'relative-monthly'
+              ? monthlyFixedOccurrenceLimit
+              : !entry.requiresNotificationsEnabled && parsed.kind === 'yearly'
+                ? 1
+                : null;
+          let fixedOccurrences = 0;
+          while (fixedOccurrenceLimit !== null ? fixedOccurrences < fixedOccurrenceLimit : next.getTime() <= horizonEnd.getTime()) {
             const dateKey = toDateKey(next);
             const id = toNotificationId(`fixed:${index}:${entry.date}:${dateKey}`);
             let imagePath: string | null = null;
@@ -2944,16 +2961,18 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
                 image: imagePath,
                 imageDrawable,
                 devOnly: entry.devOnly ?? false,
+                requiresNotificationsEnabled: entry.requiresNotificationsEnabled ?? false,
                 route: entry.route ?? null,
               },
             });
+            fixedOccurrences += 1;
             if (parsed.kind === 'once') break;
             next = addByKind(next, parsed.kind, parsed.relative);
           }
         });
       }
 
-      if (devTestNotificationEnabled && isDeveloperMode) {
+      if (notificationsEnabled && devTestNotificationEnabled && isDeveloperMode) {
         const devImagePath = '/icons/icon.png';
         const devImageDrawable = toAndroidDrawableResource(devImagePath);
         // 12 recurring notifications per hour -> every 5 minutes (:00, :05, ... :55).
@@ -2995,7 +3014,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           0,
           0
         );
-        if (fireAt.getTime() < now.getTime() || fireAt.getTime() > horizonEnd.getTime()) return;
+        if (fireAt.getTime() < now.getTime()) return;
         const dateKey = toDateKey(fireAt);
         const id = toNotificationId(`fixed:${key}:${year}:${dateKey}`);
         notifications.push({
@@ -3072,7 +3091,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           0,
           0
         );
-        if (fireAt.getTime() < now.getTime() || fireAt.getTime() > horizonEnd.getTime()) return;
+        if (fireAt.getTime() < now.getTime()) return;
         const dateKey = toDateKey(fireAt);
         const id = toNotificationId(`fixed:easter:${year}:${dateKey}`);
         notifications.push({
@@ -3147,6 +3166,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     buildDefaultReminderMessage,
     ensureAndroidNotificationChannel,
     isDeveloperMode,
+    notificationSyncVersion,
     theme,
   ]);
 

@@ -2,6 +2,78 @@
 
 Historial de intervenciones del asistente en el repo.
 
+## Instrucciones permanentes para agentes
+- Toda IA o agente que modifique archivos de este repositorio debe agregar un reporte en `AGENTS.md`.
+- El reporte debe seguir la modalidad existente: `Planificacion`, `Ejecucion`, `Validacion` y `Archivos Modificados`.
+- Esta obligacion aplica aunque el usuario pida tocar solo lo estrictamente necesario: el registro en `AGENTS.md` se considera parte estrictamente necesaria de cualquier edicion del repo.
+- Si una instruccion del usuario prohibe explicitamente editar `AGENTS.md`, el agente debe pedir aclaracion antes de modificar otros archivos.
+
+### [2026-07-09 00:20] 241. Correccion de Gradle wrapper para build Android
+**Planificacion:**
+- Revisar la incompatibilidad reportada por `armar cotidie` entre Android Gradle Plugin y Gradle wrapper.
+- Corregir solo la version del wrapper requerida por el build.
+
+**Ejecucion:**
+- **Gradle wrapper**: se restauro `android/gradle/wrapper/gradle-wrapper.properties` desde `gradle-8.9-bin.zip` a `gradle-8.14.3-all.zip`, version ya presente en el proyecto y superior al minimo `8.13` requerido por `com.android.tools.build:gradle:8.13.0`.
+
+**Validacion:**
+- Gradle 8.14.3 local levanto correctamente con `gradle.bat --version`.
+- `assembleRelease` ya no fallo por version minima de Gradle; en Codex se detuvo despues al resolver dependencias Maven/Google por bloqueo de red (`Permission denied: getsockopt`).
+- `git diff --check` OK.
+
+**Archivos Modificados:**
+- `android/gradle/wrapper/gradle-wrapper.properties`
+- `AGENTS.md`
+
+### [2026-07-09 00:10] 240. Agenda rodante ampliada para notificaciones mensuales
+**Planificacion:**
+- Reforzar la programacion de notificaciones mensuales/relativas sin cambiar a una capa nativa nueva.
+- Ampliar la ventana rodante con un limite seguro para no saturar notificaciones pendientes.
+- Hacer que la agenda se regenere tambien al volver la app a primer plano.
+
+**Ejecucion:**
+- **Ventana mensual**: `SettingsContext.tsx` ahora programa 24 ocurrencias mensuales/relativas en Android y 12 en iOS.
+- **Resincronizacion**: se agrego una senal interna que fuerza la resincronizacion de notificaciones cuando la app vuelve a estar activa.
+- **Precision**: se mantuvo el uso de fechas concretas `schedule.at` con `allowWhileIdle`, conservando el mismo camino de alarma exacta ya usado por el resto de recordatorios.
+
+**Validacion:**
+- `.\node_modules\.bin\tsx.cmd` confirmo 24 ocurrencias para `j1 9:00` y `d1 9:00` en Android, desde agosto de 2026 hasta julio de 2028.
+- `npm.cmd run build` OK.
+- `git diff --check` OK.
+
+**Archivos Modificados:**
+- `src/context/SettingsContext.tsx`
+- `AGENTS.md`
+
+### [2026-07-09 00:00] 239. Regla permanente de registro y correccion de notificaciones fijas/mensuales
+**Planificacion:**
+- Convertir el registro en `AGENTS.md` en una regla permanente para cualquier agente futuro.
+- Mantener siempre activas las notificaciones fijas importantes del sistema, aunque el interruptor general este apagado.
+- Dejar las notificaciones mensuales recurrentes bajo el interruptor general.
+- Verificar directamente que las fechas mensuales `j1 9:00` y `d1 9:00` se parseen y generen proximas ocurrencias.
+
+**Ejecucion:**
+- **Regla permanente**: se agrego una seccion de instrucciones al comienzo de `AGENTS.md`, indicando que todo cambio de archivos debe registrarse alli con el formato existente.
+- **Notificaciones fijas**: `SettingsContext.tsx` ahora mantiene activas las notificaciones fijas importantes aun con `notificationsEnabled` apagado.
+- **Notificaciones mensuales**: `fixed-notifications.ts` marca las notificaciones mensuales de vocaciones y Papa con `requiresNotificationsEnabled`, para que si respeten el interruptor general.
+- **Programacion mensual**: `SettingsContext.tsx` programa varias proximas ocurrencias de notificaciones mensuales/relativas, evitando que queden fuera por una ventana de horizonte demasiado corta.
+- **Fiestas moviles**: Pascua y fiestas moviles importantes ya no dependen de la ventana corta para quedar programadas.
+- **Regularizacion reciente**: quedan registrados tambien los cambios recientes de nombres visibles para EPUBs personales y audios personales, que guardan el nombre elegido por el usuario en la memoria local.
+
+**Validacion:**
+- `.\node_modules\.bin\tsx.cmd` confirmo que `j1 9:00` y `d1 9:00` se parsean como `relative-monthly` y generan seis proximas ocurrencias.
+- `.\node_modules\.bin\tsx.cmd` confirmo que, con el interruptor apagado, las mensuales quedan fuera y las fijas importantes permanecen activas.
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `npm.cmd run build` OK.
+- `git diff --check` OK.
+
+**Archivos Modificados:**
+- `AGENTS.md`
+- `src/context/SettingsContext.tsx`
+- `src/lib/fixed-notifications.ts`
+- `src/components/PersonalEpubLibrary.tsx`
+- `src/components/main/MainApp.tsx`
+
 ### [2026-06-05 13:05] 237. Fix de importación y compatibilidad de respaldos
 **Planificación:**
 - Investigar por qué el respaldo `cotidie_backup_2026-06-06.ctd` no se puede importar.
