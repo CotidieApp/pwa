@@ -28,6 +28,7 @@ interface EasterEggQuote {
 }
 
 const SAINT_QUOTE_BALLOON_MS = 13000;
+const EASTER_EGG_COOLDOWN_MS = 2000;
 
 export default function HomePage({ onSelectCategory, onOpenCustomPlan, onCreateCustomPlan }: HomePageProps) {
   const settings = useSettings();
@@ -52,6 +53,7 @@ export default function HomePage({ onSelectCategory, onOpenCustomPlan, onCreateC
   const [createPlanSlot, setCreatePlanSlot] = useState<(1 | 2 | 3 | 4) | null>(null);
   const [createPlanName, setCreatePlanName] = useState("");
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const lastEasterEggAtRef = useRef(0);
 
   const bgImage = allHomeBackgrounds?.find((img) => img.id === homeBackgroundId);
 
@@ -79,6 +81,9 @@ export default function HomePage({ onSelectCategory, onOpenCustomPlan, onCreateC
 
   const triggerEasterEgg = useCallback(() => {
     if (!settings || !registerEasterEggQuote) return;
+    const now = Date.now();
+    if (now - lastEasterEggAtRef.current < EASTER_EGG_COOLDOWN_MS) return;
+    lastEasterEggAtRef.current = now;
 
     const allQuotesWithIds: Quote[] = [
       ...catholicQuotes.map((q, i) => ({ ...q, id: `cq_${i}` })),

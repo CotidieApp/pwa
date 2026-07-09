@@ -102,6 +102,53 @@ if (!source.includes('NotificationCompat.BigPictureStyle')) {
   );
 }
 
+if (!source.includes('AlarmClockInfo(trigger, showIntent)')) {
+  replaceOnce(
+    /    private void setExactIfPossible\(\r?\n        AlarmManager alarmManager,\r?\n        LocalNotificationSchedule schedule,\r?\n        long trigger,\r?\n        PendingIntent pendingIntent\r?\n    \) \{[\s\S]*?\r?\n    \}\r?\n\r?\n    public void cancel\(PluginCall call\) \{/,
+    `    private void setExactIfPossible(
+        AlarmManager alarmManager,
+        LocalNotificationSchedule schedule,
+        long trigger,
+        PendingIntent pendingIntent
+    ) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+            Logger.warn(
+                "Capacitor/LocalNotification",
+                "Exact alarms not allowed in user settings. Notification scheduled with alarm-clock fallback."
+            );
+            try {
+                Intent launchIntent = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
+                PendingIntent showIntent = launchIntent != null
+                    ? PendingIntent.getActivity(
+                        context,
+                        (int) (trigger % Integer.MAX_VALUE),
+                        launchIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+                    )
+                    : pendingIntent;
+                alarmManager.setAlarmClock(new AlarmManager.AlarmClockInfo(trigger, showIntent), pendingIntent);
+                return;
+            } catch (Exception ignored) {}
+
+            if (schedule.allowWhileIdle()) {
+                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, trigger, pendingIntent);
+            } else {
+                alarmManager.set(AlarmManager.RTC_WAKEUP, trigger, pendingIntent);
+            }
+        } else {
+            if (schedule.allowWhileIdle()) {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, trigger, pendingIntent);
+            } else {
+                alarmManager.setExact(AlarmManager.RTC_WAKEUP, trigger, pendingIntent);
+            }
+        }
+    }
+
+    public void cancel(PluginCall call) {`,
+    'alarm-clock exact fallback'
+  );
+}
+
 if (changed) {
   fs.writeFileSync(managerPath, source, 'utf8');
 }

@@ -103,8 +103,8 @@ export default function PersonalEpubLibrary() {
 
   if (selected && selectedSource) {
     return (
-      <div className="space-y-3 p-4">
-        <div className="flex items-center gap-2">
+      <div className="flex h-full min-h-0 flex-col gap-3 p-4">
+        <div className="flex shrink-0 items-center gap-2">
           <Button
             variant="outline"
             onClick={() => {

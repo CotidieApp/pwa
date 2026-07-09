@@ -1,0 +1,321 @@
+--- PAGE 1 ---
+Data Analytics I
+Universidad de los Andes Prueba Parcial 20261
+Prueba Parcial
+Data Analytics I
+Profesores: Francisco Alessandri 1, Jorge Cepeda 2, Arturo Herrera 3 & Daniel Navarrete 4.
+Datos Personales
+Para efectos de control de asistencia, es obligatorio completar los siguientes datos y entregar
+el enunciado físico al finalizar de la Prueba Parcial. no se evaluará ninguna Prueba Parcial
+que no venga acompañado del enunciado, ya que este documento será utilizado como comprobante de
+participación en la evaluación.
+Nombre :
+Apellidos:
+RUT :
+Sección :
+Hora de Entrega:
+Firma :
+INSTRUCCIONES Y REGLAS GENERALES
+La evaluación es estrictamente individual. Queda prohibida cualquier forma de copia o
+plagio, tanto total como parcial, ya sea entre estudiantes o con el uso de fuentes externas no
+autorizadas.
+Durante toda la evaluación, el equipo debe permanecer en modo avión. Sólo se permite reconec-
+tar el equipo a Internet al momento de realizar la entrega en Canvas. La base de datos en Excel
+incluye una macro avanzada de monitoreo que detecta conexiones a Internet, registrando
+los usuarios conectados. Cualquier detección de conexión a internet en el intervalo de inicio y
+entrega (5 a 10 minutos como ventanas permitidas al inicio y al final) de la Prueba Parcial será
+marcada como potencial intento de plagio, activando los procedimientos establecidos por la
+Universidad.
+1fdalessandri@miuandes.cl
+2jacepeda@miuandes.cl
+3ahederra@miuandes.cl
+4dnavarrete2@miuandes.cl
+Página 1 de 8
+
+--- PAGE 2 ---
+Data Analytics I
+Universidad de los Andes Prueba Parcial 20261
+El archivo Excel provisto para la Prueba Parcial incorpora una macro de vigilancia y control
+de integridad que registra el origen de cada fórmula utilizada, identificando si han sido
+pegadas, copiadas, o si provienen de herramientas de inteligencia artificial. Estas funcionali-
+dades están diseñadas para prevenir malas prácticas y garantizar la autenticidad del trabajo.
+Todo caso sospechoso será reportado directamente a la Fiscalía Académica.
+Esta es una evaluación de carácter presencial. No se aceptará bajo ninguna circunstancia la
+entrega de estudiantes que no se encuentren físicamente presentes en la sala durante el desarrollo
+de la Prueba Parcial.
+En caso de ser necesario, los estudiantes pueden plantear supuestos razonables, siempre que
+estén debidamente justificados y consignados en la hoja de SUPUESTOS dentro del archivo
+Excel.
+Todas las respuestas deben registrarse en las hojas específicas del archivo Excel proporcio-
+nado para cada actividad.
+El archivo final debe ser nombrado utilizando el siguiente formato: Prueba Parcial_SuRUT.xlsm
+(RUT sin puntos ni guiones). La entrega debe realizarse por Canvas. Debe completar la primera
+hoja del archivo Excel con sus datos personales (Hoja Datos Personales).
+El incumplimiento del formato de nombre de archivo o de los canales de entrega
+establecidos implicará una penalización automática de 0,5 décimas en la nota final de la
+Prueba Parcial.
+Elección de Preguntas a Evaluar
+INSTRUCCIÓN DE SELECCIÓN: De las tres preguntas (1, 2 y 3) presentadas en esta evaluación,
+usted debe elegir y desarrollar únicamente 2.
+En caso de responder las 3 preguntas, se evaluarán y promediarán las dos calificaciones más
+bajas obtenidas.
+Por favor, marque con una X en la lista al final de esta sección las dos preguntas que desea que
+se consideren para su nota.
+□
+Pregunta 1: Análisis de Desempeño y Métricas de Marketing
+□
+Pregunta 2: Procesamiento de Datos y Visualización Avanzada
+□
+Pregunta 3: Consolidación de Ventas e Integración de Datos Globales
+GUÍA PARA EL DESARROLLO EN EXCEL: Para facilitar su trabajo, dentro del archivo
+Excel encontrará que en cada hoja a desarrollar están marcados en verde claro el título de la tabla,
+la columna y/o gráfico de aquellas preguntas que deben ser respondidas. Asimismo, las celdas donde
+se espera su respuesta tienen un fondo amarillo. Finalmente, las tablas suplementarias o auxiliares
+que va a necesitar están marcadas con color morado . Utilice estas marcas visuales para guiar su
+elaboración y optimizar su tiempo.
+Página 2 de 8
+
+--- PAGE 3 ---
+Data Analytics I
+Universidad de los Andes Prueba Parcial 20261
+Pregunta 1: Análisis de Desempeño y Métricas de Marketing
+Esta pregunta busca realizar un análisis de los gastos y resultados de las campañas de marketing reali-
+zadas por diferentes empresas. La información de las campañas se encuentra en la hoja P1_Campañas
+del archivo Excel y detalla tanto cualidades como resultados de la campaña.
+Respecto a las cualidades de las campañas, se indica qué medios se utilizaron (columna Tipo_Campania),
+el sexo que era el objetivo principal de la campaña (Sexo_objetivo), el rango etario al que buscaba
+llegar la campaña (Edad_objetivo), los intereses de los potenciales clientes (Segmento Clientes), la
+duración de la campaña (Duración), el canal usado para la campaña (Canal_usado), la ciudad en la
+que se realizó la campaña (Ciudad) y el idioma que se utilizó en la campaña (Idioma).
+Respecto a los resultados, existe una tasa de conversión de clientes que se interesaron gracias a la cam-
+paña (Tasa conversión), el costo total de la campaña (Costo campania), el retorno de la campaña
+considerando su costo, conocido como retorno sobre la inversión (ROI), la cantidad de clicks realizados
+por clientes (clicks ), la cantidad de impresiones que tuvo la campaña (Impresiones), la cantidad de
+personas a las que llegó la campaña (Personas alcanzadas) y una métrica que pondera la cantidad
+de clicks que se realizaron por las personas alcanzadas para obtener la tasa de conversión (Score de
+impacto en la base de datos).
+1. (0,5 ptos) La columna personas alcanzadas de la hoja P1_Campañas se borró de la base de
+datos, pero entendiendo que la fórmula para obtener el Score de impacto es:
+Personas alcanzadas × tasa de conversión
+Score =
+clicks
+Obtenga el total de personas alcanzadas por cada campaña, rellenando la columna Q.
+2. (1,5 ptos) En la hoja P1_Resumen, obtenga y complete la Tabla 1 usando el estadístico de la
+columna Q (“Personas alcanzadas”) de la hoja P1_Campañas. Para ello, debe:
+Contar cuántas campañas hay.
+Calcular el total de personas alcanzadas.
+Obtener el promedio de alcance por campaña.
+Calcular la mediana de personas alcanzadas por campaña.
+Identificar el mínimo de personas alcanzadas en una campaña.
+Identificar el máximo de personas alcanzadas en una campaña.
+Calcular el valor para el primer y tercer cuartil de personas alcanzadas en campañas.
+Hint: Se recomienda usar la formula CUARTIL.EXC o PERCENTIL.EXC
+Calcular el rango intercuartil (IQR), que es la diferencia entre el tercer cuartil y el primero.
+Obtener la desviación estándar de personas alcanzadas en campañas.
+Hint: Se recomienda usar la formula DESVEST.M
+3. (1,5 ptos) Complete la Tabla 2 de la hoja P1_Resumen con información de campañas de cada
+empresa:
+Utilizando la Tabla Suplementaria 1 disponible al costado derecho de la hoja P1_Resumen,
+identifique cuál es la industria a la que pertenece cada empresa. Hint: Utilice funciones de
+búsqueda.
+Página 3 de 8
+
+--- PAGE 4 ---
+Data Analytics I
+Universidad de los Andes Prueba Parcial 20261
+Utilice funciones condicionales para obtener el total de gasto de campañas de cada em-
+presa. La respuesta debe quedar en formato moneda sin decimales. (Debe ir a buscar esta
+información a la hoja P1_Campañas.)
+Utilice funciones condicionales para obtener el promedio de ROI de cada empresa, con
+un formato de número con dos decimales. (Debe ir a buscar esta información a la hoja
+P1_Campañas.)
+Utilice funciones condicionales para identificar el máximo de personas alcanzadas en una
+campaña, en formato número sin decimales. (Debe ir a buscar esta información a la hoja
+P1_Campañas.)
+4. (1 pto) En la hoja P1_Resumen identifique el recuadro para insertar el gráfico y realice un
+gráfico combinado que muestre, como gráfico de columnas, el gasto total en campañas y, con
+un gráfico de líneas, el ROI promedio de las empresas:
+Cree un eje secundario para el gráfico de líneas.
+El eje principal debe ir entre los 490 millones de pesos y los 510 millones de pesos.
+El eje secundario debe ir entre los valores 4,97 y 5,03.
+El gráfico debe contener la información de cada empresa como etiqueta de eje.
+5. (1,5 ptos) Conteste en la Tabla 3 las siguientes preguntas acerca de la data, utilizando funcio-
+nes condicionales:
+Hint: Recuerde que al definir criterios en funciones condicionales (como CONTAR.SI.CONJUNTO,
+SUMAR.SI.CONJUNTO, etc), puede optar por dos métodos: 1) Referenciar una celda que con-
+tenga el valor buscado, o 2) Escribir el texto directamente entre comillas dentro de la
+fórmula. Por ejemplo, en una base de modelos de automóviles, si usted quiere contar unicamente
+los modelos "Yaris", puede usar una celda con la palabra escrita o escribir directamente "Yaris"
+(con comillas) en el argumento del criterio de la formula CONTAR.SI.CONJUNTO.
+¿Cuál fue el costo total de las campañas por YouTube en Español?
+¿Cuántas campañas se realizaron para el segmento de clientes “Tech Enthusiasts”?
+¿Cuál es el promedio de la tasa de conversión en New York para campañas de duración 30
+días?
+¿Cuántos clicks en total alcanzaron las campañas con edad objetivo 18-24 o 25-34? Hint:
+se refiere a la suma entre los clicks de cualquiera de las dos edades objetivo.
+¿Cuál es el ID de la campaña que logró el máximo número de impresiones?
+Página 4 de 8
+
+--- PAGE 5 ---
+Data Analytics I
+Universidad de los Andes Prueba Parcial 20261
+Pregunta 2: Procesamiento de Datos y Visualización Avanzada
+Trabaje en la hoja P2_Commodities (318 filas, 19 columnas). Utilice la Tabla Suplementaria
+2 del Dólar Observado para realizar conversiones y completar los datos faltantes.
+Directriz de Evaluación:
+Complete únicamente las celdas, tablas o recuadros con amarillas y con encabezado verde
+claro.
+Se prohíbe pegar valores estáticos; toda resolución debe ser una fórmula dinámica.
+2.1. Procesamiento base de datos
+1. (0,25 pts) Use funciones de texto para limpiar la columna País + Correlativo y devolver
+solo el texto “Chile” en la columna País.
+2. (0,25 pts) Aísle la parte numérica de la Columna A mediante lógica de funciones (prohibido
+usar “Texto a Columnas”) en la columna Correlativo . Hint: Reste el largo de la palabra
+constante al largo total de la celda para extraer los dígitos por la derecha.
+3. (0,5 pts) Genere un código consolidado uniendo País (Col. B), un guion (-) y Correlativo
+(Col. C) (Ej: Chile-1 ) en la columna País + Correlativo Correcto. Hint: Use el operador
+de unión o la función de concatenación para ensamblar los tres elementos.
+4. (0,5 pts) Recupere el Año, Mes y Día en cada una de las columnas señaladas de forma
+independiente usando funciones cronológicas. Formato: Las columnas deben ser formato
+General. El año debe verse como entero sin separador de miles (Ej: 2025).
+5. (0,5 pts) Genere una fecha llamada Fecha2 normalizada donde el día sea siempre “01”
+para todos los registros del mismo mes. Si la fecha es 02-01-2025, el resultado debe ser
+01-01-2025. Hint: Use la función para crear fechas, extrayendo Año y Mes de las columnas
+anteriores y fijando el Día en 01.
+6. (0,25 pts) Recupere el tipo de cambio mensual desde la Tabla Suplementaria 2 para
+cada registro de la base de datos. Utilice la columna Fecha2 como llave de búsqueda para
+asegurar la coincidencia entre la base diaria y la tabla mensual.Hint: Emplee funciones de
+búsqueda (BUSCARH o BUSCARV, BUSCARX) o el totalizador SUMAR.SI.CONJUNTO.
+7. (0,25 pts) Calcule el valor del Cobre y Petróleo en CLP (pesos chilenos) multiplicando el
+precio en dólares por el tipo de cambio obtenido. Use referencias mixtas (ej: $A1) para
+completar ambos commodities arrastrando la fórmula en un solo movimiento.Penalización:
+El no uso de referencias mixtas implica un descuento del 20 % en esta sección.
+8. (0,5 pts) En la columna Efecto Precio de Cobre a partir de la fila 3, compare el precio
+actual con el anterior (fila 3 vs fila 2). Si sube, el efecto es “Positivo” (entran más dólares a
+la economía); si cae o se mantiene, “Negativo”. Hint: Use la función SI.
+9. (0,5 pts) En la columna Efecto Precio Petróleo Eevalúe la variación del precio del pe-
+tróleo respecto al día anterior. Si el precio sube, el efecto es “Negativo” (salida de dólares);
+si baja o se mantiene, “Positivo”.
+10. (0,5 pts) En la columna Efecto Total señale si ambos efectos (Cobre y Petróleo) son
+simultáneamente “Positivos”, asigne “Apreciación”; en cualquier otro caso, “Depreciación”.
+Hint: Use SI con el operador lógico Y.
+Página 5 de 8
+
+--- PAGE 6 ---
+Data Analytics I
+Universidad de los Andes Prueba Parcial 20261
+11. (1,0 pto) Para finalizar en la columna Consistencia, compare sus asignaciones teóricas
+con el cambio efectivo disponible en la columna Cambio efectivo del Tipo de Cambio o
+Dólar Observado ocurrido en el mercado. Utilice la función SI.CONJUNTO (o SI anidados)
+junto al operador Y para determinar la consistencia bajo estos criterios:
+Muy Consistente: Ambos efectos (Cobre y Petróleo) son negativos y el dólar efectiva-
+mente Subió.
+Muy Consistente: Ambos efectos son positivos y el dólar efectivamente Bajó.
+Consistente: Efecto Cobre negativo, Petróleo positivo y el dólar Subió (el impacto del
+cobre prima sobre el petróleo).
+Consistente: Efecto Cobre positivo, Petróleo negativo y el dólar Bajó (el impacto del
+cobre prima sobre el petróleo).
+Inconsistente: Cualquier otra combinación de factores.
+Hint: La estructura debe ser =SI.CONJUNTO(Y(cond1; cond2; cond3); “Resultado”; ...).
+Recuerde que esta función evalúa en orden jerárquico; puede usar SI.ERROR o VERDADERO co-
+mo última condición para marcar la “Inconsistente”.
+2.2. Gráfico Precios Commodities
+En la hoja “P2_Commodities”, construya un gráfico profesional para comparar activos con dis-
+tintas magnitudes, use el gráfico referencial disponible:
+1. (0,75 pts) Grafique las líneas de Cobre (USD/lb) vs. Petróleo WTI (USD/b) usando
+la columna Fecha.
+Ejes y Escalas: Configure un eje secundario para las distintas escalas:
+• Cobre (Eje Der.): Rango fijo 3 a 7, con 0 decimales.
+• Petróleo (Eje Izq.): Rango fijo 50 a 120, con 0 decimales.
+Eje X: Visualización desde enero 2025, formato mmm.yy y etiquetas cada 3 meses.
+2. (0,25 pts) Elementos de Estilo:
+Identificación: Incluya título descriptivo, leyendas y la fuente: “Fuente: Banco Central
+de Chile. Elaboración propia”.
+Etiquetas: Datos con 1 decimal únicamente en el último punto de cada serie.
+Ubicación: Inserte el gráfico en el área señalada a la derecha de la base de datos.
+Hint: Use valores en USD. Para la etiqueta final, haga un segundo clic lento en el último
+marcador antes de añadirla. Guíese por el gráfico de referencia pegado como imagen en el
+Excel.
+Página 6 de 8
+
+--- PAGE 7 ---
+Data Analytics I
+Universidad de los Andes Prueba Parcial 20261
+Pregunta 3: Consolidación de Ventas e Integración de Datos Glo-
+bales
+La empresa GlobalTech Commerce Solutions, dedicada a la comercialización internacional de
+productos, necesita consolidar y completar su registro de ventas para asegurar la calidad de su
+información comercial y financiera. Actualmente, parte de los datos disponibles se encuentra in-
+completa o codificada dentro de algunos campos, por lo que será necesario analizarlos, extraer
+información relevante y complementar la tabla principal utilizando distintas herramientas de Ex-
+cel.
+El objetivo es completar correctamente la tabla de ventas, aplicando distintas técnicas de análisis
+y transformación de datos para obtener información útil y consistente. Para ello, deberán inter-
+pretar los datos disponibles, relacionarlos con tablas de apoyo y realizar los cálculos necesarios
+para obtener los valores faltantes. Se espera que cada estudiante sea capaz de limpiar, organizar
+y completar la información, manteniendo formatos adecuados y asegurando la coherencia de los
+resultados.
+3.1. Extracción y búsqueda de información
+En la P3_Ventas parte de la información necesaria se encuentra codificada dentro del campo ID
+Venta, cuya estructura sigue el siguiente patrón:
+Primeros 3 caracteres: Código del vendedor
+Números posteriores al símbolo “$”: Precio del producto
+3 caracteres posteriores a “Moneda/”: Tipo de moneda de la transacción
+3 caracteres posteriores a “Cliente:”: Código del cliente
+4 caracteres posteriores a “País_”: Código del país
+Últimos 3 dígitos: Código del producto
+Importante: Recuerde que, al extraer números desde un texto, Excel suele interpretarlos como
+texto. Será necesario convertirlos correctamente a formato numérico para poder utilizarlos en
+cálculos posteriores.
+3.2. Completar información faltante
+A partir de la información extraída del campo ID Venta y de las tablas de apoyo disponibles
+(hoja P3_Referencias), deberá identificar y completar los campos faltantes mediante fórmulas
+de búsqueda, extracción y transformación de datos.
+a) (0,5 pts) Complete el campo Vendedor obteniendo el nombre completo correspondiente al
+código identificado en el registro.
+b) (0,5 pts) Complete el campo Precio utilizando la información disponible en el registro. El
+resultado debe quedar almacenado como un valor numérico, permitiendo su uso posterior
+en cálculos. Hint: Considere que el largo del valor puede variar en cada caso.
+c) (0,5 pts) Determine y complete el campo Moneda de Transacción según la información
+contenida en el registro.
+Página 7 de 8
+
+--- PAGE 8 ---
+Data Analytics I
+Universidad de los Andes Prueba Parcial 20261
+d ) (0,5 pts) Complete el campo Cliente obteniendo el nombre completo asociado al código
+correspondiente.
+e) (0,5 pts) Complete el campo País Cliente utilizando la información disponible, asegurando
+que se registre el nombre completo del país.
+f ) (1 pto) Complete el campo Producto obteniendo el nombre completo asociado al código
+identificado.
+g) (0,5 pts) Complete el campo Categoría con la categoría correspondiente al producto iden-
+tificado.
+h) (0,5 pts) Calcule el campo Precio CLP, convirtiendo el precio original a pesos chilenos
+usando la Tabla 2 con el precio del dólar (o CLP) disponible en la hoja P3_Referencias
+i ) (0,5 pts) Complete el campo Margen (Miles) considerando la información de precio, can-
+tidad vendida y costo unitario.
+3.3. Análisis y respuesta de consultas sobre la base de datos
+Una vez completada y validada la tabla principal, deberá utilizar la información consolidada para
+responder preguntas específicas de análisis sobre las ventas registradas disponibles en la Tabla
+1 al costado derecho de la hoja P3_Ventas. Para ello, deberá aplicar fórmulas de búsqueda,
+operaciones condicionales y funciones de resumen que le permitan obtener respuestas precisas a
+partir de los datos procesados.
+(1,0 punto + 0,5 bonus) Responda 4 de las siguientes preguntas: Cada respuesta correcta forma
+parte del puntaje asignado a esta sección (1 punto total). Bonus: Si responde correctamente las
+7 preguntas, obtendrá 0,5 puntos adicionales.
+Conteste las siguientes preguntas:
+¿Cuál fue el margen de ventas de Diego Soto?
+¿Cuál fue el margen promedio de ventas de Carala Méndez?
+¿Cuántos productos se vendieron en la categoría Vestuario?
+¿Cuántas veces se realizó una venta a clientes de Colombia?
+¿Cuántas poleras se vendieron en total?
+¿Cuántas veces Importadora Andes pagó con tarjeta de crédito?
+¿Cuántas veces la transacción fue pactada en Euros y se pagó con Transferencia?
+4. Formato y consistencia
+Antes de finalizar, verifique que todos los resultados estén correctamente formateados:
+Fechas en formato de fecha.
+Valores monetarios con formato moneda.
+Campos numéricos como valores utilizables en cálculos.
+Nombres completos sin abreviaturas ni códigos.
+Página 8 de 8

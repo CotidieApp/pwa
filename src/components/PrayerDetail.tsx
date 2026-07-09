@@ -337,6 +337,7 @@ const PrayerContent = ({
     setPrayerLanguagePreference,
   } = useSettings();
   const throttleTimeout = useRef<NodeJS.Timeout | null>(null);
+  const restoredScrollKeyRef = useRef<string | null>(null);
 
   // Pinch-to-zoom logic
   const [initialDistance, setInitialDistance] = useState<number | null>(null);
@@ -400,12 +401,13 @@ const PrayerContent = ({
   const isCamino = prayerId === 'camino-libro';
 
   useEffect(() => {
+    if (prayer.isLongText) return;
     const el = scrollContainerRef?.current;
     if (el) {
       el.scrollTo(0, 0);
     }
     window.scrollTo(0, 0);
-  }, [prayerId, scrollContainerRef]);
+  }, [prayerId, prayer.isLongText, scrollContainerRef]);
 
   const handleScroll = useCallback(() => {
     if (!prayer.isLongText || !prayerId) return;
@@ -421,18 +423,22 @@ const PrayerContent = ({
     if (!prayerId) return;
     const container = scrollContainerRef?.current;
     if (!container) return;
+    const restoreKey = `${prayerId}:${prayer.isLongText ? 'long' : 'short'}`;
+    if (restoredScrollKeyRef.current === restoreKey) return;
 
     if (prayer.isLongText) {
       const saved = scrollPositions[prayerId];
       if (typeof saved === 'number') {
         container.scrollTo({ top: saved });
+        restoredScrollKeyRef.current = restoreKey;
         return;
       }
     }
 
     // Normal prayer or no saved position: always reset to top
     container.scrollTo({ top: 0 });
-  }, [prayerId, scrollPositions[prayerId], searchState, prayer.isLongText, scrollContainerRef]);
+    restoredScrollKeyRef.current = restoreKey;
+  }, [prayerId, scrollPositions, prayer.isLongText, scrollContainerRef]);
 
   useEffect(() => {
     const container = scrollContainerRef?.current;
@@ -651,5 +657,4 @@ export default function PrayerDetail({
     </div>
   );
 }
-
 

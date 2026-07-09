@@ -226,7 +226,7 @@ public final class SaintWidgetUpdater {
         int minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0);
         boolean isSmallHeight = minHeight > 0 && minHeight < 100;
 
-        views.setInt(R.id.widget_saint_name, "setMaxLines", isSmallHeight ? 1 : 2);
+        views.setInt(R.id.widget_saint_name, "setMaxLines", isSmallHeight ? 2 : 3);
 
         if (content.bio == null || content.bio.trim().isEmpty()) {
             views.setViewVisibility(R.id.widget_saint_bio, View.GONE);
@@ -234,8 +234,7 @@ public final class SaintWidgetUpdater {
         }
 
         views.setViewVisibility(R.id.widget_saint_bio, View.VISIBLE);
-        // Task: Allow bio to shrink significantly and use more lines to avoid "..."
-        views.setInt(R.id.widget_saint_bio, "setMaxLines", isSmallHeight ? 3 : 8);
+        views.setInt(R.id.widget_saint_bio, "setMaxLines", isSmallHeight ? 12 : 30);
     }
 
     private static int dpToPx(Context context, int dp) {

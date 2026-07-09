@@ -55,6 +55,13 @@ export const fixedNotifications: FixedNotificationEntry[] = [
     image: './images/san-jose.jpg'
   },
   {
+    date: '26/06 09:00', // San Josemaria
+    title: 'San Josemar\u00eda',
+    text: 'Encomienda tu d\u00eda a San Josemar\u00eda y busca a Dios en lo ordinario.',
+    image: './images/san-josemaria.jpeg',
+    route: 'inicio/devociones/oracion-a-san-josemaria'
+  },
+  {
     date: '25/03 09:00', // Anunciación del Señor
     title: 'Anunciación del Señor',
     text: 'Di tu «hágase» al Señor y renueva tu confianza en su plan.'

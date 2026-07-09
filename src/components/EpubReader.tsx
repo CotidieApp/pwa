@@ -698,6 +698,14 @@ export default function EpubReader({
   }, [refreshRenditionLayout]);
 
   useEffect(() => {
+    const container = containerRef.current;
+    if (!container || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => refreshRenditionLayout());
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [refreshRenditionLayout]);
+
+  useEffect(() => {
     const handleVisibilityChange = () => {
       if (typeof document === 'undefined' || document.visibilityState !== 'hidden') return;
       persistCurrentLocation();
@@ -964,7 +972,7 @@ export default function EpubReader({
 
   return (
     <div
-      className={isReaderFullscreen ? 'fixed inset-0 z-[80] bg-black flex flex-col gap-3' : 'flex flex-col h-full gap-3'}
+      className={isReaderFullscreen ? 'fixed inset-0 z-[80] bg-black flex flex-col gap-3' : 'flex flex-col h-full min-h-0 gap-3'}
       style={
         isReaderFullscreen
           ? {
@@ -1093,35 +1101,39 @@ export default function EpubReader({
           className="h-full w-full"
           style={{ fontSize: `${prayerTextZoom}em` }}
         />
-        {isReaderFullscreen ? <div className="pointer-events-none absolute inset-0 z-[5] bg-black/28" /> : null}
-        <div className="absolute inset-0 z-[30]">
-          <button
-            type="button"
-            aria-label="Mostrar u ocultar encabezado"
-            onClick={toggleReaderChrome}
-            className="absolute top-0 left-0 h-1/2 w-full"
-          />
-          <div className="absolute bottom-0 left-0 h-1/2 w-full flex">
-            <button
-              type="button"
-              aria-label="Pagina anterior"
-              onClick={goPrev}
-              className="h-full w-1/3"
-            />
-            <button
-              type="button"
-              aria-label="Pagina siguiente"
-              onClick={goNext}
-              className="h-full w-1/3"
-            />
-            <button
-              type="button"
-              aria-label="Pagina siguiente"
-              onClick={goNext}
-              className="h-full w-1/3"
-            />
-          </div>
-        </div>
+        {isReaderFullscreen ? (
+          <>
+            <div className="pointer-events-none absolute inset-0 z-[5] bg-black/28" />
+            <div className="absolute inset-0 z-[30]">
+              <button
+                type="button"
+                aria-label="Mostrar u ocultar encabezado"
+                onClick={toggleReaderChrome}
+                className="absolute top-0 left-0 h-1/2 w-full"
+              />
+              <div className="absolute bottom-0 left-0 h-1/2 w-full flex">
+                <button
+                  type="button"
+                  aria-label="Pagina anterior"
+                  onClick={goPrev}
+                  className="h-full w-1/3"
+                />
+                <button
+                  type="button"
+                  aria-label="Pagina siguiente"
+                  onClick={goNext}
+                  className="h-full w-1/3"
+                />
+                <button
+                  type="button"
+                  aria-label="Pagina siguiente"
+                  onClick={goNext}
+                  className="h-full w-1/3"
+                />
+              </div>
+            </div>
+          </>
+        ) : null}
       </div>
 
       <Sheet open={isPanelOpen} onOpenChange={setIsPanelOpen}>

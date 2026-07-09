@@ -10,6 +10,8 @@ import androidx.work.ExistingWorkPolicy;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
 
+import com.benjamin.studio.MainActivity;
+
 import java.util.Calendar;
 import java.util.concurrent.TimeUnit;
 
@@ -39,11 +41,38 @@ final class SaintWidgetScheduler {
         );
 
         long triggerAt = nextMidnightMillis();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent);
-        } else {
-            alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent);
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+                PendingIntent showIntent = buildShowIntent(context);
+                alarmManager.setAlarmClock(new AlarmManager.AlarmClockInfo(triggerAt, showIntent), pendingIntent);
+                return;
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent);
+            } else {
+                alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent);
+            }
+        } catch (SecurityException ignored) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent);
+            } else {
+                alarmManager.set(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent);
+            }
         }
+    }
+
+    private static PendingIntent buildShowIntent(Context context) {
+        Intent intent = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
+        if (intent == null) {
+            intent = new Intent(context, MainActivity.class);
+        }
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        return PendingIntent.getActivity(
+                context,
+                1,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
     }
 
     private static long millisUntilNextMidnight() {
@@ -53,7 +82,7 @@ final class SaintWidgetScheduler {
         next.add(Calendar.DAY_OF_MONTH, 1);
         next.set(Calendar.HOUR_OF_DAY, 0);
         next.set(Calendar.MINUTE, 0);
-        next.set(Calendar.SECOND, 5);
+        next.set(Calendar.SECOND, 0);
         next.set(Calendar.MILLISECOND, 0);
         long delay = next.getTimeInMillis() - now.getTimeInMillis();
         return Math.max(0L, delay);

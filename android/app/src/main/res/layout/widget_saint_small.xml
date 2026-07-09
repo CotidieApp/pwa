@@ -24,23 +24,22 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:maxLines="2"
-            android:ellipsize="end"
             android:gravity="center"
             android:textStyle="bold"
             android:autoSizeTextType="uniform"
-            android:autoSizeMinTextSize="10sp"
+            android:autoSizeMinTextSize="4sp"
             android:autoSizeMaxTextSize="18sp"
             android:autoSizeStepGranularity="1sp" />
         <TextView
             android:id="@+id/widget_saint_bio"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:layout_marginTop="2dp"
-            android:maxLines="10"
-            android:ellipsize="end"
+            android:maxLines="30"
             android:gravity="center"
             android:autoSizeTextType="uniform"
-            android:autoSizeMinTextSize="7sp"
+            android:autoSizeMinTextSize="2sp"
             android:autoSizeMaxTextSize="14sp"
             android:autoSizeStepGranularity="1sp" />
     </LinearLayout>
