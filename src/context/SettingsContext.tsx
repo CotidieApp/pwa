@@ -2947,8 +2947,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
               body: formatTemplate(entry.text, next),
               channelId: 'cotidie-reminders',
               smallIcon: icon,
-              largeIcon: imageDrawable ?? undefined,
-              attachments: imagePath ? [imagePath] : undefined,
               schedule: {
                 at: next,
                 allowWhileIdle: true,
@@ -2983,8 +2981,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
             body: 'Recordatorio automático cada 5 minutos.',
             channelId: 'cotidie-reminders',
             smallIcon: icon,
-            largeIcon: devImageDrawable,
-            attachments: [devImagePath],
             schedule: {
               on: { minute },
               allowWhileIdle: true,
@@ -3022,7 +3018,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           body: formatTemplate(body, fireAt),
           channelId: 'cotidie-reminders',
           smallIcon: icon,
-          largeIcon: icon,
           schedule: {
             at: fireAt,
             allowWhileIdle: true,
@@ -3099,7 +3094,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           body: formatTemplate('¡Cristo ha resucitado! Feliz Pascua.', fireAt),
           channelId: 'cotidie-reminders',
           smallIcon: icon,
-          largeIcon: icon,
           schedule: {
             at: fireAt,
             allowWhileIdle: true,

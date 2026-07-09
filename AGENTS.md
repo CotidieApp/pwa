@@ -8,6 +8,49 @@ Historial de intervenciones del asistente en el repo.
 - Esta obligacion aplica aunque el usuario pida tocar solo lo estrictamente necesario: el registro en `AGENTS.md` se considera parte estrictamente necesaria de cualquier edicion del repo.
 - Si una instruccion del usuario prohibe explicitamente editar `AGENTS.md`, el agente debe pedir aclaracion antes de modificar otros archivos.
 
+### [2026-07-09 01:05] 244. Imagenes seguras al dispararse notificaciones programadas
+**Planificacion:**
+- Recuperar las imagenes de las notificaciones sin volver a meter bitmaps pesados dentro del `PendingIntent` de la alarma.
+- Cargar la imagen solo cuando la notificacion se dispara y reducirla a un tamano seguro.
+- Mantener el parche persistente para que sobreviva a reinstalaciones de dependencias.
+
+**Ejecucion:**
+- **Parche nativo diferido**: `scripts/patch-local-notifications.js` ahora tambien parchea `TimedNotificationPublisher.java`.
+- **Carga al disparar**: el receptor nativo lee `extra.imageDrawable`, carga el recurso `drawable`, lo reduce a maximo 512px y lo convierte a `RGB_565` antes de aplicar `BigPictureStyle`.
+- **Alarma liviana**: `SettingsContext.tsx` sigue sin enviar `largeIcon`/`attachments` al agendar, evitando el crash `Could not copy bitmap to parcel blob`.
+- **Compatibilidad**: la notificacion reconstruida conserva titulo, texto, canal, icono chico, toque, dismiss, flags basicos, sonido, prioridad, visibilidad y color.
+
+**Validacion:**
+- `node scripts\patch-local-notifications.js` OK.
+- `npm.cmd run build` OK.
+- `npx.cmd cap sync android` OK.
+- `:capacitor-local-notifications:compileReleaseJavaWithJavac --offline` avanzo sin errores Java del parche; se detuvo por `AccessDeniedException` de la cache Gradle local de Codex sobre `activity-1.9.3-api.jar`.
+
+**Archivos Modificados:**
+- `scripts/patch-local-notifications.js`
+- `AGENTS.md`
+
+### [2026-07-09 00:50] 243. Correccion de crash por imagenes en notificaciones programadas
+**Planificacion:**
+- Capturar el crash real de Android via ADB con el celular conectado.
+- Corregir la causa exacta sin tocar funcionalidades ajenas.
+- Mantener texto, rutas y horarios de notificaciones, eliminando solo el bitmap grande que cerraba la app.
+
+**Ejecucion:**
+- **Diagnostico ADB**: el buffer de crash mostro `FATAL EXCEPTION: CapacitorPlugins` con `Could not copy bitmap to parcel blob` dentro de `LocalNotificationManager.triggerScheduledNotification`.
+- **Causa**: las notificaciones programadas estaban incluyendo `largeIcon`/`attachments`; Android intentaba serializar el bitmap completo dentro del `PendingIntent` de la alarma.
+- **Correccion**: `SettingsContext.tsx` ya no envia `largeIcon` ni `attachments` en notificaciones programadas fijas, moviles ni de prueba. Se conservan `image` e `imageDrawable` en `extra` para no perder la informacion si luego se implementa una solucion nativa segura.
+
+**Validacion:**
+- `npm.cmd run build` OK.
+- `npx.cmd cap sync android` OK.
+- `node scripts\patch-local-notifications.js` OK.
+- `assembleRelease --offline` no pudo validarse en Codex porque Gradle no encontro metadata offline para dependencias ya listadas en cache.
+
+**Archivos Modificados:**
+- `src/context/SettingsContext.tsx`
+- `AGENTS.md`
+
 ### [2026-07-09 00:35] 242. Hardening de arranque por notificaciones nativas
 **Planificacion:**
 - Corregir el cierre de la app al abrir tras actualizar, priorizando la zona modificada recientemente: sincronizacion nativa de notificaciones.
