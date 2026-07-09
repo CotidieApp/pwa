@@ -11,6 +11,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
 import android.view.Window;
+import android.view.WindowManager;
 import android.webkit.RenderProcessGoneDetail;
 import android.webkit.WebView;
 import androidx.core.view.WindowCompat;
@@ -47,6 +48,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(BackgroundActionsPlugin.class);
         super.onCreate(savedInstanceState);
         configureSystemBars();
+        keepScreenAwake();
         configureWebViewStability();
         if (getIntent() != null && getIntent().getBooleanExtra(RECOVERY_MODE_EXTRA, false)) {
             showRecoveryScreen();
@@ -67,6 +69,7 @@ public class MainActivity extends BridgeActivity {
     public void onResume() {
         super.onResume();
         configureSystemBars();
+        keepScreenAwake();
         isInForeground = true;
         flushPendingNavigationToWebView();
         flushPendingImportToWebView();
@@ -116,6 +119,10 @@ public class MainActivity extends BridgeActivity {
             window.setStatusBarContrastEnforced(false);
             window.setNavigationBarContrastEnforced(false);
         }
+    }
+
+    private void keepScreenAwake() {
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
 
     private void handleImportIntent(Intent intent) {

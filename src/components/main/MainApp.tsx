@@ -50,6 +50,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 type AddFormMode = 'devotion' | 'entry' | 'letter' | 'predefined';
 const getInitialNavState = (): NavigationState => {
@@ -165,6 +172,7 @@ export default function MainApp() {
   const [showErrorReport, setShowErrorReport] = useState(false);
   const [activeSpiritualReadingAudioId, setActiveSpiritualReadingAudioId] = useState<string | null>(null);
   const audioUploadInputRef = useRef<HTMLInputElement | null>(null);
+  const audioRenameInputRef = useRef<HTMLInputElement | null>(null);
   const [userSpiritualAudios, setUserSpiritualAudios] = useState<StoredSpiritualAudioItem[]>(() => loadStoredSpiritualAudios());
   const [spiritualAudioProgress, setSpiritualAudioProgress] = useState<Record<string, number>>(() => loadSpiritualAudioProgress());
   const spiritualAudioProgressRef = useRef(spiritualAudioProgress);
@@ -175,6 +183,8 @@ export default function MainApp() {
   });
   const [spiritualAudioError, setSpiritualAudioError] = useState<string | null>(null);
   const [audioPendingDelete, setAudioPendingDelete] = useState<StoredSpiritualAudioItem | null>(null);
+  const [audioRenameTargetId, setAudioRenameTargetId] = useState<string | null>(null);
+  const [audioRenameValue, setAudioRenameValue] = useState('');
   const shakeCountRef = useRef(0);
   const lastShakeTimeRef = useRef(0);
   const shakeResetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -348,10 +358,24 @@ export default function MainApp() {
     ...userSpiritualAudios.map((audio) => ({ ...audio, isUser: true })),
   ], [userSpiritualAudios]);
 
+  const audioRenameTarget = useMemo(
+    () => userSpiritualAudios.find((audio) => audio.id === audioRenameTargetId) ?? null,
+    [audioRenameTargetId, userSpiritualAudios]
+  );
+
   const activeSpiritualAudio = useMemo(
     () => spiritualAudios.find((audio) => audio.id === activeSpiritualReadingAudioId) ?? spiritualAudios[0],
     [activeSpiritualReadingAudioId, spiritualAudios]
   );
+
+  useEffect(() => {
+    if (!audioRenameTargetId) return;
+    const timeout = window.setTimeout(() => {
+      audioRenameInputRef.current?.focus();
+      audioRenameInputRef.current?.select();
+    }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [audioRenameTargetId]);
 
   useEffect(() => {
     spiritualAudioProgressRef.current = spiritualAudioProgress;
@@ -441,17 +465,33 @@ export default function MainApp() {
     setAudioPendingDelete(null);
   }, [activeSpiritualReadingAudioId, audioPendingDelete, userSpiritualAudios]);
 
-  const renameUserSpiritualAudio = useCallback((id: string) => {
+  const openUserSpiritualAudioRename = useCallback((id: string) => {
     const item = userSpiritualAudios.find((audio) => audio.id === id);
     if (!item) return;
-    const nextTitle = window.prompt('Nuevo nombre visible', item.title)?.trim();
-    if (!nextTitle || nextTitle === item.title) return;
+    setAudioRenameTargetId(item.id);
+    setAudioRenameValue(item.title);
+  }, [userSpiritualAudios]);
+
+  const closeUserSpiritualAudioRename = useCallback(() => {
+    setAudioRenameTargetId(null);
+    setAudioRenameValue('');
+  }, []);
+
+  const submitUserSpiritualAudioRename = useCallback(() => {
+    if (!audioRenameTarget) return;
+    const nextTitle = audioRenameValue.trim();
+    if (!nextTitle) return;
+    if (nextTitle === audioRenameTarget.title) {
+      closeUserSpiritualAudioRename();
+      return;
+    }
     const next = userSpiritualAudios.map((audio) =>
-      audio.id === id ? { ...audio, title: nextTitle, updatedAt: Date.now() } : audio
+      audio.id === audioRenameTarget.id ? { ...audio, title: nextTitle, updatedAt: Date.now() } : audio
     );
     setUserSpiritualAudios(next);
     saveStoredSpiritualAudios(next);
-  }, [userSpiritualAudios]);
+    closeUserSpiritualAudioRename();
+  }, [audioRenameTarget, audioRenameValue, closeUserSpiritualAudioRename, userSpiritualAudios]);
 
   // Effect to handle browser history (popstate for back/forward buttons)
   useEffect(() => {
@@ -1011,7 +1051,7 @@ export default function MainApp() {
                             size="icon"
                             className="shrink-0"
                             aria-label={`Editar ${audio.title}`}
-                            onClick={() => renameUserSpiritualAudio(audio.id)}
+                            onClick={() => openUserSpiritualAudioRename(audio.id)}
                           >
                             <Icon.Pencil className="size-4" />
                           </Button>
@@ -1622,6 +1662,39 @@ export default function MainApp() {
           </div>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={Boolean(audioRenameTarget)} onOpenChange={(open) => {
+        if (!open) closeUserSpiritualAudioRename();
+      }}>
+        <DialogContent className="max-w-[90vw] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar nombre visible</DialogTitle>
+          </DialogHeader>
+          <form
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              submitUserSpiritualAudioRename();
+            }}
+          >
+            <Input
+              ref={audioRenameInputRef}
+              value={audioRenameValue}
+              onChange={(e) => setAudioRenameValue(e.target.value)}
+              onFocus={(e) => e.currentTarget.select()}
+              aria-label="Nombre visible del audio"
+            />
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={closeUserSpiritualAudioRename}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={audioRenameValue.trim().length === 0}>
+                Guardar
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog
         open={Boolean(audioPendingDelete)}

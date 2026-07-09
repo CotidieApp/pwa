@@ -8,6 +8,94 @@ Historial de intervenciones del asistente en el repo.
 - Esta obligacion aplica aunque el usuario pida tocar solo lo estrictamente necesario: el registro en `AGENTS.md` se considera parte estrictamente necesaria de cualquier edicion del repo.
 - Si una instruccion del usuario prohibe explicitamente editar `AGENTS.md`, el agente debe pedir aclaracion antes de modificar otros archivos.
 
+### [2026-07-09 12:02] 248. Reprogramacion nativa de notificaciones fijas
+**Planificacion:**
+- Hacer que las notificaciones fijas recurrentes no dependan de que el usuario abra la app despues de dispararse.
+- Mantener solo una ocurrencia pendiente por regla fija para no volver al exceso de `PendingIntent`.
+- Evitar cancelar la notificacion recien mostrada al programar la siguiente.
+
+**Ejecucion:**
+- **Metadata de recurrencia**: `SettingsContext.tsx` agrega a las notificaciones fijas mensuales, relativas mensuales y anuales la regla de recurrencia, clave estable y plantillas de titulo/texto.
+- **Reprogramacion al dispararse**: `scripts/patch-local-notifications.js` parchea `TimedNotificationPublisher.java` para que, al dispararse una fija recurrente, calcule la proxima fecha y la agende nativamente.
+- **ID nuevo por ocurrencia**: la siguiente ocurrencia se agenda con el mismo hash usado por JS para `fixedKey + dateKey`, evitando que el plugin cancele la notificacion visible que acaba de mostrarse.
+- **Plantillas**: el receptor nativo actualiza titulo/texto basicos con fecha y ano para la proxima ocurrencia.
+- **Parche aplicado**: se ejecuto `node scripts\patch-local-notifications.js` y luego `npx.cmd cap sync android`.
+
+**Validacion:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `npm.cmd run build` OK.
+- `npx.cmd cap sync android` OK.
+- `.\gradlew.bat :app:compileDebugJavaWithJavac` OK.
+- `git diff --check` OK.
+
+**Archivos Modificados:**
+- `src/context/SettingsContext.tsx`
+- `scripts/patch-local-notifications.js`
+- `AGENTS.md`
+
+### [2026-07-09 11:47] 247. Agenda mensual minima en Android
+**Planificacion:**
+- Reducir aun mas la carga de notificaciones mensuales en Android tras confirmar que el cierre depende del limite de `PendingIntent`, no de RAM.
+- Mantener la agenda rodante, pero dejando solo la proxima ocurrencia mensual pendiente.
+
+**Ejecucion:**
+- **Ocurrencia mensual unica**: `SettingsContext.tsx` cambio `MONTHLY_FIXED_NOTIFICATION_OCCURRENCES_ANDROID` de 3 a 1, para que cada notificacion mensual/relativa tenga solo su proxima ocurrencia programada en Android.
+
+**Validacion:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+
+**Archivos Modificados:**
+- `src/context/SettingsContext.tsx`
+- `AGENTS.md`
+
+### [2026-07-09 11:40] 246. Correccion de cierre por exceso de PendingIntent
+**Planificacion:**
+- Capturar el cierre real desde el celular conectado mediante ADB.
+- Corregir la causa exacta sin tocar pantallas ni funciones ajenas.
+- Evitar tanto la programacion futura excesiva como la restauracion nativa de una agenda antigua demasiado grande.
+
+**Ejecucion:**
+- **Diagnostico ADB**: el log del telefono mostro que Android/ZTE forzaba el cierre con `pendingIntentRecord count exceed`, no por una excepcion JS o del lector.
+- **Agenda acotada**: `SettingsContext.tsx` reduce Android a una agenda maxima de 32 notificaciones pendientes, ordenadas por proxima fecha, y limita las ocurrencias mensuales rodantes a 3.
+- **Restauracion nativa segura**: `scripts/patch-local-notifications.js` ahora tambien parchea `LocalNotificationRestoreReceiver.java` para ordenar las notificaciones guardadas, restaurar solo las 32 mas proximas y borrar el excedente antiguo del almacenamiento del plugin.
+- **Parche aplicado**: se ejecuto `node scripts\patch-local-notifications.js`, dejando `node_modules/@capacitor/local-notifications/.../LocalNotificationRestoreReceiver.java` con el limite nativo aplicado.
+
+**Validacion:**
+- ADB reprodujo el cierre y confirmo la causa `pendingIntentRecord count exceed`.
+- `npm.cmd run build` OK.
+- `npx.cmd cap sync android` OK.
+- `.\gradlew.bat :app:compileDebugJavaWithJavac` OK.
+- `assembleRelease` y `assembleDebug` no pudieron completarse dentro del sandbox porque Gradle intento resolver dependencias Maven/Kotlin faltantes y la red del entorno esta bloqueada (`Permission denied: getsockopt`).
+- `git diff --check` OK.
+
+**Archivos Modificados:**
+- `src/context/SettingsContext.tsx`
+- `scripts/patch-local-notifications.js`
+- `AGENTS.md`
+
+### [2026-07-09 11:14] 245. Renombrado editable y pantalla persistente
+**Planificacion:**
+- Cambiar el renombrado de EPUBs personales y audios personales para editar el nombre visible existente en vez de reescribir desde cero.
+- Mantener la pantalla despierta mientras Cotidie esta abierta en Android.
+- Tocar solo los archivos directamente relacionados y registrar la intervencion.
+
+**Ejecucion:**
+- **EPUBs personales**: `PersonalEpubLibrary.tsx` reemplazo el `prompt` por un dialogo con input controlado, precargado con el nombre visible actual y seleccionado al abrir.
+- **Audios personales**: `MainApp.tsx` aplico el mismo flujo para audios de usuario, conservando el guardado local y sin modificar audios predeterminados.
+- **Pantalla despierta**: `MainActivity.java` activa `FLAG_KEEP_SCREEN_ON` al crear y reanudar la actividad para impedir que Android apague la pantalla por inactividad mientras la app esta en primer plano.
+
+**Validacion:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `npm.cmd run build` OK.
+- `.\gradlew.bat :app:compileDebugJavaWithJavac` OK con `JAVA_HOME`/SDK Android configurados.
+- `git diff --check` OK.
+
+**Archivos Modificados:**
+- `src/components/PersonalEpubLibrary.tsx`
+- `src/components/main/MainApp.tsx`
+- `android/app/src/main/java/com/benjamin/studio/MainActivity.java`
+- `AGENTS.md`
+
 ### [2026-07-09 01:05] 244. Imagenes seguras al dispararse notificaciones programadas
 **Planificacion:**
 - Recuperar las imagenes de las notificaciones sin volver a meter bitmaps pesados dentro del `PendingIntent` de la alarma.

@@ -33,6 +33,22 @@ const publisherPath = path.join(
   'localnotifications',
   'TimedNotificationPublisher.java'
 );
+const restorePath = path.join(
+  __dirname,
+  '..',
+  'node_modules',
+  '@capacitor',
+  'local-notifications',
+  'android',
+  'src',
+  'main',
+  'java',
+  'com',
+  'capacitorjs',
+  'plugins',
+  'localnotifications',
+  'LocalNotificationRestoreReceiver.java'
+);
 
 if (!fs.existsSync(managerPath)) {
   process.exit(0);
@@ -384,7 +400,377 @@ import com.getcapacitor.plugin.util.AssetUtil;`,
     }
   }
 
+  if (!publisherSource.includes('Cotidie fixed recurrence reschedule v1')) {
+    const ensurePublisherImport = (pattern, replacement, label) => {
+      if (publisherSource.includes(replacement.trim().split('\n').pop())) return;
+      replacePublisherOnce(pattern, replacement, label);
+    };
+
+    if (!publisherSource.includes('import com.getcapacitor.CapConfig;')) {
+      replacePublisherOnce(
+        /import com\.getcapacitor\.JSObject;\r?\n/,
+        `import com.getcapacitor.CapConfig;
+import com.getcapacitor.JSObject;
+`,
+        'timed notification cap config import'
+      );
+    }
+    ensurePublisherImport(
+      /import com\.getcapacitor\.CapConfig;\r?\nimport com\.getcapacitor\.JSObject;\r?\n/,
+      `import com.getcapacitor.CapConfig;
+import com.getcapacitor.JSObject;
+`,
+      'timed notification cap config import'
+    );
+    ensurePublisherImport(
+      /import java\.text\.SimpleDateFormat;\r?\nimport java\.util\.Date;/,
+      `import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.TimeZone;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;`,
+      'timed notification recurrence imports'
+    );
+
+    replacePublisherOnce(
+      /        if \(!rescheduleNotificationIfNeeded\(context, intent, id\)\) \{/,
+      `        if (!rescheduleNotificationIfNeeded(context, intent, storage, notificationJson, id)) {`,
+      'timed notification recurrence call'
+    );
+
+    replacePublisherOnce(
+      /    private boolean rescheduleNotificationIfNeeded\(Context context, Intent intent, int id\) \{/,
+      `    private boolean rescheduleNotificationIfNeeded(
+        Context context,
+        Intent intent,
+        NotificationStorage storage,
+        JSObject notificationJson,
+        int id
+    ) {`,
+      'timed notification recurrence signature'
+    );
+
+    replacePublisherOnce(
+      /        return false;\r?\n    \}\r?\n\}/,
+      `        if (rescheduleCotidieFixedNotification(context, storage, notificationJson, id)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private boolean rescheduleCotidieFixedNotification(
+        Context context,
+        NotificationStorage storage,
+        JSObject notificationJson,
+        int currentId
+    ) {
+        // Cotidie fixed recurrence reschedule v1
+        if (notificationJson == null) return false;
+        try {
+            JSObject extra = notificationJson.getJSObject("extra");
+            if (extra == null) return false;
+
+            String recurrence = extra.optString("fixedRecurrence", null);
+            String dateRule = extra.optString("date", null);
+            String fixedKey = extra.optString("fixedKey", null);
+            if (recurrence == null || dateRule == null || fixedKey == null) return false;
+
+            Date next = getNextCotidieFixedOccurrence(recurrence, dateRule, new Date());
+            if (next == null) return false;
+
+            String nextDateKey = formatCotidieDateKey(next);
+            int nextId = toCotidieNotificationId(fixedKey + ":" + nextDateKey);
+
+            JSObject schedule = notificationJson.getJSObject("schedule");
+            if (schedule == null) schedule = new JSObject();
+            schedule.put("at", formatCotidieNotificationDate(next));
+            schedule.put("allowWhileIdle", true);
+            notificationJson.put("schedule", schedule);
+
+            String titleTemplate = extra.optString("titleTemplate", notificationJson.optString("title", ""));
+            String bodyTemplate = extra.optString("bodyTemplate", notificationJson.optString("body", ""));
+            notificationJson.put("id", nextId);
+            notificationJson.put("title", formatCotidieTemplate(titleTemplate, next));
+            notificationJson.put("body", formatCotidieTemplate(bodyTemplate, next));
+            extra.put("dateKey", nextDateKey);
+            notificationJson.put("extra", extra);
+
+            ArrayList<LocalNotification> nextNotifications = new ArrayList<>();
+            nextNotifications.add(LocalNotification.buildNotificationFromJSObject(notificationJson));
+            storage.appendNotifications(nextNotifications);
+
+            CapConfig config = CapConfig.loadDefault(context);
+            LocalNotificationManager localNotificationManager = new LocalNotificationManager(storage, null, context, config);
+            if (localNotificationManager.schedule(null, nextNotifications) == null) return false;
+
+            storage.deleteNotification(Integer.toString(currentId));
+            return true;
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private Date getNextCotidieFixedOccurrence(String recurrence, String dateRule, Date now) {
+        if ("yearly".equals(recurrence)) {
+            Matcher matcher = Pattern.compile("^(\\\\d{1,2})/(\\\\d{1,2})\\\\s+(\\\\d{1,2}):(\\\\d{2})$").matcher(dateRule);
+            if (!matcher.matches()) return null;
+            int day = Integer.parseInt(matcher.group(1));
+            int month = Integer.parseInt(matcher.group(2));
+            int hour = Integer.parseInt(matcher.group(3));
+            int minute = Integer.parseInt(matcher.group(4));
+            Calendar next = Calendar.getInstance();
+            next.setTime(now);
+            next.set(Calendar.MONTH, month - 1);
+            next.set(Calendar.DAY_OF_MONTH, Math.min(day, daysInCotidieMonth(next.get(Calendar.YEAR), month - 1)));
+            next.set(Calendar.HOUR_OF_DAY, hour);
+            next.set(Calendar.MINUTE, minute);
+            next.set(Calendar.SECOND, 0);
+            next.set(Calendar.MILLISECOND, 0);
+            if (!next.getTime().after(now)) {
+                next.add(Calendar.YEAR, 1);
+                next.set(Calendar.DAY_OF_MONTH, Math.min(day, daysInCotidieMonth(next.get(Calendar.YEAR), month - 1)));
+            }
+            return next.getTime();
+        }
+
+        if ("monthly".equals(recurrence)) {
+            Matcher matcher = Pattern.compile("^(\\\\d{1,2})\\\\s+(\\\\d{1,2}):(\\\\d{2})$").matcher(dateRule);
+            if (!matcher.matches()) return null;
+            int day = Integer.parseInt(matcher.group(1));
+            int hour = Integer.parseInt(matcher.group(2));
+            int minute = Integer.parseInt(matcher.group(3));
+            Calendar next = Calendar.getInstance();
+            next.setTime(now);
+            next.set(Calendar.DAY_OF_MONTH, Math.min(day, daysInCotidieMonth(next.get(Calendar.YEAR), next.get(Calendar.MONTH))));
+            next.set(Calendar.HOUR_OF_DAY, hour);
+            next.set(Calendar.MINUTE, minute);
+            next.set(Calendar.SECOND, 0);
+            next.set(Calendar.MILLISECOND, 0);
+            if (!next.getTime().after(now)) {
+                next.add(Calendar.MONTH, 1);
+                next.set(Calendar.DAY_OF_MONTH, Math.min(day, daysInCotidieMonth(next.get(Calendar.YEAR), next.get(Calendar.MONTH))));
+            }
+            return next.getTime();
+        }
+
+        if ("relative-monthly".equals(recurrence)) {
+            Matcher matcher = Pattern.compile("^([lmwjvsd])([1234u])\\\\s+(\\\\d{1,2}):(\\\\d{2})$", Pattern.CASE_INSENSITIVE).matcher(dateRule);
+            if (!matcher.matches()) return null;
+            int weekday = getCotidieWeekday(matcher.group(1));
+            String ordinal = matcher.group(2).toLowerCase();
+            int hour = Integer.parseInt(matcher.group(3));
+            int minute = Integer.parseInt(matcher.group(4));
+            if (weekday < 0) return null;
+
+            Calendar base = Calendar.getInstance();
+            base.setTime(now);
+            Date next = buildCotidieRelativeMonthlyDate(base.get(Calendar.YEAR), base.get(Calendar.MONTH), weekday, ordinal, hour, minute);
+            if (next == null) return null;
+            if (!next.after(now)) {
+                base.add(Calendar.MONTH, 1);
+                next = buildCotidieRelativeMonthlyDate(base.get(Calendar.YEAR), base.get(Calendar.MONTH), weekday, ordinal, hour, minute);
+            }
+            return next;
+        }
+
+        return null;
+    }
+
+    private Date buildCotidieRelativeMonthlyDate(int year, int month, int weekday, String ordinal, int hour, int minute) {
+        Calendar next = Calendar.getInstance();
+        next.clear();
+        next.set(Calendar.YEAR, year);
+        next.set(Calendar.MONTH, month);
+        next.set(Calendar.HOUR_OF_DAY, hour);
+        next.set(Calendar.MINUTE, minute);
+        next.set(Calendar.SECOND, 0);
+        next.set(Calendar.MILLISECOND, 0);
+
+        if ("u".equals(ordinal)) {
+            next.set(Calendar.DAY_OF_MONTH, daysInCotidieMonth(year, month));
+            int delta = (next.get(Calendar.DAY_OF_WEEK) - weekday + 7) % 7;
+            next.add(Calendar.DAY_OF_MONTH, -delta);
+            return next.getTime();
+        }
+
+        int nth = Integer.parseInt(ordinal);
+        next.set(Calendar.DAY_OF_MONTH, 1);
+        int delta = (weekday - next.get(Calendar.DAY_OF_WEEK) + 7) % 7;
+        next.add(Calendar.DAY_OF_MONTH, delta + ((nth - 1) * 7));
+        if (next.get(Calendar.MONTH) != month) return null;
+        return next.getTime();
+    }
+
+    private int getCotidieWeekday(String letter) {
+        if ("d".equalsIgnoreCase(letter)) return Calendar.SUNDAY;
+        if ("l".equalsIgnoreCase(letter)) return Calendar.MONDAY;
+        if ("m".equalsIgnoreCase(letter)) return Calendar.TUESDAY;
+        if ("w".equalsIgnoreCase(letter)) return Calendar.WEDNESDAY;
+        if ("j".equalsIgnoreCase(letter)) return Calendar.THURSDAY;
+        if ("v".equalsIgnoreCase(letter)) return Calendar.FRIDAY;
+        if ("s".equalsIgnoreCase(letter)) return Calendar.SATURDAY;
+        return -1;
+    }
+
+    private int daysInCotidieMonth(int year, int month) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.clear();
+        calendar.set(Calendar.YEAR, year);
+        calendar.set(Calendar.MONTH, month);
+        return calendar.getActualMaximum(Calendar.DAY_OF_MONTH);
+    }
+
+    private String formatCotidieNotificationDate(Date date) {
+        SimpleDateFormat formatter = new SimpleDateFormat(LocalNotificationSchedule.JS_DATE_FORMAT);
+        formatter.setTimeZone(TimeZone.getTimeZone("UTC"));
+        return formatter.format(date);
+    }
+
+    private String formatCotidieDateKey(Date date) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        return calendar.get(Calendar.YEAR) + "-" + padCotidie2(calendar.get(Calendar.MONTH) + 1) + "-" + padCotidie2(calendar.get(Calendar.DAY_OF_MONTH));
+    }
+
+    private String formatCotidieTemplate(String template, Date date) {
+        if (template == null) return "";
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        String result = template;
+        result = result.replace("{year}", Integer.toString(calendar.get(Calendar.YEAR)));
+        result = result.replace("{month}", padCotidie2(calendar.get(Calendar.MONTH) + 1));
+        result = result.replace("{day}", padCotidie2(calendar.get(Calendar.DAY_OF_MONTH)));
+        result = result.replace("{hour}", padCotidie2(calendar.get(Calendar.HOUR_OF_DAY)));
+        result = result.replace("{minute}", padCotidie2(calendar.get(Calendar.MINUTE)));
+        result = result.replace("{date}", padCotidie2(calendar.get(Calendar.DAY_OF_MONTH)) + "/" + padCotidie2(calendar.get(Calendar.MONTH) + 1) + "/" + calendar.get(Calendar.YEAR));
+
+        Matcher matcher = Pattern.compile("\\\\{year([+-]\\\\d+)\\\\}").matcher(result);
+        StringBuffer buffer = new StringBuffer();
+        while (matcher.find()) {
+            int offset = Integer.parseInt(matcher.group(1));
+            matcher.appendReplacement(buffer, Integer.toString(calendar.get(Calendar.YEAR) + offset));
+        }
+        matcher.appendTail(buffer);
+        return buffer.toString();
+    }
+
+    private String padCotidie2(int value) {
+        return value < 10 ? "0" + value : Integer.toString(value);
+    }
+
+    private int toCotidieNotificationId(String key) {
+        long hash = 2166136261L;
+        for (int i = 0; i < key.length(); i++) {
+            hash ^= key.charAt(i);
+            hash = (hash * 16777619L) & 0xffffffffL;
+        }
+        int id = (int) (hash % 2147483647L);
+        return id == 0 ? 1 : id;
+    }
+}`,
+      'timed notification fixed recurrence methods'
+    );
+  }
+
   if (publisherChanged) {
     fs.writeFileSync(publisherPath, publisherSource, 'utf8');
+  }
+}
+
+if (fs.existsSync(restorePath)) {
+  let restoreSource = fs.readFileSync(restorePath, 'utf8');
+  let restoreChanged = false;
+
+  const replaceRestoreOnce = (pattern, replacement, label) => {
+    const next = restoreSource.replace(pattern, replacement);
+    if (next === restoreSource) {
+      console.error(`patch-local-notifications: pattern not found for ${label}`);
+      process.exit(1);
+    }
+    restoreSource = next;
+    restoreChanged = true;
+  };
+
+  if (restoreSource.includes('COTIDIE_RESTORE_NOTIFICATION_LIMIT = 42')) {
+    restoreSource = restoreSource.replace('COTIDIE_RESTORE_NOTIFICATION_LIMIT = 42', 'COTIDIE_RESTORE_NOTIFICATION_LIMIT = 32');
+    restoreChanged = true;
+  }
+
+  if (!restoreSource.includes('Cotidie restore cap v1')) {
+    if (!restoreSource.includes('import java.util.Collections;')) {
+      replaceRestoreOnce(
+        /import java\.util\.ArrayList;\r?\nimport java\.util\.Date;\r?\nimport java\.util\.List;/,
+        `import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.List;`,
+        'restore receiver collection imports'
+      );
+    }
+
+    replaceRestoreOnce(
+      /public class LocalNotificationRestoreReceiver extends BroadcastReceiver \{\r?\n/,
+      `public class LocalNotificationRestoreReceiver extends BroadcastReceiver {
+    private static final int COTIDIE_RESTORE_NOTIFICATION_LIMIT = 32;
+
+`,
+      'restore receiver cap constant'
+    );
+
+    replaceRestoreOnce(
+      /        if \(updatedNotifications\.size\(\) > 0\) \{\r?\n            storage\.appendNotifications\(updatedNotifications\);\r?\n        \}\r?\n\r?\n        CapConfig config = CapConfig\.loadDefault\(context\);/,
+      `        if (updatedNotifications.size() > 0) {
+            storage.appendNotifications(updatedNotifications);
+        }
+
+        if (notifications.size() > COTIDIE_RESTORE_NOTIFICATION_LIMIT) {
+            // Cotidie restore cap v1
+            Collections.sort(
+                notifications,
+                new Comparator<LocalNotification>() {
+                    @Override
+                    public int compare(LocalNotification first, LocalNotification second) {
+                        return Long.compare(getNotificationRestoreTime(first), getNotificationRestoreTime(second));
+                    }
+                }
+            );
+            ArrayList<LocalNotification> keepNotifications = new ArrayList<>(
+                notifications.subList(0, COTIDIE_RESTORE_NOTIFICATION_LIMIT)
+            );
+            for (int i = COTIDIE_RESTORE_NOTIFICATION_LIMIT; i < notifications.size(); i++) {
+                LocalNotification removedNotification = notifications.get(i);
+                if (removedNotification != null && removedNotification.getId() != null) {
+                    storage.deleteNotification(removedNotification.getId().toString());
+                }
+            }
+            notifications = keepNotifications;
+        }
+
+        CapConfig config = CapConfig.loadDefault(context);`,
+      'restore receiver cap block'
+    );
+
+    replaceRestoreOnce(
+      /\r?\n\}\r?\n$/,
+      `
+
+    private long getNotificationRestoreTime(LocalNotification notification) {
+        if (notification == null || notification.getSchedule() == null) return Long.MAX_VALUE;
+        LocalNotificationSchedule schedule = notification.getSchedule();
+        Date at = schedule.getAt();
+        return at != null ? at.getTime() : Long.MAX_VALUE;
+    }
+}
+`,
+      'restore receiver sort helper'
+    );
+  }
+
+  if (restoreChanged) {
+    fs.writeFileSync(restorePath, restoreSource, 'utf8');
   }
 }

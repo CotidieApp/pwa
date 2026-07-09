@@ -39,9 +39,11 @@ const saintsData = saintsDataRaw as { saints: SaintOfTheDay[] };
 const NOTIFICATION_ACTION_TYPE_ID = 'cotidie-prayer-actions';
 const CARTAS_REMINDER_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000;
 const CARTAS_REMINDER_REACTIVATION_DELAY_MS = 60 * 1000;
-const MONTHLY_FIXED_NOTIFICATION_OCCURRENCES_ANDROID = 24;
+const MONTHLY_FIXED_NOTIFICATION_OCCURRENCES_ANDROID = 1;
 const MONTHLY_FIXED_NOTIFICATION_OCCURRENCES_IOS = 12;
 const NOTIFICATION_SCHEDULE_BATCH_SIZE = 24;
+const ANDROID_NOTIFICATION_SCHEDULE_LIMIT = 32;
+const IOS_NOTIFICATION_SCHEDULE_LIMIT = 60;
 const FORCED_DAILY_QUOTES: Record<string, Quote> = {
   '06-26': {
     id: 'forced-quote-06-26',
@@ -2746,7 +2748,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     const sync = async () => {
       const now = new Date();
       const platform = Capacitor.getPlatform();
-      const maxTotal = platform === 'ios' ? 60 : 180;
+      const maxTotal = platform === 'ios' ? IOS_NOTIFICATION_SCHEDULE_LIMIT : ANDROID_NOTIFICATION_SCHEDULE_LIMIT;
       const monthlyFixedOccurrenceLimit =
         platform === 'ios'
           ? MONTHLY_FIXED_NOTIFICATION_OCCURRENCES_IOS
@@ -2844,6 +2846,16 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       const getNotificationActionTypeId = (target?: { type?: string } | null) =>
         target?.type === 'prayer' ? NOTIFICATION_ACTION_TYPE_ID : undefined;
 
+      const getNotificationFireTime = (notification: any) => {
+        const at = notification?.schedule?.at;
+        if (at instanceof Date) return at.getTime();
+        if (at) {
+          const parsed = new Date(at).getTime();
+          if (Number.isFinite(parsed)) return parsed;
+        }
+        return Number.MAX_SAFE_INTEGER;
+      };
+
       const notifications: Array<any> = [];
       for (const r of active) {
         const message =
@@ -2922,6 +2934,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
             return;
           }
           let next = getNextOccurrence(parsed.date, parsed.kind, now, parsed.relative);
+          const fixedRecurrence =
+            parsed.kind === 'monthly' || parsed.kind === 'relative-monthly' || parsed.kind === 'yearly'
+              ? parsed.kind
+              : null;
           const fixedOccurrenceLimit =
             parsed.kind === 'monthly' || parsed.kind === 'relative-monthly'
               ? monthlyFixedOccurrenceLimit
@@ -2960,6 +2976,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
                 devOnly: entry.devOnly ?? false,
                 requiresNotificationsEnabled: entry.requiresNotificationsEnabled ?? false,
                 route: entry.route ?? null,
+                fixedRecurrence,
+                fixedKey: `fixed:${index}:${entry.date}`,
+                titleTemplate: entry.title,
+                bodyTemplate: entry.text,
               },
             });
             fixedOccurrences += 1;
@@ -3132,9 +3152,14 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         scheduleCotidieAnnuumStart(now.getFullYear() + i);
       }
 
+      const scheduleLimit = platform === 'ios' ? IOS_NOTIFICATION_SCHEDULE_LIMIT : ANDROID_NOTIFICATION_SCHEDULE_LIMIT;
+      const scheduledNotifications = [...notifications]
+        .sort((a, b) => getNotificationFireTime(a) - getNotificationFireTime(b))
+        .slice(0, scheduleLimit);
+
       try {
-        for (let index = 0; index < notifications.length; index += NOTIFICATION_SCHEDULE_BATCH_SIZE) {
-          const batch = notifications.slice(index, index + NOTIFICATION_SCHEDULE_BATCH_SIZE);
+        for (let index = 0; index < scheduledNotifications.length; index += NOTIFICATION_SCHEDULE_BATCH_SIZE) {
+          const batch = scheduledNotifications.slice(index, index + NOTIFICATION_SCHEDULE_BATCH_SIZE);
           if (batch.length === 0) continue;
           await LocalNotifications.schedule({ notifications: batch });
         }

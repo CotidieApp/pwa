@@ -1,7 +1,15 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import EpubReader from '@/components/EpubReader';
 import { Trash2, BookOpen, Pencil } from 'lucide-react';
 
@@ -45,12 +53,28 @@ const saveStoredEpubs = (items: StoredPersonalEpubMeta[]) => {
 
 export default function PersonalEpubLibrary() {
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const renameInputRef = useRef<HTMLInputElement | null>(null);
   const [epubs, setEpubs] = useState<StoredPersonalEpubMeta[]>(() => loadStoredEpubs());
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedSource, setSelectedSource] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [renameTargetId, setRenameTargetId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
 
   const selected = useMemo(() => epubs.find((item) => item.id === selectedId) ?? null, [epubs, selectedId]);
+  const renameTarget = useMemo(
+    () => epubs.find((item) => item.id === renameTargetId) ?? null,
+    [epubs, renameTargetId]
+  );
+
+  useEffect(() => {
+    if (!renameTargetId) return;
+    const timeout = window.setTimeout(() => {
+      renameInputRef.current?.focus();
+      renameInputRef.current?.select();
+    }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [renameTargetId]);
 
   const onUpload = (file: File) => {
     setErrorMessage(null);
@@ -90,16 +114,32 @@ export default function PersonalEpubLibrary() {
     }
   };
 
-  const onRename = (id: string) => {
+  const openRename = (id: string) => {
     const item = epubs.find((epub) => epub.id === id);
     if (!item) return;
-    const nextName = window.prompt('Nuevo nombre visible', item.name)?.trim();
-    if (!nextName || nextName === item.name) return;
+    setRenameTargetId(item.id);
+    setRenameValue(item.name);
+  };
+
+  const closeRename = () => {
+    setRenameTargetId(null);
+    setRenameValue('');
+  };
+
+  const submitRename = () => {
+    if (!renameTarget) return;
+    const nextName = renameValue.trim();
+    if (!nextName) return;
+    if (nextName === renameTarget.name) {
+      closeRename();
+      return;
+    }
     const next = epubs.map((epub) =>
-      epub.id === id ? { ...epub, name: nextName, updatedAt: Date.now() } : epub
+      epub.id === renameTarget.id ? { ...epub, name: nextName, updatedAt: Date.now() } : epub
     );
     setEpubs(next);
     saveStoredEpubs(next);
+    closeRename();
   };
 
   const onOpen = (id: string) => {
@@ -112,6 +152,41 @@ export default function PersonalEpubLibrary() {
     setSelectedId(id);
     setSelectedSource(raw);
   };
+
+  const renameDialog = (
+    <Dialog open={Boolean(renameTarget)} onOpenChange={(open) => {
+      if (!open) closeRename();
+    }}>
+      <DialogContent className="max-w-[90vw] sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Editar nombre visible</DialogTitle>
+        </DialogHeader>
+        <form
+          className="space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            submitRename();
+          }}
+        >
+          <Input
+            ref={renameInputRef}
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            onFocus={(e) => e.currentTarget.select()}
+            aria-label="Nombre visible"
+          />
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={closeRename}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={renameValue.trim().length === 0}>
+              Guardar
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
 
   if (selected && selectedSource) {
     return (
@@ -131,7 +206,7 @@ export default function PersonalEpubLibrary() {
             variant="ghost"
             size="icon"
             aria-label="Editar nombre visible"
-            onClick={() => onRename(selected.id)}
+            onClick={() => openRename(selected.id)}
           >
             <Pencil className="size-4" />
           </Button>
@@ -141,6 +216,7 @@ export default function PersonalEpubLibrary() {
           sourceBase64={selectedSource}
           context="general"
         />
+        {renameDialog}
       </div>
     );
   }
@@ -196,7 +272,7 @@ export default function PersonalEpubLibrary() {
                     aria-label="Editar nombre visible"
                     onClick={(e) => {
                       e.stopPropagation();
-                      onRename(item.id);
+                      openRename(item.id);
                     }}
                   >
                     <Pencil className="size-4" />
@@ -220,6 +296,7 @@ export default function PersonalEpubLibrary() {
           )}
         </div>
       </div>
+      {renameDialog}
     </div>
   );
 }
