@@ -54,6 +54,7 @@ type HighlightItem = {
 };
 
 const READER_STYLE_TAG_ID = 'cotidie-reader-colors';
+const EPUB_PAGE_BOTTOM_GUARD = '2.5em';
 
 const applyReaderColorsToContents = (contents: any, textColor: string, backgroundColor: string) => {
   const doc = contents?.document as Document | undefined;
@@ -71,6 +72,10 @@ const applyReaderColorsToContents = (contents: any, textColor: string, backgroun
       background-color: ${backgroundColor} !important;
       margin: 0 !important;
       padding: 0 !important;
+      box-sizing: border-box !important;
+    }
+    body {
+      padding-bottom: 1.25em !important;
     }
     body * { color: ${textColor} !important; }
     a { color: ${textColor} !important; }
@@ -998,26 +1003,6 @@ export default function EpubReader({
         }
       >
       <div className="flex flex-wrap gap-2">
-        <Button
-          variant="outline"
-          onClick={() => {
-            wakeReaderChrome();
-            goPrev();
-          }}
-          disabled={status !== 'ready'}
-        >
-          Anterior
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => {
-            wakeReaderChrome();
-            goNext();
-          }}
-          disabled={status !== 'ready'}
-        >
-          Siguiente
-        </Button>
         <Button variant="outline" size="icon" onClick={() => {
             wakeReaderChrome();
             setIsPanelOpen(true);
@@ -1098,42 +1083,28 @@ export default function EpubReader({
       >
         <div
           ref={containerRef}
-          className="h-full w-full"
-          style={{ fontSize: `${prayerTextZoom}em` }}
+          className="w-full min-h-0"
+          style={{
+            fontSize: `${prayerTextZoom}em`,
+            height: `calc(100% - ${EPUB_PAGE_BOTTOM_GUARD})`,
+          }}
         />
-        {isReaderFullscreen ? (
-          <>
-            <div className="pointer-events-none absolute inset-0 z-[5] bg-black/28" />
-            <div className="absolute inset-0 z-[30]">
-              <button
-                type="button"
-                aria-label="Mostrar u ocultar encabezado"
-                onClick={toggleReaderChrome}
-                className="absolute top-0 left-0 h-1/2 w-full"
-              />
-              <div className="absolute bottom-0 left-0 h-1/2 w-full flex">
-                <button
-                  type="button"
-                  aria-label="Pagina anterior"
-                  onClick={goPrev}
-                  className="h-full w-1/3"
-                />
-                <button
-                  type="button"
-                  aria-label="Pagina siguiente"
-                  onClick={goNext}
-                  className="h-full w-1/3"
-                />
-                <button
-                  type="button"
-                  aria-label="Pagina siguiente"
-                  onClick={goNext}
-                  className="h-full w-1/3"
-                />
-              </div>
-            </div>
-          </>
-        ) : null}
+        <div className="pointer-events-none absolute inset-0 z-[30]">
+          <button
+            type="button"
+            aria-label="Pagina anterior"
+            onClick={goPrev}
+            disabled={status !== 'ready'}
+            className="pointer-events-auto absolute inset-y-0 left-0 w-1/4"
+          />
+          <button
+            type="button"
+            aria-label="Pagina siguiente"
+            onClick={goNext}
+            disabled={status !== 'ready'}
+            className="pointer-events-auto absolute inset-y-0 right-0 w-1/3"
+          />
+        </div>
       </div>
 
       <Sheet open={isPanelOpen} onOpenChange={setIsPanelOpen}>

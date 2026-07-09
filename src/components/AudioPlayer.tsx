@@ -8,10 +8,14 @@ import { Play, Pause, RotateCcw, Volume2, VolumeX } from 'lucide-react';
 interface AudioPlayerProps {
   src: string;
   title?: string;
+  initialTime?: number;
+  progressKey?: string;
+  onProgressChange?: (key: string, currentTime: number, duration: number) => void;
 }
 
-export function AudioPlayer({ src, title }: AudioPlayerProps) {
+export function AudioPlayer({ src, title, initialTime = 0, progressKey, onProgressChange }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const restoredForSrcRef = useRef<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
@@ -23,24 +27,48 @@ export function AudioPlayer({ src, title }: AudioPlayerProps) {
     if (!audio) return;
 
     const setAudioData = () => {
-      setDuration(audio.duration);
-      setCurrentTime(audio.currentTime);
+      const nextDuration = Number.isFinite(audio.duration) ? audio.duration : 0;
+      let nextTime = audio.currentTime;
+      if (restoredForSrcRef.current !== src) {
+        const canRestore =
+          Number.isFinite(initialTime) &&
+          initialTime > 10 &&
+          nextDuration > 0 &&
+          nextDuration - initialTime > 10;
+        if (canRestore) {
+          audio.currentTime = initialTime;
+          nextTime = initialTime;
+        }
+        restoredForSrcRef.current = src;
+      }
+      setDuration(nextDuration);
+      setCurrentTime(nextTime);
+      if (progressKey) onProgressChange?.(progressKey, nextTime, nextDuration);
     }
 
-    const setAudioTime = () => setCurrentTime(audio.currentTime);
+    const setAudioTime = () => {
+      const nextDuration = Number.isFinite(audio.duration) ? audio.duration : 0;
+      setCurrentTime(audio.currentTime);
+      if (progressKey) onProgressChange?.(progressKey, audio.currentTime, nextDuration);
+    };
     const handleEnded = () => setIsPlaying(false);
 
-    // Events
+    restoredForSrcRef.current = null;
+    setIsPlaying(false);
+    setDuration(0);
+    setCurrentTime(0);
     audio.addEventListener('loadeddata', setAudioData);
+    audio.addEventListener('loadedmetadata', setAudioData);
     audio.addEventListener('timeupdate', setAudioTime);
     audio.addEventListener('ended', handleEnded);
 
     return () => {
       audio.removeEventListener('loadeddata', setAudioData);
+      audio.removeEventListener('loadedmetadata', setAudioData);
       audio.removeEventListener('timeupdate', setAudioTime);
       audio.removeEventListener('ended', handleEnded);
     }
-  }, []);
+  }, [initialTime, onProgressChange, progressKey, src]);
 
   const togglePlay = () => {
     const audio = audioRef.current;

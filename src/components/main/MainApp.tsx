@@ -11,6 +11,7 @@ import PrayerDetail from '@/components/PrayerDetail';
 import Settings from '@/components/Settings';
 import AddPrayerForm from '@/components/AddPrayerForm';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import PrayerAccordion from '@/components/PrayerAccordion';
 import HomePage from '../home/HomePage';
 import CustomPlanView from '../plans/CustomPlanView';
@@ -42,8 +43,10 @@ import { useAndroidBackButton, useNotificationActionBinding, useSharedImportBind
 import {
   AlertDialog,
   AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
+  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
@@ -62,6 +65,88 @@ const DEFAULT_CAMINO_SEARCH_STATE = {
   resultsCount: 0,
 };
 
+type SpiritualAudioItem = {
+  id: string;
+  title: string;
+  src: string;
+  isUser?: boolean;
+  sizeBytes?: number;
+  updatedAt?: number;
+};
+
+type StoredSpiritualAudioItem = Required<Pick<SpiritualAudioItem, 'id' | 'title' | 'src' | 'sizeBytes' | 'updatedAt'>>;
+
+const DEFAULT_SPIRITUAL_AUDIOS: SpiritualAudioItem[] = [
+  { id: 'san-josemaria-discurso', title: 'Discurso San Josemaría', src: '/media/Discurso San Josemaría.mp3' },
+  { id: 'san-juan-pablo-ii-discurso', title: 'Discurso San Juan Pablo II', src: '/media/Discurso San Juan Pablo II.mp3' },
+];
+const SPIRITUAL_AUDIO_INDEX_STORAGE_KEY = 'cotidie_spiritual_audio_library';
+const SPIRITUAL_AUDIO_FILE_KEY_PREFIX = 'cotidie_spiritual_audio_file_';
+const SPIRITUAL_AUDIO_PROGRESS_STORAGE_KEY = 'cotidie_spiritual_audio_progress';
+const MAX_SPIRITUAL_AUDIO_SIZE_BYTES = 25 * 1024 * 1024;
+
+const toSpiritualAudioFileKey = (id: string) => `${SPIRITUAL_AUDIO_FILE_KEY_PREFIX}${id}`;
+
+const removeAudioExtension = (name: string) =>
+  name.replace(/\.[^.]+$/, '').trim();
+
+const loadStoredSpiritualAudios = (): StoredSpiritualAudioItem[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(SPIRITUAL_AUDIO_INDEX_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter(
+        (item): item is Omit<StoredSpiritualAudioItem, 'src'> =>
+          item &&
+          typeof item.id === 'string' &&
+          typeof item.title === 'string' &&
+          typeof item.sizeBytes === 'number' &&
+          typeof item.updatedAt === 'number'
+      )
+      .map((item) => ({
+        ...item,
+        src: window.localStorage.getItem(toSpiritualAudioFileKey(item.id)) ?? '',
+      }))
+      .filter((item) => item.src.length > 0);
+  } catch {
+    return [];
+  }
+};
+
+const saveStoredSpiritualAudios = (items: StoredSpiritualAudioItem[]) => {
+  if (typeof window === 'undefined') return;
+  const index = items.map(({ id, title, sizeBytes, updatedAt }) => ({ id, title, sizeBytes, updatedAt }));
+  window.localStorage.setItem(SPIRITUAL_AUDIO_INDEX_STORAGE_KEY, JSON.stringify(index));
+};
+
+const loadSpiritualAudioProgress = (): Record<string, number> => {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = window.localStorage.getItem(SPIRITUAL_AUDIO_PROGRESS_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+    return Object.fromEntries(
+      Object.entries(parsed).filter((entry): entry is [string, number] => (
+        typeof entry[0] === 'string' &&
+        typeof entry[1] === 'number' &&
+        Number.isFinite(entry[1]) &&
+        entry[1] >= 0
+      ))
+    );
+  } catch {
+    return {};
+  }
+};
+
+const saveSpiritualAudioProgress = (progress: Record<string, number>) => {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(SPIRITUAL_AUDIO_PROGRESS_STORAGE_KEY, JSON.stringify(progress));
+};
+
 
 export default function MainApp() {
   const isInteractiveElement = (el: HTMLElement | null): boolean => {
@@ -78,7 +163,18 @@ export default function MainApp() {
   const [showAnnuum, setShowAnnuum] = useState(false);
   const [showLettersInfo, setShowLettersInfo] = useState(false);
   const [showErrorReport, setShowErrorReport] = useState(false);
-  const [activeSpiritualReadingAudio, setActiveSpiritualReadingAudio] = useState<string | null>(null);
+  const [activeSpiritualReadingAudioId, setActiveSpiritualReadingAudioId] = useState<string | null>(null);
+  const audioUploadInputRef = useRef<HTMLInputElement | null>(null);
+  const [userSpiritualAudios, setUserSpiritualAudios] = useState<StoredSpiritualAudioItem[]>(() => loadStoredSpiritualAudios());
+  const [spiritualAudioProgress, setSpiritualAudioProgress] = useState<Record<string, number>>(() => loadSpiritualAudioProgress());
+  const spiritualAudioProgressRef = useRef(spiritualAudioProgress);
+  const activeSpiritualAudioRuntimeRef = useRef<{ id: string | null; currentTime: number; duration: number }>({
+    id: null,
+    currentTime: 0,
+    duration: 0,
+  });
+  const [spiritualAudioError, setSpiritualAudioError] = useState<string | null>(null);
+  const [audioPendingDelete, setAudioPendingDelete] = useState<StoredSpiritualAudioItem | null>(null);
   const shakeCountRef = useRef(0);
   const lastShakeTimeRef = useRef(0);
   const shakeResetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -247,9 +343,112 @@ export default function MainApp() {
     persistNavState(navState);
   }, [navState]);
 
+  const spiritualAudios = useMemo<SpiritualAudioItem[]>(() => [
+    ...DEFAULT_SPIRITUAL_AUDIOS,
+    ...userSpiritualAudios.map((audio) => ({ ...audio, isUser: true })),
+  ], [userSpiritualAudios]);
+
+  const activeSpiritualAudio = useMemo(
+    () => spiritualAudios.find((audio) => audio.id === activeSpiritualReadingAudioId) ?? spiritualAudios[0],
+    [activeSpiritualReadingAudioId, spiritualAudios]
+  );
+
+  useEffect(() => {
+    spiritualAudioProgressRef.current = spiritualAudioProgress;
+  }, [spiritualAudioProgress]);
+
+  const persistActiveSpiritualAudioProgress = useCallback(() => {
+    const { id, currentTime, duration } = activeSpiritualAudioRuntimeRef.current;
+    if (!id || !Number.isFinite(currentTime) || !Number.isFinite(duration) || duration <= 20) return;
+
+    const next = { ...spiritualAudioProgressRef.current };
+    if (currentTime > 10 && duration - currentTime > 10) {
+      next[id] = Math.floor(currentTime);
+    } else {
+      delete next[id];
+    }
+    spiritualAudioProgressRef.current = next;
+    setSpiritualAudioProgress(next);
+    saveSpiritualAudioProgress(next);
+  }, []);
+
+  const handleSpiritualAudioProgress = useCallback((id: string, currentTime: number, duration: number) => {
+    activeSpiritualAudioRuntimeRef.current = { id, currentTime, duration };
+  }, []);
+
+  const handleSpiritualAudioUpload = useCallback((file: File) => {
+    setSpiritualAudioError(null);
+    if (file.size > MAX_SPIRITUAL_AUDIO_SIZE_BYTES) {
+      setSpiritualAudioError('El audio supera el límite recomendado de 25MB.');
+      return;
+    }
+    if (!file.type.startsWith('audio/') && !/\.(mp3|m4a|aac|wav|ogg)$/i.test(file.name)) {
+      setSpiritualAudioError('Selecciona un archivo de audio válido.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const raw = typeof reader.result === 'string' ? reader.result : '';
+      if (!raw) {
+        setSpiritualAudioError('No se pudo leer el audio.');
+        return;
+      }
+      const id = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `audio-${Date.now()}`;
+      const entry: StoredSpiritualAudioItem = {
+        id,
+        title: removeAudioExtension(file.name) || `Audio ${userSpiritualAudios.length + 1}`,
+        src: raw,
+        sizeBytes: file.size,
+        updatedAt: Date.now(),
+      };
+      try {
+        window.localStorage.setItem(toSpiritualAudioFileKey(entry.id), raw);
+        const next = [entry, ...userSpiritualAudios];
+        saveStoredSpiritualAudios(next);
+        setUserSpiritualAudios(next);
+        persistActiveSpiritualAudioProgress();
+        activeSpiritualAudioRuntimeRef.current = { id: entry.id, currentTime: 0, duration: 0 };
+        setActiveSpiritualReadingAudioId(entry.id);
+      } catch {
+        window.localStorage.removeItem(toSpiritualAudioFileKey(entry.id));
+        setSpiritualAudioError('No se pudo guardar el audio en este dispositivo.');
+      }
+    };
+    reader.onerror = () => setSpiritualAudioError('No se pudo leer el audio.');
+    reader.readAsDataURL(file);
+  }, [persistActiveSpiritualAudioProgress, userSpiritualAudios]);
+
+  const deletePendingSpiritualAudio = useCallback(() => {
+    if (!audioPendingDelete) return;
+    window.localStorage.removeItem(toSpiritualAudioFileKey(audioPendingDelete.id));
+    const nextAudios = userSpiritualAudios.filter((audio) => audio.id !== audioPendingDelete.id);
+    saveStoredSpiritualAudios(nextAudios);
+    setUserSpiritualAudios(nextAudios);
+
+    const nextProgress = { ...spiritualAudioProgressRef.current };
+    delete nextProgress[audioPendingDelete.id];
+    spiritualAudioProgressRef.current = nextProgress;
+    setSpiritualAudioProgress(nextProgress);
+    saveSpiritualAudioProgress(nextProgress);
+
+    if (activeSpiritualReadingAudioId === audioPendingDelete.id) {
+      activeSpiritualAudioRuntimeRef.current = { id: null, currentTime: 0, duration: 0 };
+      setActiveSpiritualReadingAudioId(null);
+    }
+    setAudioPendingDelete(null);
+  }, [activeSpiritualReadingAudioId, audioPendingDelete, userSpiritualAudios]);
+
   // Effect to handle browser history (popstate for back/forward buttons)
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
+      const current = navStateRef.current;
+      const currentPrayerId = current.prayerPathIds[current.prayerPathIds.length - 1] ?? null;
+      if (current.activeView === 'prayer' && currentPrayerId === 'lectura-espiritual-audios') {
+        persistActiveSpiritualAudioProgress();
+      }
       const nextState = (event.state as NavigationState | null) ?? null;
       const isCustomPlanContext =
         nextState?.activeView === 'customPlan' ||
@@ -276,7 +475,7 @@ export default function MainApp() {
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  }, []);
+  }, [persistActiveSpiritualAudioProgress]);
 
   // Effect to push new state to history when navState changes
   useEffect(() => {
@@ -360,6 +559,10 @@ export default function MainApp() {
     const currentState = navStateRef.current;
     const currentPrayerId = currentState.prayerPathIds[currentState.prayerPathIds.length - 1] ?? null;
 
+    if (currentState.activeView === 'prayer' && currentPrayerId === 'lectura-espiritual-audios') {
+      persistActiveSpiritualAudioProgress();
+    }
+
     if (currentState.activeView === 'home') {
       return;
     }
@@ -437,7 +640,7 @@ export default function MainApp() {
     }
 
     replaceNavState(initialState);
-  }, [buildCategoryNavState, buildPrayerNavState, getCategoryIdForPrayerPath, replaceNavState]);
+  }, [buildCategoryNavState, buildPrayerNavState, getCategoryIdForPrayerPath, persistActiveSpiritualAudioProgress, replaceNavState]);
 
   useAndroidBackButton(navStateRef, handleBack);
 
@@ -727,32 +930,80 @@ export default function MainApp() {
           return <div className="p-4">{renderCategory()}</div>;
         }
         if (currentPrayer.id === 'lectura-espiritual-audios') {
-          const spiritualAudios = [
-            { title: 'Discurso San Josemaría', src: '/media/Discurso San Josemaría.mp3' },
-            { title: 'Discurso San Juan Pablo II', src: '/media/Discurso San Juan Pablo II.mp3' },
-          ];
-          const audioSrc = activeSpiritualReadingAudio || spiritualAudios[0].src;
-
           return (
             <div className="p-4 space-y-4">
               <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-4 rounded-xl border shadow-sm shrink-0 space-y-4">
-                <AudioPlayer src={audioSrc} title={spiritualAudios.find(a => a.src === audioSrc)?.title || 'Audio seleccionado'} />
+                {activeSpiritualAudio ? (
+                  <AudioPlayer
+                    key={activeSpiritualAudio.id}
+                    src={activeSpiritualAudio.src}
+                    title={activeSpiritualAudio.title}
+                    initialTime={spiritualAudioProgress[activeSpiritualAudio.id] ?? 0}
+                    progressKey={activeSpiritualAudio.id}
+                    onProgressChange={handleSpiritualAudioProgress}
+                  />
+                ) : null}
                 <div className="grid grid-cols-1 gap-2">
-                  <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground ml-1">Meditaciones disponibles</p>
-                  {spiritualAudios.map((audio) => (
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground ml-1">Meditaciones disponibles</p>
                     <Button
-                      key={audio.src}
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
-                      className={cn(
-                        'w-full justify-start text-left h-auto py-2 px-3 rounded-lg border border-transparent',
-                        activeSpiritualReadingAudio === audio.src && 'border-primary/20 bg-primary/5 text-primary'
-                      )}
-                      onClick={() => setActiveSpiritualReadingAudio(audio.src)}
+                      onClick={() => audioUploadInputRef.current?.click()}
                     >
-                      <Play className={cn("mr-2 h-4 w-4", activeSpiritualReadingAudio === audio.src ? "fill-primary" : "text-muted-foreground")} />
-                      <span className="truncate">{audio.title}</span>
+                      Agregar audio
                     </Button>
+                    <Input
+                      ref={audioUploadInputRef}
+                      id="spiritual-audio-upload"
+                      name="spiritual-audio-upload"
+                      type="file"
+                      accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg"
+                      className="hidden"
+                      aria-label="Agregar audio personal"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleSpiritualAudioUpload(file);
+                        e.currentTarget.value = '';
+                      }}
+                    />
+                  </div>
+                  {spiritualAudioError ? <p className="text-xs text-destructive ml-1">{spiritualAudioError}</p> : null}
+                  {spiritualAudios.map((audio) => (
+                    <div key={audio.id} className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={cn(
+                          'min-w-0 flex-1 justify-start text-left h-auto py-2 px-3 rounded-lg border border-transparent',
+                          activeSpiritualAudio?.id === audio.id && 'border-primary/20 bg-primary/5 text-primary'
+                        )}
+                        onClick={() => {
+                          if (activeSpiritualAudio?.id === audio.id) return;
+                          persistActiveSpiritualAudioProgress();
+                          activeSpiritualAudioRuntimeRef.current = {
+                            id: audio.id,
+                            currentTime: spiritualAudioProgress[audio.id] ?? 0,
+                            duration: 0,
+                          };
+                          setActiveSpiritualReadingAudioId(audio.id);
+                        }}
+                      >
+                        <Play className={cn("mr-2 h-4 w-4 shrink-0", activeSpiritualAudio?.id === audio.id ? "fill-primary" : "text-muted-foreground")} />
+                        <span className="truncate">{audio.title}</span>
+                      </Button>
+                      {audio.isUser ? (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          aria-label={`Eliminar ${audio.title}`}
+                          onClick={() => setAudioPendingDelete(audio as StoredSpiritualAudioItem)}
+                        >
+                          <Icon.Trash2 className="size-4" />
+                        </Button>
+                      ) : null}
+                    </div>
                   ))}
                 </div>
               </div>
@@ -1346,6 +1597,31 @@ export default function MainApp() {
               Entendido
             </AlertDialogAction>
           </div>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={Boolean(audioPendingDelete)}
+        onOpenChange={(open) => {
+          if (!open) setAudioPendingDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar audio</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Seguro que deseas eliminar "{audioPendingDelete?.title}" de tu biblioteca?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={deletePendingSpiritualAudio}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
