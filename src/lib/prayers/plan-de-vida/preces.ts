@@ -6,7 +6,7 @@ export const preces: Prayer = {
   categoryId: 'plan-de-vida',
   isDaySpecific: true,
   content: {
-    'latín': `Sérviam!
+    latin: `Sérviam!
 V/. Ad Trinitátem Beatíssimam.
 R/. Grátias tibi, Deus, grátias tibi: vera et una Trínitas, una et summa Déitas, sancta et
 una Únitas.
@@ -94,61 +94,61 @@ Spíritus Sancti.
 R/. Amen.
 V/. Pax.
 R/. In ætérnum.`,
-    'español': `¡Te serviré!
-A la Santísima Trinidad.
-Gracias a ti, Señor Dios; gracias a ti, Trinidad única y verdadera, Dios único y supremo, Unidad
+    español: `¡Te serviré!
+V/. A la Santísima Trinidad.
+R/. Gracias a ti, Señor Dios; gracias a ti, Trinidad única y verdadera, Dios único y supremo, Unidad
 única y santa.
-A Jesucristo, Rey.
-El Señor es nuestro juez. El Señor es nuestro legislador. El Señor es nuestro Rey. Él nos salvará.
-Cristo, Hijo de Dios vivo, ten misericordia de nosotros.
-Cristo, Hijo de Dios vivo, ten misericordia de nosotros.
-Levántate, oh Cristo, ayúdanos.
-Y líbranos a causa de tu nombre.
-El Señor es mi luz y mi salvación, ¿a quién temeré?
-Si se levantan campamentos contra mí, mi corazón no temerá; si surge un combate en mi contra, en
+V/. A Jesucristo, Rey.
+R/. El Señor es nuestro juez. El Señor es nuestro legislador. El Señor es nuestro Rey. Él nos salvará.
+V/. Cristo, Hijo de Dios vivo, ten misericordia de nosotros.
+R/. Cristo, Hijo de Dios vivo, ten misericordia de nosotros.
+V/. Levántate, oh Cristo, ayúdanos.
+R/. Y líbranos a causa de tu nombre.
+V/. El Señor es mi luz y mi salvación, ¿a quién temeré?
+R/. Si se levantan campamentos contra mí, mi corazón no temerá; si surge un combate en mi contra, en
 Él yo esperaré.
-A Santa María Virgen, mediadora.
-Acuérdate, oh Virgen Madre de Dios, mientras estás en la presencia del Señor, de hablar cosas
+V/. A Santa María Virgen, mediadora.
+R/. Acuérdate, oh Virgen Madre de Dios, mientras estás en la presencia del Señor, de hablar cosas
 buenas de nosotros.
-A San José, esposo de Santa María Virgen.
-Dios te estableció en el puesto de padre del Rey y en el de señor de toda su casa: ruega por nosotros.
-A los Ángeles Custodios.
-Oh, Santos Ángeles Custodios nuestros, defendednos en el combate, para que no perezcamos en el
+V/. A San José, esposo de Santa María Virgen.
+R/. Dios te estableció en el puesto de padre del Rey y en el de señor de toda su casa: ruega por nosotros.
+V/. A los Ángeles Custodios.
+R/. Oh, Santos Ángeles Custodios nuestros, defendednos en el combate, para que no perezcamos en el
 temible juicio.
-A san Josemaría, nuestro Fundador.
-Intercede por tus hijos, para que, fieles al espíritu del Opus Dei, santifiquemos el trabajo y ganemos
+V/. A san Josemaría, nuestro Fundador.
+R/. Intercede por tus hijos, para que, fieles al espíritu del Opus Dei, santifiquemos el trabajo y ganemos
 almas para Cristo.
-Oremos por el Santo Padre N.
-Que el Señor lo guarde y lo llene de vida y lo haga santo en la tierra y no lo entregue en manos de
+V/. Oremos por el Santo Padre N.
+R/. Que el Señor lo guarde y lo llene de vida y lo haga santo en la tierra y no lo entregue en manos de
 sus enemigos.
-Oremos también por el Obispo de esta diócesis.
-Que se mantenga firme y que ejerza su ministerio de pastor con tu fortaleza, en la sublimidad de tu
+V/. Oremos también por el Obispo de esta diócesis.
+R/. Que se mantenga firme y que ejerza su ministerio de pastor con tu fortaleza, en la sublimidad de tu
 nombre.
-Oremos por la unidad del apostolado.
-Que todos sean uno, como tú, Padre, en mí y yo en Ti; que sean uno, como también nosotros somos
+V/. Oremos por la unidad del apostolado.
+R/. Que todos sean uno, como tú, Padre, en mí y yo en Ti; que sean uno, como también nosotros somos
 uno.
-Todo reino dividido contra sí mismo, será desolado.
-Y toda ciudad o casa dividida contra sí no permanecerá en pie.
-Oremos por nuestros benefactores.
-Dígnate, Señor, a recompensar con la vida eterna a todos los que nos hacen el bien por tu nombre.
+V/. Todo reino dividido contra sí mismo, será desolado.
+R/. Y toda ciudad o casa dividida contra sí no permanecerá en pie.
+V/. Oremos por nuestros benefactores.
+R/. Dígnate, Señor, a recompensar con la vida eterna a todos los que nos hacen el bien por tu nombre.
 Amén.
-Oremos por el Padre.
-Que la misericordia del Señor repose sobre él desde siempre y para siempre, pues el Señor custodia
+V/. Oremos por el Padre.
+R/. Que la misericordia del Señor repose sobre él desde siempre y para siempre, pues el Señor custodia
 a todos los que le aman.
-Oremos también por nuestros hermanos del Opus Dei, vivos y difuntos.
-Salva a tus siervos, Dios mío, que esperan en ti.
-Envíales, Señor, tu auxilio desde el cielo.
-Y protégelos desde Sión.
-Concédeles, Señor, el descanso eterno.
-Y brille sobre ellos la luz perpetua.
-Descansen en paz.
-Amén.
-Señor, escucha mi oración.
-Y llegue a ti mi clamor.
+V/. Oremos también por nuestros hermanos del Opus Dei, vivos y difuntos.
+R/. Salva a tus siervos, Dios mío, que esperan en ti.
+V/. Envíales, Señor, tu auxilio desde el cielo.
+R/. Y protégelos desde Sión.
+V/. Concédeles, Señor, el descanso eterno.
+R/. Y brille sobre ellos la luz perpetua.
+V/. Descansen en paz.
+R/. Amén.
+V/. Señor, escucha mi oración.
+R/. Y llegue a ti mi clamor.
 Si un sacerdote dirige las Preces, se alza y añade: El Señor esté con vosotros, permaneciendo en pie
 también mientras recita la oración.
-El Señor esté con vosotros.
-Y con tu espíritu.
+V/. El Señor esté con vosotros.
+R/. Y con tu espíritu.
 Oremos.
 Oh Dios, de quien es propio compadecerse siempre y perdonar: acoge nuestra súplica. Enciende,
 Señor, nuestras entrañas y nuestro corazón con el fuego del Espíritu Santo: para que te sirvamos con
@@ -156,30 +156,30 @@ un comportamiento casto y te agrademos por nuestro corazón limpio.
 Te pedimos, Señor, que te anticipes a nuestras acciones inspirándolas y que las acompañes
 sosteniéndolas: para que toda nuestra oración y actuación empiece en ti y por ti llegue a cumplimiento
 lo iniciado. Por Cristo nuestro Señor.
-Amén.
+R/. Amén.
 Todos dicen:
 Que el Señor omnipotente y misericordioso nos conceda la alegría y la paz, la conversión de nuestra
 vida, un tiempo de verdadera penitencia, la gracia y el consuelo del Espíritu Santo y la perseverancia
 en el Opus Dei.
-San Miguel.
-Ruega por nosotros.
-San Gabriel.
-Ruega por nosotros.
-San Rafael.
-Ruega por nosotros.
-San Pedro.
-Ruega por nosotros.
-San Pablo.
-Ruega por nosotros.
-San Juan.
-Ruega por nosotros.
+V/. San Miguel.
+R/. Ruega por nosotros.
+V/. San Gabriel.
+R/. Ruega por nosotros.
+V/. San Rafael.
+R/. Ruega por nosotros.
+V/. San Pedro.
+R/. Ruega por nosotros.
+V/. San Pablo.
+R/. Ruega por nosotros.
+V/. San Juan.
+R/. Ruega por nosotros.
 Cuando esté presente algún sacerdote, el que hace cabeza dice:
 Dígnate, padre, bendecirnos.
 El sacerdote bendice:
 Que el Señor esté en vuestros corazones y en vuestros labios, en el nombre del Padre † y del Hijo y
 del Espíritu Santo.
-Amén.
-Paz.
-Para siempre.`
+R/. Amén.
+V/. Paz.
+R/. Para siempre.`
   }
 };

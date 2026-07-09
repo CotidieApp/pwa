@@ -48,44 +48,45 @@ procedenti ab utroque
 compar sit laudatio.
 
 Amen. Alleluia.`,
-        español: `Canta, lengua, el misterio del glorioso Cuerpo
+        español: `Canta, lengua, el misterio
+del Cuerpo glorioso,
 y de la Sangre preciosa,
-que el Rey de las naciones,
-fruto de un seno generoso,
-derramó como rescate del mundo.
+que, como precio del mundo,
+el Rey de las naciones,
+fruto de un seno generoso, derramó.
 
 Dado a nosotros, nacido para nosotros
 de una Virgen intacta,
-habiendo vivido en el mundo
-y esparcido la semilla de la palabra,
+y habiendo vivido en el mundo,
+esparcida la semilla de la palabra,
 concluyó el tiempo de su morada terrena
 con admirable disposición.
 
 En la noche de la Última Cena,
-sentado a la mesa con sus hermanos,
+recostado con sus hermanos,
 observada plenamente la Ley
-según los alimentos legales,
+en los alimentos legales,
 se da con sus propias manos
 como alimento al grupo de los Doce.
 
 El Verbo hecho carne convierte
-con su palabra el verdadero pan en su Carne;
-y el vino se convierte en la Sangre de Cristo.
-Y si el sentido desfallece,
-basta la sola fe
-para fortalecer el corazón sincero.
+con su palabra el pan verdadero en Carne:
+y el vino se convierte en la Sangre de Cristo;
+y si el sentido desfallece,
+para fortalecer el corazón sincero
+basta la sola fe.
 
 Adoremos, pues, postrados,
-tan grande Sacramento;
+tan grande Sacramento:
 y ceda el antiguo símbolo
-al nuevo rito.
-Supla la fe
+al nuevo rito:
+supla la fe
 la insuficiencia de los sentidos.
 
 Al Padre y al Hijo
 sean la alabanza y el júbilo,
 la salvación, el honor, el poder
-y la bendición;
+y la bendición:
 y al que procede de ambos
 sea dada igual alabanza.
 

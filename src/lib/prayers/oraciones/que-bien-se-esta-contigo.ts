@@ -4,7 +4,8 @@ export const queBienSeEstaContigo: Prayer = {
   id: 'oraciones-varias-predeterminadas-5',
   categoryId: 'oraciones',
   title: '¡Qué bien se está contigo Señor!',
-  content: `¡Qué bien se está contigo, Señor, junto al Sagrario!
+  content: {
+    español: `¡Qué bien se está contigo, Señor, junto al Sagrario!
 ¡Qué bien se está contigo! ¿Por qué no vendré más?
 Hace ya muchos años que vengo aquí a diario
 Y aquí te encuentro siempre, Amor Solitario,
@@ -54,5 +55,57 @@ Y que te has humillado a mendigar mi amor.
 Olvidado de todos, de todos escondida,
 ¡Qué bien se está contigo, qué bien se está, Señor!
 
-Amén.`
+Amén.`,
+    latin: `Quam bene est tecum, Domine, iuxta Tabernaculum!
+Quam bene est tecum! Cur non saepius veniam?
+Iam multos annos huc cotidie venio,
+et hic te semper invenio, Amor solitarius,
+solum, pauperem, absconditum, de me fortasse cogitantem.
+Tu mihi nihil dicis, nec ego tibi quidquam dico;
+si tu omnia nosti, quid tibi dicam?
+Nosti omnes dolores meos, omnia gaudia mea,
+nosti me venire ad te videndum manibus vacuis,
+et nihil me habere quod tibi servire possit.
+Quotiescumque venio ad te videndum, semper te solum invenio.
+Numquid, Domine, nemo scit te hic esse?
+Nescio; sed scio tamen, etiamsi nemo veniret,
+etiamsi nemo te amaret neque tibi gratias ageret,
+te hic semper mansurum esse, me exspectantem.
+
+Cur non saepius veniam? Quam caecus sum, quam caecus!
+Si experientia scio quod, cum ad te accedo,
+semper mutatus redeo, semper melior egredior.
+Quo vado, Deus meus, cum ad Deum meum non venio?
+Si tu me semper exspectas! Si te semper habeo,
+si numquam mihi portas Amoris tui clausisti.
+
+Cur non saepius veniam, si scio hic, iuxta te,
+me invenire posse, Deus meus, quod tam diu quaesivi:
+lucem meam, fortitudinem meam, pacem meam, unicum bonum meum?
+Si numquam passus sum, si numquam flevi,
+Domine, quin tu mecum quoque fleres!
+
+Cur non saepius veniam, Iesu?
+Si tu id desideras, si ego id indigeo!
+Si scio me nihil esse cum huc non venio.
+Si hic me docebis scientiam sanctorum,
+sicut hic eam quaesierunt et didicerunt tot,
+qui amici tui fuerunt et iam te fruuntur.
+
+Cur non saepius veniam, si scio
+te esse exemplar unicum et necessarium,
+nihil difficile fieri dum te hic intueor?
+Tabernaculum est cella ubi clausus manes.
+Quam pauper, quam oboediens, quam mitis, quam tacitus,
+quam solus, quam absconditus... nemo te respicit!
+
+Cur non saepius veniam? O Bonitas infinita!
+Divitiae inaestimabiles quae nullo egent,
+et tamen te humiliasti ut amorem meum mendicares.
+Aperi mihi iam istam ianuam; sit haec iam vita mea,
+omnibus oblita, ab omnibus abscondita.
+Quam bene est tecum, quam bene est, Domine!
+
+Amen.`
+  }
 };

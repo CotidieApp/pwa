@@ -87,11 +87,11 @@ a ti, Señor, te reconocemos.
 A ti, eterno Padre,
 te venera toda la creación.
 
-Los ángeles todos, los cielos
-y todas las potestades te aclaman.
+A ti todos los ángeles,
+a ti los cielos y todas las potestades:
 
-Los querubines y serafines
-te cantan sin cesar:
+A ti los querubines y serafines
+te proclaman con voz incesante:
 
 Santo, Santo, Santo
 es el Señor Dios de los ejércitos.
@@ -99,13 +99,13 @@ es el Señor Dios de los ejércitos.
 Llenos están los cielos y la tierra
 de la majestad de tu gloria.
 
-A ti te glorifica
+A ti te alaba
 el coro glorioso de los Apóstoles;
 
 a ti te alaba
-la multitud admirable de los Profetas;
+el número admirable de los Profetas;
 
-a ti te ensalza
+a ti te alaba
 el ejército brillante de los Mártires.
 
 A ti te confiesa por toda la tierra
@@ -113,18 +113,18 @@ la santa Iglesia:
 
 Padre de inmensa majestad;
 
-a tu verdadero y único Hijo, digno de adoración;
+a tu verdadero y único Hijo, digno de veneración;
 
-y al Espíritu Santo Consolador.
+y también al Espíritu Santo Paráclito.
 
 Tú eres el Rey de la gloria, Cristo.
 
 Tú eres el Hijo eterno del Padre.
 
 Tú, para liberar al hombre,
-aceptaste encarnarte en el seno de la Virgen.
+no desdeñaste el seno de la Virgen.
 
-Tú, venciendo el aguijón de la muerte,
+Tú, vencido el aguijón de la muerte,
 abriste a los creyentes el Reino de los cielos.
 
 Tú estás sentado a la derecha de Dios,
@@ -132,33 +132,33 @@ en la gloria del Padre.
 
 Creemos que has de venir como juez.
 
-Por eso te rogamos que socorras a tus siervos,
+Por eso te rogamos: socorre a tus siervos,
 a quienes redimiste con tu preciosa Sangre.
 
 Haz que seamos contados
-entre tus santos en la gloria eterna.
+con tus santos en la gloria eterna.
 
 Salva a tu pueblo, Señor,
 y bendice tu heredad.
 
-Gobierna a tu pueblo
-y ensálzalo eternamente.
+Y gobiérnalos,
+y ensálzalos hasta la eternidad.
 
-Día tras día te bendecimos
+Día tras día te bendecimos;
 
 y alabamos tu nombre por siempre,
-por los siglos de los siglos.
+y por los siglos de los siglos.
 
 Dígnate, Señor, en este día,
-guardarnos del pecado.
+guardarnos sin pecado.
 
 Ten piedad de nosotros, Señor,
 ten piedad de nosotros.
 
 Que tu misericordia, Señor, venga sobre nosotros,
-como lo esperamos de ti.
+como hemos esperado en ti.
 
-En ti, Señor, he esperado;
-no sea confundido para siempre.`
+En ti, Señor, he esperado:
+no sea yo confundido eternamente.`
     },
 };

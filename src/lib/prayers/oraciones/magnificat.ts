@@ -5,7 +5,8 @@ export const magnificat: Prayer = {
   categoryId: 'oraciones',
   imageUrl: '/images/immaculate-conception.jpeg',
   title: 'Magnificat',
-  content: `Proclama mi alma la grandeza del Señor, se alegra mi espíritu en Dios, mi salvador, porque ha mirado la humillación de su esclava.
+  content: {
+    español: `Proclama mi alma la grandeza del Señor, se alegra mi espíritu en Dios, mi salvador, porque ha mirado la humillación de su esclava.
 
 Desde ahora me felicitarán todas las generaciones, porque el Poderoso ha hecho obras grandes por mí: su nombre es santo, y su misericordia llega a sus fieles de generación en generación.
 
@@ -17,5 +18,19 @@ Gloria al Padre, y al Hijo, y al Espíritu Santo.
 
 Como era en el principio, ahora y siempre, por los siglos de los siglos.
 
-Amén.`
+Amén.`,
+    latin: `Magnificat anima mea Dominum, et exsultavit spiritus meus in Deo salutari meo, quia respexit humilitatem ancillae suae.
+
+Ecce enim ex hoc beatam me dicent omnes generationes, quia fecit mihi magna qui potens est: et sanctum nomen eius, et misericordia eius a progenie in progenies timentibus eum.
+
+Fecit potentiam in brachio suo: dispersit superbos mente cordis sui, deposuit potentes de sede et exaltavit humiles, esurientes implevit bonis et divites dimisit inanes.
+
+Suscepit Israel puerum suum, recordatus misericordiae suae, sicut locutus est ad patres nostros, Abraham et semini eius in saecula.
+
+Gloria Patri, et Filio, et Spiritui Sancto.
+
+Sicut erat in principio, et nunc, et semper, et in saecula saeculorum.
+
+Amen.`
+}
 };

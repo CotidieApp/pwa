@@ -4,7 +4,8 @@ export const comunionEspiritual: Prayer = {
   id: 'oraciones-varias-predeterminadas-1',
   categoryId: 'oraciones',
   title: 'Comunión Espiritual',
-  content: `Creo, Jesús mío,
+  content: {
+    español: `Creo, Jesús mío,
 que estás realmente presente en el Santísimo Sacramento del Altar.
 
 Te amo por sobre todas las cosas
@@ -17,5 +18,20 @@ te abrazo y me uno del todo a Ti.
 Señor, no permitas que jamás
 Me aparte de Ti. 
 
-Amén.`
+Amén.`,
+    latin: `Credo, Iesu mi,
+te vere praesentem esse in Sanctissimo Altaris Sacramento.
+
+Te super omnia diligo
+et desidero te in animam meam suscipere.
+Sed quia nunc te sacramentaliter suscipere non possum,
+veni saltem spiritualiter in cor meum.
+
+Et quasi iam te susceperim,
+te amplector et me totum tibi coniungo.
+Domine, ne permittas umquam
+me separari a te.
+
+Amen.`
+  }
 };

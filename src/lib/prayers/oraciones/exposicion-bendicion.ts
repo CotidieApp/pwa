@@ -7,10 +7,12 @@ export const exposicionBendicion: Prayer = {
   imageUrl: '/images/sacred-heart.jpeg',
   content: `*ESTACIÓN AL SANTÍSIMO*
 
-V. Alabado sea el Santísimo Sacramento del Altar.
-R. Sea por siempre bendito y alabado.
+V. Bendito sea Jesús en el Santísimo Sacramento del Altar.
+R. Bendito sea Jesús en el Santísimo Sacramento del Altar.
 
-(Se reza tres veces el Padre nuestro, Ave María y Gloria)
+Padre nuestro, Ave María y Gloria.
+
+(Tres veces)
 
 ---
 

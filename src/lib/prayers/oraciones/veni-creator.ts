@@ -5,65 +5,86 @@ export const venicreator: Prayer = {
     title: 'Veni Creator',
     categoryId: 'oraciones',
     content: {
-        latin: `Veni, Creátor Spíritus,
-mentes tuórum vísita:
-imple supérna grátia,
-quae tu creásti péctora.
+        latin: `Veni, Creator Spiritus,
+mentes tuorum visita:
+imple superna gratia,
+quae tu creasti pectora.
 
-Qui díceris Paráclitus,
-altíssimi donum Dei,
-fons vivus, ignis, cáritas
-et spiritális únctio.
+Qui diceris Paraclitus,
+altissimi donum Dei,
+fons vivus, ignis, caritas
+et spiritalis unctio.
 
-Tu septifórmis múnere,
-Dígitus Patérnæ déxtræ,
-tu rite promíssum Patris
-sermóne ditans gúttura.
+Tu septiformis munere,
+digitus paternae dexterae,
+tu rite promissum Patris
+sermone ditans guttura.
 
-Accénde lumen sénsibus,
-infúnde amórem córdibus,
-infirma nostri córporis
-virtúte firmans pérpeti.
+Accende lumen sensibus,
+infunde amorem cordibus,
+infirma nostri corporis
+virtute firmans perpeti.
 
-Hostem repéllans lóngius,
-pacémque dones prótinus,
-ductóre sic te prævio
-vitémus omne nóxium.
+Hostem repellas longius,
+pacemque dones protinus,
+ductore sic te praevio
+vitemus omne noxium.
 
-Per te sciámus da Patrem,
-noscámus atque Fílium,
-Teque utriúsque Spíritum
-credámus omni témpore.
+Per te sciamus da Patrem,
+noscamus atque Filium,
+teque utriusque Spiritum
+credamus omni tempore.
 
-Deo Patri sit glória,
-et Fílio, qui a mórtuis
-surréxit, ac Paráclito
-in sæculórum sæcula. Amen.
+Deo Patri sit gloria,
+et Filio, qui a mortuis
+surrexit, ac Paraclito
+in saeculorum saecula. Amen.
 
-V. Emítte Spíritum tuum et creabúntur,
-R. Et renovábis fáciem terræ.
+V. Emitte Spiritum tuum et creabuntur,
+R. Et renovabis faciem terrae.
 
-Oremus: Deus, qui corda fidélium Sancti Spíritus illustratióne docuísti; da nobis in eódem Spíritu recta sápere, et de eius semper consolatióne gaudére. Per Chrístum Dóminum nóstrum.
+Oremus: Deus, qui corda fidelium Sancti Spiritus illustratione docuisti; da nobis in eodem Spiritu recta sapere, et de eius semper consolatione gaudere. Per Christum Dominum nostrum.
 
 R. Amen.`,
-        español: `Ven, Espíritu Creador, visita las almas de tus fieles y llena de la divina gracia los corazones que tú mismo creaste.
+        español: `Ven, Espíritu Creador,
+visita las almas de tus fieles:
+llena con la gracia de lo alto
+los corazones que tú creaste.
 
-Tú eres nuestro Consolador, don de Dios Altísimo, fuente viva, fuego, caridad y espiritual unción.
+Tú, que eres llamado Paráclito,
+don del Dios Altísimo,
+fuente viva, fuego, caridad
+y unción espiritual.
 
-Tú derramas sobre nosotros los siete dones; tú, el dedo de la mano de Dios; tú, el prometido del Padre; tú, que pones en nuestros labios los tesoros de tu palabra.
+Tú, septiforme en tus dones,
+dedo de la diestra del Padre,
+tú, solemnemente prometido por el Padre,
+enriqueces las lenguas con la palabra.
 
-Enciende con tu luz nuestros sentidos; infunde tu amor en nuestros corazones; y, con tu perpetuo auxilio, fortalece nuestra débil carne.
+Enciende la luz en nuestros sentidos,
+infunde amor en nuestros corazones,
+y fortalece con virtud perpetua
+la debilidad de nuestro cuerpo.
 
-Aleja de nosotros al enemigo, danos pronto la paz, sé tú mismo nuestro guía, y evitaremos todo lo nocivo.
+Aleja más y más al enemigo,
+danos pronto la paz,
+para que, teniéndote a ti como guía,
+evitemos todo mal.
 
-Por ti conozcamos al Padre, y también al Hijo; y que en ti, Espíritu de entrambos, creamos en todo tiempo.
+Haz que por ti conozcamos al Padre
+y conozcamos también al Hijo,
+y que en ti, Espíritu de ambos,
+creamos en todo tiempo.
 
-Gloria a Dios Padre, y al Hijo que resucitó, y al Espíritu Consolador, por los siglos infinitos. Amén.
+Gloria sea a Dios Padre,
+y al Hijo, que de entre los muertos
+resucitó, y al Paráclito,
+por los siglos de los siglos. Amén.
 
-V. Envía tu Espíritu y serán creados.
+V. Envía tu Espíritu y serán creados,
 R. Y renovarás la faz de la tierra.
 
-Oración: Oh Dios, que has instruido los corazones de los fieles con la luz del Espíritu Santo, concédenos, según el mismo Espíritu, conocer las cosas rectas y gozar siempre de sus divinos consuelos. Por Jesucristo nuestro Señor.
+Oremos: Oh Dios, que instruiste los corazones de los fieles con la luz del Espíritu Santo; concédenos que, en el mismo Espíritu, sepamos gustar lo recto y gocemos siempre de su consuelo. Por Cristo nuestro Señor.
 
 R. Amén.`
     },

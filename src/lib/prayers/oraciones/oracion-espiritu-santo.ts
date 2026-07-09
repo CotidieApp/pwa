@@ -4,7 +4,12 @@ export const oracionAlEspirituSanto: Prayer = {
   id: 'oraciones-varias-predeterminadas-3',
   categoryId: 'oraciones',
   title: 'Oración al Espíritu Santo',
-  content: `¡Ven, oh Santo Espíritu!: ilumina mi entendimiento, para conocer tus mandatos: fortalece mi corazón contra las insidias del enemigo: inflama mi voluntad... He oído tu voz, y no quiero endurecerme y resistir, diciendo: después..., mañana. Nunc coepi! ¡Ahora!, no vaya a ser que el mañana me falte.
+  content: {
+    español: `¡Ven, oh Santo Espíritu!: ilumina mi entendimiento, para conocer tus mandatos: fortalece mi corazón contra las insidias del enemigo: inflama mi voluntad... He oído tu voz, y no quiero endurecerme y resistir, diciendo: después..., mañana. Nunc coepi! ¡Ahora!, no vaya a ser que el mañana me falte.
 
-¡Oh, Espíritu de verdad y de sabiduría, Espíritu de entendimiento y de consejo, Espíritu de gozo y de paz!: quiero lo que quieras, quiero porque quieres, quiero como quieras, quiero cuando quieras...`
+¡Oh, Espíritu de verdad y de sabiduría, Espíritu de entendimiento y de consejo, Espíritu de gozo y de paz!: quiero lo que quieras, quiero porque quieres, quiero como quieras, quiero cuando quieras...`,
+    latin: `Veni, o Sancte Spiritus: illumina intellectum meum, ut mandata tua cognoscam: cor meum contra insidias inimici confirma: voluntatem meam inflamma... Vocem tuam audivi, et nolo obdurari neque resistere, dicens: postea..., cras. Nunc coepi! Nunc!, ne forte crastinum mihi desit.
+
+O Spiritus veritatis et sapientiae, Spiritus intellectus et consilii, Spiritus gaudii et pacis: volo quod vis, volo quia vis, volo quomodo vis, volo quando vis...`
+  }
 };

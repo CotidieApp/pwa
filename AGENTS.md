@@ -8,6 +8,25 @@ Historial de intervenciones del asistente en el repo.
 - Esta obligacion aplica aunque el usuario pida tocar solo lo estrictamente necesario: el registro en `AGENTS.md` se considera parte estrictamente necesaria de cualquier edicion del repo.
 - Si una instruccion del usuario prohibe explicitamente editar `AGENTS.md`, el agente debe pedir aclaracion antes de modificar otros archivos.
 
+### [2026-07-09 12:51] 249. Configuracion Java 21 para import Gradle en VS Code
+**Planificacion:**
+- Corregir los problemas del panel de VS Code causados por intentar importar Gradle con Java 25.
+- Usar el JBR 21 de Android Studio ya instalado en el equipo.
+- Evitar cambios en Gradle o en codigo de la app.
+
+**Ejecucion:**
+- **VS Code Java/Gradle**: `.vscode/settings.json` ahora fija `java.import.gradle.java.home` en `C:\Program Files\Android\Android Studio\jbr`.
+- **Runtime Java 21**: se agrego `java.configuration.runtimes` con `JavaSE-21` apuntando al mismo JBR y marcado como predeterminado.
+
+**Validacion:**
+- `settings.json` parsea correctamente como JSON.
+- `C:\Program Files\Android\Android Studio\jbr\bin\java.exe -version` reporta OpenJDK 21.0.10.
+- `.\gradlew.bat :app:compileDebugJavaWithJavac` OK usando ese JBR 21.
+
+**Archivos Modificados:**
+- `.vscode/settings.json`
+- `AGENTS.md`
+
 ### [2026-07-09 12:02] 248. Reprogramacion nativa de notificaciones fijas
 **Planificacion:**
 - Hacer que las notificaciones fijas recurrentes no dependan de que el usuario abra la app despues de dispararse.
