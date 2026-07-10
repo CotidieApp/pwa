@@ -106,6 +106,43 @@ const runNodeScript = (scriptPath, scriptArgs, cwd) => {
   runCommand(process.execPath, [scriptPath, ...scriptArgs], cwd);
 };
 
+const androidExcludedWebAssets = [
+  "epub/Nuevo Testamento.epub",
+  "media/Discurso San Josemaría.mp3",
+  "media/Discurso San Juan Pablo II.mp3",
+];
+
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const prepareAndroidWebAssets = () => {
+  const webDir = path.join(rootDir, "out");
+  for (const relativeAssetPath of androidExcludedWebAssets) {
+    const assetPath = path.join(webDir, ...relativeAssetPath.split("/"));
+    if (fs.existsSync(assetPath)) {
+      fs.rmSync(assetPath, { force: true });
+      console.log(`Asset excluido del APK Android: ${relativeAssetPath}`);
+    }
+  }
+
+  const serviceWorkerPath = path.join(webDir, "sw.js");
+  if (!fs.existsSync(serviceWorkerPath)) return;
+
+  let source = readText(serviceWorkerPath);
+  const previous = source;
+  for (const relativeAssetPath of androidExcludedWebAssets) {
+    const assetUrl = `/${relativeAssetPath}`;
+    source = source.replace(
+      new RegExp(`\\{url:"${escapeRegExp(assetUrl)}",revision:"[^"]+"\\},?`, "g"),
+      ""
+    );
+  }
+
+  if (source !== previous) {
+    writeText(serviceWorkerPath, source);
+    console.log("Service worker Android ajustado sin assets excluidos.");
+  }
+};
+
 const runBatchCommand = (commandLine, cwd) => {
   const shell = process.env.ComSpec || "cmd.exe";
   console.log(`\n> ${commandLine}`);
@@ -296,6 +333,7 @@ if (nextVersion !== current) {
 }
 
 runNodeScript(resolveNpmCliPath(), ["run", "build"], rootDir);
+prepareAndroidWebAssets();
 runNodeScript(resolveCapacitorCliPath(), ["sync", "android"], rootDir);
 
 if (process.platform === "win32") {

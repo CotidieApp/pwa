@@ -8,6 +8,38 @@ Historial de intervenciones del asistente en el repo.
 - Esta obligacion aplica aunque el usuario pida tocar solo lo estrictamente necesario: el registro en `AGENTS.md` se considera parte estrictamente necesaria de cualquier edicion del repo.
 - Si una instruccion del usuario prohibe explicitamente editar `AGENTS.md`, el agente debe pedir aclaracion antes de modificar otros archivos.
 
+### [2026-07-09 16:25] 250. Reduccion de APK, modo bilingue y seccion Confesion
+**Planificacion:**
+- Eliminar del APK la copia duplicada del Nuevo Testamento sin romper el lector integrado.
+- Reducir el peso de los audios predeterminados sin impedir que el usuario los use.
+- Ampliar el selector de idioma a espanol/latin/ambos cuando una oracion tenga ambos textos.
+- Agregar una seccion ocasional de Confesion dentro de Oraciones, fuera del Plan de Vida diario.
+
+**Ejecucion:**
+- **Nuevo Testamento**: se elimino `public/epub/Nuevo Testamento.epub`; el lector integrado sigue usando `public/epub/nuevo-testamento.epub`.
+- **Service worker**: `public/sw.js` quedo sin la entrada precache del EPUB eliminado.
+- **APK liviano**: `scripts/android-apk.mjs` ahora excluye del `out` de Android los dos MP3 predeterminados y la ruta vieja del EPUB antes de `cap sync`, y limpia esas entradas del service worker copiado al APK.
+- **Audios bajo demanda**: `MainApp.tsx` mantiene los audios predeterminados disponibles en web, pero en Android nativo los muestra con estados `No descargado`, `Descargando`, `Descargado` y `Error`; al descargarlos, quedan guardados en `Directory.Data` mediante Capacitor Filesystem.
+- **Modo bilingue**: `PrayerDetail.tsx` agrega el modo `Ambos`, con ciclo por idioma principal de la oracion y columnas latin/espanol alineadas por bloques o por lineas cuando corresponde.
+- **Confesion**: se agrego `src/lib/prayers/oraciones/confesion.ts` con preparacion, examen, acto de contricion reutilizado, guia breve, accion de gracias y proposito concreto; `data.tsx` lo muestra como subgrupo `Para la Confesion` dentro de Oraciones.
+
+**Validacion:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `node scripts\android-apk.mjs --no-bump --no-push` OK, incluyendo `next build`, exclusion de assets, `cap sync android` y `assembleRelease`.
+- APK anterior medido: 137,908,370 bytes; APK nuevo medido: 37,415,931 bytes.
+- Inspeccion del APK confirmo que solo queda `assets/public/epub/nuevo-testamento.epub` y que no hay entradas `media/Discurso...mp3`.
+- `git diff --check` OK; solo aviso de finales de linea CRLF esperado por Git en Windows.
+
+**Archivos Modificados:**
+- `public/epub/Nuevo Testamento.epub`
+- `public/sw.js`
+- `scripts/android-apk.mjs`
+- `src/components/PrayerDetail.tsx`
+- `src/components/main/MainApp.tsx`
+- `src/lib/data.tsx`
+- `src/lib/prayers/oraciones/confesion.ts`
+- `AGENTS.md`
+
 ### [2026-07-09 12:51] 249. Configuracion Java 21 para import Gradle en VS Code
 **Planificacion:**
 - Corregir los problemas del panel de VS Code causados por intentar importar Gradle con Java 25.

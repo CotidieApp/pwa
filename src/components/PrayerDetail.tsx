@@ -302,6 +302,7 @@ const resolveVariantKey = (contentObj: Record<string, string>, preferredKey?: st
 const formatVariantLabel = (key: string) => {
   if (!key) return '';
   const normalized = normalizeVariantKey(key);
+  if (normalized === 'ambos') return 'Ambos';
   if (normalized === 'reginacoeli') return 'Regina Coeli';
   if (normalized === 'espanol') return 'Español';
   if (normalized === 'latin') return 'Latín';
@@ -315,6 +316,116 @@ const formatVariantLabel = (key: string) => {
     .map((part) => part.slice(0, 1).toUpperCase() + part.slice(1))
     .join(' ');
 };
+
+const BOTH_VARIANT_KEY = 'ambos';
+
+const isBothVariantKey = (key?: string | null) => normalizeVariantKey(key || '') === BOTH_VARIANT_KEY;
+const isSpanishVariantKey = (key: string) => normalizeVariantKey(key) === 'espanol';
+const isLatinVariantKey = (key: string) => normalizeVariantKey(key) === 'latin';
+
+const getPrimaryVariantKey = (contentObj: Record<string, string>) => Object.keys(contentObj)[0] || '';
+
+const getLanguageModeOrder = (contentObj: Record<string, string>) => {
+  const entries = Object.keys(contentObj);
+  const primary = getPrimaryVariantKey(contentObj);
+  const singleModes = [
+    primary,
+    ...entries.filter((entry) => normalizeVariantKey(entry) !== normalizeVariantKey(primary)),
+  ].filter(Boolean);
+  const hasSpanish = entries.some(isSpanishVariantKey);
+  const hasLatin = entries.some(isLatinVariantKey);
+  return hasSpanish && hasLatin ? [...singleModes, BOTH_VARIANT_KEY] : singleModes;
+};
+
+const resolveLanguageMode = (contentObj: Record<string, string>, preferredKey?: string | null) => {
+  const order = getLanguageModeOrder(contentObj);
+  if (order.length === 0) return '';
+  if (preferredKey && isBothVariantKey(preferredKey) && order.includes(BOTH_VARIANT_KEY)) {
+    return BOTH_VARIANT_KEY;
+  }
+  if (preferredKey) return resolveVariantKey(contentObj, preferredKey);
+  return order[0] || '';
+};
+
+const splitTextBlocks = (text: string) =>
+  text
+    .split(/\n{2,}/)
+    .map((block) => block.trim())
+    .filter(Boolean);
+
+const splitComparableLines = (block: string) =>
+  block
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+const buildBilingualBlockRows = (leftBlock: string, rightBlock: string) => {
+  const leftLines = splitComparableLines(leftBlock);
+  const rightLines = splitComparableLines(rightBlock);
+  const canAlignByLine =
+    leftLines.length > 1 &&
+    rightLines.length > 1 &&
+    Math.abs(leftLines.length - rightLines.length) <= 1;
+
+  if (!canAlignByLine) {
+    return [{ left: leftBlock, right: rightBlock }];
+  }
+
+  const rows = [];
+  const max = Math.max(leftLines.length, rightLines.length);
+  for (let i = 0; i < max; i += 1) {
+    rows.push({
+      left: leftLines[i] || '',
+      right: rightLines[i] || '',
+    });
+  }
+  return rows;
+};
+
+const buildBilingualBlocks = (leftText: string, rightText: string) => {
+  const leftBlocks = splitTextBlocks(leftText);
+  const rightBlocks = splitTextBlocks(rightText);
+  const max = Math.max(leftBlocks.length, rightBlocks.length);
+  const blocks = [];
+
+  for (let i = 0; i < max; i += 1) {
+    blocks.push(buildBilingualBlockRows(leftBlocks[i] || '', rightBlocks[i] || ''));
+  }
+
+  return blocks;
+};
+
+const BilingualText = ({
+  leftLabel,
+  leftText,
+  rightLabel,
+  rightText,
+}: {
+  leftLabel: string;
+  leftText: string;
+  rightLabel: string;
+  rightText: string;
+}) => (
+  <div className="space-y-5">
+    <div className="grid grid-cols-1 gap-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:grid-cols-2">
+      <div>{leftLabel}</div>
+      <div>{rightLabel}</div>
+    </div>
+    {buildBilingualBlocks(leftText, rightText).map((rows, blockIndex) => (
+      <div key={`bilingual-block-${blockIndex}`} className="space-y-2">
+        {rows.map((row, rowIndex) => (
+          <div
+            key={`bilingual-row-${blockIndex}-${rowIndex}`}
+            className="grid grid-cols-1 gap-3 border-b border-border/40 pb-2 last:border-b-0 last:pb-0 sm:grid-cols-2"
+          >
+            <div className="min-w-0">{row.left ? renderText(row.left) : null}</div>
+            <div className="min-w-0">{row.right ? renderText(row.right) : null}</div>
+          </div>
+        ))}
+      </div>
+    ))}
+  </div>
+);
 
 // === CONTENIDO ===
 const PrayerContent = ({
@@ -480,10 +591,8 @@ const PrayerContent = ({
   const getPreferredVariant = useCallback(() => {
     if (!prayer.content || typeof prayer.content !== 'object') return '';
     const contentObj = prayer.content as Record<string, string>;
-    const preferredLang =
-      (prayer.id ? prayerLanguagePreferences[prayer.id] : undefined) ??
-      (prayer.id === 'preces' ? 'latín' : 'español');
-    return resolveVariantKey(contentObj, preferredLang);
+    const preferredLang = prayer.id ? prayerLanguagePreferences[prayer.id] : undefined;
+    return resolveLanguageMode(contentObj, preferredLang);
   }, [prayer.content, prayer.id, prayerLanguagePreferences]);
 
   const [selectedLang, setSelectedLang] = useState(() => getPreferredVariant());
@@ -512,20 +621,37 @@ const PrayerContent = ({
   if (prayer.content && typeof prayer.content === 'object') {
     const contentObj = prayer.content as Record<string, string>;
     const langs = Object.keys(contentObj);
+    const modeOrder = getLanguageModeOrder(contentObj);
+    const hasBothMode = modeOrder.includes(BOTH_VARIANT_KEY);
 
-    const resolvedLang = resolveVariantKey(contentObj, selectedLang);
-    const displayedContent = resolvedLang ? contentObj[resolvedLang] || '' : '';
-    const otherLang = langs.find((lang) => normalizeVariantKey(lang) !== normalizeVariantKey(resolvedLang));
-    const selectedLabel = formatVariantLabel(resolvedLang);
-    const otherLabel = otherLang ? formatVariantLabel(otherLang) : '';
+    const resolvedMode =
+      isBothVariantKey(selectedLang) && hasBothMode
+        ? BOTH_VARIANT_KEY
+        : resolveVariantKey(contentObj, selectedLang);
+    const displayedContent =
+      resolvedMode && !isBothVariantKey(resolvedMode) ? contentObj[resolvedMode] || '' : '';
+    const selectedLabel = formatVariantLabel(resolvedMode);
+    const currentModeIndex = modeOrder.findIndex((mode) => normalizeVariantKey(mode) === normalizeVariantKey(resolvedMode));
+    const nextMode = modeOrder.length > 0
+      ? modeOrder[(currentModeIndex >= 0 ? currentModeIndex + 1 : 1) % modeOrder.length]
+      : '';
+    const nextLabel = formatVariantLabel(nextMode);
+
+    const spanishLang = langs.find(isSpanishVariantKey);
+    const latinLang = langs.find(isLatinVariantKey);
+    const fallbackLeftLang = modeOrder.find((mode) => !isBothVariantKey(mode)) || langs[0] || '';
+    const fallbackRightLang =
+      modeOrder.find((mode) => !isBothVariantKey(mode) && normalizeVariantKey(mode) !== normalizeVariantKey(fallbackLeftLang)) ||
+      langs.find((lang) => normalizeVariantKey(lang) !== normalizeVariantKey(fallbackLeftLang)) ||
+      '';
+    const leftLang = latinLang || fallbackLeftLang;
+    const rightLang = spanishLang || fallbackRightLang;
 
     const toggleLang = () => {
-      if (!otherLang) return;
-      const nextLang = resolveVariantKey(contentObj, otherLang);
-      if (!nextLang) return;
-      setSelectedLang(nextLang);
+      if (modeOrder.length <= 1 || !nextMode) return;
+      setSelectedLang(nextMode);
       if (prayer.id) {
-        setPrayerLanguagePreference(prayer.id, nextLang);
+        setPrayerLanguagePreference(prayer.id, nextMode);
       }
     };
 
@@ -533,12 +659,12 @@ const PrayerContent = ({
       <div className="touch-pan-y">
         <div className="flex justify-between items-center mb-4 border-b pb-3">
           <h3 className="text-lg font-headline font-semibold">{selectedLabel}</h3>
-          {otherLang && (
+          {modeOrder.length > 1 && (
             <Button
               variant="outline"
               size="icon"
               onClick={toggleLang}
-              title={`Cambiar a ${otherLabel}`}
+              title={`Cambiar a ${nextLabel}`}
             >
               <ArrowRightLeft className="h-4 w-4" />
             </Button>
@@ -548,7 +674,16 @@ const PrayerContent = ({
           className="text-foreground/90 leading-relaxed"
           style={{ fontSize: `${prayerTextZoom}em` }}
         >
-          {renderText(displayedContent)}
+          {isBothVariantKey(resolvedMode) && leftLang && rightLang ? (
+            <BilingualText
+              leftLabel={formatVariantLabel(leftLang)}
+              leftText={contentObj[leftLang] || ''}
+              rightLabel={formatVariantLabel(rightLang)}
+              rightText={contentObj[rightLang] || ''}
+            />
+          ) : (
+            renderText(displayedContent)
+          )}
         </div>
       </div>
     );
@@ -657,4 +792,3 @@ export default function PrayerDetail({
     </div>
   );
 }
-

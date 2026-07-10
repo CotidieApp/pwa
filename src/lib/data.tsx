@@ -61,6 +61,7 @@ import { pangelingua } from './prayers/oraciones/pange-lingua';
 import { tedeum } from './prayers/oraciones/te-deum';
 import { oracionAlSagradoCorazonDeJesus } from './prayers/oraciones/oracion-al-sagrado-corazon';
 import { exposicionBendicion } from './prayers/oraciones/exposicion-bendicion';
+import { confesionPrayers } from './prayers/oraciones/confesion';
 import {
   actoContricion,
   angelGuarda,
@@ -166,6 +167,13 @@ const oracionesSubcategories: Prayer[] = [
       queBienSeEstaContigo,
       aceptacionMuerte,
     ]
+  },
+  {
+    id: 'subcat-confesion',
+    title: 'Para la Confesión',
+    categoryId: 'oraciones',
+    imageUrl: '/images/crucifixion.jpeg',
+    prayers: confesionPrayers,
   },
   {
     id: 'subcat-santos',
