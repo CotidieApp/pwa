@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -10,6 +11,7 @@ const rootDir = path.resolve(__dirname, "..");
 const args = process.argv.slice(2);
 const noBump = args.includes("--no-bump");
 const skipPush = args.includes("--no-push");
+const skipDrive = args.includes("--no-drive");
 const setIndex = args.indexOf("--set");
 const setVersion = setIndex >= 0 ? args[setIndex + 1] : null;
 
@@ -18,6 +20,65 @@ const writeText = (filePath, contents) => fs.writeFileSync(filePath, contents, "
 const readJson = (filePath) => JSON.parse(readText(filePath));
 const writeJson = (filePath, data) => writeText(filePath, JSON.stringify(data, null, 2) + "\n");
 const resolveExistingPath = (...candidates) => candidates.find((candidate) => candidate && fs.existsSync(candidate)) ?? null;
+
+const buildStartedAt = Date.now();
+
+const calculateSha256 = (filePath) => {
+  const hash = createHash("sha256");
+  const fileDescriptor = fs.openSync(filePath, "r");
+  const buffer = Buffer.allocUnsafe(1024 * 1024);
+
+  try {
+    let bytesRead = 0;
+    while ((bytesRead = fs.readSync(fileDescriptor, buffer, 0, buffer.length, null)) > 0) {
+      hash.update(buffer.subarray(0, bytesRead));
+    }
+  } finally {
+    fs.closeSync(fileDescriptor);
+  }
+
+  return hash.digest("hex");
+};
+
+const copyFileWithStatus = (sourcePath, destinationPath) => {
+  const sourceSize = fs.statSync(sourcePath).size;
+  const sourceSha256 = calculateSha256(sourcePath);
+  let status = "created";
+
+  if (fs.existsSync(destinationPath)) {
+    const destinationStats = fs.statSync(destinationPath);
+    const isIdentical =
+      destinationStats.isFile() &&
+      destinationStats.size === sourceSize &&
+      calculateSha256(destinationPath) === sourceSha256;
+
+    if (isIdentical) {
+      return { status: "unchanged", size: sourceSize, sha256: sourceSha256 };
+    }
+    status = "updated";
+  }
+
+  fs.copyFileSync(sourcePath, destinationPath);
+  const copiedStats = fs.statSync(destinationPath);
+  const copiedSha256 = calculateSha256(destinationPath);
+  if (copiedStats.size !== sourceSize || copiedSha256 !== sourceSha256) {
+    throw new Error(`La verificación de la copia falló: ${destinationPath}`);
+  }
+
+  return { status, size: sourceSize, sha256: sourceSha256 };
+};
+
+const describeCopyStatus = (status) =>
+  status === "created" ? "creado" : status === "updated" ? "actualizado" : "ya estaba actualizado";
+
+const formatBytes = (bytes) => `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+const formatDuration = (milliseconds) => {
+  const totalSeconds = Math.round(milliseconds / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return minutes > 0 ? `${minutes} min ${seconds} s` : `${seconds} s`;
+};
+const logSection = (title) => console.log(`\n=== ${title} ===`);
 
 const ensureSemver = (value) => {
   if (typeof value !== "string" || !/^\d+\.\d+\.\d+$/.test(value)) {
@@ -39,7 +100,9 @@ const replaceOrThrow = (source, pattern, replacement) => {
   return output;
 };
 
+let commandEnvCache = null;
 const buildCommandEnv = () => {
+  if (commandEnvCache) return commandEnvCache;
   const env = { ...process.env };
   const gradleUserHome = path.join(rootDir, ".gradle-user-home");
   fs.mkdirSync(gradleUserHome, { recursive: true });
@@ -56,7 +119,6 @@ const buildCommandEnv = () => {
       env.JAVA_HOME = candidate;
       const pathKey = Object.keys(env).find((key) => key.toLowerCase() === "path") || "Path";
       env[pathKey] = `${candidate}\\bin;${env[pathKey] || ""}`;
-      console.log(`Setting JAVA_HOME to ${candidate}`);
     }
   }
 
@@ -65,10 +127,12 @@ const buildCommandEnv = () => {
   if (fs.existsSync(sdkPath)) {
     env.ANDROID_HOME = sdkPath;
     env.ANDROID_SDK_ROOT = sdkPath;
-    console.log(`Setting ANDROID_HOME to ${sdkPath}`);
   }
 
-  return env;
+  commandEnvCache = env;
+  console.log(`Entorno Java: ${env.JAVA_HOME || "no definido"}`);
+  console.log(`Android SDK: ${env.ANDROID_HOME || env.ANDROID_SDK_ROOT || "no definido"}`);
+  return commandEnvCache;
 };
 
 const formatCommand = (command, commandArgs) =>
@@ -260,20 +324,18 @@ const copyApkToDrive = (apkPath, version) => {
   fs.accessSync(driveDir, fs.constants.W_OK);
 
   const driveApkPath = path.join(driveDir, `cotidie-installer-v${version}.apk`);
-  fs.copyFileSync(apkPath, driveApkPath);
-  if (destination.isDrivePath) {
-    console.log(`APK copiado a Drive en: ${driveApkPath}`);
-  } else {
+  const copyResult = copyFileWithStatus(apkPath, driveApkPath);
+  const destinationLabel = destination.isDrivePath ? "Copia de Google Drive" : "Copia secundaria local";
+  console.log(`${destinationLabel}: ${describeCopyStatus(copyResult.status)}.`);
+  console.log(`Ruta: ${driveApkPath}`);
+
+  if (!destination.isDrivePath) {
     console.warn(
-      [
-        "No se detectó una carpeta de Google Drive. ",
-        "Se dejó una copia local en: ",
-        driveApkPath,
-        ". Si quieres copiarla a Drive automáticamente, define COTIDIE_APK_DRIVE_DIR.",
-      ].join("")
+      "No se detectó Google Drive. Define COTIDIE_APK_DRIVE_DIR para habilitar esa copia automática."
     );
   }
-  return driveApkPath;
+
+  return { path: driveApkPath, destination, copyResult };
 };
 
 const packageJsonPath = path.join(rootDir, "package.json");
@@ -290,6 +352,12 @@ if (setVersion) {
 } else if (!noBump) {
   nextVersion = bumpPatch(current);
 }
+
+console.log("\nCotidie - Generador de APK Android");
+console.log(`Versión actual: v${current}`);
+console.log(`Versión objetivo: v${nextVersion}`);
+console.log(`Publicación Git: ${skipPush ? "omitida por --no-push" : "habilitada"}`);
+console.log(`Copia secundaria: ${skipDrive ? "omitida por --no-drive" : "habilitada"}`);
 
 if (!skipPush) {
   ensureGitIndexUnlocked();
@@ -330,10 +398,14 @@ if (nextVersion !== current) {
   }
 }
 
+logSection("[1/4] Compilación web");
 runNodeScript(resolveNpmCliPath(), ["run", "build"], rootDir);
 prepareAndroidWebAssets();
+
+logSection("[2/4] Sincronización con Android");
 runNodeScript(resolveCapacitorCliPath(), ["sync", "android"], rootDir);
 
+logSection("[3/4] Ensamblado release");
 if (process.platform === "win32") {
   runBatchCommand("gradlew.bat assembleRelease", path.join(rootDir, "android"));
 } else {
@@ -346,61 +418,87 @@ if (!fs.existsSync(srcApk)) {
   throw new Error("No se encontró app-release.apk.");
 }
 
+logSection("[4/4] Publicación del APK");
+const outputFileName = `cotidie-installer-v${nextVersion}.apk`;
+const dstApk = path.join(rootDir, outputFileName);
+const removedApks = [];
+
 try {
   const files = fs.readdirSync(rootDir);
   for (const file of files) {
-    if (file.startsWith("cotidie-installer-v") && file.endsWith(".apk")) {
+    const isInstallerApk = file.startsWith("cotidie-installer-v") && file.endsWith(".apk");
+    if (isInstallerApk && file !== outputFileName) {
       fs.unlinkSync(path.join(rootDir, file));
-      console.log(`Eliminado exitosamente APK anterior: ${file}`);
+      removedApks.push(file);
     }
   }
 } catch (error) {
-  console.warn("Advertencia al limpiar APKs antiguos:", error.message);
+  console.warn(`No se pudieron limpiar todos los APK anteriores: ${error.message}`);
 }
 
-const dstApk = path.join(rootDir, `cotidie-installer-v${nextVersion}.apk`);
-fs.copyFileSync(srcApk, dstApk);
-console.log(`APK generado exitosamente en: ${dstApk}`);
-copyApkToDrive(dstApk, nextVersion);
+console.log(
+  removedApks.length > 0
+    ? `APKs anteriores eliminados (${removedApks.length}): ${removedApks.join(", ")}`
+    : "APKs anteriores: no había archivos que limpiar."
+);
 
+const localCopyResult = copyFileWithStatus(srcApk, dstApk);
+console.log(`APK local: ${describeCopyStatus(localCopyResult.status)}.`);
+console.log(`Ruta: ${dstApk}`);
+const secondaryCopy = skipDrive ? null : copyApkToDrive(dstApk, nextVersion);
+if (skipDrive) {
+  console.log("Copia secundaria omitida por --no-drive.");
+}
+
+let gitStatus = skipPush ? "omitida por --no-push" : "pendiente";
 if (skipPush) {
-  console.log("\nAviso: se omitió el git push.");
-  console.log("La APK local queda actualizada, pero la PWA/Vercel no se actualizará hasta subir los cambios a origin/main.");
+  console.log("Publicación Git omitida; el APK se generó normalmente.");
 }
 
 if (!skipPush) {
-  console.log("\n--- Iniciando sincronización automática con Vercel (Git) ---");
+  logSection("Publicación Git");
   try {
     const gitCommand = resolveGitCommand();
-
     runCommand(gitCommand, ["add", "-A", "--", "."], rootDir);
 
-    try {
-      const commitResult = spawnSync(gitCommand, ["commit", "-m", `Auto-deploy: Build v${nextVersion}`], {
-        cwd: rootDir,
-        stdio: "inherit",
-        env: buildCommandEnv(),
-        shell: false,
-      });
-
-      if (commitResult.error) {
-        throw commitResult.error;
-      }
-
-      if (commitResult.status !== 0) {
-        console.log("Git commit no realizó cambios (probablemente nothing to commit).");
-      }
-    } catch (error) {
-      console.warn("Advertencia en git commit:", error.message);
+    const stagedResult = spawnSync(gitCommand, ["diff", "--cached", "--quiet"], {
+      cwd: rootDir,
+      stdio: "ignore",
+      env: buildCommandEnv(),
+      shell: false,
+    });
+    if (stagedResult.error) {
+      throw stagedResult.error;
     }
 
-    console.log("Subiendo cambios a GitHub...");
+    let commitCreated = false;
+    if (stagedResult.status === 1) {
+      runCommand(gitCommand, ["commit", "-m", `Auto-deploy: Build v${nextVersion}`], rootDir);
+      commitCreated = true;
+    } else if (stagedResult.status === 0) {
+      console.log("Commit: no había cambios nuevos para registrar.");
+    } else {
+      throw new Error(`No se pudo comprobar el índice de Git (código ${stagedResult.status}).`);
+    }
+
+    console.log("Ejecutando git push...");
     runCommand(gitCommand, ["push"], rootDir);
-    console.log("Éxito: el código se ha subido y Vercel debería estar actualizando la PWA.");
-    console.log(`Versión compilada: v${nextVersion}.`);
+    gitStatus = commitCreated ? "commit creado y push completado" : "sin commit nuevo; push verificado";
+    console.log(`Publicación Git: ${gitStatus}.`);
   } catch (error) {
-    console.error("No se pudo completar la sincronización automática con Git.");
-    console.error(`Error: ${error.message}`);
-    console.error("Por favor, ejecuta 'git push' manualmente si deseas actualizar la web.");
+    gitStatus = `fallida: ${error.message}`;
+    console.error(`Publicación Git fallida: ${error.message}`);
+    console.error("El APK ya está disponible; Git puede sincronizarse manualmente después.");
   }
 }
+
+logSection("Resumen");
+console.log(`Versión: v${nextVersion}`);
+console.log(`Tamaño: ${formatBytes(localCopyResult.size)}`);
+console.log(`SHA-256: ${localCopyResult.sha256}`);
+console.log(`APK local: ${dstApk}`);
+console.log(
+  secondaryCopy ? `Copia secundaria: ${secondaryCopy.path} (${describeCopyStatus(secondaryCopy.copyResult.status)})` : "Copia secundaria: omitida"
+);
+console.log(`Git: ${gitStatus}`);
+console.log(`Duración total: ${formatDuration(Date.now() - buildStartedAt)}`);

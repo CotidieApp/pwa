@@ -8,6 +8,32 @@ Historial de intervenciones del asistente en el repo.
 - Esta obligacion aplica aunque el usuario pida tocar solo lo estrictamente necesario: el registro en `AGENTS.md` se considera parte estrictamente necesaria de cualquier edicion del repo.
 - Si una instruccion del usuario prohibe explicitamente editar `AGENTS.md`, el agente debe pedir aclaracion antes de modificar otros archivos.
 
+### [2026-07-11 10:48] 257. Flujo profesional de generacion del APK
+**Planificacion:**
+- Corregir mensajes incorrectos del proceso `npm run android:apk` y eliminar el copiado automatico duplicado.
+- Diferenciar con datos reales si cada APK fue creado, actualizado o ya estaba al dia.
+- Verificar la integridad de las copias y entregar un resumen final claro sin cambiar el comportamiento normal de versionado o publicacion.
+
+**Ejecucion:**
+- **Un solo flujo**: `package.json` dejo de ejecutar `postandroid:apk`; el script principal conserva la copia local y a Drive, evitando el segundo copiado y el mensaje fijo `Archivo identico reemplazado`.
+- **Copias verificadas**: `android-apk.mjs` compara tamano y SHA-256, omite escrituras innecesarias y verifica despues de copiar antes de informar `creado`, `actualizado` o `ya estaba actualizado`.
+- **Salida ordenada**: la compilacion se presenta en cuatro fases y termina con version, tamano, SHA-256, rutas, estado de Git y duracion total.
+- **Git preciso**: se comprueba primero el indice; solo se informa que no hay cambios cuando `git diff --cached --quiet` lo confirma, mientras los errores reales de commit se reportan como fallos.
+- **Diagnostico local**: se agrego `--no-drive` para validar una release sin escribir en almacenamiento externo; el comando habitual sigue copiando a Drive.
+- **Entorno**: JAVA_HOME y Android SDK se resuelven una sola vez y dejan de repetirse antes de cada subcomando.
+
+**Validacion:**
+- `node --check scripts/android-apk.mjs` OK.
+- `npm.cmd run android:apk -- --no-bump --no-push --no-drive` OK: Next build, Capacitor sync y Gradle assembleRelease completados.
+- APK validado: v6.3.0, 129.28 MB, SHA-256 `ced8a1603d719be8fa19581f60e54e2068ea7fbc509cfd9163887f5bc3fcb331`.
+- La salida confirmo copia local `actualizado`, copia secundaria omitida y Git omitido; npm no ejecuto `postandroid:apk`.
+- `git diff --check` OK; solo avisos esperados de finales de linea CRLF en Windows.
+
+**Archivos Modificados:**
+- `scripts/android-apk.mjs`
+- `package.json`
+- `AGENTS.md`
+
 ### [2026-07-11 10:15] 256. Tipografia, navegacion tactil y acceso a Cotidie Annuum
 **Planificacion:**
 - Recuperar la seleccion de tipo de letra usando solo las fuentes ya incluidas en la aplicacion.
