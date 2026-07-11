@@ -2,15 +2,14 @@
 
 import React, { useMemo, useState } from 'react';
 import { useSettings } from '@/context/SettingsContext';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import type { Prayer } from '@/lib/types';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Combobox } from '@/components/ui/combobox';
 import * as Icon from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,12 +22,58 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
+function flattenPrayers(prayers: Prayer[], prefix: string[] = []): { value: string; label: string }[] {
+  const items: { value: string; label: string }[] = [];
+  for (const prayer of prayers) {
+    if (!prayer.id) continue;
+    const nextPrefix = [...prefix, prayer.title || 'Sin título'];
+    items.push({ value: `prayer:${prayer.id}`, label: nextPrefix.join(' / ') });
+    if (prayer.prayers?.length) {
+      items.push(...flattenPrayers(prayer.prayers, nextPrefix));
+    }
+  }
+  return items;
+}
+
+function findPrayerTitleById(prayers: Prayer[], id: string): string | null {
+  for (const prayer of prayers) {
+    if (prayer.id === id) return prayer.title;
+    if (prayer.prayers?.length) {
+      const found = findPrayerTitleById(prayer.prayers, id);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function SettingsSwitchRow({
+  id,
+  title,
+  subtitle,
+  checked,
+  disabled,
+  onCheckedChange,
+}: {
+  id: string;
+  title: string;
+  subtitle?: string;
+  checked: boolean;
+  disabled?: boolean;
+  onCheckedChange: (checked: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-md border bg-card/60 px-3 py-3">
+      <Label htmlFor={id} className="min-w-0 flex-1 cursor-pointer">
+        <span className="block text-sm font-medium leading-tight">{title}</span>
+        {subtitle ? <span className="mt-0.5 block text-xs font-normal leading-tight text-muted-foreground">{subtitle}</span> : null}
+      </Label>
+      <Switch id={id} checked={checked} disabled={disabled} onCheckedChange={onCheckedChange} />
+    </div>
+  );
+}
+
 export default function NotificationSettings() {
   const {
-    timerEnabled,
-    setTimerEnabled,
-    timerDuration,
-    setTimerDuration,
     notificationsEnabled,
     setNotificationsEnabled,
     dailyReminders,
@@ -36,212 +81,162 @@ export default function NotificationSettings() {
     updateDailyReminder,
     removeDailyReminder,
     allPrayers,
-    categories,
     skipNotificationIfChecked,
     setSkipNotificationIfChecked,
   } = useSettings();
 
-  const { toast } = useToast();
-  const [localTimerDuration, setLocalTimerDuration] = useState(timerDuration);
+  const [customNotificationsOpen, setCustomNotificationsOpen] = useState(false);
 
-  const handleTimerDurationSave = () => {
-    setTimerDuration(localTimerDuration);
-    toast({ title: 'Duración del temporizador guardada.' });
-  };
-
-  const reminderTargetOptions = useMemo(() => {
-    const categoryNames = new Map(categories.map((c) => [c.id, c.name]));
-    const prayers = allPrayers
-      .filter((p) => !!p.id && (p.categoryId === 'plan-de-vida' || p.categoryId === 'oraciones'))
-      .map((p) => ({
-        value: `prayer:${p.id!}`,
-        label: `${p.title}${p.categoryId ? ` (${categoryNames.get(p.categoryId) ?? p.categoryId})` : ''}`,
-      }))
-      .sort((a, b) => a.label.localeCompare(b.label, 'es'));
-
-    return [{ value: 'category:devociones', label: 'Devociones (general)' }, ...prayers];
-  }, [allPrayers, categories]);
+  const reminderTargetOptions = useMemo(
+    () => [{ value: 'category:devociones', label: 'Devociones (general)' }, ...flattenPrayers(allPrayers)],
+    [allPrayers]
+  );
 
   const getDefaultReminderMessageForTarget = (targetValue: string) => {
     const [type, id] = targetValue.split(':');
     if (type === 'category') return 'Recuerda tus devociones.';
-    const prayer = allPrayers.find((p) => p.id === id);
-    const title = prayer?.title ?? 'tu oración';
-    if (id === 'santa-misa') return `Recuerda tu hora de ${title}.`;
-    return `Recuerda rezar ${title}.`;
+    return `Recuerda rezar ${findPrayerTitleById(allPrayers, id) ?? 'tu oración'}.`;
+  };
+
+  const handleAddReminder = () => {
+    addDailyReminder();
+    setCustomNotificationsOpen(true);
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <Card>
-        <CardHeader>
-          <CardTitle className="font-headline text-base">Temporizador</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="timer-switch" className="text-sm">
-              Activar Temporizador
-            </Label>
-            <Switch
-              id="timer-switch"
-              checked={timerEnabled}
-              onCheckedChange={setTimerEnabled}
-            />
-          </div>
-          {timerEnabled && (
-            <div className="space-y-2">
-              <Label htmlFor="timer-duration" className="text-sm">
-                Duración (minutos)
-              </Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="timer-duration"
-                  type="number"
-                  value={localTimerDuration}
-                  onChange={(e) => setLocalTimerDuration(Number(e.target.value))}
-                  min="1"
-                  className="w-24"
-                />
-                <Button onClick={handleTimerDurationSave}>Guardar</Button>
-              </div>
-            </div>
-          )}
+        <CardContent className="space-y-2 pt-6">
+          <SettingsSwitchRow
+            id="notifications-enabled"
+            title="Notificaciones"
+            subtitle="Recibe diversas a lo largo del día/mes"
+            checked={notificationsEnabled}
+            onCheckedChange={setNotificationsEnabled}
+          />
+          <SettingsSwitchRow
+            id="skip-notification-if-checked"
+            title="Omisión"
+            subtitle="No se notifica si está marcada como rezada"
+            checked={skipNotificationIfChecked}
+            disabled={!notificationsEnabled}
+            onCheckedChange={setSkipNotificationIfChecked}
+          />
         </CardContent>
-         <CardFooter>
-          <p className="text-xs text-muted-foreground">
-            Muestra un temporizador en la parte superior izquierda para controlar los tiempos de oración.
-          </p>
-        </CardFooter>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline text-base">Notificaciones</CardTitle>
+          <button
+            type="button"
+            className="flex w-full items-center justify-between gap-3 text-left"
+            onClick={() => setCustomNotificationsOpen((prev) => !prev)}
+          >
+            <CardTitle className="font-headline text-base">Personalizadas</CardTitle>
+            <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+              {dailyReminders.length}
+              <Icon.ChevronDown className={`size-4 transition-transform ${customNotificationsOpen ? 'rotate-180' : ''}`} />
+            </span>
+          </button>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="notifications-switch" className="text-sm">
-              Activar Notificaciones
-            </Label>
-            <Switch
-              id="notifications-switch"
-              checked={notificationsEnabled}
-              onCheckedChange={setNotificationsEnabled}
-            />
-          </div>
 
-          <div className={cn("flex items-center justify-between gap-3", !notificationsEnabled && "opacity-50")}>
-            <div className="space-y-0.5 flex-1">
-              <Label htmlFor="skip-notif-switch" className="text-sm font-medium">Omitir si ya se rezó</Label>
-              <p className="text-[10px] text-muted-foreground leading-tight">
-                No envía recordatorios de oraciones marcadas hoy en Plan de Vida.
-              </p>
+        {customNotificationsOpen ? (
+          <CardContent className="space-y-3">
+            <div className={!notificationsEnabled ? 'pointer-events-none opacity-50' : ''}>
+              <div className="space-y-3">
+                {dailyReminders.map((reminder, index) => {
+                  const targetValue = `${reminder.target.type}:${reminder.target.id}`;
+                  const previousDefaultMessage = getDefaultReminderMessageForTarget(targetValue);
+                  const timeValue = `${String(reminder.time.hours).padStart(2, '0')}:${String(reminder.time.minutes).padStart(2, '0')}`;
+
+                  return (
+                    <div key={reminder.id} className="space-y-3 rounded-md border bg-card/60 p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <Label className="text-sm font-medium">Notificación {index + 1}</Label>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={reminder.enabled}
+                            onCheckedChange={(enabled) => updateDailyReminder(reminder.id, { enabled })}
+                          />
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-destructive" aria-label="Eliminar notificación">
+                                <Icon.Trash2 className="size-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>¿Eliminar notificación?</AlertDialogTitle>
+                                <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => removeDailyReminder(reminder.id)}>Eliminar</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-sm">Oración</Label>
+                        <Combobox
+                          items={reminderTargetOptions}
+                          value={targetValue}
+                          onSelect={(value) => {
+                            if (!value) return;
+                            const [type, id] = value.split(':');
+                            if (type !== 'prayer' && type !== 'category') return;
+                            const nextDefaultMessage = getDefaultReminderMessageForTarget(value);
+                            updateDailyReminder(reminder.id, {
+                              target: { type: type as 'prayer' | 'category', id },
+                              message:
+                                !reminder.message ||
+                                reminder.message.trim().length === 0 ||
+                                reminder.message === previousDefaultMessage
+                                  ? nextDefaultMessage
+                                  : reminder.message,
+                            });
+                          }}
+                          placeholder="Selecciona una oración"
+                          searchPlaceholder="Buscar..."
+                          noResultsText="Sin resultados"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-sm">Hora</Label>
+                        <Input
+                          type="time"
+                          value={timeValue}
+                          onChange={(event) => {
+                            const [hours, minutes] = event.target.value.split(':').map((part) => Number(part));
+                            if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return;
+                            updateDailyReminder(reminder.id, { time: { hours, minutes } });
+                          }}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-sm">Mensaje</Label>
+                        <Input
+                          value={reminder.message}
+                          onChange={(event) => updateDailyReminder(reminder.id, { message: event.target.value })}
+                          placeholder={getDefaultReminderMessageForTarget(targetValue)}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-            <Switch
-              id="skip-notif-switch"
-              checked={skipNotificationIfChecked}
-              onCheckedChange={setSkipNotificationIfChecked}
-              disabled={!notificationsEnabled}
-            />
-          </div>
 
-          <div className={cn("space-y-3", !notificationsEnabled && "opacity-50 pointer-events-none")}>
-            {dailyReminders.map((r) => {
-              const targetValue = `${r.target.type}:${r.target.id}`;
-              const timeValue = `${String(r.time.hours).padStart(2, '0')}:${String(r.time.minutes).padStart(2, '0')}`;
-              return (
-                <div key={r.id} className="rounded-md border p-3 space-y-3">
-                  <div className="flex items-center justify-between gap-4">
-                    <Label className="text-sm font-medium">Recordatorio Activo</Label>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Switch
-                        checked={r.enabled}
-                        onCheckedChange={(enabled) => updateDailyReminder(r.id, { enabled })}
-                      />
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="destructive"
-                            size="icon"
-                            className="h-8 w-8"
-                            aria-label="Eliminar recordatorio"
-                          >
-                            <Icon.Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>¿Eliminar recordatorio?</AlertDialogTitle>
-                            <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => removeDailyReminder(r.id)}>Eliminar</AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label className="text-sm">Oración / Sección</Label>
-                      <Combobox
-                        items={reminderTargetOptions}
-                        value={targetValue}
-                        onSelect={(value) => {
-                          if (!value) return;
-                          const [type, id] = value.split(':');
-                          if (type !== 'prayer' && type !== 'category') return;
-                          const targetType = type as 'prayer' | 'category';
-                          updateDailyReminder(r.id, { target: { type: targetType, id } });
-                          if (!r.message || r.message.trim().length === 0) {
-                            updateDailyReminder(r.id, { message: getDefaultReminderMessageForTarget(value) });
-                          }
-                        }}
-                        placeholder="Selecciona una opción"
-                        searchPlaceholder="Buscar..."
-                        noResultsText="Sin resultados"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-sm">Hora</Label>
-                      <Input
-                        type="time"
-                        value={timeValue}
-                        onChange={(e) => {
-                          const [hh, mm] = e.target.value.split(':').map((x) => Number(x));
-                          if (!Number.isFinite(hh) || !Number.isFinite(mm)) return;
-                          updateDailyReminder(r.id, { time: { hours: hh, minutes: mm } });
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm">Mensaje</Label>
-                    <Input
-                      value={r.message}
-                      onChange={(e) => updateDailyReminder(r.id, { message: e.target.value })}
-                      placeholder={getDefaultReminderMessageForTarget(targetValue)}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-
-            <Button variant="outline" onClick={addDailyReminder} className="w-full">
+            <Button variant="outline" className="w-full" onClick={handleAddReminder}>
               <Icon.Plus className="mr-2 size-4" />
-              Agregar Recordatorio
+              Agregar notificación
             </Button>
-          </div>
-        </CardContent>
-        <CardFooter>
-          <p className="text-xs text-muted-foreground">
-            Programa recordatorios diarios que abren la oración o sección al tocar.
-          </p>
-        </CardFooter>
+          </CardContent>
+        ) : null}
       </Card>
     </div>
   );

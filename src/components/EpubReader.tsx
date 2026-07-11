@@ -5,7 +5,7 @@ import ePub, { type Book, type Rendition } from 'epubjs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { Menu } from 'lucide-react';
+import { BookOpen, ListTree, Maximize2, Menu, Minimize2, Search } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 import { useScreenWakeLock } from '@/hooks/useScreenWakeLock';
 
@@ -292,7 +292,7 @@ export default function EpubReader({
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [panelTab, setPanelTab] = useState<'toc' | 'search' | 'bookmarks' | 'highlights'>('toc');
   const [tocBookFilter, setTocBookFilter] = useState<string>('all');
-  const isReaderFullscreen = false;
+  const [isReaderFullscreen, setIsReaderFullscreen] = useState(false);
   const [showReaderChrome, setShowReaderChrome] = useState(true);
   const [readerTextColor, setReaderTextColor] = useState<'white' | 'black'>(theme === 'dark' ? 'white' : 'black');
   const [readerBackgroundColor, setReaderBackgroundColor] = useState<'white' | 'black'>(
@@ -822,6 +822,27 @@ export default function EpubReader({
     });
   };
 
+  const openReaderPanel = (tab: 'toc' | 'search' | 'bookmarks' | 'highlights') => {
+    if (availablePanelTabs.includes(tab)) {
+      setPanelTab(tab);
+    }
+    setShowReaderChrome(true);
+    setIsPanelOpen(true);
+  };
+
+  const enterReaderFullscreen = () => {
+    setIsPanelOpen(false);
+    setShowReaderChrome(false);
+    setIsReaderFullscreen(true);
+    window.setTimeout(() => refreshRenditionLayout(), 80);
+  };
+
+  const exitReaderFullscreen = () => {
+    setIsReaderFullscreen(false);
+    setShowReaderChrome(true);
+    window.setTimeout(() => refreshRenditionLayout(), 80);
+  };
+
   useEffect(() => {
     if (!isReaderFullscreen) {
       setShowReaderChrome(true);
@@ -831,9 +852,19 @@ export default function EpubReader({
       }
       return;
     }
-    setShowReaderChrome(true);
-    scheduleChromeHide();
+    setShowReaderChrome(false);
   }, [isPanelOpen, isReaderFullscreen, scheduleChromeHide]);
+
+  useEffect(() => {
+    if (!isReaderFullscreen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        exitReaderFullscreen();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isReaderFullscreen]);
 
   const jumpToToc = async (href: string) => {
     setSelectedToc(href);
@@ -977,16 +1008,16 @@ export default function EpubReader({
 
   return (
     <div
-      className={isReaderFullscreen ? 'fixed inset-0 z-[80] bg-black flex flex-col gap-3' : 'flex flex-col h-full min-h-0 gap-3'}
+      className={isReaderFullscreen ? 'fixed inset-0 z-[120] bg-black flex flex-col' : 'flex flex-col h-full min-h-0 gap-3'}
       style={
         isReaderFullscreen
           ? {
               height: '100dvh',
               maxHeight: '100dvh',
-              paddingTop: 'max(0.5rem, env(safe-area-inset-top, 0px))',
-              paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))',
-              paddingLeft: 'max(0.5rem, env(safe-area-inset-left, 0px))',
-              paddingRight: 'max(0.5rem, env(safe-area-inset-right, 0px))',
+              paddingTop: 'env(safe-area-inset-top, 0px)',
+              paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+              paddingLeft: 'env(safe-area-inset-left, 0px)',
+              paddingRight: 'env(safe-area-inset-right, 0px)',
             }
           : {
               paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 0px))',
@@ -1002,40 +1033,86 @@ export default function EpubReader({
             : 'space-y-2 shrink-0'
         }
       >
-      <div className="flex flex-wrap gap-2">
-        <Button variant="outline" size="icon" onClick={() => {
-            wakeReaderChrome();
-            setIsPanelOpen(true);
-          }} aria-label="Abrir menú">
-          <Menu className="h-5 w-5" />
-        </Button>
-        <span className="text-xs text-muted-foreground self-center">{locationLabel ? `Página ${locationLabel}` : ''}</span>
-      </div>
+        <div className="rounded-lg border border-border bg-card/95 p-3 shadow-sm backdrop-blur">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="rounded-md bg-primary/10 p-2 text-primary">
+                <BookOpen className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="truncate text-sm font-semibold">{isNtContext ? 'Nuevo Testamento' : 'Lector EPUB'}</div>
+                <div className="truncate text-xs text-muted-foreground">
+                  {locationLabel ? `Página ${locationLabel}` : status === 'ready' ? 'Lectura lista' : 'Preparando lectura'}
+                </div>
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => openReaderPanel('toc')}
+                disabled={status !== 'ready' || !availablePanelTabs.includes('toc')}
+                aria-label="Abrir índice"
+              >
+                <ListTree className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => openReaderPanel('search')}
+                disabled={status !== 'ready'}
+                aria-label="Buscar en el EPUB"
+              >
+                <Search className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={isReaderFullscreen ? exitReaderFullscreen : enterReaderFullscreen}
+                aria-label={isReaderFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
+              >
+                {isReaderFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => openReaderPanel(panelTab)}
+                aria-label="Abrir panel de lectura"
+              >
+                <Menu className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <label htmlFor="epub-reader-text-color" className="text-xs text-muted-foreground">Texto</label>
-        <select
-          id="epub-reader-text-color"
-          name="epub-reader-text-color"
-          className="rounded-md border border-input bg-background px-2 py-1 text-xs"
-          value={readerTextColor}
-          onChange={(e) => setReaderTextColor(e.target.value === 'white' ? 'white' : 'black')}
-        >
-          <option value="black">Negro</option>
-          <option value="white">Blanco</option>
-        </select>
-        <label htmlFor="epub-reader-background-color" className="text-xs text-muted-foreground">Fondo</label>
-        <select
-          id="epub-reader-background-color"
-          name="epub-reader-background-color"
-          className="rounded-md border border-input bg-background px-2 py-1 text-xs"
-          value={readerBackgroundColor}
-          onChange={(e) => setReaderBackgroundColor(e.target.value === 'black' ? 'black' : 'white')}
-        >
-          <option value="white">Blanco</option>
-          <option value="black">Negro</option>
-        </select>
-      </div>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <label className="space-y-1 text-xs text-muted-foreground" htmlFor="epub-reader-text-color">
+              <span>Texto</span>
+              <select
+                id="epub-reader-text-color"
+                name="epub-reader-text-color"
+                className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs text-foreground"
+                value={readerTextColor}
+                onChange={(e) => setReaderTextColor(e.target.value === 'white' ? 'white' : 'black')}
+              >
+                <option value="black">Negro</option>
+                <option value="white">Blanco</option>
+              </select>
+            </label>
+            <label className="space-y-1 text-xs text-muted-foreground" htmlFor="epub-reader-background-color">
+              <span>Fondo</span>
+              <select
+                id="epub-reader-background-color"
+                name="epub-reader-background-color"
+                className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs text-foreground"
+                value={readerBackgroundColor}
+                onChange={(e) => setReaderBackgroundColor(e.target.value === 'black' ? 'black' : 'white')}
+              >
+                <option value="white">Blanco</option>
+                <option value="black">Negro</option>
+              </select>
+            </label>
+          </div>
+        </div>
 
       {pendingSelectionCfi ? (
         <div className="space-y-2 rounded-md border border-border p-2 bg-background/60">
@@ -1079,11 +1156,14 @@ export default function EpubReader({
       </div>
 
       <div
-        className="relative rounded-lg border border-border bg-card/40 overflow-hidden flex-1 min-h-0"
+        className={isReaderFullscreen
+          ? 'relative overflow-hidden flex-1 min-h-0 bg-card'
+          : 'relative rounded-lg border border-border bg-card/40 overflow-hidden flex-1 min-h-0'
+        }
       >
         <div
           ref={containerRef}
-          className="w-full min-h-0"
+          className="h-full w-full min-h-0"
           style={{
             fontSize: `${prayerTextZoom}em`,
             height: `calc(100% - ${EPUB_PAGE_BOTTOM_GUARD})`,
@@ -1105,6 +1185,14 @@ export default function EpubReader({
             className="pointer-events-auto absolute inset-y-0 right-0 w-1/3"
           />
         </div>
+        {isReaderFullscreen ? (
+          <button
+            type="button"
+            aria-label={showReaderChrome ? 'Ocultar controles' : 'Mostrar controles'}
+            onClick={toggleReaderChrome}
+            className="absolute inset-x-1/4 top-0 z-[40] h-16 opacity-0"
+          />
+        ) : null}
       </div>
 
       <Sheet open={isPanelOpen} onOpenChange={setIsPanelOpen}>
@@ -1126,7 +1214,7 @@ export default function EpubReader({
           <div className="mt-4 flex gap-2">
             {availablePanelTabs.includes('toc') && (
               <Button size="sm" variant={panelTab === 'toc' ? 'default' : 'outline'} onClick={() => setPanelTab('toc')}>
-                TOC
+                Índice
               </Button>
             )}
             {availablePanelTabs.includes('search') && (
@@ -1161,7 +1249,7 @@ export default function EpubReader({
           <div className="mt-4">
             {panelTab === 'toc' && (
               <div className="space-y-2">
-                <div className="text-xs font-semibold">Viaje rápido (índice)</div>
+                <div className="text-xs font-semibold">Índice</div>
                 {isNtContext && Object.keys(tocBookAnchors).length > 0 ? (
                   <select
                     id="epub-reader-toc-book"

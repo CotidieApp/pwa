@@ -8,6 +8,157 @@ Historial de intervenciones del asistente en el repo.
 - Esta obligacion aplica aunque el usuario pida tocar solo lo estrictamente necesario: el registro en `AGENTS.md` se considera parte estrictamente necesaria de cualquier edicion del repo.
 - Si una instruccion del usuario prohibe explicitamente editar `AGENTS.md`, el agente debe pedir aclaracion antes de modificar otros archivos.
 
+### [2026-07-11 10:15] 256. Tipografia, navegacion tactil y acceso a Cotidie Annuum
+**Planificacion:**
+- Recuperar la seleccion de tipo de letra usando solo las fuentes ya incluidas en la aplicacion.
+- Integrar los controles de tamano en Apariencia general y retirar la subcategoria Tamaños.
+- Dejar el modo de globo sin acceso desde la interfaz y mantener las zonas de toque como modo efectivo.
+- Mostrar Cotidie Annuum en Ajustes despues de su primera visualizacion anual.
+
+**Ejecucion:**
+- **Apariencia general**: `AppearanceSettings.tsx` integra Aplicacion en general, Tamaño de fuente y Tipo de letra dentro del mismo bloque, sin la subcategoria Tamaños.
+- **Tipo de letra**: se restauro el selector con Literata, Lora, Merriweather, EB Garamond y Times New Roman, reutilizando el estado persistente `fontFamily`.
+- **Navegacion**: se retiro el interruptor visible que permitia elegir el globo de flechas; `SettingsContext.tsx` normaliza preferencias antiguas a zonas de toque, conservando el codigo del modo globo para una posible recuperacion futura.
+- **Cotidie Annuum**: `Settings.tsx` muestra una quinta entrada resaltada y animada despues de que `hasViewedAnnuum` queda activo; el reinicio anual y la ocultacion del globo siguen usando el estado persistente existente.
+
+**Validacion:**
+- `.\\node_modules\\.bin\\tsc.cmd --noEmit` OK.
+- `npm.cmd run build` OK.
+- Busqueda de interfaz confirmo que ya no aparecen la subcategoria Tamaños ni el control del globo, y que si aparecen Tipo de letra y Cotidie Annuum bajo sus condiciones.
+
+**Archivos Modificados:**
+- `src/components/settings/AppearanceSettings.tsx`
+- `src/components/Settings.tsx`
+- `src/context/SettingsContext.tsx`
+- `AGENTS.md`
+
+### [2026-07-10 23:21] 255. Fondo perpetuo dev y pulido de lectores EPUB
+**Planificacion:**
+- Revisar si el modo `Ambos`, el fondo global y el lector EPUB ya cumplian las instrucciones recientes.
+- Ajustar solo lo faltante: margen bilingue, modo de prueba de fondo perpetuo y experiencia de lectura EPUB.
+- Mantener el fondo perpetuo apagado por defecto y limitado a modo desarrollador.
+
+**Ejecucion:**
+- **Modo Ambos**: `PrayerDetail.tsx` estrecho los margenes laterales y la separacion entre columnas del render bilingue para aprovechar mejor el ancho disponible.
+- **Fondo perpetuo**: `SettingsContext.tsx` agrego estado persistente `perpetualBackgroundEnabled`; `AppearanceSettings.tsx` muestra el interruptor solo en modo desarrollador, antes de `Rotacion diaria`, resaltado en azul.
+- **Aplicacion completa**: `MainApp.tsx` aplica el fondo seleccionado en todas las vistas solo cuando el modo desarrollador y el fondo perpetuo estan activos, con una capa de contraste para preservar legibilidad.
+- **Lector EPUB**: `EpubReader.tsx` reactivo pantalla completa real, ocultando los controles al entrar y dejando el lector dentro de las zonas seguras; tambien ordeno la barra superior con accesos a indice, busqueda, panel y pantalla completa.
+- **Personales EPUB**: `PersonalEpubLibrary.tsx` ordeno la cabecera del lector seleccionado y la vista de biblioteca personal sin cambiar el guardado local ni el renombrado.
+
+**Validacion:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `npm.cmd run build` OK.
+- `git diff --check` OK; solo avisos esperados de finales de linea CRLF en Windows.
+
+**Archivos Modificados:**
+- `src/context/SettingsContext.tsx`
+- `src/components/settings/AppearanceSettings.tsx`
+- `src/components/main/MainApp.tsx`
+- `src/components/PrayerDetail.tsx`
+- `src/components/EpubReader.tsx`
+- `src/components/PersonalEpubLibrary.tsx`
+- `AGENTS.md`
+
+### [2026-07-10 20:09] 254. Rediseño completo de Ajustes y panel desarrollador
+**Planificacion:**
+- Reemplazar la interfaz visual de Ajustes por cuatro entradas principales: Contenido, Notificaciones, Apariencia e Informacion.
+- Reubicar los controles existentes segun la nueva estructura indicada por el usuario, eliminando ajustes no mencionados.
+- Simplificar el panel de desarrollador en una sola vista util, sin trazas ni navegacion por subsecciones.
+
+**Ejecucion:**
+- **Ajustes**: `Settings.tsx` reemplazo las pestañas horizontales por cuatro botones tipo lista y vistas internas con boton de regreso.
+- **Contenido**: `ContentSettings.tsx` quedo con Visibilidad de Oraciones, Ocultar oraciones predeterminadas del Plan de Vida, Temporizador y Control de Contenido avanzado solo en modo desarrollador.
+- **Notificaciones**: `NotificationSettings.tsx` conserva Notificaciones/Omisión, deja Personalizadas colapsada al entrar, permite activar/desactivar, editar oración, hora y mensaje, y elegir oraciones de toda la app.
+- **Apariencia**: `AppearanceSettings.tsx` conserva solo Apariencia general, Tamaños y Fondo de Pantalla; se eliminaron los controles visuales de widget, fuente y tamaño del globo.
+- **Informacion**: `DeveloperSettings.tsx` integra Datos y Respaldo, General, Desarrollador, Acerca de y el texto final; se elimino Forzar Actualizacion.
+- **Panel desarrollador**: `DeveloperDashboard.tsx` quedo como una sola vista con estado, controles internos, metricas, previsualizaciones e imagenes; se quitaron las trazas.
+- **Predeterminado de navegacion**: `SettingsContext.tsx` cambia el valor por defecto/restablecido de `navMode` a `touch`, para que Avance con zonas de toque comience activado.
+
+**Validacion:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `npm.cmd run build` OK.
+- `node scripts\android-apk.mjs --no-bump --no-push` OK, incluyendo `next build`, `cap sync android` y `assembleRelease`.
+- Busqueda en la nueva interfaz confirmo que ya no aparecen controles de Widget, Trazas, Forzar Actualizacion, Tipo de letra, Alertas u Otros.
+
+**Archivos Modificados:**
+- `src/components/Settings.tsx`
+- `src/components/settings/ContentSettings.tsx`
+- `src/components/settings/NotificationSettings.tsx`
+- `src/components/settings/AppearanceSettings.tsx`
+- `src/components/settings/DeveloperSettings.tsx`
+- `src/components/developer/DeveloperDashboard.tsx`
+- `src/context/SettingsContext.tsx`
+- `AGENTS.md`
+
+### [2026-07-10 12:14] 253. Modo bilingue en dos columnas y lectura externa
+**Planificacion:**
+- Ajustar el modo `Ambos` para que los dos idiomas ocupen siempre mitades izquierda/derecha de la pantalla.
+- Restaurar el permiso de lectura externa que se habia quitado al reducir señales sensibles para Play Protect.
+- Evitar devolver permisos de escritura amplios porque no son necesarios para abrir EPUB, MP3 o CTD.
+
+**Ejecucion:**
+- **Modo bilingue**: `PrayerDetail.tsx` fuerza la cabecera y cada fila bilingue a `grid-cols-2`, sin apilar idiomas en pantallas pequeñas.
+- **Lectura externa**: `AndroidManifest.xml` vuelve a declarar `READ_EXTERNAL_STORAGE`, limitado con `android:maxSdkVersion="32"`.
+- **Compatibilidad legacy**: se mantiene `requestLegacyExternalStorage="true"` para Android 10.
+
+**Validacion:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `node scripts\android-apk.mjs --no-bump --no-push` OK, incluyendo `next build`, `cap sync android` y `assembleRelease`.
+- `aapt dump permissions` confirmo `READ_EXTERNAL_STORAGE maxSdkVersion='32'` y que no se declara `WRITE_EXTERNAL_STORAGE`.
+- El manifiesto fusionado de release conserva `requestLegacyExternalStorage="true"`.
+
+**Archivos Modificados:**
+- `src/components/PrayerDetail.tsx`
+- `android/app/src/main/AndroidManifest.xml`
+- `AGENTS.md`
+
+### [2026-07-09 23:31] 252. Restauracion offline de audios predeterminados
+**Planificacion:**
+- Eliminar la descarga bajo demanda de los audios predeterminados porque fallaba en dispositivo real.
+- Volver a incluir los MP3 predeterminados dentro del APK para conservar el uso completamente offline.
+- Mantener solo la exclusion de la copia duplicada vieja del Nuevo Testamento.
+
+**Ejecucion:**
+- **Audios predeterminados**: `MainApp.tsx` ya no usa URLs remotas, estados de descarga ni `Filesystem.downloadFile` para los dos audios incluidos.
+- **Interfaz de Audios**: se elimino el bloque de `Estado`, el mensaje de error de descarga y el boton de descarga; el reproductor vuelve a mostrarse directamente.
+- **APK offline**: `scripts/android-apk.mjs` dejo de excluir `Discurso San Josemaría.mp3` y `Discurso San Juan Pablo II.mp3` del paquete Android.
+
+**Validacion:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `node scripts\android-apk.mjs --no-bump --no-push` OK, incluyendo `next build`, `cap sync android` y `assembleRelease`.
+- Inspeccion del APK confirmo que contiene `assets/public/media/Discurso San Josemaría.mp3` y `assets/public/media/Discurso San Juan Pablo II.mp3`.
+- Inspeccion del APK confirmo que sigue quedando solo `assets/public/epub/nuevo-testamento.epub` para el Nuevo Testamento.
+- APK generado medido: 135,563,804 bytes.
+
+**Archivos Modificados:**
+- `src/components/main/MainApp.tsx`
+- `scripts/android-apk.mjs`
+- `AGENTS.md`
+
+### [2026-07-09 22:01] 251. Reduccion de señales sensibles para Play Protect
+**Planificacion:**
+- Revisar el APK reciente para identificar permisos o configuraciones que pudieran verse riesgosas al instalar por fuera de Play Store.
+- Quitar o acotar solo lo que no fuera necesario para las funciones reales de Cotidie.
+- Mantener funcionales las exportaciones y el intercambio de archivos.
+
+**Ejecucion:**
+- **Permisos Android**: `AndroidManifest.xml` dejo de declarar `READ_EXTERNAL_STORAGE`, `WRITE_EXTERNAL_STORAGE` y `requestLegacyExternalStorage`, porque los audios descargados usan almacenamiento privado de la app y las importaciones usan selector/intents.
+- **FileProvider acotado**: `file_paths.xml` ya no expone `external-path path="."`; ahora solo comparte archivos desde cache interna/externa de la app.
+- **Exportacion de calendario**: `ContentSettings.tsx` guarda el `.ics` temporal en `Directory.Cache` antes de compartirlo, igual que los respaldos, para no depender de Documents ni permisos amplios de almacenamiento.
+
+**Validacion:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `node scripts\android-apk.mjs --no-bump --no-push` OK, incluyendo `next build`, exclusion de assets, `cap sync android` y `assembleRelease`.
+- `aapt dump permissions` sobre el APK final confirmo que ya no aparecen `READ_EXTERNAL_STORAGE` ni `WRITE_EXTERNAL_STORAGE`.
+- El manifiesto fusionado de release tampoco contiene `requestLegacyExternalStorage`.
+- `git diff --check` OK; solo aviso de finales de linea CRLF esperado por Git en Windows.
+
+**Archivos Modificados:**
+- `android/app/src/main/AndroidManifest.xml`
+- `android/app/src/main/res/xml/file_paths.xml`
+- `src/components/settings/ContentSettings.tsx`
+- `AGENTS.md`
+
 ### [2026-07-09 16:25] 250. Reduccion de APK, modo bilingue y seccion Confesion
 **Planificacion:**
 - Eliminar del APK la copia duplicada del Nuevo Testamento sin romper el lector integrado.

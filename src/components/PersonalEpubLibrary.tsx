@@ -191,17 +191,21 @@ export default function PersonalEpubLibrary() {
   if (selected && selectedSource) {
     return (
       <div className="flex h-full min-h-0 flex-col gap-3 p-4">
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-3 rounded-lg border bg-card/95 p-3 shadow-sm">
           <Button
             variant="outline"
+            size="sm"
             onClick={() => {
               setSelectedId(null);
               setSelectedSource(null);
             }}
           >
-            Volver a Personales
+            Volver
           </Button>
-          <span className="text-xs text-muted-foreground truncate">{selected.name}</span>
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <BookOpen className="size-4 shrink-0 text-muted-foreground" />
+            <span className="truncate text-sm font-medium">{selected.name}</span>
+          </div>
           <Button
             variant="ghost"
             size="icon"
@@ -224,11 +228,20 @@ export default function PersonalEpubLibrary() {
   return (
     <div className="flex flex-col h-full min-h-0">
       <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollable">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => inputRef.current?.click()}>
+        <div className="rounded-lg border bg-card/95 p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <BookOpen className="size-4 text-muted-foreground" />
+                Biblioteca personal
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">EPUB guardados en este dispositivo.</p>
+            </div>
+          <Button variant="outline" size="sm" onClick={() => inputRef.current?.click()}>
             Subir EPUB
           </Button>
-          <span className="text-xs text-muted-foreground">Se guardan localmente en este dispositivo (máx. 25MB por archivo).</span>
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">Máximo 25MB por archivo.</p>
         </div>
         {errorMessage ? <p className="text-xs text-destructive">{errorMessage}</p> : null}
           <input
@@ -247,7 +260,9 @@ export default function PersonalEpubLibrary() {
           />
         <div className="space-y-2">
           {epubs.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Aún no has agregado EPUBs personales.</p>
+            <div className="rounded-lg border border-dashed bg-card/40 p-6 text-center text-sm text-muted-foreground">
+              Aún no has agregado EPUBs personales.
+            </div>
           ) : (
             epubs.map((item) => (
               <div

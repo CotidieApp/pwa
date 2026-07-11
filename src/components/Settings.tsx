@@ -1,130 +1,88 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import AppearanceSettings from './settings/AppearanceSettings';
 import NotificationSettings from './settings/NotificationSettings';
 import ContentSettings from './settings/ContentSettings';
 import DeveloperSettings from './settings/DeveloperSettings';
+import { Card, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 import * as Icon from 'lucide-react';
+import { useSettings } from '@/context/SettingsContext';
 
-type SettingsTab = 'datos' | 'alertas' | 'visual' | 'otros';
+type SettingsSection = 'contenido' | 'notificaciones' | 'apariencia' | 'informacion';
 
 interface SettingsProps {
   onOpenDeveloperDashboard?: () => void;
   onShowAnnuum?: () => void;
 }
 
+const sections: { id: SettingsSection; label: string; icon: React.ElementType }[] = [
+  { id: 'contenido', label: 'Contenido', icon: Icon.BookOpen },
+  { id: 'notificaciones', label: 'Notificaciones', icon: Icon.Bell },
+  { id: 'apariencia', label: 'Apariencia', icon: Icon.Palette },
+  { id: 'informacion', label: 'Información', icon: Icon.Info },
+];
+
 export default function Settings({ onOpenDeveloperDashboard, onShowAnnuum }: SettingsProps) {
-  const [activeTab, setActiveTab] = useState<SettingsTab>('datos');
-  const containerRef = useRef<HTMLDivElement>(null);
+  const { hasViewedAnnuum } = useSettings();
+  const [activeSection, setActiveSection] = useState<SettingsSection | null>(null);
+  const active = sections.find((section) => section.id === activeSection);
 
-  const tabs: { id: SettingsTab; label: string; icon: React.ElementType }[] = [
-    { id: 'datos', label: 'Contenido', icon: Icon.BookOpen },
-    { id: 'alertas', label: 'Alertas', icon: Icon.Bell },
-    { id: 'visual', label: 'Apariencia', icon: Icon.Palette },
-    { id: 'otros', label: 'Otros', icon: Icon.Settings2 },
-  ];
+  if (activeSection && active) {
+    return (
+      <div className="space-y-4 px-4 pb-20">
+        <div className="sticky top-0 z-10 flex items-center gap-2 bg-background/95 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+          <Button variant="ghost" size="icon" aria-label="Volver a Ajustes" onClick={() => setActiveSection(null)}>
+            <Icon.ArrowLeft className="size-4" />
+          </Button>
+          <active.icon className="size-5 text-primary" />
+          <h2 className="font-headline text-lg font-semibold">{active.label}</h2>
+        </div>
 
-  const activeIndex = tabs.findIndex(tab => tab.id === activeTab);
-
-  // Gesture state with axis-lock to avoid accidental horizontal tab changes while scrolling vertically.
-  const touchStart = useRef<{ x: number; y: number } | null>(null);
-  const touchCurrent = useRef<{ x: number; y: number } | null>(null);
-  const lockAxis = useRef<'x' | 'y' | null>(null);
-  const AXIS_LOCK_THRESHOLD = 14;
-  const SWIPE_THRESHOLD = 100;
-
-  const onTouchStart = (e: React.TouchEvent) => {
-    const t = e.targetTouches[0];
-    if (!t) return;
-    touchStart.current = { x: t.clientX, y: t.clientY };
-    touchCurrent.current = { x: t.clientX, y: t.clientY };
-    lockAxis.current = null;
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    const start = touchStart.current;
-    const t = e.targetTouches[0];
-    if (!start || !t) return;
-
-    touchCurrent.current = { x: t.clientX, y: t.clientY };
-    if (lockAxis.current) return;
-
-    const dx = Math.abs(t.clientX - start.x);
-    const dy = Math.abs(t.clientY - start.y);
-    if (dx < AXIS_LOCK_THRESHOLD && dy < AXIS_LOCK_THRESHOLD) return;
-    lockAxis.current = dx > dy ? 'x' : 'y';
-  };
-
-  const onTouchEnd = () => {
-    const start = touchStart.current;
-    const end = touchCurrent.current;
-    if (!start || !end || lockAxis.current !== 'x') {
-      touchStart.current = null;
-      touchCurrent.current = null;
-      lockAxis.current = null;
-      return;
-    }
-
-    const distance = start.x - end.x;
-    const isLeftSwipe = distance > SWIPE_THRESHOLD;
-    const isRightSwipe = distance < -SWIPE_THRESHOLD;
-
-    if (isLeftSwipe && activeIndex < tabs.length - 1) {
-        setActiveTab(tabs[activeIndex + 1].id);
-    } else if (isRightSwipe && activeIndex > 0) {
-        setActiveTab(tabs[activeIndex - 1].id);
-    }
-
-    touchStart.current = null;
-    touchCurrent.current = null;
-    lockAxis.current = null;
-  };
-
-  // Scroll to top when tab changes
-  useEffect(() => {
-    const scrollContainer = document.querySelector('[data-app-scroll-container="true"]');
-    if (scrollContainer) {
-      scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  }, [activeTab]);
+        {activeSection === 'contenido' && <ContentSettings />}
+        {activeSection === 'notificaciones' && <NotificationSettings />}
+        {activeSection === 'apariencia' && <AppearanceSettings />}
+        {activeSection === 'informacion' && <DeveloperSettings onOpenDashboard={onOpenDeveloperDashboard} />}
+      </div>
+    );
+  }
 
   return (
-    <div 
-        className="space-y-6 pb-20"
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-    >
-      <div className="flex p-1 bg-secondary/20 rounded-lg overflow-x-auto no-scrollbar gap-1 sticky top-0 z-10 backdrop-blur-sm">
-        {tabs.map((tab) => {
-          const isActive = activeTab === tab.id;
-          return (
-            <Button
-              key={tab.id}
-              variant={isActive ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setActiveTab(tab.id)}
-              className={cn(
-                "flex-1 min-w-[80px] rounded-md transition-all",
-                isActive ? "shadow-sm" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <tab.icon className="mr-2 h-4 w-4" />
-              {tab.label}
-            </Button>
-          );
-        })}
-      </div>
-
-      <div className="min-h-[500px] px-4 md:px-0">
-        {activeTab === 'datos' && <ContentSettings onShowAnnuum={onShowAnnuum} />}
-        {activeTab === 'alertas' && <NotificationSettings />}
-        {activeTab === 'visual' && <AppearanceSettings />}
-        {activeTab === 'otros' && <DeveloperSettings onOpenDashboard={onOpenDeveloperDashboard} />}
-      </div>
+    <div className="space-y-3 px-4 pb-20">
+      {sections.map((section) => (
+        <Card
+          key={section.id}
+          className="bg-card/80 p-4 shadow-md backdrop-blur-sm border-border/50 cursor-pointer hover:bg-accent/20 transition-colors"
+          onClick={() => setActiveSection(section.id)}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <section.icon className="size-5 shrink-0 text-primary" />
+              <CardTitle className="font-headline text-base font-normal truncate">
+                {section.label}
+              </CardTitle>
+            </div>
+            <Icon.ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+          </div>
+        </Card>
+      ))}
+      {hasViewedAnnuum ? (
+        <Card
+          className="motion-safe:animate-pulse border-amber-400/70 bg-amber-400/15 p-4 shadow-md backdrop-blur-sm cursor-pointer hover:bg-amber-400/25 transition-colors"
+          onClick={onShowAnnuum}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <Icon.Sparkles className="size-5 shrink-0 text-amber-600 dark:text-amber-300" />
+              <CardTitle className="font-headline text-base font-normal text-amber-950 dark:text-amber-100">
+                Cotidie Annuum
+              </CardTitle>
+            </div>
+            <Icon.ChevronRight className="size-4 shrink-0 text-amber-700 dark:text-amber-200" />
+          </div>
+        </Card>
+      ) : null}
     </div>
   );
 }

@@ -151,6 +151,8 @@ type Settings = {
   setHomeBackgroundId: (id: string | null) => void;
   autoRotateBackground: boolean;
   setAutoRotateBackground: (enabled: boolean) => void;
+  perpetualBackgroundEnabled: boolean;
+  setPerpetualBackgroundEnabled: (enabled: boolean) => void;
 
   allPrayers: Prayer[];
   userDevotions: Prayer[];
@@ -659,6 +661,7 @@ const FULL_BACKUP_KEYS = [
   'fontFamily',
   'homeBackgroundId',
   'autoRotateBackground',
+  'perpetualBackgroundEnabled',
   'lastBackgroundRotationDate',
   'hiddenPrayerIds',
   'editedPrayerIds',
@@ -747,7 +750,7 @@ const normalizeBackupState = (raw: any) => {
     : source.fontSize === 'large'
       ? 18
       : 15;
-  const navMode: NavMode = source.navMode === 'touch' ? 'touch' : 'bubble';
+  const navMode: NavMode = 'touch';
   const arrowBubbleSize: ArrowBubbleSize =
     source.arrowBubbleSize === 'md' || source.arrowBubbleSize === 'lg' ? source.arrowBubbleSize : 'sm';
   const smallWidgetMode = normalizeSmallWidgetMode(source.smallWidgetMode);
@@ -757,6 +760,7 @@ const normalizeBackupState = (raw: any) => {
     fontFamily: typeof source.fontFamily === 'string' && source.fontFamily.trim().length > 0 ? source.fontFamily : 'literata',
     homeBackgroundId: normalizeNullableString(source.homeBackgroundId) ?? defaultHomeBackgroundId,
     autoRotateBackground: normalizeBoolean(source.autoRotateBackground, true),
+    perpetualBackgroundEnabled: normalizeBoolean(source.perpetualBackgroundEnabled),
     lastBackgroundRotationDate: normalizeNullableString(source.lastBackgroundRotationDate),
     hiddenPrayerIds: normalizeStringArray(source.hiddenPrayerIds),
     editedPrayerIds: normalizeStringArray(source.editedPrayerIds),
@@ -852,6 +856,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   const [homeBackgroundId, setHomeBackgroundId] = useState<string | null>(defaultHomeBackgroundId);
   const [autoRotateBackground, setAutoRotateBackground] = useState(true);
+  const [perpetualBackgroundEnabled, setPerpetualBackgroundEnabled] = useState(false);
   const [lastBackgroundRotationDate, setLastBackgroundRotationDate] = useState<string | null>(null);
 
   const [hiddenPrayerIds, setHiddenPrayerIds] = useState<string[]>([]);
@@ -903,7 +908,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   const [pinchToZoomEnabled, setPinchToZoomEnabled] = useState(true);
   const [prayerTextZoom, setPrayerTextZoom] = useState(1);
-  const [navMode, setNavMode] = useState<NavMode>('bubble');
+  const [navMode, setNavMode] = useState<NavMode>('touch');
   const [arrowBubbleSize, setArrowBubbleSize] = useState<ArrowBubbleSize>('sm');
   const [smallWidgetMode, setSmallWidgetMode] = useState<SmallWidgetMode>('full');
   const [appScale, setAppScale] = useState(1.0);
@@ -1059,6 +1064,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setFontFamily(snapshot.fontFamily);
     setHomeBackgroundId(snapshot.homeBackgroundId);
     setAutoRotateBackground(snapshot.autoRotateBackground);
+    setPerpetualBackgroundEnabled(snapshot.perpetualBackgroundEnabled);
     setLastBackgroundRotationDate(snapshot.lastBackgroundRotationDate);
     setHiddenPrayerIds(snapshot.hiddenPrayerIds);
     setEditedPrayerIds(snapshot.editedPrayerIds);
@@ -1129,6 +1135,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         fontFamily,
         homeBackgroundId,
         autoRotateBackground,
+        perpetualBackgroundEnabled,
         lastBackgroundRotationDate,
         hiddenPrayerIds,
         editedPrayerIds,
@@ -1196,6 +1203,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       fontFamily,
       homeBackgroundId,
       autoRotateBackground,
+      perpetualBackgroundEnabled,
       lastBackgroundRotationDate,
       hiddenPrayerIds,
       editedPrayerIds,
@@ -1797,8 +1805,9 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setFontSize(15);
     setPrayerTextZoom(1);
     setHomeBackgroundId(defaultHomeBackgroundId);
+    setPerpetualBackgroundEnabled(false);
     setOverlayPositions(defaultOverlayPositions);
-    setNavMode('bubble');
+    setNavMode('touch');
     setArrowBubbleSize('sm');
     setSmallWidgetMode('full');
     setMovableFeastsEnabled(true);
@@ -3472,6 +3481,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         setHomeBackgroundId,
         autoRotateBackground,
         setAutoRotateBackground,
+        perpetualBackgroundEnabled,
+        setPerpetualBackgroundEnabled,
         allPrayers,
         userDevotions,
         addUserDevotion,

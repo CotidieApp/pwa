@@ -406,20 +406,20 @@ const BilingualText = ({
   rightLabel: string;
   rightText: string;
 }) => (
-  <div className="space-y-5">
-    <div className="grid grid-cols-1 gap-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:grid-cols-2">
-      <div>{leftLabel}</div>
-      <div>{rightLabel}</div>
+  <div className="-mx-4 space-y-4 overflow-x-hidden sm:-mx-3">
+    <div className="grid grid-cols-2 gap-1.5 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <div className="min-w-0 break-words px-1">{leftLabel}</div>
+      <div className="min-w-0 break-words px-1">{rightLabel}</div>
     </div>
     {buildBilingualBlocks(leftText, rightText).map((rows, blockIndex) => (
       <div key={`bilingual-block-${blockIndex}`} className="space-y-2">
         {rows.map((row, rowIndex) => (
           <div
             key={`bilingual-row-${blockIndex}-${rowIndex}`}
-            className="grid grid-cols-1 gap-3 border-b border-border/40 pb-2 last:border-b-0 last:pb-0 sm:grid-cols-2"
+            className="grid grid-cols-2 gap-1.5 border-b border-border/40 pb-2 last:border-b-0 last:pb-0"
           >
-            <div className="min-w-0">{row.left ? renderText(row.left) : null}</div>
-            <div className="min-w-0">{row.right ? renderText(row.right) : null}</div>
+            <div className="min-w-0 break-words px-1">{row.left ? renderText(row.left) : null}</div>
+            <div className="min-w-0 break-words px-1">{row.right ? renderText(row.right) : null}</div>
           </div>
         ))}
       </div>

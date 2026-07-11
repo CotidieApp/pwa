@@ -1,13 +1,17 @@
-﻿'use client';
+'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useRef, useState, ChangeEvent } from 'react';
 import { useSettings } from '@/context/SettingsContext';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import * as Icon from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
+import { generateSaintsICS } from '@/lib/ics-generator';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,11 +22,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+} from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { appVersion } from '@/lib/version';
-
-import { Switch } from '@/components/ui/switch';
 
 interface DeveloperSettingsProps {
   onOpenDashboard?: () => void;
@@ -34,42 +36,157 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
     hardResetApp,
     isDeveloperMode,
     loginAsDeveloper,
+    getBackupSnapshot,
+    importUserData,
   } = useSettings();
 
   const { toast } = useToast();
-
+  const importFileRef = useRef<HTMLInputElement>(null);
+  const devClickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
-  
   const [showDevLogin, setShowDevLogin] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-
   const [devClickCount, setDevClickCount] = useState(0);
-  const devClickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleExport = async () => {
+    try {
+      const dataToExport = getBackupSnapshot();
+      const dataStr = JSON.stringify(dataToExport, null, 2);
+      const utf8DataStr = `\uFEFF${dataStr}`;
+      const backupDate = new Date().toISOString().split('T')[0] || 'backup';
+      const fileName = `cotidie_backup_${backupDate}.ctd`;
+
+      if (!Capacitor.isNativePlatform()) {
+        const dataBlob = new Blob([utf8DataStr], { type: 'application/json;charset=utf-8' });
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        toast({ title: 'Datos exportados correctamente.' });
+        return;
+      }
+
+      await Filesystem.writeFile({
+        path: fileName,
+        data: utf8DataStr,
+        directory: Directory.Cache,
+        encoding: Encoding.UTF8,
+      });
+
+      const fileResult = await Filesystem.getUri({ path: fileName, directory: Directory.Cache });
+
+      await Share.share({
+        title: 'Copia de Seguridad Cotidie',
+        url: fileResult.uri,
+        dialogTitle: 'Guardar copia de seguridad',
+      });
+
+      toast({ title: 'Respaldo listo', description: 'Se ha abierto el menú para compartir.' });
+    } catch {
+      toast({ variant: 'destructive', title: 'Error al exportar', description: 'No se pudieron exportar los datos.' });
+    }
+  };
+
+  const handleExportCalendar = async (semester: 1 | 2) => {
+    try {
+      const icsContent = generateSaintsICS(semester);
+      const fileName = `santoral_cotidie_s${semester}.ics`;
+
+      if (!Capacitor.isNativePlatform()) {
+        const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', fileName);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        toast({ title: 'Calendario descargado' });
+        return;
+      }
+
+      await Filesystem.writeFile({
+        path: fileName,
+        data: icsContent,
+        directory: Directory.Cache,
+        encoding: Encoding.UTF8,
+      });
+
+      const fileResult = await Filesystem.getUri({ path: fileName, directory: Directory.Cache });
+
+      await Share.share({
+        title: `Santoral Cotidie (Semestre ${semester})`,
+        url: fileResult.uri,
+        dialogTitle: 'Guardar calendario',
+      });
+
+      toast({ title: 'Calendario listo', description: 'Se ha abierto el menú para compartir.' });
+    } catch {
+      toast({ title: 'Error al exportar', description: 'Intenta nuevamente.', variant: 'destructive' });
+    }
+  };
+
+  const handleFileImport = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (loadEvent) => {
+      try {
+        const text = (loadEvent.target?.result as string).replace(/^\uFEFF/, '');
+        if (!text.trim().startsWith('{') && !text.trim().startsWith('[')) {
+          toast({
+            variant: 'destructive',
+            title: 'Archivo no compatible',
+            description: 'El archivo seleccionado no parece ser un respaldo de Cotidie válido.',
+          });
+          return;
+        }
+
+        const data = JSON.parse(text);
+        const result = importUserData(data, { silent: true });
+
+        if (result.status === 'invalid') {
+          toast({ variant: 'destructive', title: result.title, description: result.description });
+          return;
+        }
+
+        toast({ title: result.title, description: result.description });
+      } catch {
+        toast({ variant: 'destructive', title: 'Error al importar', description: 'El archivo no es válido.' });
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+  };
 
   const handleDevTitleClick = () => {
     if (isDeveloperMode) {
-        onOpenDashboard?.();
-        return;
+      onOpenDashboard?.();
+      return;
     }
 
     if (devClickTimeoutRef.current) {
       clearTimeout(devClickTimeoutRef.current);
     }
-    
-    const newClickCount = devClickCount + 1;
-    setDevClickCount(newClickCount);
 
-    if (newClickCount >= 3) {
+    const nextClickCount = devClickCount + 1;
+    setDevClickCount(nextClickCount);
+
+    if (nextClickCount >= 3) {
       setShowDevLogin(true);
       setDevClickCount(0);
     } else {
-      devClickTimeoutRef.current = setTimeout(() => {
-        setDevClickCount(0);
-      }, 1500);
+      devClickTimeoutRef.current = setTimeout(() => setDevClickCount(0), 1500);
     }
   };
-  
+
   const handleDevLogin = () => {
     if (loginAsDeveloper(username, password)) {
       toast({ title: 'Modo desarrollador activado' });
@@ -81,106 +198,64 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
       toast({ variant: 'destructive', title: 'Credenciales incorrectas' });
     }
   };
-  
+
   const handleHardReset = () => {
     hardResetApp();
     setIsAlertOpen(false);
-  }
-  
-  const handleForceUpdate = () => {
-    window.location.reload();
-  };
-
-  const copyToClipboard = async (text: string) => {
-    try {
-      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(text);
-        return true;
-      }
-    } catch {}
-
-    try {
-      if (typeof document === 'undefined') return false;
-      const textarea = document.createElement('textarea');
-      textarea.value = text;
-      textarea.setAttribute('readonly', '');
-      textarea.style.position = 'fixed';
-      textarea.style.top = '0';
-      textarea.style.left = '0';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.select();
-      const ok = document.execCommand('copy');
-      document.body.removeChild(textarea);
-      return ok;
-    } catch {
-      return false;
-    }
-  };
-
-  const isProbablyMobile = () => {
-    if (typeof navigator === 'undefined') return false;
-    return /Android|iPhone|iPad|iPod|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  };
-
-  const handleDeveloperMailIconClick = () => {
-    window.location.href = 'mailto:balcaldegm@gmail.com';
-  };
-
-  const handleDeveloperPhoneIconClick = () => {
-    const phoneDisplay = '+56 9 8189 9137';
-    const phoneTel = '+56981899137';
-
-    if (!isProbablyMobile()) {
-      void copyToClipboard(phoneDisplay).then((ok) => {
-        toast({
-          title: ok ? 'Número copiado al portapapeles' : 'No se pudo copiar el número',
-        });
-      });
-      return;
-    }
-
-    try {
-      window.location.href = `tel:${phoneTel}`;
-    } catch {}
-
-    window.setTimeout(() => {
-      if (typeof document !== 'undefined' && document.hidden) return;
-      void copyToClipboard(phoneDisplay).then((ok) => {
-        toast({
-          title: ok ? 'Número copiado al portapapeles' : 'No se pudo copiar el número',
-        });
-      });
-    }, 900);
-  };
-
-  const handleDeveloperInstagramIconClick = () => {
-    const username = 'benja_alcalde';
-    const webUrl = `https://instagram.com/${username}`;
-
-    if (!isProbablyMobile()) {
-      window.open(webUrl, '_blank', 'noopener,noreferrer');
-      return;
-    }
-
-    try {
-      window.location.href = `instagram://user?username=${username}`;
-    } catch {}
-
-    window.setTimeout(() => {
-      if (typeof document !== 'undefined' && document.hidden) return;
-      window.open(webUrl, '_blank', 'noopener,noreferrer');
-    }, 900);
   };
 
   return (
-    <div className="space-y-6 pb-4">
+    <div className="space-y-5 pb-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-headline text-base">Datos y Respaldo</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between gap-3 rounded-md border bg-card/60 px-3 py-3">
+            <div className="min-w-0">
+              <div className="text-sm font-medium">Copia de seguridad</div>
+              <div className="text-xs text-muted-foreground">en formato .ctd</div>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleExport}>Exportar</Button>
+          </div>
+
+          <div className="flex items-center justify-between gap-3 rounded-md border bg-card/60 px-3 py-3">
+            <div className="min-w-0">
+              <div className="text-sm font-medium">Restaurar datos</div>
+              <div className="text-xs text-muted-foreground">en formato .ctd</div>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => importFileRef.current?.click()}>Importar</Button>
+            <input
+              ref={importFileRef}
+              id="import-data-file"
+              name="import-data-file"
+              type="file"
+              accept=".ctd,application/json,text/plain,application/octet-stream"
+              className="sr-only"
+              aria-label="Importar archivo de respaldo"
+              onChange={handleFileImport}
+            />
+          </div>
+
+          <div className="space-y-3 rounded-md border bg-card/60 px-3 py-3">
+            <div>
+              <div className="text-sm font-medium">Calendario de Santoral</div>
+              <div className="text-xs text-muted-foreground">en formato .ics</div>
+            </div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <Button variant="outline" size="sm" onClick={() => handleExportCalendar(1)}>Exportar 1er semestre</Button>
+              <Button variant="outline" size="sm" onClick={() => handleExportCalendar(2)}>Exportar 2do semestre</Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="font-headline text-base">General</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-           <AlertDialog>
+        <CardContent className="flex flex-col gap-3">
+          <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="outline">
                 <Icon.RotateCcw className="mr-2 size-4" />
@@ -201,17 +276,12 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
             </AlertDialogContent>
           </AlertDialog>
 
-          <Button variant="outline" onClick={handleForceUpdate}>
-            <Icon.RefreshCw className="mr-2 size-4" />
-            Forzar Actualización
-          </Button>
-
-          {isDeveloperMode && (
+          {isDeveloperMode ? (
             <Button variant="secondary" onClick={onOpenDashboard}>
               <Icon.Code className="mr-2 size-4" />
-              Panel de Desarrollador
+              Panel de desarrollador
             </Button>
-          )}
+          ) : null}
 
           <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
             <AlertDialogTrigger asChild>
@@ -229,72 +299,35 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={handleHardReset}>
-                  Sí, restaurar
-                </AlertDialogAction>
+                <AlertDialogAction onClick={handleHardReset}>Sí, restaurar</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
         </CardContent>
-         <CardFooter className="flex flex-col gap-2 items-start">
-          <p className="text-xs text-muted-foreground">
-            Restablecer ajustes restaurará la configuración a sus valores por defecto.
-          </p>
-           <p className="text-xs text-muted-foreground">
-            Restaurar aplicación borrará todas tus entradas y devociones y restablecerá los ajustes.
-          </p>
-        </CardFooter>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle 
-            className={cn(
-              "font-headline text-base",
-              !isDeveloperMode && "cursor-pointer"
-            )}
+          <CardTitle
+            className={cn('font-headline text-base', !isDeveloperMode && 'cursor-pointer')}
             onClick={handleDevTitleClick}
           >
             Desarrollador
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-sm text-foreground space-y-3">
+          <div className="space-y-3 text-sm text-foreground">
             <p className="font-semibold text-base">Benjamín Alcalde G.</p>
             <div className="flex items-center gap-3 text-muted-foreground">
-              <button
-                type="button"
-                className="inline-flex items-center justify-center rounded-sm -m-1 p-1 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                aria-label="Enviar correo"
-                title="Enviar correo"
-                onClick={handleDeveloperMailIconClick}
-              >
-                <Icon.Mail className="size-4" />
-              </button>
+              <Icon.Mail className="size-4" />
               <a href="mailto:cotidieapp@gmail.com" className="hover:underline">cotidieapp@gmail.com</a>
             </div>
             <div className="flex items-center gap-3 text-muted-foreground">
-              <button
-                type="button"
-                className="inline-flex items-center justify-center rounded-sm -m-1 p-1 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                aria-label="Llamar al número de contacto"
-                title="Llamar"
-                onClick={handleDeveloperPhoneIconClick}
-              >
-                <Icon.Phone className="size-4" />
-              </button>
-              <span>+56 9 2947 4804</span>
+              <Icon.Phone className="size-4" />
+              <a href="tel:+56929474804" className="hover:underline">+56 9 2947 4804</a>
             </div>
             <div className="flex items-center gap-3 text-muted-foreground">
-              <button
-                type="button"
-                className="inline-flex items-center justify-center rounded-sm -m-1 p-1 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                aria-label="Abrir Instagram de la aplicación"
-                title="Abrir Instagram"
-                onClick={handleDeveloperInstagramIconClick}
-              >
-                <Icon.Instagram className="size-4" />
-              </button>
+              <Icon.Instagram className="size-4" />
               <a href="https://instagram.com/cotidieapp" target="_blank" rel="noopener noreferrer" className="hover:underline">@cotidieapp</a>
             </div>
           </div>
@@ -303,9 +336,7 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
           <div className="border rounded-lg p-4 w-full text-xs text-muted-foreground space-y-2">
             <div className="flex items-start gap-2">
               <Icon.Info className="size-4 shrink-0 mt-0.5" />
-              <p>
-                Si detectas un error o tienes sugerencias, no dudes en contactarme.
-              </p>
+              <p>Si detectas un error o tienes sugerencias, no dudes en contactarme.</p>
             </div>
           </div>
         </CardFooter>
@@ -315,47 +346,41 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Acceso de Desarrollador</AlertDialogTitle>
-            <AlertDialogDescription>
-              Introduzca las credenciales para habilitar el modo desarrollador.
-            </AlertDialogDescription>
+            <AlertDialogDescription>Introduzca las credenciales para habilitar el modo desarrollador.</AlertDialogDescription>
           </AlertDialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="username" className="text-right">
-                    Usuario
-                  </Label>
-                  <Input
-                    id="username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleDevLogin();
-                      }
-                    }}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="password" className="text-right">
-                    Contraseña
-                  </Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleDevLogin();
-                      }
-                    }}
-                    className="col-span-3"
-                  />
-                </div>
-              </div>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="username" className="text-right">Usuario</Label>
+              <Input
+                id="username"
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    handleDevLogin();
+                  }
+                }}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="password" className="text-right">Contraseña</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    handleDevLogin();
+                  }
+                }}
+                className="col-span-3"
+              />
+            </div>
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDevLogin}>Iniciar sesión</AlertDialogAction>
@@ -386,5 +411,3 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
     </div>
   );
 }
-
-

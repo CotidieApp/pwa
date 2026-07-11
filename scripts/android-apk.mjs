@@ -108,8 +108,6 @@ const runNodeScript = (scriptPath, scriptArgs, cwd) => {
 
 const androidExcludedWebAssets = [
   "epub/Nuevo Testamento.epub",
-  "media/Discurso San Josemaría.mp3",
-  "media/Discurso San Juan Pablo II.mp3",
 ];
 
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

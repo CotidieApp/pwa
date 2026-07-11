@@ -3,8 +3,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { Prayer, Category } from '@/lib/types';
 import { useSettings } from '@/context/SettingsContext';
-import { Capacitor } from '@capacitor/core';
-import { Filesystem, Directory } from '@capacitor/filesystem';
 
 import Header from '@/components/Header';
 import CartasIntro from '@/components/main/CartasIntro';
@@ -78,20 +76,9 @@ type SpiritualAudioItem = {
   id: string;
   title: string;
   src: string;
-  remoteSrc?: string;
-  downloadPath?: string;
-  downloadStatus?: DefaultSpiritualAudioDownloadStatus;
-  downloadError?: string;
   isUser?: boolean;
   sizeBytes?: number;
   updatedAt?: number;
-};
-
-type DefaultSpiritualAudioDownloadStatus = 'not-downloaded' | 'downloading' | 'downloaded' | 'error';
-type DefaultSpiritualAudioDownloadState = {
-  status: DefaultSpiritualAudioDownloadStatus;
-  uri?: string;
-  error?: string;
 };
 
 type StoredSpiritualAudioItem = Required<Pick<SpiritualAudioItem, 'id' | 'title' | 'src' | 'sizeBytes' | 'updatedAt'>>;
@@ -101,15 +88,11 @@ const DEFAULT_SPIRITUAL_AUDIOS: SpiritualAudioItem[] = [
     id: 'san-josemaria-discurso',
     title: 'Discurso San Josemaría',
     src: '/media/Discurso San Josemaría.mp3',
-    remoteSrc: 'https://cotidie.app/media/Discurso%20San%20Josemar%C3%ADa.mp3',
-    downloadPath: 'spiritual-audios/san-josemaria-discurso.mp3',
   },
   {
     id: 'san-juan-pablo-ii-discurso',
     title: 'Discurso San Juan Pablo II',
     src: '/media/Discurso San Juan Pablo II.mp3',
-    remoteSrc: 'https://cotidie.app/media/Discurso%20San%20Juan%20Pablo%20II.mp3',
-    downloadPath: 'spiritual-audios/san-juan-pablo-ii-discurso.mp3',
   },
 ];
 const SPIRITUAL_AUDIO_INDEX_STORAGE_KEY = 'cotidie_spiritual_audio_library';
@@ -179,19 +162,6 @@ const saveSpiritualAudioProgress = (progress: Record<string, number>) => {
   window.localStorage.setItem(SPIRITUAL_AUDIO_PROGRESS_STORAGE_KEY, JSON.stringify(progress));
 };
 
-const isNativeAndroidPlatform = () =>
-  typeof window !== 'undefined' && Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
-
-const getDefaultAudioStatusLabel = (status?: DefaultSpiritualAudioDownloadStatus) => {
-  if (status === 'downloaded') return 'Descargado';
-  if (status === 'downloading') return 'Descargando';
-  if (status === 'error') return 'Error';
-  return 'No descargado';
-};
-
-const getPlayableFileUri = (uri: string) => Capacitor.convertFileSrc(uri);
-
-
 export default function MainApp() {
   const isInteractiveElement = (el: HTMLElement | null): boolean => {
     if (!el) return false;
@@ -208,8 +178,6 @@ export default function MainApp() {
   const [showLettersInfo, setShowLettersInfo] = useState(false);
   const [showErrorReport, setShowErrorReport] = useState(false);
   const [activeSpiritualReadingAudioId, setActiveSpiritualReadingAudioId] = useState<string | null>(null);
-  const [nativeAndroidAudioDownloads, setNativeAndroidAudioDownloads] = useState(false);
-  const [defaultAudioDownloads, setDefaultAudioDownloads] = useState<Record<string, DefaultSpiritualAudioDownloadState>>({});
   const audioUploadInputRef = useRef<HTMLInputElement | null>(null);
   const audioRenameInputRef = useRef<HTMLInputElement | null>(null);
   const [userSpiritualAudios, setUserSpiritualAudios] = useState<StoredSpiritualAudioItem[]>(() => loadStoredSpiritualAudios());
@@ -241,6 +209,7 @@ export default function MainApp() {
     updateUserPrayer,
     setPredefinedPrayerOverride,
     isDeveloperMode,
+    perpetualBackgroundEnabled,
     removePredefinedPrayer,
     isDistractionFree,
     toggleDistractionFree,
@@ -392,79 +361,10 @@ export default function MainApp() {
     persistNavState(navState);
   }, [navState]);
 
-  useEffect(() => {
-    const enabled = isNativeAndroidPlatform();
-    setNativeAndroidAudioDownloads(enabled);
-    if (!enabled) return;
-
-    let cancelled = false;
-    const loadDefaultDownloads = async () => {
-      const entries = await Promise.all(
-        DEFAULT_SPIRITUAL_AUDIOS.map(async (audio): Promise<[string, DefaultSpiritualAudioDownloadState]> => {
-          if (!audio.downloadPath) return [audio.id, { status: 'not-downloaded' }];
-          try {
-            await Filesystem.stat({ path: audio.downloadPath, directory: Directory.Data });
-            const result = await Filesystem.getUri({ path: audio.downloadPath, directory: Directory.Data });
-            return [audio.id, { status: 'downloaded', uri: getPlayableFileUri(result.uri) }];
-          } catch {
-            return [audio.id, { status: 'not-downloaded' }];
-          }
-        })
-      );
-      if (!cancelled) {
-        setDefaultAudioDownloads(Object.fromEntries(entries));
-      }
-    };
-
-    loadDefaultDownloads();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const downloadDefaultSpiritualAudio = useCallback(async (audio: SpiritualAudioItem) => {
-    if (!nativeAndroidAudioDownloads || !audio.remoteSrc || !audio.downloadPath) return;
-    setDefaultAudioDownloads((prev) => ({
-      ...prev,
-      [audio.id]: { status: 'downloading' },
-    }));
-
-    try {
-      await Filesystem.downloadFile({
-        url: audio.remoteSrc,
-        path: audio.downloadPath,
-        directory: Directory.Data,
-        recursive: true,
-      });
-      const result = await Filesystem.getUri({ path: audio.downloadPath, directory: Directory.Data });
-      setDefaultAudioDownloads((prev) => ({
-        ...prev,
-        [audio.id]: { status: 'downloaded', uri: getPlayableFileUri(result.uri) },
-      }));
-    } catch {
-      setDefaultAudioDownloads((prev) => ({
-        ...prev,
-        [audio.id]: {
-          status: 'error',
-          error: 'No se pudo descargar. Revisa la conexión e intenta nuevamente.',
-        },
-      }));
-    }
-  }, [nativeAndroidAudioDownloads]);
-
   const spiritualAudios = useMemo<SpiritualAudioItem[]>(() => [
-    ...DEFAULT_SPIRITUAL_AUDIOS.map((audio) => {
-      if (!nativeAndroidAudioDownloads || !audio.remoteSrc) return audio;
-      const state = defaultAudioDownloads[audio.id] ?? { status: 'not-downloaded' as const };
-      return {
-        ...audio,
-        src: state.status === 'downloaded' && state.uri ? state.uri : '',
-        downloadStatus: state.status,
-        downloadError: state.error,
-      };
-    }),
+    ...DEFAULT_SPIRITUAL_AUDIOS,
     ...userSpiritualAudios.map((audio) => ({ ...audio, isUser: true })),
-  ], [defaultAudioDownloads, nativeAndroidAudioDownloads, userSpiritualAudios]);
+  ], [userSpiritualAudios]);
 
   const audioRenameTarget = useMemo(
     () => userSpiritualAudios.find((audio) => audio.id === audioRenameTargetId) ?? null,
@@ -1094,40 +994,14 @@ export default function MainApp() {
             <div className="p-4 space-y-4">
               <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-4 rounded-xl border shadow-sm shrink-0 space-y-4">
                 {activeSpiritualAudio ? (
-                  activeSpiritualAudio.src ? (
-                    <AudioPlayer
-                      key={activeSpiritualAudio.id}
-                      src={activeSpiritualAudio.src}
-                      title={activeSpiritualAudio.title}
-                      initialTime={spiritualAudioProgress[activeSpiritualAudio.id] ?? 0}
-                      progressKey={activeSpiritualAudio.id}
-                      onProgressChange={handleSpiritualAudioProgress}
-                    />
-                  ) : (
-                    <div className="rounded-lg border bg-card p-4 text-sm space-y-3">
-                      <div>
-                        <div className="font-medium">{activeSpiritualAudio.title}</div>
-                        <div className="text-xs text-muted-foreground">
-                          Estado: {getDefaultAudioStatusLabel(activeSpiritualAudio.downloadStatus)}
-                        </div>
-                      </div>
-                      {activeSpiritualAudio.downloadError ? (
-                        <p className="text-xs text-destructive">{activeSpiritualAudio.downloadError}</p>
-                      ) : (
-                        <p className="text-xs text-muted-foreground">
-                          Este audio se guarda en el dispositivo la primera vez que lo descargas.
-                        </p>
-                      )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => downloadDefaultSpiritualAudio(activeSpiritualAudio)}
-                        disabled={activeSpiritualAudio.downloadStatus === 'downloading'}
-                      >
-                        {activeSpiritualAudio.downloadStatus === 'downloading' ? 'Descargando...' : 'Descargar audio'}
-                      </Button>
-                    </div>
-                  )
+                  <AudioPlayer
+                    key={activeSpiritualAudio.id}
+                    src={activeSpiritualAudio.src}
+                    title={activeSpiritualAudio.title}
+                    initialTime={spiritualAudioProgress[activeSpiritualAudio.id] ?? 0}
+                    progressKey={activeSpiritualAudio.id}
+                    onProgressChange={handleSpiritualAudioProgress}
+                  />
                 ) : null}
                 <div className="grid grid-cols-1 gap-2">
                   <div className="flex items-center justify-between gap-2">
@@ -1177,28 +1051,7 @@ export default function MainApp() {
                       >
                         <Play className={cn("mr-2 h-4 w-4 shrink-0", activeSpiritualAudio?.id === audio.id ? "fill-primary" : "text-muted-foreground")} />
                         <span className="min-w-0 flex-1 truncate">{audio.title}</span>
-                        {nativeAndroidAudioDownloads && audio.remoteSrc ? (
-                          <span className="ml-2 shrink-0 text-[10px] uppercase tracking-wide text-muted-foreground">
-                            {getDefaultAudioStatusLabel(audio.downloadStatus)}
-                          </span>
-                        ) : null}
                       </Button>
-                      {nativeAndroidAudioDownloads && audio.remoteSrc && audio.downloadStatus !== 'downloaded' ? (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="shrink-0"
-                          aria-label={`Descargar ${audio.title}`}
-                          disabled={audio.downloadStatus === 'downloading'}
-                          onClick={() => downloadDefaultSpiritualAudio(audio)}
-                        >
-                          {audio.downloadStatus === 'downloading' ? (
-                            <Icon.Loader2 className="size-4 animate-spin" />
-                          ) : (
-                            <Icon.Download className="size-4" />
-                          )}
-                        </Button>
-                      ) : null}
                       {audio.isUser ? (
                         <>
                           <Button
@@ -1516,6 +1369,14 @@ export default function MainApp() {
     navState.activeView === 'category' && navState.selectedCategoryId === 'plan-de-vida';
   const showsStandardHeader =
     navState.activeView !== 'home' && navState.activeView !== 'developer';
+  const hasPerpetualBackground = isDeveloperMode && perpetualBackgroundEnabled;
+  const showsBackgroundImage = navState.activeView === 'home' || hasPerpetualBackground;
+  const hasTransparentSystemBars =
+    showsBackgroundImage ||
+    navState.activeView === 'viaCrucis' ||
+    navState.activeView === 'rosary' ||
+    navState.activeView === 'rosaryMeditated' ||
+    showAnnuum;
 
   const handleOpenPlanCalendar = () => {
     setNavState({
@@ -1547,28 +1408,31 @@ export default function MainApp() {
     <div
       className={cn(
         "h-[100svh] w-full text-foreground relative flex flex-col",
-        navState.activeView === 'home' ? "bg-transparent" : "bg-background"
+        showsBackgroundImage ? "bg-transparent" : "bg-background"
       )}
-      style={navState.activeView === 'home' ? {
+      style={showsBackgroundImage ? {
         backgroundImage: 'var(--home-bg-image)',
         backgroundSize: 'cover',
         backgroundPosition: 'center top',
         backgroundAttachment: 'fixed'
       } : undefined}
     >
+      {hasPerpetualBackground && navState.activeView !== 'home' ? (
+        <div className="pointer-events-none absolute inset-0 z-0 bg-background/[0.82] backdrop-blur-[1px]" />
+      ) : null}
       {/* Dynamic System Bar Overlays */}
       {!isDistractionFree && (
         <>
           <div
             className={cn(
               "fixed top-0 inset-x-0 h-[env(safe-area-inset-top)] z-[100] pointer-events-none transition-colors duration-200",
-              (navState.activeView === 'home' || navState.activeView === 'viaCrucis' || navState.activeView === 'rosary' || navState.activeView === 'rosaryMeditated' || showAnnuum) ? "bg-transparent" : "bg-primary"
+              hasTransparentSystemBars ? "bg-transparent" : "bg-primary"
             )}
           />
           <div
             className={cn(
               "fixed bottom-0 inset-x-0 h-[env(safe-area-inset-bottom)] z-[100] pointer-events-none transition-colors duration-200",
-              (navState.activeView === 'home' || navState.activeView === 'viaCrucis' || navState.activeView === 'rosary' || navState.activeView === 'rosaryMeditated' || showAnnuum) ? "bg-transparent" : "bg-background"
+              hasTransparentSystemBars ? "bg-transparent" : "bg-background"
             )}
           />
         </>
@@ -1605,7 +1469,7 @@ export default function MainApp() {
         </div>
       )}
 
-      <div className="flex flex-col h-full md:max-w-6xl md:mx-auto md:border-x md:border-border/50">
+      <div className="relative z-10 flex flex-col h-full md:max-w-6xl md:mx-auto md:border-x md:border-border/50">
         {showsStandardHeader && (
           <Header
             title={headerTitle}
