@@ -334,13 +334,6 @@ const getAngelusLanguageContent = (
   latin: contentObj[`${prayerMode}Latin`] || '',
 });
 
-const getLanguageModeLetter = (key: string) => {
-  if (isBothVariantKey(key)) return 'A';
-  if (isSpanishVariantKey(key)) return 'E';
-  if (isLatinVariantKey(key)) return 'L';
-  return formatVariantLabel(key).slice(0, 1).toUpperCase();
-};
-
 const getPrimaryVariantKey = (contentObj: Record<string, string>) => Object.keys(contentObj)[0] || '';
 
 const getLanguageModeOrder = (contentObj: Record<string, string>) => {
@@ -465,7 +458,7 @@ const PrayerContent = ({
     prayerTextZoom,
     setPrayerTextZoom,
     prayerLanguagePreferences,
-    setPrayerLanguagePreference,
+    prayerLanguageProfile,
   } = useSettings();
   const throttleTimeout = useRef<NodeJS.Timeout | null>(null);
   const restoredScrollKeyRef = useRef<string | null>(null);
@@ -616,16 +609,13 @@ const PrayerContent = ({
     const contentObj = isAngelusReginaPrayer(prayer.id)
       ? getAngelusLanguageContent(rawContentObj, selectedAngelusPrayer)
       : rawContentObj;
-    const preferredLang = prayer.id ? prayerLanguagePreferences[prayer.id] : undefined;
+    const preferredLang = prayer.id
+      ? prayerLanguagePreferences[prayer.id] ?? prayerLanguageProfile
+      : prayerLanguageProfile;
     return resolveLanguageMode(contentObj, preferredLang);
-  }, [prayer.content, prayer.id, prayerLanguagePreferences, selectedAngelusPrayer]);
+  }, [prayer.content, prayer.id, prayerLanguagePreferences, prayerLanguageProfile, selectedAngelusPrayer]);
 
-  const [selectedLang, setSelectedLang] = useState(() => getPreferredVariant());
-
-  useEffect(() => {
-    const nextLang = getPreferredVariant();
-    setSelectedLang((prev) => (prev === nextLang ? prev : nextLang));
-  }, [getPreferredVariant]);
+  const selectedLang = getPreferredVariant();
 
   useEffect(() => {
     onBilingualModeChange?.(isBothVariantKey(selectedLang));
@@ -663,12 +653,6 @@ const PrayerContent = ({
         : resolveVariantKey(contentObj, selectedLang);
     const displayedContent =
       resolvedMode && !isBothVariantKey(resolvedMode) ? contentObj[resolvedMode] || '' : '';
-    const currentModeIndex = modeOrder.findIndex((mode) => normalizeVariantKey(mode) === normalizeVariantKey(resolvedMode));
-    const nextMode = modeOrder.length > 0
-      ? modeOrder[(currentModeIndex >= 0 ? currentModeIndex + 1 : 1) % modeOrder.length]
-      : '';
-    const nextLabel = formatVariantLabel(nextMode);
-
     const spanishLang = langs.find(isSpanishVariantKey);
     const latinLang = langs.find(isLatinVariantKey);
     const fallbackLeftLang = modeOrder.find((mode) => !isBothVariantKey(mode)) || langs[0] || '';
@@ -679,22 +663,14 @@ const PrayerContent = ({
     const leftLang = latinLang || fallbackLeftLang;
     const rightLang = spanishLang || fallbackRightLang;
 
-    const toggleLang = () => {
-      if (modeOrder.length <= 1 || !nextMode) return;
-      setSelectedLang(nextMode);
-      if (prayer.id) {
-        setPrayerLanguagePreference(prayer.id, nextMode);
-      }
-    };
-
     const toggleAngelusPrayer = () => {
       setSelectedAngelusPrayer((current) => current === 'angelus' ? 'reginaCoeli' : 'angelus');
     };
 
     return (
       <div className="touch-pan-y">
-        <div className="mb-2 flex items-center justify-end gap-1">
-          {isAngelusRegina && (
+        {isAngelusRegina ? (
+          <div className="mb-2 flex items-center justify-end gap-1">
             <Button
               variant="ghost"
               size="sm"
@@ -704,20 +680,8 @@ const PrayerContent = ({
             >
               {selectedAngelusPrayer === 'angelus' ? 'Ángelus' : 'Regina Coeli'}
             </Button>
-          )}
-          {modeOrder.length > 1 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 min-w-7 px-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
-              onClick={toggleLang}
-              title={`Cambiar a ${nextLabel}`}
-              aria-label={`Idioma: ${formatVariantLabel(resolvedMode)}. Cambiar a ${nextLabel}`}
-            >
-              {getLanguageModeLetter(resolvedMode)}
-            </Button>
-          )}
-        </div>
+          </div>
+        ) : null}
         <div
           className="text-foreground/90 leading-relaxed"
           style={{ fontSize: `${prayerTextZoom}em` }}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { Prayer, Category } from '@/lib/types';
-import { useSettings } from '@/context/SettingsContext';
+import { useSettings, type PrayerLanguageMode } from '@/context/SettingsContext';
 
 import Header from '@/components/Header';
 import CartasIntro from '@/components/main/CartasIntro';
@@ -70,6 +70,32 @@ const DEFAULT_CAMINO_SEARCH_STATE = {
   term: '',
   activeIndex: -1,
   resultsCount: 0,
+};
+
+const normalizeLanguageKey = (value?: string | null) =>
+  String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '');
+
+const getPrayerLanguageModes = (prayer: Prayer | null): PrayerLanguageMode[] => {
+  if (!prayer?.content || typeof prayer.content !== 'object') return [];
+  if (prayer.id === 'angelus-regina-coeli') return ['espanol', 'latin', 'ambos'];
+
+  const keys = Object.keys(prayer.content);
+  const spanishIndex = keys.findIndex((key) => normalizeLanguageKey(key) === 'espanol');
+  const latinIndex = keys.findIndex((key) => normalizeLanguageKey(key) === 'latin');
+  if (spanishIndex < 0 || latinIndex < 0) return [];
+  return spanishIndex < latinIndex
+    ? ['espanol', 'latin', 'ambos']
+    : ['latin', 'espanol', 'ambos'];
+};
+
+const languageModeLabel: Record<PrayerLanguageMode, string> = {
+  espanol: 'Español',
+  latin: 'Latín',
+  ambos: 'Ambos',
 };
 
 type SpiritualAudioItem = {
@@ -211,6 +237,7 @@ export default function MainApp() {
     updateUserPrayer,
     setPredefinedPrayerOverride,
     isDeveloperMode,
+    isEditModeEnabled,
     perpetualBackgroundEnabled,
     removePredefinedPrayer,
     isDistractionFree,
@@ -238,6 +265,10 @@ export default function MainApp() {
     cartasReminderEnabled,
     setCartasReminderEnabled,
     shakeToOpenEnabled,
+    startTimer,
+    prayerLanguagePreferences,
+    prayerLanguageProfile,
+    setPrayerLanguagePreference,
   } = useSettings();
   const customPlanTouchNavEnabled = navMode === 'touch';
   const customPlanExitAdvanceRef = useRef<{
@@ -1422,12 +1453,27 @@ export default function MainApp() {
     armCustomPlanExitPrompt(slot, index, now);
   }, [armCustomPlanExitPrompt, clearCustomPlanExitPrompt, customPlanNextIndex, handleOpenCustomPlanPrayerAt, hasCustomPlanPrayerNav, navState.customPlanPrayerIndex, navState.customPlanPrayerSlot, replaceNavState]);
 
-  const canEditCurrentPrayer =
+  const isPrayerReadingView =
     navState.activeView === 'prayer' &&
     Boolean(currentPrayer?.id) &&
-    currentPrayer?.isUserDefined === true;
-  const canEditExamenDeConciencia =
-    navState.activeView === 'prayer' && currentPrayer?.id === 'examen-conciencia';
+    Boolean(currentPrayer?.content) &&
+    !currentPrayer?.prayers?.length;
+  const canEditCurrentPrayer =
+    isPrayerReadingView &&
+    (currentPrayer?.isUserDefined === true || (isDeveloperMode && isEditModeEnabled));
+  const currentPrayerLanguageModes = getPrayerLanguageModes(currentPrayer);
+  const preferredPrayerLanguage = normalizeLanguageKey(
+    currentPrayer?.id ? prayerLanguagePreferences[currentPrayer.id] ?? prayerLanguageProfile : prayerLanguageProfile
+  ) as PrayerLanguageMode;
+  const currentPrayerLanguageMode = currentPrayerLanguageModes.includes(preferredPrayerLanguage)
+    ? preferredPrayerLanguage
+    : currentPrayerLanguageModes[0];
+  const cycleCurrentPrayerLanguage = () => {
+    if (!currentPrayer?.id || !currentPrayerLanguageMode || currentPrayerLanguageModes.length <= 1) return;
+    const currentIndex = currentPrayerLanguageModes.indexOf(currentPrayerLanguageMode);
+    const nextMode = currentPrayerLanguageModes[(currentIndex + 1) % currentPrayerLanguageModes.length];
+    setPrayerLanguagePreference(currentPrayer.id, nextMode);
+  };
 
   const showPlanCalendarButton =
     navState.activeView === 'category' && navState.selectedCategoryId === 'plan-de-vida';
@@ -1455,18 +1501,17 @@ export default function MainApp() {
       : currentPrayer?.categoryId === 'cartas'
         ? 'letter'
         : 'entry';
-  const currentPrayerEditAction =
-    canEditExamenDeConciencia && currentPrayer
-      ? () =>
+  const currentPrayerEditAction = canEditCurrentPrayer && currentPrayer
+    ? currentPrayer.isUserDefined
+      ? () => handleEditEntrada(currentPrayer, currentPrayerEditMode)
+      : () =>
         setNavState((prevState) => ({
           ...prevState,
           activeView: 'editForm',
           editingPrayerId: currentPrayer.id!,
           addFormMode: 'predefined',
         }))
-      : canEditCurrentPrayer && currentPrayer
-        ? () => handleEditEntrada(currentPrayer, currentPrayerEditMode)
-        : undefined;
+    : undefined;
 
   return (
     <div
@@ -1562,19 +1607,23 @@ export default function MainApp() {
             nextDisabled={
               !hasCustomPlanPrayerNav
             }
-            showSearchButton={isCaminoActive}
+            showSearchButton={isCaminoActive && !isPrayerReadingView}
             onToggleSearch={() => setIsSearchVisible((p) => !p)}
             isDistractionFree={isDistractionFree}
             onToggleDistractionFree={toggleDistractionFree}
-            showDistractionFreeButton
+            showDistractionFreeButton={!isPrayerReadingView}
             showCalendarButton={showPlanCalendarButton}
             onOpenCalendar={showPlanCalendarButton ? handleOpenPlanCalendar : undefined}
-            showEditButton={canEditCurrentPrayer || canEditExamenDeConciencia}
+            showEditButton={canEditCurrentPrayer}
             onEdit={
               currentPrayerEditAction
             }
             showInfoButton={currentPrayer?.id === 'cartas'}
             onInfo={() => setShowLettersInfo(true)}
+            showPrayerMenu={isPrayerReadingView}
+            onStartTimer={startTimer}
+            languageModeLabel={currentPrayerLanguageMode ? languageModeLabel[currentPrayerLanguageMode] : undefined}
+            onCycleLanguage={currentPrayerLanguageModes.length > 1 ? cycleCurrentPrayerLanguage : undefined}
           />
         )}
         <div

@@ -8,6 +8,39 @@ Historial de intervenciones del asistente en el repo.
 - Esta obligacion aplica aunque el usuario pida tocar solo lo estrictamente necesario: el registro en `AGENTS.md` se considera parte estrictamente necesaria de cualquier edicion del repo.
 - Si una instruccion del usuario prohibe explicitamente editar `AGENTS.md`, el agente debe pedir aclaracion antes de modificar otros archivos.
 
+### [2026-07-12 15:45] 261. Santo civil, perfiles de idioma y menu de oracion
+**Planificacion:**
+- Separar la actualizacion civil del santo a las 00:00 del corte pastoral del Plan de Vida a las 05:00.
+- Crear perfiles generales Espanol, Latin y Ambos con preferencias independientes por oracion.
+- Agrupar las acciones de lectura en un menu de tres puntos solo dentro de las oraciones.
+- Ubicar el selector general de idioma en Contenido, inmediatamente antes de Temporizador.
+
+**Ejecucion:**
+- **Santo del dia**: `SettingsContext.tsx` programa una actualizacion en la siguiente medianoche local y vuelve a comprobar la fecha al recuperar visibilidad o reanudar la app nativa.
+- **Dia pastoral**: se mantuvo sin cambios el corte existente de las 05:00 para checks, estadisticas y progreso del Plan de Vida.
+- **Perfiles de idioma**: el estado persistente conserva tres mapas separados; las preferencias antiguas se migran al perfil Espanol y los respaldos incluyen el perfil activo y sus mapas.
+- **Contenido**: `ContentSettings.tsx` muestra Espanol/Latin/Ambos justo encima de Temporizador dentro del mismo bloque.
+- **Menu de oracion**: `Header.tsx` muestra solo tres puntos en lecturas de oracion, con pantalla completa, inicio del temporizador, edicion condicional e idioma condicional.
+- **Acciones**: `MainApp.tsx` conecta el menu al temporizador existente, permite editar oraciones del usuario o predeterminadas con edicion de desarrollador activa y guarda el idioma solo para la oracion abierta dentro del perfil actual.
+- **Render de idioma**: `PrayerDetail.tsx` usa el perfil general como valor por defecto y deja el cambio particular en el menu del encabezado; Angelus/Regina Coeli conserva su boton independiente.
+
+**Validacion:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `npm.cmd run build` OK.
+- Prueba movil a 360 x 780 px confirmo el selector en Contenido y el menu de tres puntos sin desbordes.
+- Plan de Vida conservo Calendario y sus acciones fuera de las oraciones.
+- El perfil Latin mostro Latin por defecto; una excepcion Ambos se restauro tras cambiar a Espanol, volver a Latin y recargar la app.
+- Activar temporizador desde el menu mostro el control flotante e inicio el conteo en 15:00.
+- `git diff --check` OK; solo avisos esperados de finales de linea CRLF en Windows.
+
+**Archivos Modificados:**
+- `src/context/SettingsContext.tsx`
+- `src/components/settings/ContentSettings.tsx`
+- `src/components/Header.tsx`
+- `src/components/main/MainApp.tsx`
+- `src/components/PrayerDetail.tsx`
+- `AGENTS.md`
+
 ### [2026-07-11 20:11] 260. Selector discreto, Angelus bilingue y retroceso de Annuum
 **Planificacion:**
 - Simplificar el cambio de idioma para que permanezca accesible sin dominar visualmente la oracion.

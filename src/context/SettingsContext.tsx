@@ -68,6 +68,8 @@ type FontSize = number;
 type ArrowBubbleSize = 'sm' | 'md' | 'lg';
 type NavMode = 'bubble' | 'touch';
 type SmallWidgetMode = SmallWidgetDisplayMode;
+export type PrayerLanguageMode = 'espanol' | 'latin' | 'ambos';
+type PrayerLanguageProfiles = Record<PrayerLanguageMode, Record<string, string>>;
 type OverlayPosition = { x: number; y: number };
 type OverlayPositions = { timer: OverlayPosition; planNav: OverlayPosition; AnnuumBubble: OverlayPosition };
 export type DevTraceLevel = 'info' | 'warn' | 'error';
@@ -207,6 +209,7 @@ type Settings = {
   timerActive: boolean;
   toggleTimer: () => void;
   resetTimer: () => void;
+  startTimer: () => void;
 
   overlayPositions: OverlayPositions;
   setOverlayPosition: (key: keyof OverlayPositions, pos: OverlayPosition) => void;
@@ -292,6 +295,8 @@ type Settings = {
   scrollPositions: { [key: string]: number };
   setScrollPosition: (prayerId: string, position: number) => void;
   prayerLanguagePreferences: Record<string, string>;
+  prayerLanguageProfile: PrayerLanguageMode;
+  setPrayerLanguageProfile: (profile: PrayerLanguageMode) => void;
   setPrayerLanguagePreference: (prayerId: string, language: string) => void;
 
   quoteOfTheDay: Quote | null;
@@ -494,6 +499,35 @@ const normalizeStringRecord = (raw: any): Record<string, string> => {
     }
   });
   return result;
+};
+
+const normalizePrayerLanguageMode = (value: any): PrayerLanguageMode =>
+  value === 'latin' || value === 'ambos' ? value : 'espanol';
+
+const emptyPrayerLanguageProfiles = (): PrayerLanguageProfiles => ({
+  espanol: {},
+  latin: {},
+  ambos: {},
+});
+
+const normalizePrayerLanguageProfiles = (
+  rawProfiles: any,
+  legacyPreferences: any,
+): PrayerLanguageProfiles => {
+  const source = rawProfiles && typeof rawProfiles === 'object' && !Array.isArray(rawProfiles)
+    ? rawProfiles
+    : null;
+  if (!source) {
+    return {
+      ...emptyPrayerLanguageProfiles(),
+      espanol: normalizeStringRecord(legacyPreferences),
+    };
+  }
+  return {
+    espanol: normalizeStringRecord(source.espanol),
+    latin: normalizeStringRecord(source.latin),
+    ambos: normalizeStringRecord(source.ambos),
+  };
 };
 
 const normalizePredefinedPrayerOverrides = (raw: any): Record<string, PredefinedPrayerOverrideData> => {
@@ -699,6 +733,8 @@ const FULL_BACKUP_KEYS = [
   'userHomeBackgrounds',
   'scrollPositions',
   'prayerLanguagePreferences',
+  'prayerLanguageProfile',
+  'prayerLanguageProfiles',
   'quoteOfTheDay',
   'recentQuoteIds',
   'lastQuoteDate',
@@ -757,6 +793,11 @@ const normalizeBackupState = (raw: any) => {
   const arrowBubbleSize: ArrowBubbleSize =
     source.arrowBubbleSize === 'md' || source.arrowBubbleSize === 'lg' ? source.arrowBubbleSize : 'sm';
   const smallWidgetMode = normalizeSmallWidgetMode(source.smallWidgetMode);
+  const prayerLanguageProfile = normalizePrayerLanguageMode(source.prayerLanguageProfile);
+  const prayerLanguageProfiles = normalizePrayerLanguageProfiles(
+    source.prayerLanguageProfiles,
+    source.prayerLanguagePreferences,
+  );
   return {
     theme,
     fontSize,
@@ -798,7 +839,9 @@ const normalizeBackupState = (raw: any) => {
     smallWidgetMode,
     userHomeBackgrounds: Array.isArray(source.userHomeBackgrounds) ? source.userHomeBackgrounds : [],
     scrollPositions: normalizeNumberRecord(source.scrollPositions),
-    prayerLanguagePreferences: normalizeStringRecord(source.prayerLanguagePreferences),
+    prayerLanguagePreferences: prayerLanguageProfiles[prayerLanguageProfile],
+    prayerLanguageProfile,
+    prayerLanguageProfiles,
     quoteOfTheDay: source.quoteOfTheDay ?? null,
     recentQuoteIds: normalizeStringArray(source.recentQuoteIds),
     lastQuoteDate: normalizeNullableString(source.lastQuoteDate),
@@ -920,7 +963,9 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   const [userHomeBackgrounds, setUserHomeBackgrounds] = useState<ImagePlaceholder[]>([]);
   const [scrollPositions, setScrollPositions] = useState<{ [k: string]: number }>({});
-  const [prayerLanguagePreferences, setPrayerLanguagePreferences] = useState<Record<string, string>>({});
+  const [prayerLanguageProfile, setPrayerLanguageProfileState] = useState<PrayerLanguageMode>('espanol');
+  const [prayerLanguageProfiles, setPrayerLanguageProfiles] = useState<PrayerLanguageProfiles>(emptyPrayerLanguageProfiles);
+  const prayerLanguagePreferences = prayerLanguageProfiles[prayerLanguageProfile];
 
   const [quoteOfTheDay, setQuoteOfTheDay] = useState<Quote | null>(null);
   const [recentQuoteIds, setRecentQuoteIds] = useState<string[]>([]);
@@ -937,6 +982,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [overriddenFixedSaintImage, setOverriddenFixedSaintImage] = useState<ImagePlaceholder | null>(null);
   
   const [lastSaintUpdate, setLastSaintUpdate] = useState<string | null>(null);
+  const [saintRefreshClock, setSaintRefreshClock] = useState(() => Date.now());
   
   const [forceAnnuumSeason, setForceAnnuumSeason] = useState(false);
   
@@ -1106,7 +1152,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setSkipNotificationIfChecked(snapshot.skipNotificationIfChecked ?? true);
     setUserHomeBackgrounds(snapshot.userHomeBackgrounds);
     setScrollPositions(snapshot.scrollPositions);
-    setPrayerLanguagePreferences(snapshot.prayerLanguagePreferences);
+    setPrayerLanguageProfileState(snapshot.prayerLanguageProfile);
+    setPrayerLanguageProfiles(snapshot.prayerLanguageProfiles);
     setQuoteOfTheDay(snapshot.quoteOfTheDay);
     setRecentQuoteIds(snapshot.recentQuoteIds);
     setLastQuoteDate(snapshot.lastQuoteDate);
@@ -1178,6 +1225,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         userHomeBackgrounds,
         scrollPositions,
         prayerLanguagePreferences,
+        prayerLanguageProfile,
+        prayerLanguageProfiles,
         quoteOfTheDay,
         recentQuoteIds,
         lastQuoteDate,
@@ -1247,6 +1296,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     userHomeBackgrounds,
     scrollPositions,
     prayerLanguagePreferences,
+    prayerLanguageProfile,
+    prayerLanguageProfiles,
     quoteOfTheDay,
     recentQuoteIds,
     lastQuoteDate,
@@ -1819,6 +1870,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setNavMode('touch');
     setArrowBubbleSize('sm');
     setSmallWidgetMode('full');
+    setPrayerLanguageProfileState('espanol');
+    setPrayerLanguageProfiles(emptyPrayerLanguageProfiles());
     setMovableFeastsEnabled(true);
     setCartasReminderEnabledState(true);
     setCartasReminderAnchorAt(Date.now());
@@ -2133,6 +2186,12 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setTimerTime(timerDuration * 60);
   };
 
+  const startTimer = () => {
+    setTimerEnabled(true);
+    setTimerTime(timerDuration * 60);
+    setTimerActive(true);
+  };
+
   // Timer effect
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -2388,11 +2447,22 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setScrollPositions(prev => ({ ...prev, [prayerId]: position }));
   };
 
+  const setPrayerLanguageProfile = (profile: PrayerLanguageMode) => {
+    setPrayerLanguageProfileState(normalizePrayerLanguageMode(profile));
+  };
+
   const setPrayerLanguagePreference = (prayerId: string, language: string) => {
     if (!prayerId || !language) return;
-    setPrayerLanguagePreferences(prev => {
-      if (prev[prayerId] === language) return prev;
-      return { ...prev, [prayerId]: language };
+    setPrayerLanguageProfiles(prev => {
+      const activePreferences = prev[prayerLanguageProfile];
+      if (activePreferences[prayerId] === language) return prev;
+      return {
+        ...prev,
+        [prayerLanguageProfile]: {
+          ...activePreferences,
+          [prayerId]: language,
+        },
+      };
     });
   };
 
@@ -3351,6 +3421,49 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     allHomeBackgrounds,
   ]);
 
+  useEffect(() => {
+    let midnightTimeout: ReturnType<typeof setTimeout> | null = null;
+    let nativeListener: { remove: () => void } | null = null;
+    let disposed = false;
+
+    const refreshSaintDate = () => setSaintRefreshClock(Date.now());
+    const scheduleMidnightRefresh = () => {
+      if (midnightTimeout) clearTimeout(midnightTimeout);
+      const now = new Date();
+      const nextMidnight = new Date(now);
+      nextMidnight.setHours(24, 0, 0, 0);
+      midnightTimeout = setTimeout(() => {
+        refreshSaintDate();
+        scheduleMidnightRefresh();
+      }, Math.max(0, nextMidnight.getTime() - now.getTime()) + 50);
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') refreshSaintDate();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    scheduleMidnightRefresh();
+
+    if (Capacitor.isNativePlatform()) {
+      void App.addListener('appStateChange', ({ isActive }) => {
+        if (isActive) refreshSaintDate();
+      }).then((listener) => {
+        if (disposed) {
+          void listener.remove();
+        } else {
+          nativeListener = listener;
+        }
+      }).catch(() => undefined);
+    }
+
+    return () => {
+      disposed = true;
+      if (midnightTimeout) clearTimeout(midnightTimeout);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      void nativeListener?.remove();
+    };
+  }, []);
+
   // Saints logic
   useEffect(() => {
     const now = simulatedDate ? new Date(simulatedDate) : new Date();
@@ -3474,6 +3587,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     saintOfTheDayPrayerId,
     overriddenFixedSaint,
     overriddenFixedSaintImage,
+    saintRefreshClock,
   ]);
 
   return (
@@ -3528,6 +3642,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         timerActive,
         toggleTimer,
         resetTimer,
+        startTimer,
         overlayPositions,
         setOverlayPosition,
         notificationsEnabled,
@@ -3592,6 +3707,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         scrollPositions,
         setScrollPosition,
         prayerLanguagePreferences,
+        prayerLanguageProfile,
+        setPrayerLanguageProfile,
         setPrayerLanguagePreference,
         quoteOfTheDay,
         shownEasterEggQuoteIds,

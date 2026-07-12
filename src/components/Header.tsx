@@ -1,11 +1,17 @@
 ﻿'use client';
 
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
-import { ArrowLeft, ChevronLeft, ChevronRight, RotateCcw, Expand, Minimize, Search, Pencil, Calendar, Info } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, RotateCcw, Expand, Minimize, Search, Pencil, Calendar, Info, EllipsisVertical, Clock3, Languages } from 'lucide-react';
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
 import { useSettings } from '@/context/SettingsContext';
 import Timer from '@/components/Timer';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const isInteractiveTarget = (target: EventTarget | null) => {
   if (!(target instanceof Element)) return false;
@@ -40,6 +46,10 @@ type HeaderProps = {
   editDisabled?: boolean;
   showInfoButton?: boolean;
   onInfo?: () => void;
+  showPrayerMenu?: boolean;
+  onStartTimer?: () => void;
+  languageModeLabel?: string;
+  onCycleLanguage?: () => void;
 };
 
 const DragHandle = () => {
@@ -81,6 +91,10 @@ export default function Header({
   editDisabled = false,
   showInfoButton = false,
   onInfo,
+  showPrayerMenu = false,
+  onStartTimer,
+  languageModeLabel,
+  onCycleLanguage,
 }: HeaderProps) {
 
   const { isDistractionFree: isGlobalDistractionFree, timerEnabled, overlayPositions, setOverlayPosition, arrowBubbleSize } =
@@ -303,6 +317,44 @@ export default function Header({
         </div>
 
           <div className="w-auto flex items-center justify-end gap-1 z-10">
+            {showPrayerMenu ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-primary-foreground"
+                    title="Opciones de oración"
+                    aria-label="Opciones de oración"
+                  >
+                    <EllipsisVertical />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-56">
+                  <DropdownMenuItem onSelect={onToggleDistractionFree}>
+                    <Expand />
+                    Modo pantalla completa
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={onStartTimer}>
+                    <Clock3 />
+                    Activar temporizador
+                  </DropdownMenuItem>
+                  {showEditButton && onEdit ? (
+                    <DropdownMenuItem onSelect={onEdit} disabled={editDisabled}>
+                      <Pencil />
+                      Editar oración
+                    </DropdownMenuItem>
+                  ) : null}
+                  {languageModeLabel && onCycleLanguage ? (
+                    <DropdownMenuItem onSelect={onCycleLanguage}>
+                      <Languages />
+                      Idioma: {languageModeLabel}
+                    </DropdownMenuItem>
+                  ) : null}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <>
             {showSearchButton && (
               <Button
                 variant="ghost"
@@ -379,10 +431,11 @@ export default function Header({
               <RotateCcw className="size-5" />
             </Button>
           )}
+              </>
+            )}
         </div>
       </div>
     </header>
     </>
   );
 }
-
