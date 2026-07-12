@@ -2,8 +2,8 @@
 
 import type { Prayer } from '@/lib/types';
 import { Card, CardTitle } from '@/components/ui/card';
-import { ChevronRight, Trash2, PlusCircle, Edit } from 'lucide-react';
-import { useMemo } from 'react';
+import { ChevronRight, Trash2, PlusCircle, Edit, MoreVertical } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import SaintOfTheDayCard from '@/components/saints/SaintOfTheDayCard';
 import { useSettings } from '@/context/SettingsContext';
 import { Button } from './ui/button';
@@ -18,9 +18,14 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Checkbox } from './ui/checkbox';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 type PrayerListProps = {
   prayers: Prayer[];
@@ -58,6 +63,7 @@ export default function PrayerList({
     planDeVidaProgress,
     togglePlanDeVidaItem,
   } = useSettings();
+  const [pendingDeletePrayer, setPendingDeletePrayer] = useState<Prayer | null>(null);
 
   // Filtrar oraciones según categoría (Plan de Vida, etc.)
   const filteredPrayers = useMemo(() => {
@@ -96,8 +102,52 @@ export default function PrayerList({
 
   const isEditable = (prayer: Prayer) => {
     if (!onEditPrayer) return false;
-    if (isDeveloperMode && isEditModeEnabled) return true;
-    return !prayer.prayers || prayer.prayers.length === 0;
+    return isDeveloperMode && isEditModeEnabled || prayer.isUserDefined === true;
+  };
+
+  const renderActionMenu = (prayer: Prayer, onImage = false) => {
+    const canEdit = canPerformAction(prayer) && isEditable(prayer) && Boolean(onEditPrayer);
+    const canDelete = canPerformAction(prayer) && Boolean(onRemovePrayer) && Boolean(prayer.id);
+    if (!canEdit && !canDelete) return null;
+
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+              'size-9 shrink-0',
+              onImage ? 'bg-black/35 text-white hover:bg-black/55 hover:text-white' : 'text-muted-foreground'
+            )}
+            aria-label={`Opciones de ${prayer.title}`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <MoreVertical className="size-5" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-48 p-1.5" onClick={(event) => event.stopPropagation()}>
+          {canEdit ? (
+            <DropdownMenuItem
+              className="min-h-11 px-3 py-2.5 text-[0.95rem] [&_svg]:size-5"
+              onSelect={() => onEditPrayer?.(prayer)}
+            >
+              <Edit />
+              Editar
+            </DropdownMenuItem>
+          ) : null}
+          {canDelete ? (
+            <DropdownMenuItem
+              className="min-h-11 px-3 py-2.5 text-[0.95rem] text-destructive focus:text-destructive [&_svg]:size-5"
+              onSelect={() => setPendingDeletePrayer(prayer)}
+            >
+              <Trash2 />
+              Eliminar
+            </DropdownMenuItem>
+          ) : null}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
   };
 
   const isPlanDeVidaCategory = categoryId === 'plan-de-vida';
@@ -130,6 +180,9 @@ export default function PrayerList({
               className="relative aspect-square overflow-hidden flex flex-col items-center justify-center text-center cursor-pointer hover:opacity-90 transition-opacity bg-black border-0 shadow-lg"
               onClick={() => onSelectPrayer(sub)}
             >
+              <div className="absolute right-2 top-2 z-20" onClick={(event) => event.stopPropagation()}>
+                {renderActionMenu(sub, true)}
+              </div>
               {sub.imageUrl && (
                 <div className="absolute inset-0 opacity-40">
                   <Image
@@ -176,50 +229,8 @@ export default function PrayerList({
                 </CardTitle>
               </div>
 
-              {/* Botones de acción */}
               <div className="flex items-center shrink-0">
-                {canPerformAction(prayer) && isEditable(prayer) && onEditPrayer && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-8 text-muted-foreground hover:text-primary"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onEditPrayer?.(prayer);
-                    }}
-                  >
-                    <Edit className="size-4" />
-                  </Button>
-                )}
-                {canPerformAction(prayer) && onRemovePrayer && prayer.id && (
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-8 text-muted-foreground hover:text-destructive"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent onClick={(e) => e.stopPropagation()}>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Esta acción no se puede deshacer. Esto eliminará permanentemente esta{' '}
-                          {prayer.categoryId === 'devociones' ? 'devoción' : 'oración'}.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => onRemovePrayer!(prayer.id!)}>
-                          Eliminar
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                )}
+                {renderActionMenu(prayer)}
                 <ChevronRight className="size-5 text-muted-foreground" />
               </div>
             </div>
@@ -243,6 +254,36 @@ export default function PrayerList({
           </Button>
         </div>
       )}
+
+      <AlertDialog
+        open={Boolean(pendingDeletePrayer)}
+        onOpenChange={(open) => {
+          if (!open) setPendingDeletePrayer(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar {pendingDeletePrayer?.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDeletePrayer?.isUserDefined
+                ? 'Esta acción eliminará permanentemente este contenido.'
+                : 'Este contenido se ocultará y podrá restaurarse desde Control de Contenido.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (pendingDeletePrayer?.id) onRemovePrayer?.(pendingDeletePrayer.id);
+                setPendingDeletePrayer(null);
+              }}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -5,10 +5,12 @@ import AppearanceSettings from './settings/AppearanceSettings';
 import NotificationSettings from './settings/NotificationSettings';
 import ContentSettings from './settings/ContentSettings';
 import DeveloperSettings from './settings/DeveloperSettings';
+import SpiritualTrivia from './trivia/SpiritualTrivia';
 import { Card, CardTitle } from '@/components/ui/card';
+import { useSettings } from '@/context/SettingsContext';
 import * as Icon from 'lucide-react';
 
-export type SettingsSection = 'contenido' | 'notificaciones' | 'apariencia' | 'informacion';
+export type SettingsSection = 'contenido' | 'notificaciones' | 'apariencia' | 'informacion' | 'trivia';
 
 interface SettingsProps {
   onOpenDeveloperDashboard?: () => void;
@@ -18,11 +20,12 @@ interface SettingsProps {
   onSectionChange: (section: SettingsSection | null) => void;
 }
 
-const sections: { id: SettingsSection; label: string; icon: React.ElementType }[] = [
+const sections: { id: SettingsSection; label: string; icon: React.ElementType; developerOnly?: boolean }[] = [
   { id: 'contenido', label: 'Contenido', icon: Icon.BookOpen },
   { id: 'notificaciones', label: 'Notificaciones', icon: Icon.Bell },
   { id: 'apariencia', label: 'Apariencia', icon: Icon.Palette },
   { id: 'informacion', label: 'Información', icon: Icon.Info },
+  { id: 'trivia', label: 'Trivia espiritual', icon: Icon.BookOpenCheck, developerOnly: true },
 ];
 export const getSettingsSectionLabel = (section: SettingsSection) =>
   sections.find((entry) => entry.id === section)?.label ?? 'Ajustes';
@@ -34,7 +37,9 @@ export default function Settings({
   activeSection,
   onSectionChange,
 }: SettingsProps) {
-  const active = sections.find((section) => section.id === activeSection);
+  const { isDeveloperMode } = useSettings();
+  const visibleSections = sections.filter((section) => !section.developerOnly || isDeveloperMode);
+  const active = visibleSections.find((section) => section.id === activeSection);
 
   if (activeSection && active) {
     return (
@@ -43,13 +48,14 @@ export default function Settings({
         {activeSection === 'notificaciones' && <NotificationSettings />}
         {activeSection === 'apariencia' && <AppearanceSettings />}
         {activeSection === 'informacion' && <DeveloperSettings onOpenDashboard={onOpenDeveloperDashboard} />}
+        {activeSection === 'trivia' && <SpiritualTrivia />}
       </div>
     );
   }
 
   return (
     <div className="space-y-3 px-4 pb-20">
-      {sections.map((section) => (
+      {visibleSections.map((section) => (
         <Card
           key={section.id}
           className="bg-card/80 p-4 shadow-md backdrop-blur-sm border-border/50 cursor-pointer hover:bg-accent/20 transition-colors"

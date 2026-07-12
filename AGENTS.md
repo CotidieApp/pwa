@@ -8,6 +8,193 @@ Historial de intervenciones del asistente en el repo.
 - Esta obligacion aplica aunque el usuario pida tocar solo lo estrictamente necesario: el registro en `AGENTS.md` se considera parte estrictamente necesaria de cualquier edicion del repo.
 - Si una instruccion del usuario prohibe explicitamente editar `AGENTS.md`, el agente debe pedir aclaracion antes de modificar otros archivos.
 
+### [2026-07-12 19:06] 268. Tema global y gestos simples en lectores EPUB
+**Planificacion:**
+- Eliminar los controles propios de color de texto y fondo en ambos lectores EPUB.
+- Hacer que el contenido adopte automaticamente los colores generales activos de Cotidie.
+- Entrar en pantalla completa al tocar el EPUB y salir mediante el sexto superior central.
+
+**Ejecucion:**
+- **Tema unificado**: `EpubReader.tsx` obtiene `--foreground` y `--background` desde las variables CSS globales y las aplica tanto al iframe como a la superficie completa y sus zonas seguras.
+- **Actualizacion automatica**: el lector observa los cambios de clase y estilo del tema raiz para mantenerse sincronizado con el modo y los matices configurados en Apariencia.
+- **Interfaz simplificada**: se eliminaron los selectores Texto y Fondo; permanece el ajuste independiente de tamano tipografico.
+- **Entrada por toque**: un toque normal sobre el contenido del EPUB activa pantalla completa, salvo que exista texto seleccionado o se pulse un control o enlace propio del libro.
+- **Salida precisa**: en pantalla completa, el sexto superior central de una cuadricula de tres columnas por dos filas sale inmediatamente del modo; los laterales mantienen retroceso y avance.
+- **Alcance compartido**: el comportamiento se aplica al Nuevo Testamento y a los EPUB personales por medio del componente comun.
+
+**Validacion:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `npm.cmd run build` OK.
+- Prueba movil a 360 x 780 px confirmo ausencia de selectores locales, colores globales reales dentro del iframe y entrada por toque sobre la pagina.
+- La zona de salida midio 120 x 390 px, exactamente un sexto superior central, y restauro el lector normal sin errores de consola.
+- `git diff --check -- src/components/EpubReader.tsx` OK; solo aviso esperado de finales de linea CRLF en Windows.
+
+**Archivos Modificados:**
+- `src/components/EpubReader.tsx`
+- `AGENTS.md`
+
+### [2026-07-12 18:57] 267. Pantalla completa y tipografia del lector EPUB
+**Planificacion:**
+- Corregir el color de las zonas seguras en pantalla completa para que siga el fondo elegido en el lector.
+- Garantizar que cada EPUB se abra fuera de pantalla completa y que solo el boton pueda activar ese modo.
+- Agregar control local de tamano de texto y retirar el acceso redundante al indice.
+
+**Ejecucion:**
+- **Fondo completo**: `EpubReader.tsx` aplica el color de fondo seleccionado a toda la superficie fija del modo pantalla completa, incluidas las zonas superior e inferior reservadas por Android.
+- **Activacion explicita**: al abrir o cambiar de EPUB se restablece el modo normal; la unica accion que puede activar pantalla completa sigue siendo su boton dedicado.
+- **Tamano de texto**: se agregaron una A pequena y una A grande para ajustar la tipografia entre 60 % y 200 % en pasos de 10 %, repaginando el EPUB tras cada cambio.
+- **Indice unico**: se elimino el boton directo duplicado; el indice permanece disponible dentro del panel general de lectura.
+- **Alcance compartido**: los cambios se aplican al Nuevo Testamento y a los EPUB personales mediante su componente comun.
+
+**Validacion:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `npm.cmd run build` OK.
+- Prueba movil a 360 x 780 px confirmo apertura normal, activacion manual de pantalla completa, escala real de 110 % dentro del iframe y fondo completo blanco/negro sin desbordes.
+- Se confirmo un solo acceso al indice y ningun error en la consola del navegador.
+- `git diff --check -- src/components/EpubReader.tsx` OK; solo aviso esperado de finales de linea CRLF en Windows.
+
+**Archivos Modificados:**
+- `src/components/EpubReader.tsx`
+- `AGENTS.md`
+
+### [2026-07-12 17:52] 266. Distribucion automatica del APK mediante GitHub Releases
+**Planificacion:**
+- Sustituir el archivo estable de Google Drive por una descarga publica sin la pantalla de advertencia de Drive.
+- Conservar en Drive solamente las copias historicas versionadas.
+- Hacer que cada ejecucion normal de `android:apk` publique el APK mas reciente en GitHub Releases.
+
+**Ejecucion:**
+- **Repositorio de distribucion**: el APK se publica en `CotidieApp/cotidie-web`, separado del codigo de la aplicacion.
+- **Release por version**: cada compilacion crea o actualiza la release `vX.Y.Z` y sube el asset fijo `cotidie-latest.apk`.
+- **Nombre estable real**: antes de subir se crea una copia temporal verificada con ese nombre, ya que GitHub toma el nombre del archivo y no su etiqueta descriptiva.
+- **Enlace permanente**: la web usa `/releases/latest/download/cotidie-latest.apk` sin cambiarlo entre versiones.
+- **Reejecucion segura**: si la release ya existe, el asset se reemplaza con `--clobber` y se marca nuevamente como la ultima version.
+- **Modo local**: `--no-push` omite tanto el push de Git como la publicacion del APK; `--no-drive` solo omite la copia historica de Drive.
+- **Drive**: se retiro por completo la escritura en `G:\Mi unidad\Cotidie\Web\cotidie-latest.apk`.
+
+**Validacion:**
+- `node --check scripts/android-apk.mjs` OK.
+- GitHub Release `v6.4.0` creada con `cotidie-latest.apk` y marcada como ultima version.
+- El enlace permanente respondio con descarga del asset publicado.
+- `git diff --check` OK; solo avisos esperados de finales de linea CRLF en Windows.
+
+**Archivos Modificados:**
+- `scripts/android-apk.mjs`
+- `AGENTS.md`
+
+### [2026-07-12 18:10] 266. Trivia espiritual experimental con 100 preguntas
+**Planificacion:**
+- Integrar la trivia como una subseccion aislada de Ajustes, visible solo en modo desarrollador y ubicada despues de Informacion.
+- Mantener una experiencia formativa y serena, sin temporizador, rachas, clasificaciones ni impacto en el Plan de Vida.
+- Preparar una biblioteca local verificada de 100 preguntas sobre Jesus, Antiguo Testamento, santos y san Josemaria.
+
+**Ejecucion:**
+- **Acceso condicionado**: `Settings.tsx` agrega `Trivia espiritual` despues de Informacion solo cuando `isDeveloperMode` esta activo; Cotidie Annuum mantiene su posicion posterior cuando corresponde.
+- **Modulo aislado**: `SpiritualTrivia.tsx` concentra toda la experiencia y no agrega estado global ni persistencia, para que pueda retirarse sin afectar otras funciones.
+- **Recorridos**: el usuario puede elegir todos los temas o uno especifico y sesiones de 5, 10 o 20 preguntas; la seleccion evita repeticiones y redistribuye las alternativas en cada recorrido.
+- **Respuesta formativa**: cada eleccion queda bloqueada, distingue acierto y error, muestra una explicacion breve y su fuente; el cierre resume resultados por tema y lista solamente los puntos que conviene repasar.
+- **Biblioteca offline**: `trivia-questions.ts` contiene 100 preguntas locales, 25 por tema, cada una con cuatro alternativas, explicacion y referencia.
+- **Investigacion**: se contrastaron textos biblicos de la Santa Sede, biografias y canonizaciones del Vaticano/Vatican News, y la cronologia y obras de san Josemaria publicadas por el sitio oficial del Opus Dei.
+
+**Validacion:**
+- Conteo automatico: 100 preguntas, 25 por categoria, 100 fuentes y ningun identificador duplicado.
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `npm.cmd run build` OK.
+- Prueba visual a 360 x 780 px confirmo acceso condicionado, orden correcto en Ajustes, flujo completo, acierto, error y resumen sin desborde horizontal.
+- Consola del navegador sin errores durante el recorrido completo; `git diff --check` OK salvo avisos esperados de finales de linea CRLF en Windows.
+
+**Archivos Modificados:**
+- `src/components/Settings.tsx`
+- `src/components/trivia/SpiritualTrivia.tsx`
+- `src/lib/trivia-questions.ts`
+- `AGENTS.md`
+
+### [2026-07-12 16:47] 265. APK estable para la web en Google Drive
+**Planificacion:**
+- Mantener la copia historica versionada que ya genera `android:apk`.
+- Agregar una segunda copia de nombre estable para que la pagina web use siempre el mismo enlace.
+- Verificar la copia actual mediante tamano y SHA-256 sin alterar el versionado normal.
+
+**Ejecucion:**
+- **Ruta estable**: `android-apk.mjs` actualiza `G:\Mi unidad\Cotidie\Web\cotidie-latest.apk` despues de cada compilacion normal.
+- **Reemplazo seguro**: se reutiliza la comparacion y verificacion existente por tamano y SHA-256, informando si el archivo fue creado, actualizado o ya estaba al dia.
+- **Configuracion opcional**: `COTIDIE_WEB_APK_PATH` permite cambiar la ruta estable sin editar el script.
+- **Modo sin Drive**: `--no-drive` omite tanto la copia historica como el APK estable de la web.
+- **Copia inicial**: se sincronizo el release 6.4.0 actual con la ruta estable para dejarla preparada desde esta intervencion.
+
+**Validacion:**
+- `node --check scripts/android-apk.mjs` OK.
+- La copia actual y `app-release.apk` coinciden en tamano y SHA-256.
+- `git diff --check` OK; solo avisos esperados de finales de linea CRLF en Windows.
+
+**Archivos Modificados:**
+- `scripts/android-apk.mjs`
+- `AGENTS.md`
+
+### [2026-07-12 16:18] 264. Edicion total jerarquica y pantalla completa solo en textos
+**Planificacion:**
+- Extender la edicion y eliminacion avanzada a todos los nodos de contenido, incluidos agrupadores anidados.
+- Reemplazar los botones separados de cada elemento por menus de tres puntos.
+- Limitar el acceso a pantalla completa a oraciones finales que contienen texto.
+
+**Ejecucion:**
+- **Jerarquia completa**: `MainApp.tsx` propaga editar/eliminar a Devociones, Plan de Vida, Oraciones y listas anidadas como Santa Misa, Antes, Despues y Misal.
+- **Agrupadores**: `AddPrayerForm.tsx` permite editar titulo e imagen de nodos con suboraciones sin exigir un contenido textual inexistente.
+- **Persistencia**: `SettingsContext.tsx` admite overrides sin texto para conservar intactas las ramas internas al editar un agrupador; ocultar nodos predeterminados sigue siendo recursivo y restaurable.
+- **Menus por elemento**: `PrayerList.tsx` agrupa Editar y Eliminar en tres puntos, tanto en tarjetas normales como visuales, con confirmacion diferenciada para contenido personal y predeterminado.
+- **Oraciones personales/predeterminadas**: `PrayerAccordion.tsx` separa correctamente las acciones de cada origen y evita enviar una eliminacion predeterminada al almacenamiento de usuario.
+- **Texto abierto**: `Header.tsx` agrega Eliminar oracion al menu existente cuando corresponde, manteniendo confirmacion desde `MainApp.tsx`.
+- **Pantalla completa**: se retiro el acceso de Plan de Vida, Ajustes y demas menus; si se abandona un texto con el modo activo, se desactiva automaticamente.
+
+**Validacion:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `npm.cmd run build` OK.
+- Busqueda de conexiones confirmo acciones avanzadas en listas raiz y anidadas, y ningun boton visible de pantalla completa fuera del menu de una lectura textual.
+- `git diff --check` OK; solo avisos esperados de finales de linea CRLF en Windows.
+
+**Archivos Modificados:**
+- `src/components/AddPrayerForm.tsx`
+- `src/components/Header.tsx`
+- `src/components/PrayerAccordion.tsx`
+- `src/components/PrayerList.tsx`
+- `src/components/main/MainApp.tsx`
+- `src/context/SettingsContext.tsx`
+- `AGENTS.md`
+
+### [2026-07-12 16:07] 263. Opciones tactiles mas grandes en menu de oracion
+**Planificacion:**
+- Aumentar moderadamente las opciones del menu de tres puntos para facilitar el toque.
+- Conservar sin cambios sus acciones, condiciones y orden.
+
+**Ejecucion:**
+- `Header.tsx` amplio el menu a un ancho moderado y fijo cada opcion en una altura tactil minima de 44 px.
+- Se aumentaron ligeramente el relleno, el texto y los iconos sin convertir el menu en una superficie excesiva.
+
+**Validacion:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- La comprobacion visual local no alcanzo el menu porque la app permanecio en su pantalla de bienvenida 6.4.0; no hubo errores de consola y no se modifico ese flujo ajeno.
+
+**Archivos Modificados:**
+- `src/components/Header.tsx`
+- `AGENTS.md`
+
+### [2026-07-12 16:05] 262. Selector nativo para perfil de idioma
+**Planificacion:**
+- Reemplazar los tres botones visibles del perfil de idioma por un selector desplegable nativo.
+- Mantener sin cambios la ubicacion, persistencia y funcionamiento de los perfiles.
+
+**Ejecucion:**
+- `ContentSettings.tsx` ahora muestra un unico `select` nativo con Espanol, Latin y Ambos.
+- Solo el perfil activo queda visible hasta que el usuario despliega las opciones mediante la interfaz del sistema operativo.
+
+**Validacion:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- El control conserva el valor `prayerLanguageProfile` y llama al mismo guardado existente al cambiar de opcion.
+
+**Archivos Modificados:**
+- `src/components/settings/ContentSettings.tsx`
+- `AGENTS.md`
+
 ### [2026-07-12 15:45] 261. Santo civil, perfiles de idioma y menu de oracion
 **Planificacion:**
 - Separar la actualizacion civil del santo a las 00:00 del corte pastoral del Plan de Vida a las 05:00.

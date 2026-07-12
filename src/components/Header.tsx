@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
-import { ArrowLeft, ChevronLeft, ChevronRight, RotateCcw, Expand, Minimize, Search, Pencil, Calendar, Info, EllipsisVertical, Clock3, Languages } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, RotateCcw, Expand, Minimize, Search, Pencil, Calendar, Info, EllipsisVertical, Clock3, Languages, Trash2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
 import { useSettings } from '@/context/SettingsContext';
@@ -44,6 +44,8 @@ type HeaderProps = {
   showEditButton?: boolean;
   onEdit?: () => void;
   editDisabled?: boolean;
+  showDeleteButton?: boolean;
+  onDelete?: () => void;
   showInfoButton?: boolean;
   onInfo?: () => void;
   showPrayerMenu?: boolean;
@@ -89,6 +91,8 @@ export default function Header({
   showEditButton = false,
   onEdit,
   editDisabled = false,
+  showDeleteButton = false,
+  onDelete,
   showInfoButton = false,
   onInfo,
   showPrayerMenu = false,
@@ -330,23 +334,45 @@ export default function Header({
                     <EllipsisVertical />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="min-w-56">
-                  <DropdownMenuItem onSelect={onToggleDistractionFree}>
+                <DropdownMenuContent align="end" className="min-w-64 p-1.5">
+                  <DropdownMenuItem
+                    className="min-h-11 px-3 py-2.5 text-[0.95rem] [&_svg]:size-5"
+                    onSelect={onToggleDistractionFree}
+                  >
                     <Expand />
                     Modo pantalla completa
                   </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={onStartTimer}>
+                  <DropdownMenuItem
+                    className="min-h-11 px-3 py-2.5 text-[0.95rem] [&_svg]:size-5"
+                    onSelect={onStartTimer}
+                  >
                     <Clock3 />
                     Activar temporizador
                   </DropdownMenuItem>
                   {showEditButton && onEdit ? (
-                    <DropdownMenuItem onSelect={onEdit} disabled={editDisabled}>
+                    <DropdownMenuItem
+                      className="min-h-11 px-3 py-2.5 text-[0.95rem] [&_svg]:size-5"
+                      onSelect={onEdit}
+                      disabled={editDisabled}
+                    >
                       <Pencil />
                       Editar oración
                     </DropdownMenuItem>
                   ) : null}
+                  {showDeleteButton && onDelete ? (
+                    <DropdownMenuItem
+                      className="min-h-11 px-3 py-2.5 text-[0.95rem] text-destructive focus:text-destructive [&_svg]:size-5"
+                      onSelect={onDelete}
+                    >
+                      <Trash2 />
+                      Eliminar oración
+                    </DropdownMenuItem>
+                  ) : null}
                   {languageModeLabel && onCycleLanguage ? (
-                    <DropdownMenuItem onSelect={onCycleLanguage}>
+                    <DropdownMenuItem
+                      className="min-h-11 px-3 py-2.5 text-[0.95rem] [&_svg]:size-5"
+                      onSelect={onCycleLanguage}
+                    >
                       <Languages />
                       Idioma: {languageModeLabel}
                     </DropdownMenuItem>

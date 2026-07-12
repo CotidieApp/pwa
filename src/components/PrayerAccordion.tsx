@@ -13,6 +13,8 @@ type PrayerAccordionProps = {
   onSelectPrayer: (prayer: Prayer) => void;
   onRemoveEntrada: (id: string) => void;
   onEditEntrada: (prayer: Prayer) => void;
+  onRemovePredefined: (id: string) => void;
+  onEditPredefined: (prayer: Prayer) => void;
 };
 
 export default function PrayerAccordion({
@@ -22,6 +24,8 @@ export default function PrayerAccordion({
   onSelectPrayer,
   onRemoveEntrada,
   onEditEntrada,
+  onRemovePredefined,
+  onEditPredefined,
 }: PrayerAccordionProps) {
   const { isDeveloperMode, isEditModeEnabled } = useSettings();
 
@@ -34,9 +38,9 @@ export default function PrayerAccordion({
             prayers={predeterminadas}
             onSelectPrayer={onSelectPrayer}
             onRemovePrayer={
-              isDeveloperMode && isEditModeEnabled ? onRemoveEntrada : undefined
+              isDeveloperMode && isEditModeEnabled ? onRemovePredefined : undefined
             }
-            onEditPrayer={isDeveloperMode ? onEditEntrada : undefined}
+            onEditPrayer={isDeveloperMode && isEditModeEnabled ? onEditPredefined : undefined}
           />
         </div>
       </Card>

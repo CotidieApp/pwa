@@ -5,7 +5,7 @@ import ePub, { type Book, type Rendition } from 'epubjs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { BookOpen, ListTree, Maximize2, Menu, Minimize2, Search } from 'lucide-react';
+import { BookOpen, Maximize2, Menu, Search } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 import { useScreenWakeLock } from '@/hooks/useScreenWakeLock';
 
@@ -55,6 +55,33 @@ type HighlightItem = {
 
 const READER_STYLE_TAG_ID = 'cotidie-reader-colors';
 const EPUB_PAGE_BOTTOM_GUARD = '2.5em';
+const MIN_READER_FONT_SIZE = 60;
+const MAX_READER_FONT_SIZE = 200;
+const READER_FONT_SIZE_STEP = 10;
+
+type ReaderThemeColors = {
+  text: string;
+  background: string;
+};
+
+const resolveCssThemeColor = (value: string, fallback: string) => {
+  const normalized = value.trim();
+  if (!normalized || normalized.includes('var(')) return fallback;
+  return normalized.startsWith('hsl(') ? normalized : `hsl(${normalized})`;
+};
+
+const getReaderThemeColors = (theme: 'light' | 'dark'): ReaderThemeColors => {
+  const fallback = theme === 'dark'
+    ? { text: '#fafafa', background: '#0f172a' }
+    : { text: '#0f172a', background: '#f8fafc' };
+
+  if (typeof window === 'undefined') return fallback;
+  const styles = window.getComputedStyle(document.documentElement);
+  return {
+    text: resolveCssThemeColor(styles.getPropertyValue('--foreground'), fallback.text),
+    background: resolveCssThemeColor(styles.getPropertyValue('--background'), fallback.background),
+  };
+};
 
 const applyReaderColorsToContents = (contents: any, textColor: string, backgroundColor: string) => {
   const doc = contents?.document as Document | undefined;
@@ -270,8 +297,9 @@ export default function EpubReader({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const bookRef = useRef<Book | null>(null);
   const renditionRef = useRef<Rendition | null>(null);
-  const hideChromeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
+  const isReaderFullscreenRef = useRef(false);
+  const readerTapHandlerRef = useRef<(event: MouseEvent) => void>(() => undefined);
 
   const activeFile = typeof fileName === 'string' && fileName.trim().length > 0 ? fileName.trim() : DEFAULT_FILE_NAME;
   const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
@@ -293,10 +321,9 @@ export default function EpubReader({
   const [panelTab, setPanelTab] = useState<'toc' | 'search' | 'bookmarks' | 'highlights'>('toc');
   const [tocBookFilter, setTocBookFilter] = useState<string>('all');
   const [isReaderFullscreen, setIsReaderFullscreen] = useState(false);
-  const [showReaderChrome, setShowReaderChrome] = useState(true);
-  const [readerTextColor, setReaderTextColor] = useState<'white' | 'black'>(theme === 'dark' ? 'white' : 'black');
-  const [readerBackgroundColor, setReaderBackgroundColor] = useState<'white' | 'black'>(
-    theme === 'dark' ? 'black' : 'white'
+  const [readerThemeColors, setReaderThemeColors] = useState<ReaderThemeColors>(() => getReaderThemeColors(theme));
+  const [readerFontSize, setReaderFontSize] = useState(() =>
+    Math.min(MAX_READER_FONT_SIZE, Math.max(MIN_READER_FONT_SIZE, Math.round(prayerTextZoom * 100)))
   );
   const [navigationError, setNavigationError] = useState<string | null>(null);
 
@@ -304,8 +331,8 @@ export default function EpubReader({
   const locationStorageKey = useMemo(() => toStorageKey(activeFile), [activeFile]);
   const bookmarksStorageKey = useMemo(() => toBookmarksKey(activeFile), [activeFile]);
   const highlightsStorageKey = useMemo(() => toHighlightsKey(activeFile), [activeFile]);
-  const readerTextHex = readerTextColor === 'white' ? '#ffffff' : '#000000';
-  const readerBackgroundHex = readerBackgroundColor === 'white' ? '#ffffff' : '#000000';
+  const readerTextColor = readerThemeColors.text;
+  const readerBackgroundColor = readerThemeColors.background;
   const tocBookAnchors = useMemo(() => {
     if (!isNtContext) return {};
     const map: Record<string, TocEntry> = {};
@@ -458,12 +485,25 @@ export default function EpubReader({
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
-      if (hideChromeTimerRef.current) {
-        clearTimeout(hideChromeTimerRef.current);
-        hideChromeTimerRef.current = null;
-      }
     };
   }, []);
+
+  useEffect(() => {
+    isReaderFullscreenRef.current = false;
+    setIsReaderFullscreen(false);
+  }, [activeFile, sourceBase64]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const updateColors = () => setReaderThemeColors(getReaderThemeColors(theme));
+    const frame = window.requestAnimationFrame(updateColors);
+    const observer = new MutationObserver(updateColors);
+    observer.observe(root, { attributes: true, attributeFilter: ['class', 'style'] });
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [theme]);
 
   useEffect(() => {
     let cancelled = false;
@@ -514,18 +554,23 @@ export default function EpubReader({
 
         rendition.themes.default({
           body: {
-            color: readerTextHex,
-            background: readerBackgroundHex,
+            color: readerTextColor,
+            background: readerBackgroundColor,
           },
           '::selection': {
             background: 'rgba(251,191,36,0.45)',
           },
         });
-        rendition.themes.override('color', readerTextHex);
-        rendition.themes.override('background', readerBackgroundHex);
-        rendition.themes.override('background-color', readerBackgroundHex);
+        rendition.themes.override('color', readerTextColor);
+        rendition.themes.override('background', readerBackgroundColor);
+        rendition.themes.override('background-color', readerBackgroundColor);
+        rendition.themes.fontSize(`${readerFontSize}%`);
         rendition.hooks.content.register((contents: any) => {
-          applyReaderColorsToContents(contents, readerTextHex, readerBackgroundHex);
+          applyReaderColorsToContents(contents, readerTextColor, readerBackgroundColor);
+          const doc = contents?.document as Document | undefined;
+          if (!doc || doc.documentElement.dataset.cotidieReaderTapBound === 'true') return;
+          doc.documentElement.dataset.cotidieReaderTapBound = 'true';
+          doc.addEventListener('click', (event) => readerTapHandlerRef.current(event));
         });
 
         const applyHighlight = (item: HighlightItem) => {
@@ -634,7 +679,7 @@ export default function EpubReader({
 
         const currentContents = (rendition as any).getContents?.() ?? [];
         currentContents.forEach((contents: any) =>
-          applyReaderColorsToContents(contents, readerTextHex, readerBackgroundHex)
+          applyReaderColorsToContents(contents, readerTextColor, readerBackgroundColor)
         );
 
         storedHighlights.forEach(applyHighlight);
@@ -674,12 +719,12 @@ export default function EpubReader({
   useEffect(() => {
     const rendition = renditionRef.current;
     if (!rendition) return;
-    rendition.themes.override('color', readerTextHex);
-    rendition.themes.override('background', readerBackgroundHex);
-    rendition.themes.override('background-color', readerBackgroundHex);
+    rendition.themes.override('color', readerTextColor);
+    rendition.themes.override('background', readerBackgroundColor);
+    rendition.themes.override('background-color', readerBackgroundColor);
     const currentContents = (rendition as any).getContents?.() ?? [];
-    currentContents.forEach((contents: any) => applyReaderColorsToContents(contents, readerTextHex, readerBackgroundHex));
-  }, [readerBackgroundHex, readerTextHex]);
+    currentContents.forEach((contents: any) => applyReaderColorsToContents(contents, readerTextColor, readerBackgroundColor));
+  }, [readerBackgroundColor, readerTextColor]);
 
   const refreshRenditionLayout = useCallback(() => {
     const rendition = renditionRef.current as any;
@@ -692,9 +737,17 @@ export default function EpubReader({
   }, []);
 
   useEffect(() => {
+    const rendition = renditionRef.current;
+    if (!rendition) return;
+    rendition.themes.fontSize(`${readerFontSize}%`);
     const tick = window.setTimeout(() => refreshRenditionLayout(), 60);
     return () => window.clearTimeout(tick);
-  }, [isReaderFullscreen, showReaderChrome, refreshRenditionLayout]);
+  }, [readerFontSize, refreshRenditionLayout]);
+
+  useEffect(() => {
+    const tick = window.setTimeout(() => refreshRenditionLayout(), 60);
+    return () => window.clearTimeout(tick);
+  }, [isReaderFullscreen, refreshRenditionLayout]);
 
   useEffect(() => {
     const onResize = () => refreshRenditionLayout();
@@ -790,70 +843,34 @@ export default function EpubReader({
       });
   };
 
-  const scheduleChromeHide = useCallback(() => {
-    if (hideChromeTimerRef.current) {
-      clearTimeout(hideChromeTimerRef.current);
-      hideChromeTimerRef.current = null;
-    }
-    if (!isReaderFullscreen || isPanelOpen) return;
-    hideChromeTimerRef.current = setTimeout(() => {
-      setShowReaderChrome(false);
-      hideChromeTimerRef.current = null;
-    }, 2200);
-  }, [isPanelOpen, isReaderFullscreen]);
-
-  const wakeReaderChrome = () => {
-    if (!isReaderFullscreen) return;
-    setShowReaderChrome(true);
-    scheduleChromeHide();
-  };
-
-  const toggleReaderChrome = () => {
-    if (!isReaderFullscreen) return;
-    setShowReaderChrome((prev) => {
-      const next = !prev;
-      if (next) {
-        scheduleChromeHide();
-      } else if (hideChromeTimerRef.current) {
-        clearTimeout(hideChromeTimerRef.current);
-        hideChromeTimerRef.current = null;
-      }
-      return next;
-    });
-  };
-
   const openReaderPanel = (tab: 'toc' | 'search' | 'bookmarks' | 'highlights') => {
     if (availablePanelTabs.includes(tab)) {
       setPanelTab(tab);
     }
-    setShowReaderChrome(true);
     setIsPanelOpen(true);
   };
 
   const enterReaderFullscreen = () => {
     setIsPanelOpen(false);
-    setShowReaderChrome(false);
+    isReaderFullscreenRef.current = true;
     setIsReaderFullscreen(true);
     window.setTimeout(() => refreshRenditionLayout(), 80);
   };
 
   const exitReaderFullscreen = () => {
+    isReaderFullscreenRef.current = false;
     setIsReaderFullscreen(false);
-    setShowReaderChrome(true);
     window.setTimeout(() => refreshRenditionLayout(), 80);
   };
 
-  useEffect(() => {
-    if (!isReaderFullscreen) {
-      setShowReaderChrome(true);
-      if (hideChromeTimerRef.current) {
-        clearTimeout(hideChromeTimerRef.current);
-        hideChromeTimerRef.current = null;
-      }
-      return;
-    }
-    setShowReaderChrome(false);
-  }, [isPanelOpen, isReaderFullscreen, scheduleChromeHide]);
+  readerTapHandlerRef.current = (event) => {
+    if (isReaderFullscreenRef.current) return;
+    const selection = event.view?.getSelection?.()?.toString().trim() ?? '';
+    if (selection) return;
+    const target = event.target as Element | null;
+    if (target?.closest?.('a, button, input, textarea, select')) return;
+    enterReaderFullscreen();
+  };
 
   useEffect(() => {
     if (!isReaderFullscreen) return;
@@ -1008,12 +1025,13 @@ export default function EpubReader({
 
   return (
     <div
-      className={isReaderFullscreen ? 'fixed inset-0 z-[120] bg-black flex flex-col' : 'flex flex-col h-full min-h-0 gap-3'}
+      className={isReaderFullscreen ? 'fixed inset-0 z-[120] flex flex-col' : 'flex flex-col h-full min-h-0 gap-3'}
       style={
         isReaderFullscreen
           ? {
               height: '100dvh',
               maxHeight: '100dvh',
+              backgroundColor: readerBackgroundColor,
               paddingTop: 'env(safe-area-inset-top, 0px)',
               paddingBottom: 'env(safe-area-inset-bottom, 0px)',
               paddingLeft: 'env(safe-area-inset-left, 0px)',
@@ -1025,13 +1043,7 @@ export default function EpubReader({
       }
     >
       <div
-        className={
-          isReaderFullscreen
-            ? showReaderChrome
-              ? 'space-y-2 shrink-0 transition-all duration-200 opacity-100 max-h-[280px]'
-              : 'space-y-2 shrink-0 transition-all duration-200 opacity-0 max-h-0 overflow-hidden pointer-events-none'
-            : 'space-y-2 shrink-0'
-        }
+        className={isReaderFullscreen ? 'hidden' : 'space-y-2 shrink-0'}
       >
         <div className="rounded-lg border border-border bg-card/95 p-3 shadow-sm backdrop-blur">
           <div className="flex items-center justify-between gap-3">
@@ -1050,15 +1062,6 @@ export default function EpubReader({
               <Button
                 variant="outline"
                 size="icon"
-                onClick={() => openReaderPanel('toc')}
-                disabled={status !== 'ready' || !availablePanelTabs.includes('toc')}
-                aria-label="Abrir índice"
-              >
-                <ListTree className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
                 onClick={() => openReaderPanel('search')}
                 disabled={status !== 'ready'}
                 aria-label="Buscar en el EPUB"
@@ -1068,10 +1071,10 @@ export default function EpubReader({
               <Button
                 variant="outline"
                 size="icon"
-                onClick={isReaderFullscreen ? exitReaderFullscreen : enterReaderFullscreen}
-                aria-label={isReaderFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
+                onClick={enterReaderFullscreen}
+                aria-label="Pantalla completa"
               >
-                {isReaderFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                <Maximize2 className="h-4 w-4" />
               </Button>
               <Button
                 variant="ghost"
@@ -1084,33 +1087,39 @@ export default function EpubReader({
             </div>
           </div>
 
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <label className="space-y-1 text-xs text-muted-foreground" htmlFor="epub-reader-text-color">
-              <span>Texto</span>
-              <select
-                id="epub-reader-text-color"
-                name="epub-reader-text-color"
-                className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs text-foreground"
-                value={readerTextColor}
-                onChange={(e) => setReaderTextColor(e.target.value === 'white' ? 'white' : 'black')}
+          <div className="mt-3 flex items-center justify-between gap-3 rounded-md border border-border bg-background/60 px-2 py-1.5">
+            <span className="text-xs text-muted-foreground">Tamaño de texto</span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() =>
+                  setReaderFontSize((current) =>
+                    Math.max(MIN_READER_FONT_SIZE, current - READER_FONT_SIZE_STEP)
+                  )
+                }
+                disabled={readerFontSize <= MIN_READER_FONT_SIZE}
+                aria-label="Disminuir tamaño de texto"
               >
-                <option value="black">Negro</option>
-                <option value="white">Blanco</option>
-              </select>
-            </label>
-            <label className="space-y-1 text-xs text-muted-foreground" htmlFor="epub-reader-background-color">
-              <span>Fondo</span>
-              <select
-                id="epub-reader-background-color"
-                name="epub-reader-background-color"
-                className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs text-foreground"
-                value={readerBackgroundColor}
-                onChange={(e) => setReaderBackgroundColor(e.target.value === 'black' ? 'black' : 'white')}
+                <span className="text-xs font-semibold">A</span>
+              </Button>
+              <span className="min-w-11 text-center text-xs tabular-nums text-muted-foreground">
+                {readerFontSize}%
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() =>
+                  setReaderFontSize((current) =>
+                    Math.min(MAX_READER_FONT_SIZE, current + READER_FONT_SIZE_STEP)
+                  )
+                }
+                disabled={readerFontSize >= MAX_READER_FONT_SIZE}
+                aria-label="Aumentar tamaño de texto"
               >
-                <option value="white">Blanco</option>
-                <option value="black">Negro</option>
-              </select>
-            </label>
+                <span className="text-lg font-semibold">A</span>
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -1157,15 +1166,15 @@ export default function EpubReader({
 
       <div
         className={isReaderFullscreen
-          ? 'relative overflow-hidden flex-1 min-h-0 bg-card'
+          ? 'relative overflow-hidden flex-1 min-h-0'
           : 'relative rounded-lg border border-border bg-card/40 overflow-hidden flex-1 min-h-0'
         }
+        style={isReaderFullscreen ? { backgroundColor: readerBackgroundColor } : undefined}
       >
         <div
           ref={containerRef}
           className="h-full w-full min-h-0"
           style={{
-            fontSize: `${prayerTextZoom}em`,
             height: `calc(100% - ${EPUB_PAGE_BOTTOM_GUARD})`,
           }}
         />
@@ -1188,9 +1197,9 @@ export default function EpubReader({
         {isReaderFullscreen ? (
           <button
             type="button"
-            aria-label={showReaderChrome ? 'Ocultar controles' : 'Mostrar controles'}
-            onClick={toggleReaderChrome}
-            className="absolute inset-x-1/4 top-0 z-[40] h-16 opacity-0"
+            aria-label="Salir de pantalla completa"
+            onClick={exitReaderFullscreen}
+            className="absolute left-1/3 right-1/3 top-0 z-[40] h-1/2 opacity-0"
           />
         ) : null}
       </div>

@@ -166,6 +166,13 @@ const resolveGitCommand = () =>
     "C:\\Program Files (x86)\\Git\\cmd\\git.exe"
   ) || "git";
 
+const resolveGitHubCliCommand = () =>
+  resolveExistingPath(
+    process.env.GH_EXE,
+    "C:\\Program Files\\GitHub CLI\\gh.exe",
+    "C:\\Program Files (x86)\\GitHub CLI\\gh.exe"
+  ) || "gh";
+
 const runNodeScript = (scriptPath, scriptArgs, cwd) => {
   runCommand(process.execPath, [scriptPath, ...scriptArgs], cwd);
 };
@@ -338,6 +345,62 @@ const copyApkToDrive = (apkPath, version) => {
   return { path: driveApkPath, destination, copyResult };
 };
 
+const publishApkToGitHubRelease = (apkPath, version) => {
+  const repository = process.env.COTIDIE_APK_RELEASE_REPO || "CotidieApp/cotidie-web";
+  const tag = `v${version}`;
+  const assetName = "cotidie-latest.apk";
+  const uploadDir = path.join(rootDir, "output", "github-release");
+  const uploadPath = path.join(uploadDir, assetName);
+  const ghCommand = resolveGitHubCliCommand();
+
+  fs.mkdirSync(uploadDir, { recursive: true });
+  copyFileWithStatus(apkPath, uploadPath);
+
+  const existingRelease = spawnSync(ghCommand, ["release", "view", tag, "--repo", repository], {
+    cwd: rootDir,
+    stdio: "ignore",
+    env: buildCommandEnv(),
+    shell: false,
+  });
+  if (existingRelease.error) {
+    throw existingRelease.error;
+  }
+
+  if (existingRelease.status === 0) {
+    runCommand(ghCommand, ["release", "upload", tag, uploadPath, "--repo", repository, "--clobber"], rootDir);
+    runCommand(ghCommand, ["release", "edit", tag, "--repo", repository, "--latest"], rootDir);
+  } else if (existingRelease.status === 1) {
+    runCommand(
+      ghCommand,
+      [
+        "release",
+        "create",
+        tag,
+        uploadPath,
+        "--repo",
+        repository,
+        "--title",
+        `Cotidie v${version}`,
+        "--notes",
+        `APK oficial de Cotidie v${version}.`,
+        "--latest",
+      ],
+      rootDir
+    );
+  } else {
+    throw new Error(`No se pudo comprobar GitHub Release ${tag} (código ${existingRelease.status}).`);
+  }
+
+  fs.rmSync(uploadPath, { force: true });
+
+  return {
+    repository,
+    tag,
+    assetName,
+    url: `https://github.com/${repository}/releases/latest/download/${assetName}`,
+  };
+};
+
 const packageJsonPath = path.join(rootDir, "package.json");
 const packageLockPath = path.join(rootDir, "package-lock.json");
 const versionTsPath = path.join(rootDir, "src", "lib", "version.ts");
@@ -357,6 +420,7 @@ console.log("\nCotidie - Generador de APK Android");
 console.log(`Versión actual: v${current}`);
 console.log(`Versión objetivo: v${nextVersion}`);
 console.log(`Publicación Git: ${skipPush ? "omitida por --no-push" : "habilitada"}`);
+console.log(`Publicación APK GitHub: ${skipPush ? "omitida por --no-push" : "habilitada"}`);
 console.log(`Copia secundaria: ${skipDrive ? "omitida por --no-drive" : "habilitada"}`);
 
 if (!skipPush) {
@@ -492,6 +556,25 @@ if (!skipPush) {
   }
 }
 
+let releasePublication = null;
+let releaseStatus = skipPush ? "omitida por --no-push" : "pendiente";
+if (!skipPush && !gitStatus.startsWith("fallida")) {
+  logSection("Publicación APK en GitHub Releases");
+  try {
+    releasePublication = publishApkToGitHubRelease(dstApk, nextVersion);
+    releaseStatus = `publicada en ${releasePublication.repository} (${releasePublication.tag})`;
+    console.log(`APK GitHub: ${releaseStatus}.`);
+    console.log(`Descarga estable: ${releasePublication.url}`);
+  } catch (error) {
+    releaseStatus = `fallida: ${error.message}`;
+    console.error(`Publicación APK GitHub fallida: ${error.message}`);
+    console.error("El APK local y la copia histórica de Drive siguen disponibles.");
+  }
+} else if (!skipPush) {
+  releaseStatus = "omitida porque falló la publicación Git";
+  console.warn("Publicación APK GitHub omitida porque la publicación Git no se completó.");
+}
+
 logSection("Resumen");
 console.log(`Versión: v${nextVersion}`);
 console.log(`Tamaño: ${formatBytes(localCopyResult.size)}`);
@@ -501,4 +584,5 @@ console.log(
   secondaryCopy ? `Copia secundaria: ${secondaryCopy.path} (${describeCopyStatus(secondaryCopy.copyResult.status)})` : "Copia secundaria: omitida"
 );
 console.log(`Git: ${gitStatus}`);
+console.log(`GitHub Release: ${releaseStatus}`);
 console.log(`Duración total: ${formatDuration(Date.now() - buildStartedAt)}`);

@@ -205,6 +205,7 @@ export default function MainApp() {
   const [activeSettingsSection, setActiveSettingsSection] = useState<SettingsSection | null>(null);
   const [showLettersInfo, setShowLettersInfo] = useState(false);
   const [showErrorReport, setShowErrorReport] = useState(false);
+  const [prayerPendingDelete, setPrayerPendingDelete] = useState<Prayer | null>(null);
   const [activeSpiritualReadingAudioId, setActiveSpiritualReadingAudioId] = useState<string | null>(null);
   const audioUploadInputRef = useRef<HTMLInputElement | null>(null);
   const audioRenameInputRef = useRef<HTMLInputElement | null>(null);
@@ -943,6 +944,8 @@ export default function MainApp() {
           onSelectPrayer={handleSelectPrayer}
           onRemoveEntrada={removeUserPrayer}
           onEditEntrada={(p) => handleEditEntrada(p, 'entry')}
+          onRemovePredefined={removePredefinedPrayer}
+          onEditPredefined={(p) => handleEditEntrada(p, 'predefined')}
         />
       );
     }
@@ -983,15 +986,23 @@ export default function MainApp() {
         onOpenPrayerById={handleOpenPrayerById}
         onRemovePrayer={
           selectedCategory.id === 'devociones'
-            ? removeUserDevotion
-            : isDeveloperMode
+            ? (id) => {
+              if (userDevotions.some((prayer) => prayer.id === id)) {
+                removeUserDevotion(id);
+              } else {
+                removePredefinedPrayer(id);
+              }
+            }
+            : isDeveloperMode && isEditModeEnabled
               ? removePredefinedPrayer
               : undefined
         }
         onEditPrayer={
           selectedCategory.id === 'devociones'
-            ? (p) => handleEditEntrada(p, 'devotion')
-            : undefined
+            ? (p) => handleEditEntrada(p, p.isUserDefined ? 'devotion' : 'predefined')
+            : isDeveloperMode && isEditModeEnabled
+              ? (p) => handleEditEntrada(p, 'predefined')
+              : undefined
         }
         showAddButton={selectedCategory.id === 'devociones'}
         onAddButtonClick={() => handleAddEntrada('devotion')}
@@ -1181,6 +1192,8 @@ export default function MainApp() {
                 prayers={currentPrayer.prayers}
                 onSelectPrayer={handleSelectPrayer}
                 onOpenPrayerById={handleOpenPrayerById}
+                onRemovePrayer={isDeveloperMode && isEditModeEnabled ? removePredefinedPrayer : undefined}
+                onEditPrayer={isDeveloperMode && isEditModeEnabled ? (p) => handleEditEntrada(p, 'predefined') : undefined}
                 categoryId={currentPrayer.id || ''}
                 prayerPathLength={prayerPath.length}
               />
@@ -1513,6 +1526,27 @@ export default function MainApp() {
         }))
     : undefined;
 
+  useEffect(() => {
+    if (!isPrayerReadingView && isDistractionFree) {
+      toggleDistractionFree();
+    }
+  }, [isDistractionFree, isPrayerReadingView, toggleDistractionFree]);
+
+  const deletePrayer = (prayer: Prayer) => {
+    if (!prayer.id) return;
+    if (!prayer.isUserDefined) {
+      removePredefinedPrayer(prayer.id);
+      return;
+    }
+    if (prayer.categoryId === 'devociones') {
+      removeUserDevotion(prayer.id);
+    } else if (prayer.categoryId === 'cartas') {
+      removeUserLetter(prayer.id);
+    } else {
+      removeUserPrayer(prayer.id);
+    }
+  };
+
   return (
     <div
       className={cn(
@@ -1611,7 +1645,7 @@ export default function MainApp() {
             onToggleSearch={() => setIsSearchVisible((p) => !p)}
             isDistractionFree={isDistractionFree}
             onToggleDistractionFree={toggleDistractionFree}
-            showDistractionFreeButton={!isPrayerReadingView}
+            showDistractionFreeButton={false}
             showCalendarButton={showPlanCalendarButton}
             onOpenCalendar={showPlanCalendarButton ? handleOpenPlanCalendar : undefined}
             showEditButton={canEditCurrentPrayer}
@@ -1622,6 +1656,8 @@ export default function MainApp() {
             onInfo={() => setShowLettersInfo(true)}
             showPrayerMenu={isPrayerReadingView}
             onStartTimer={startTimer}
+            showDeleteButton={canEditCurrentPrayer}
+            onDelete={canEditCurrentPrayer && currentPrayer ? () => setPrayerPendingDelete(currentPrayer) : undefined}
             languageModeLabel={currentPrayerLanguageMode ? languageModeLabel[currentPrayerLanguageMode] : undefined}
             onCycleLanguage={currentPrayerLanguageModes.length > 1 ? cycleCurrentPrayerLanguage : undefined}
           />
@@ -1851,6 +1887,38 @@ export default function MainApp() {
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={deletePendingSpiritualAudio}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={Boolean(prayerPendingDelete)}
+        onOpenChange={(open) => {
+          if (!open) setPrayerPendingDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar {prayerPendingDelete?.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {prayerPendingDelete?.isUserDefined
+                ? 'Esta acción eliminará permanentemente este contenido.'
+                : 'Este contenido se ocultará y podrá restaurarse desde Control de Contenido.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (!prayerPendingDelete) return;
+                deletePrayer(prayerPendingDelete);
+                setPrayerPendingDelete(null);
+                handleBack();
+              }}
             >
               Eliminar
             </AlertDialogAction>

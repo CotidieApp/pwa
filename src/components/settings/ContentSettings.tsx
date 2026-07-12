@@ -170,21 +170,19 @@ export default function ContentSettings() {
                 Conserva preferencias distintas por perfil
               </span>
             </div>
-            <div className="flex shrink-0 overflow-hidden rounded-md border" role="group" aria-label="Idioma predeterminado">
+            <select
+              id="default-prayer-language"
+              aria-label="Idioma predeterminado"
+              value={prayerLanguageProfile}
+              onChange={(event) => setPrayerLanguageProfile(event.target.value as PrayerLanguageMode)}
+              className="h-9 shrink-0 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+            >
               {languageProfiles.map((profile) => (
-                <Button
-                  key={profile.value}
-                  type="button"
-                  variant={prayerLanguageProfile === profile.value ? 'default' : 'ghost'}
-                  size="sm"
-                  className="rounded-none px-2 text-xs"
-                  aria-pressed={prayerLanguageProfile === profile.value}
-                  onClick={() => setPrayerLanguageProfile(profile.value)}
-                >
+                <option key={profile.value} value={profile.value}>
                   {profile.label}
-                </Button>
+                </option>
               ))}
-            </div>
+            </select>
           </div>
           <SwitchRow
             id="timer-enabled"

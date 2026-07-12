@@ -25,7 +25,7 @@ import * as Icon from 'lucide-react';
 
 const formSchema = z.object({
   title: z.string().min(1, { message: 'El título es requerido.' }),
-  content: z.string().min(1, { message: 'El contenido es requerido.' }),
+  content: z.string(),
   imageUrl: z
     .string()
     .optional()
@@ -61,6 +61,7 @@ export default function AddPrayerForm({
   const unmountedRef = useRef(false);
 
   const draftStorageKey = useMemo(() => `cotidie_draft_${formType}`, [formType]);
+  const isPrayerGroup = Boolean(existingPrayer?.prayers?.length);
 
   const isContentEditable = useMemo(() => {
     if (!existingPrayer) return true;
@@ -157,6 +158,10 @@ export default function AddPrayerForm({
 
   const onSubmit: SubmitHandler<FormValues> = async (data) => {
     if (isSubmitting) return;
+    if (!isPrayerGroup && !data.content.trim()) {
+      form.setError('content', { message: 'El contenido es requerido.' });
+      return;
+    }
     setIsSubmitting(true);
     try {
       await Promise.resolve(onSave(data));
@@ -207,6 +212,7 @@ export default function AddPrayerForm({
             />
 
             {/* === Campo contenido === */}
+            {!isPrayerGroup ? (
             <FormField
               control={form.control}
               name="content"
@@ -252,6 +258,7 @@ export default function AddPrayerForm({
                 </FormItem>
               )}
             />
+            ) : null}
 
             {/* === Campo imagen === */}
             <FormField
@@ -363,5 +370,3 @@ export default function AddPrayerForm({
     </>
   );
 }
-
-

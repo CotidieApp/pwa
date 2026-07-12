@@ -373,7 +373,7 @@ const isFullAppStatePayload = (data: any): boolean => {
 
 type PredefinedPrayerOverrideData = {
   title: string;
-  content: string;
+  content?: string;
   imageUrl?: string;
 };
 
@@ -536,9 +536,13 @@ const normalizePredefinedPrayerOverrides = (raw: any): Record<string, Predefined
   Object.entries(source).forEach(([key, value]) => {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return;
     const title = typeof (value as any).title === 'string' ? (value as any).title : '';
-    const content = typeof (value as any).content === 'string' ? (value as any).content : '';
+    const content = typeof (value as any).content === 'string' ? (value as any).content : undefined;
     const imageUrl = typeof (value as any).imageUrl === 'string' ? (value as any).imageUrl : undefined;
-    result[key] = { title, content, ...(imageUrl ? { imageUrl } : {}) };
+    result[key] = {
+      title,
+      ...(content !== undefined ? { content } : {}),
+      ...(imageUrl ? { imageUrl } : {}),
+    };
   });
   return result;
 };
@@ -1847,7 +1851,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
     const nextOverride: PredefinedPrayerOverrideData = {
       title: data.title,
-      content: data.content,
+      ...(data.content.trim() ? { content: data.content } : {}),
       ...(data.imageUrl ? { imageUrl: data.imageUrl } : {}),
     };
 
