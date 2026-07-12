@@ -8,7 +8,7 @@ import Header from '@/components/Header';
 import CartasIntro from '@/components/main/CartasIntro';
 import PrayerList from '@/components/PrayerList';
 import PrayerDetail from '@/components/PrayerDetail';
-import Settings from '@/components/Settings';
+import Settings, { getSettingsSectionLabel, type SettingsSection } from '@/components/Settings';
 import AddPrayerForm from '@/components/AddPrayerForm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,7 +27,7 @@ import { letanias as letaniasRosarioBase } from '@/lib/prayers/plan-de-vida/sant
 import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
 import { AnimatePresence } from 'framer-motion';
-import { isAnnuumSeason } from '@/lib/movable-feasts';
+import { getAnnuumAvailability, getLocalDateKey } from '@/lib/movable-feasts';
 import AnnuumStory from '../AnnuumStory';
 import Image from 'next/image';
 import { Play } from 'lucide-react';
@@ -175,6 +175,8 @@ export default function MainApp() {
   const navStateRef = useRef(navState);
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [showAnnuum, setShowAnnuum] = useState(false);
+  const [annuumClock, setAnnuumClock] = useState(() => new Date());
+  const [activeSettingsSection, setActiveSettingsSection] = useState<SettingsSection | null>(null);
   const [showLettersInfo, setShowLettersInfo] = useState(false);
   const [showErrorReport, setShowErrorReport] = useState(false);
   const [activeSpiritualReadingAudioId, setActiveSpiritualReadingAudioId] = useState<string | null>(null);
@@ -229,6 +231,8 @@ export default function MainApp() {
     setOverlayPosition,
     hasViewedAnnuum,
     setHasViewedAnnuum,
+    annuumFirstOpenedDate,
+    setAnnuumFirstOpenedDate,
     pushDevLiveTrace,
     navMode,
     cartasReminderEnabled,
@@ -340,15 +344,60 @@ export default function MainApp() {
     setIsDraggingAnnuum(false);
   };
 
-  const isSeason = useMemo(() => {
-    if (forceAnnuumSeason) return true;
-    const now = simulatedDate ? new Date(simulatedDate) : new Date();
-    return isAnnuumSeason(now);
-  }, [simulatedDate, forceAnnuumSeason]);
+  useEffect(() => {
+    let timeoutId: number | null = null;
+    const updateClock = () => {
+      const now = new Date();
+      setAnnuumClock(now);
+      const millisecondsIntoMinute = now.getSeconds() * 1000 + now.getMilliseconds();
+      timeoutId = window.setTimeout(updateClock, 60_000 - millisecondsIntoMinute + 25);
+    };
+
+    updateClock();
+    return () => {
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+    };
+  }, []);
+
+  const effectiveAnnuumNow = useMemo(
+    () => (simulatedDate ? new Date(simulatedDate) : annuumClock),
+    [annuumClock, simulatedDate]
+  );
+  const annuumAvailability = useMemo(
+    () => getAnnuumAvailability(effectiveAnnuumNow, annuumFirstOpenedDate, forceAnnuumSeason),
+    [annuumFirstOpenedDate, effectiveAnnuumNow, forceAnnuumSeason]
+  );
+
+  useEffect(() => {
+    if (hasViewedAnnuum && !annuumFirstOpenedDate && annuumAvailability.bubbleVisible) {
+      setAnnuumFirstOpenedDate(getLocalDateKey(effectiveAnnuumNow));
+    }
+  }, [
+    annuumAvailability.bubbleVisible,
+    annuumFirstOpenedDate,
+    effectiveAnnuumNow,
+    hasViewedAnnuum,
+    setAnnuumFirstOpenedDate,
+  ]);
+
+  const handleOpenAnnuumFromBubble = () => {
+    if (isDraggingAnnuum) return;
+    const currentDateKey = getLocalDateKey(effectiveAnnuumNow);
+    if (!annuumFirstOpenedDate?.startsWith(`${effectiveAnnuumNow.getFullYear()}-`)) {
+      setAnnuumFirstOpenedDate(currentDateKey);
+    }
+    setHasViewedAnnuum(true);
+    setShowAnnuum(true);
+  };
 
   useEffect(() => {
     navStateRef.current = navState;
   }, [navState]);
+  useEffect(() => {
+    if (navState.activeView !== 'settings' && navState.activeView !== 'developer') {
+      setActiveSettingsSection(null);
+    }
+  }, [navState.activeView]);
   useEffect(() => {
     dismissToastRef.current = dismiss;
   }, [dismiss]);
@@ -619,8 +668,18 @@ export default function MainApp() {
     const currentState = navStateRef.current;
     const currentPrayerId = currentState.prayerPathIds[currentState.prayerPathIds.length - 1] ?? null;
 
+    if (showAnnuum) {
+      setShowAnnuum(false);
+      return;
+    }
+
     if (currentState.activeView === 'prayer' && currentPrayerId === 'lectura-espiritual-audios') {
       persistActiveSpiritualAudioProgress();
+    }
+
+    if (currentState.activeView === 'settings' && activeSettingsSection) {
+      setActiveSettingsSection(null);
+      return;
     }
 
     if (currentState.activeView === 'home') {
@@ -700,9 +759,9 @@ export default function MainApp() {
     }
 
     replaceNavState(initialState);
-  }, [buildCategoryNavState, buildPrayerNavState, getCategoryIdForPrayerPath, persistActiveSpiritualAudioProgress, replaceNavState]);
+  }, [activeSettingsSection, buildCategoryNavState, buildPrayerNavState, getCategoryIdForPrayerPath, persistActiveSpiritualAudioProgress, replaceNavState, showAnnuum]);
 
-  useAndroidBackButton(navStateRef, handleBack);
+  useAndroidBackButton(navStateRef, handleBack, showAnnuum);
 
   const selectedCategory = useMemo(
     () => categories.find((c) => c.id === navState.selectedCategoryId) || null,
@@ -925,6 +984,9 @@ export default function MainApp() {
         return <Settings
           onOpenDeveloperDashboard={handleOpenDeveloperDashboard}
           onShowAnnuum={() => setShowAnnuum(true)}
+          showAnnuumEntry={annuumAvailability.settingsVisible}
+          activeSection={activeSettingsSection}
+          onSectionChange={setActiveSettingsSection}
         />;
       case 'developer':
         return <DeveloperDashboard onBack={handleBack} />;
@@ -1275,7 +1337,9 @@ export default function MainApp() {
   const headerTitle =
     navState.activeView === 'planCalendar'
       ? 'Calendario'
-      : customPlanTitle || currentPrayer?.title || selectedCategory?.name || 'Cotidie';
+      : navState.activeView === 'settings' && activeSettingsSection
+        ? getSettingsSectionLabel(activeSettingsSection)
+        : customPlanTitle || currentPrayer?.title || selectedCategory?.name || 'Cotidie';
   const customPlanValidIndices = useMemo(() => {
     if (!navState.customPlanPrayerSlot) return [];
     const plan = customPlans[navState.customPlanPrayerSlot - 1];
@@ -1418,7 +1482,12 @@ export default function MainApp() {
       } : undefined}
     >
       {hasPerpetualBackground && navState.activeView !== 'home' ? (
-        <div className="pointer-events-none absolute inset-0 z-0 bg-background/[0.82] backdrop-blur-[1px]" />
+        <div
+          className={cn(
+            'pointer-events-none absolute inset-0 z-0 backdrop-blur-[1px]',
+            navState.activeView === 'prayer' ? 'bg-background/60' : 'bg-background/[0.82]'
+          )}
+        />
       ) : null}
       {/* Dynamic System Bar Overlays */}
       {!isDistractionFree && (
@@ -1437,7 +1506,7 @@ export default function MainApp() {
           />
         </>
       )}
-      {isSeason && !hasViewedAnnuum && navState.activeView === 'home' && (
+      {annuumAvailability.bubbleVisible && navState.activeView === 'home' && (
         <div
           className="absolute z-40 cursor-pointer hover:scale-110 transition-transform"
           style={{
@@ -1446,7 +1515,7 @@ export default function MainApp() {
             marginTop: 'env(safe-area-inset-top)',
             touchAction: 'none'
           }}
-          onClick={() => !isDraggingAnnuum && setShowAnnuum(true)}
+          onClick={handleOpenAnnuumFromBubble}
           onTouchStart={handleAnnuumTouchStart}
           onTouchMove={handleAnnuumTouchMove}
           onTouchEnd={handleAnnuumTouchEnd}
@@ -1464,7 +1533,7 @@ export default function MainApp() {
             />
           </div>
           <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-yellow-500 text-black text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap shadow-sm">
-            {new Date().getFullYear()}
+            {effectiveAnnuumNow.getFullYear()}
           </div>
         </div>
       )}
@@ -1745,7 +1814,6 @@ export default function MainApp() {
           <AnnuumStory
             onClose={() => {
               setShowAnnuum(false);
-              setHasViewedAnnuum(true);
             }}
             originRect={overlayPositions.AnnuumBubble ? {
               top: overlayPositions.AnnuumBubble.y,

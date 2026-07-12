@@ -9,7 +9,6 @@ import { useSettings } from '@/context/SettingsContext';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { ArrowRightLeft } from 'lucide-react';
 import * as Icon from 'lucide-react';
 import { AudioPlayer } from './AudioPlayer';
 import { useScreenWakeLock } from '@/hooks/useScreenWakeLock';
@@ -323,6 +322,25 @@ const isBothVariantKey = (key?: string | null) => normalizeVariantKey(key || '')
 const isSpanishVariantKey = (key: string) => normalizeVariantKey(key) === 'espanol';
 const isLatinVariantKey = (key: string) => normalizeVariantKey(key) === 'latin';
 
+type AngelusPrayerMode = 'angelus' | 'reginaCoeli';
+
+const isAngelusReginaPrayer = (prayerId?: string) => prayerId === 'angelus-regina-coeli';
+
+const getAngelusLanguageContent = (
+  contentObj: Record<string, string>,
+  prayerMode: AngelusPrayerMode,
+): Record<string, string> => ({
+  espanol: contentObj[`${prayerMode}Espanol`] || '',
+  latin: contentObj[`${prayerMode}Latin`] || '',
+});
+
+const getLanguageModeLetter = (key: string) => {
+  if (isBothVariantKey(key)) return 'A';
+  if (isSpanishVariantKey(key)) return 'E';
+  if (isLatinVariantKey(key)) return 'L';
+  return formatVariantLabel(key).slice(0, 1).toUpperCase();
+};
+
 const getPrimaryVariantKey = (contentObj: Record<string, string>) => Object.keys(contentObj)[0] || '';
 
 const getLanguageModeOrder = (contentObj: Record<string, string>) => {
@@ -406,20 +424,20 @@ const BilingualText = ({
   rightLabel: string;
   rightText: string;
 }) => (
-  <div className="-mx-4 space-y-4 overflow-x-hidden sm:-mx-3">
-    <div className="grid grid-cols-2 gap-1.5 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      <div className="min-w-0 break-words px-1">{leftLabel}</div>
-      <div className="min-w-0 break-words px-1">{rightLabel}</div>
+  <div className="w-full space-y-3">
+    <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2 text-xs font-semibold uppercase text-muted-foreground">
+      <div className="min-w-0 [overflow-wrap:anywhere]">{leftLabel}</div>
+      <div className="min-w-0 [overflow-wrap:anywhere]">{rightLabel}</div>
     </div>
     {buildBilingualBlocks(leftText, rightText).map((rows, blockIndex) => (
       <div key={`bilingual-block-${blockIndex}`} className="space-y-2">
         {rows.map((row, rowIndex) => (
           <div
             key={`bilingual-row-${blockIndex}-${rowIndex}`}
-            className="grid grid-cols-2 gap-1.5 border-b border-border/40 pb-2 last:border-b-0 last:pb-0"
+            className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2 border-b border-border/40 pb-2 last:border-b-0 last:pb-0"
           >
-            <div className="min-w-0 break-words px-1">{row.left ? renderText(row.left) : null}</div>
-            <div className="min-w-0 break-words px-1">{row.right ? renderText(row.right) : null}</div>
+            <div className="min-w-0 [overflow-wrap:anywhere]">{row.left ? renderText(row.left) : null}</div>
+            <div className="min-w-0 [overflow-wrap:anywhere]">{row.right ? renderText(row.right) : null}</div>
           </div>
         ))}
       </div>
@@ -432,10 +450,12 @@ const PrayerContent = ({
   prayer,
   searchState,
   scrollContainerRef,
+  onBilingualModeChange,
 }: {
   prayer: Prayer;
   searchState?: { term: string; activeIndex: number; resultsCount: number };
   scrollContainerRef?: React.RefObject<HTMLDivElement>;
+  onBilingualModeChange?: (active: boolean) => void;
 }) => {
   const {
     setScrollPosition,
@@ -588,12 +608,17 @@ const PrayerContent = ({
     }
   }, [searchState?.activeIndex, searchState?.term]);
 
+  const [selectedAngelusPrayer, setSelectedAngelusPrayer] = useState<AngelusPrayerMode>('angelus');
+
   const getPreferredVariant = useCallback(() => {
     if (!prayer.content || typeof prayer.content !== 'object') return '';
-    const contentObj = prayer.content as Record<string, string>;
+    const rawContentObj = prayer.content as Record<string, string>;
+    const contentObj = isAngelusReginaPrayer(prayer.id)
+      ? getAngelusLanguageContent(rawContentObj, selectedAngelusPrayer)
+      : rawContentObj;
     const preferredLang = prayer.id ? prayerLanguagePreferences[prayer.id] : undefined;
     return resolveLanguageMode(contentObj, preferredLang);
-  }, [prayer.content, prayer.id, prayerLanguagePreferences]);
+  }, [prayer.content, prayer.id, prayerLanguagePreferences, selectedAngelusPrayer]);
 
   const [selectedLang, setSelectedLang] = useState(() => getPreferredVariant());
 
@@ -601,6 +626,10 @@ const PrayerContent = ({
     const nextLang = getPreferredVariant();
     setSelectedLang((prev) => (prev === nextLang ? prev : nextLang));
   }, [getPreferredVariant]);
+
+  useEffect(() => {
+    onBilingualModeChange?.(isBothVariantKey(selectedLang));
+  }, [onBilingualModeChange, selectedLang]);
 
   if (typeof prayer.content === 'string') {
     const { term = '', activeIndex = -1 } = searchState || {};
@@ -619,7 +648,11 @@ const PrayerContent = ({
   }
 
   if (prayer.content && typeof prayer.content === 'object') {
-    const contentObj = prayer.content as Record<string, string>;
+    const rawContentObj = prayer.content as Record<string, string>;
+    const isAngelusRegina = isAngelusReginaPrayer(prayer.id);
+    const contentObj = isAngelusRegina
+      ? getAngelusLanguageContent(rawContentObj, selectedAngelusPrayer)
+      : rawContentObj;
     const langs = Object.keys(contentObj);
     const modeOrder = getLanguageModeOrder(contentObj);
     const hasBothMode = modeOrder.includes(BOTH_VARIANT_KEY);
@@ -630,7 +663,6 @@ const PrayerContent = ({
         : resolveVariantKey(contentObj, selectedLang);
     const displayedContent =
       resolvedMode && !isBothVariantKey(resolvedMode) ? contentObj[resolvedMode] || '' : '';
-    const selectedLabel = formatVariantLabel(resolvedMode);
     const currentModeIndex = modeOrder.findIndex((mode) => normalizeVariantKey(mode) === normalizeVariantKey(resolvedMode));
     const nextMode = modeOrder.length > 0
       ? modeOrder[(currentModeIndex >= 0 ? currentModeIndex + 1 : 1) % modeOrder.length]
@@ -655,18 +687,34 @@ const PrayerContent = ({
       }
     };
 
+    const toggleAngelusPrayer = () => {
+      setSelectedAngelusPrayer((current) => current === 'angelus' ? 'reginaCoeli' : 'angelus');
+    };
+
     return (
       <div className="touch-pan-y">
-        <div className="flex justify-between items-center mb-4 border-b pb-3">
-          <h3 className="text-lg font-headline font-semibold">{selectedLabel}</h3>
+        <div className="mb-2 flex items-center justify-end gap-1">
+          {isAngelusRegina && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs font-normal text-muted-foreground hover:text-foreground"
+              onClick={toggleAngelusPrayer}
+              title={`Cambiar a ${selectedAngelusPrayer === 'angelus' ? 'Regina Coeli' : 'Ángelus'}`}
+            >
+              {selectedAngelusPrayer === 'angelus' ? 'Ángelus' : 'Regina Coeli'}
+            </Button>
+          )}
           {modeOrder.length > 1 && (
             <Button
-              variant="outline"
-              size="icon"
+              variant="ghost"
+              size="sm"
+              className="h-7 min-w-7 px-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
               onClick={toggleLang}
               title={`Cambiar a ${nextLabel}`}
+              aria-label={`Idioma: ${formatVariantLabel(resolvedMode)}. Cambiar a ${nextLabel}`}
             >
-              <ArrowRightLeft className="h-4 w-4" />
+              {getLanguageModeLetter(resolvedMode)}
             </Button>
           )}
         </div>
@@ -700,8 +748,10 @@ export default function PrayerDetail({
   prayer: Prayer;
   searchState?: { term: string; activeIndex: number; resultsCount: number };
 }) {
-  const { isDistractionFree } = useSettings();
+  const { isDistractionFree, isDeveloperMode, perpetualBackgroundEnabled } = useSettings();
+  const showsPerpetualBackground = isDeveloperMode && perpetualBackgroundEnabled;
   const [localAudioSrc, setLocalAudioSrc] = useState<string | null>(null);
+  const [isBilingualMode, setIsBilingualMode] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   useScreenWakeLock(Boolean(prayer.isLongText));
 
@@ -725,13 +775,14 @@ export default function PrayerDetail({
 
   return (
     <div className={cn(
-      'flex min-h-0 flex-col h-full bg-background overscroll-contain',
+      'flex min-h-0 flex-col h-full overscroll-contain',
+      showsPerpetualBackground ? 'bg-transparent' : 'bg-background',
       isDistractionFree
         ? 'pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] px-0'
         : 'p-0'
     )}>
       {prayer.imageUrl && (
-        <div className="bg-background px-4 py-4 shrink-0 z-10">
+        <div className={cn('px-4 py-4 shrink-0 z-10', showsPerpetualBackground ? 'bg-transparent' : 'bg-background')}>
           <div
             className={cn(
               'relative overflow-hidden rounded-lg shadow-sm border border-border/10',
@@ -769,18 +820,31 @@ export default function PrayerDetail({
         <div className={cn("flex-1 min-h-0 flex flex-col", !isDistractionFree && "px-4 pb-4")}>
           <Card
             className={cn(
-              'overflow-hidden border bg-card shadow-md flex flex-col min-h-0 h-full mx-auto w-full',
+              'overflow-hidden border shadow-md flex flex-col min-h-0 h-full mx-auto w-full',
+              showsPerpetualBackground ? 'bg-card/65 backdrop-blur-[1px]' : 'bg-card',
               isDistractionFree ? 'border-0 bg-transparent shadow-none' : 'flex-1'
             )}
           >
-            <CardContent className={cn('p-6 flex flex-1 flex-col min-h-0', isDistractionFree && 'p-0 text-[1.05rem] leading-[1.85]')}>
+            <CardContent className={cn(
+              'flex flex-1 flex-col min-h-0',
+              isBilingualMode ? 'px-2 py-4' : 'p-6',
+              isDistractionFree && 'p-0 text-[1.05rem] leading-[1.85]'
+            )}>
               <div
                 ref={scrollContainerRef}
                 data-app-scroll-container="true"
-                className="flex-1 min-h-0 overflow-y-auto touch-pan-y overscroll-contain pr-6 scroll-smooth"
+                className={cn(
+                  'flex-1 min-h-0 overflow-y-auto touch-pan-y overscroll-contain scroll-smooth',
+                  !isBilingualMode && 'pr-6'
+                )}
               >
                 {prayer.content ? (
-                  <PrayerContent prayer={prayer} searchState={searchState} scrollContainerRef={scrollContainerRef} />
+                  <PrayerContent
+                    prayer={prayer}
+                    searchState={searchState}
+                    scrollContainerRef={scrollContainerRef}
+                    onBilingualModeChange={setIsBilingualMode}
+                  />
                 ) : (
                   <p className="text-sm text-muted-foreground">Contenido no disponible.</p>
                 )}

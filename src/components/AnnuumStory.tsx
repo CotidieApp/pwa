@@ -13,18 +13,42 @@ type AnnuumStoryProps = {
   originRect?: { top: number; left: number; width: number; height: number };
 };
 
-const SLIDE_DURATION = 8000; // 8 seconds per slide
+const SLOW_READING_WORDS_PER_MINUTE = 80;
+const SLIDE_READING_BASE_MS = 2500;
+const MIN_SLIDE_DURATION_MS = 8000;
+const MAX_SLIDE_DURATION_MS = 90000;
+
+const calculateSlideDuration = (text: string) => {
+  const words = text
+    .trim()
+    .split(/\s+/u)
+    .filter((word) => /[\p{L}\p{N}]/u.test(word)).length;
+  const readingTime = (words / SLOW_READING_WORDS_PER_MINUTE) * 60_000;
+  return Math.min(
+    MAX_SLIDE_DURATION_MS,
+    Math.max(MIN_SLIDE_DURATION_MS, Math.round(SLIDE_READING_BASE_MS + readingTime))
+  );
+};
 
 export default function AnnuumStory({ onClose, originRect }: AnnuumStoryProps) {
   const { userStats, allPrayers, showZeroStats } = useSettings();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [slideDuration, setSlideDuration] = useState(MIN_SLIDE_DURATION_MS);
   
   const lastTimeRef = useRef<number | null>(null);
   const progressRef = useRef(0);
   const animationFrameRef = useRef<number | null>(null);
 
+
+  const handleSlideContentRef = useCallback((node: HTMLDivElement | null) => {
+    if (!node) return;
+    setSlideDuration(calculateSlideDuration(node.innerText));
+    setProgress(0);
+    progressRef.current = 0;
+    lastTimeRef.current = null;
+  }, []);
   const slides = useMemoSlides(userStats, allPrayers, showZeroStats);
 
   const handleNext = useCallback(() => {
@@ -66,7 +90,7 @@ export default function AnnuumStory({ onClose, originRect }: AnnuumStoryProps) {
         const delta = time - lastTimeRef.current;
         lastTimeRef.current = time;
 
-        const increment = (delta / SLIDE_DURATION) * 100;
+        const increment = (delta / slideDuration) * 100;
         const newProgress = progressRef.current + increment;
         
         progressRef.current = Math.min(newProgress, 100);
@@ -86,7 +110,7 @@ export default function AnnuumStory({ onClose, originRect }: AnnuumStoryProps) {
             cancelAnimationFrame(animationFrameRef.current);
         }
     };
-  }, [currentSlide, isPaused, handleNext]);
+  }, [currentSlide, isPaused, handleNext, slideDuration]);
 
   const CurrentComponent = slides[currentSlide]?.component || IntroSlide;
 
@@ -199,6 +223,7 @@ export default function AnnuumStory({ onClose, originRect }: AnnuumStoryProps) {
                 key={currentSlide}
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
+                ref={handleSlideContentRef}
                 exit={{ opacity: 0, scale: 1.05 }}
                 transition={{ duration: 0.4 }}
                 className="w-full h-full flex items-center justify-center p-6 pointer-events-none"

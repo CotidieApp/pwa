@@ -333,6 +333,8 @@ type Settings = {
 
   hasViewedAnnuum: boolean;
   setHasViewedAnnuum: (viewed: boolean) => void;
+  annuumFirstOpenedDate: string | null;
+  setAnnuumFirstOpenedDate: (date: string | null) => void;
 };
 
 const SettingsContext = createContext<Settings | undefined>(undefined);
@@ -721,6 +723,7 @@ const FULL_BACKUP_KEYS = [
   'forceAnnuumSeason',
   'showZeroStats',
   'hasViewedAnnuum',
+  'annuumFirstOpenedDate',
 ] as const;
 
 const stableSortValue = (value: any): any => {
@@ -821,6 +824,7 @@ const normalizeBackupState = (raw: any) => {
     forceAnnuumSeason: normalizeBoolean(source.forceAnnuumSeason),
     showZeroStats: normalizeBoolean(source.showZeroStats),
     hasViewedAnnuum: normalizeBoolean(source.hasViewedAnnuum),
+    annuumFirstOpenedDate: normalizeNullableString(source.annuumFirstOpenedDate),
   };
 };
 
@@ -957,6 +961,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   const [showZeroStats, setShowZeroStats] = useState(false);
   const [hasViewedAnnuum, setHasViewedAnnuum] = useState(false);
+  const [annuumFirstOpenedDate, setAnnuumFirstOpenedDate] = useState<string | null>(null);
 
   useEffect(() => {
     planDeVidaCalendarRef.current = planDeVidaCalendar;
@@ -1125,6 +1130,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setForceAnnuumSeason(snapshot.forceAnnuumSeason);
     setShowZeroStats(snapshot.showZeroStats);
     setHasViewedAnnuum(snapshot.hasViewedAnnuum);
+    setAnnuumFirstOpenedDate(snapshot.annuumFirstOpenedDate);
   }, []);
 
   const backupSnapshot = useMemo(
@@ -1196,6 +1202,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         forceAnnuumSeason,
         showZeroStats,
         hasViewedAnnuum,
+        annuumFirstOpenedDate,
       }),
     [
       theme,
@@ -1264,6 +1271,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     forceAnnuumSeason,
     showZeroStats,
     hasViewedAnnuum,
+    annuumFirstOpenedDate,
   ]);
 
   const getBackupSnapshot = useCallback(() => backupSnapshot, [backupSnapshot]);
@@ -1314,6 +1322,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
               globalUserStats: normalizeUserStatsValue(hasSavedGlobalUserStats ? (s as any).globalUserStats : snapshot.userStats),
               statsYear: currentYear,
               hasViewedAnnuum: false,
+              annuumFirstOpenedDate: null,
             };
           }
 
@@ -3615,6 +3624,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         setShowZeroStats,
         hasViewedAnnuum,
         setHasViewedAnnuum,
+        annuumFirstOpenedDate,
+        setAnnuumFirstOpenedDate,
       }}
     >
       {children}

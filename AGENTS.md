@@ -8,6 +8,86 @@ Historial de intervenciones del asistente en el repo.
 - Esta obligacion aplica aunque el usuario pida tocar solo lo estrictamente necesario: el registro en `AGENTS.md` se considera parte estrictamente necesaria de cualquier edicion del repo.
 - Si una instruccion del usuario prohibe explicitamente editar `AGENTS.md`, el agente debe pedir aclaracion antes de modificar otros archivos.
 
+### [2026-07-11 20:11] 260. Selector discreto, Angelus bilingue y retroceso de Annuum
+**Planificacion:**
+- Simplificar el cambio de idioma para que permanezca accesible sin dominar visualmente la oracion.
+- Separar en Angelus y Regina Coeli el cambio de oracion del cambio de idioma, agregando el texto latino correspondiente.
+- Corregir el retroceso nativo desde Cotidie Annuum y el recorte lateral del modo Ambos.
+
+**Ejecucion:**
+- **Selector de idioma**: `PrayerDetail.tsx` reemplazo el encabezado y boton destacado por un control discreto de una letra que cicla entre `E`, `L` y `A`.
+- **Angelus y Regina Coeli**: se agrego un boton independiente para alternar ambas oraciones; cada una conserva por separado el selector espanol/latin/ambos.
+- **Textos bilingues**: `angelus-regina-coeli.ts` conserva las versiones espanolas existentes y agrega las versiones liturgicas latinas completas de ambas oraciones.
+- **Modo Ambos**: se retiraron los margenes negativos que recortaban la columna izquierda, se redujo exclusivamente su relleno lateral y se fijaron dos columnas de igual ancho con ajuste seguro de palabras.
+- **Retroceso de Annuum**: el boton Atrás de Android cierra primero Cotidie Annuum y mantiene intacta la pantalla desde la que se abrio.
+
+**Validacion:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `npm.cmd run build` OK.
+- Prueba visual a 360 x 780 px: ambas columnas midieron aproximadamente 145 px, quedaron dentro del viewport y no hubo desborde horizontal.
+- Navegacion visual confirmo el ciclo `E -> L -> A`, el cambio independiente Angelus/Regina Coeli y la permanencia del modo Ambos al alternar la oracion.
+
+**Archivos Modificados:**
+- `src/components/PrayerDetail.tsx`
+- `src/lib/prayers/plan-de-vida/angelus-regina-coeli.ts`
+- `src/components/main/useNativeAppBindings.ts`
+- `src/components/main/MainApp.tsx`
+- `AGENTS.md`
+
+### [2026-07-11 16:40] 259. Duracion dinamica de Annuum, arbol de Ajustes y fondo en oraciones
+**Planificacion:**
+- Calcular la duracion de cada diapositiva de Cotidie Annuum a partir de su texto realmente renderizado.
+- Integrar las subsecciones de Ajustes en el encabezado principal, siguiendo la navegacion jerarquica del resto de la app.
+- Hacer visible el fondo perpetuo detras del texto de las oraciones sin perder legibilidad.
+
+**Ejecucion:**
+- **Annuum**: `AnnuumStory.tsx` reemplazo los 8 segundos fijos por lectura lenta a 80 palabras por minuto, 2,5 segundos base, minimo de 8 segundos y limite defensivo de 90 segundos.
+- **Medicion real**: cada diapositiva mide su texto visible al montarse, incluidos datos personalizados, y reinicia desde cero su barra con la duracion calculada.
+- **Ajustes jerarquicos**: `Settings.tsx` dejo de crear una segunda cabecera; `MainApp.tsx` controla la subseccion activa, reemplaza `Ajustes` por su nombre y hace que Atrás vuelva primero a la raiz de Ajustes.
+- **Fondo de oraciones**: `PrayerDetail.tsx` usa contenedores transparentes y panel de texto translucido solo con Fondo perpetuo activo.
+- **Contraste**: `MainApp.tsx` aplica en oraciones una capa clara u oscura al 60% y conserva la capa anterior al 82% en las demas vistas.
+
+**Validacion:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `npm.cmd run build` OK.
+- Busqueda de interfaz confirmo que ya no existen el encabezado interno `Volver a Ajustes`, el estado local `setActiveSection` ni la duracion fija `SLIDE_DURATION`.
+- `git diff --check` OK; solo avisos esperados de finales de linea CRLF en Windows.
+
+**Archivos Modificados:**
+- `src/components/AnnuumStory.tsx`
+- `src/components/Settings.tsx`
+- `src/components/main/MainApp.tsx`
+- `src/components/PrayerDetail.tsx`
+- `AGENTS.md`
+
+### [2026-07-11 16:33] 258. Ventana anual precisa de Cotidie Annuum
+**Planificacion:**
+- Mantener el globo visible desde Cristo Rey hasta terminar el dia de su primera apertura.
+- Mostrar el acceso de Ajustes solo desde el dia siguiente a esa apertura y nunca antes del dia posterior a Cristo Rey.
+- Ocultar obligatoriamente el acceso de Ajustes el 31 de diciembre a las 23:50.
+
+**Ejecucion:**
+- **Fecha persistente**: `SettingsContext.tsx` guarda `annuumFirstOpenedDate`, la incluye en respaldos y la reinicia junto con el año estadistico.
+- **Reglas temporales**: `movable-feasts.ts` calcula por fecha local la visibilidad del globo y de Ajustes, usando Cristo Rey, el corte diario de las 23:59 y el corte anual del 31 de diciembre a las 23:50.
+- **Actualizacion en vivo**: `MainApp.tsx` actualiza el reloj al inicio de cada minuto, registra la primera apertura al tocar el globo y mantiene el globo durante todo ese dia.
+- **Ajustes**: `Settings.tsx` recibe la condicion calculada; la quinta opcion ya no depende directamente del booleano historico `hasViewedAnnuum`.
+- **Compatibilidad**: una visualizacion antigua sin fecha guardada se migra al primer dia de uso de esta nueva regla durante la temporada.
+
+**Validacion:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `npm.cmd run build` OK.
+- Casos 2026 verificados: Cristo Rey sin abrir muestra globo; 25 de noviembre abierto a las 23:58 mantiene globo; a las 23:59 lo oculta; el 26 a las 00:00 muestra Ajustes.
+- El acceso de Ajustes permanece el 31 de diciembre a las 23:49 y desaparece a las 23:50.
+- Abrir en Cristo Rey mantiene el globo hasta las 23:59 y habilita Ajustes al dia siguiente a las 00:00.
+- `git diff --check` OK; solo avisos esperados de finales de linea CRLF en Windows.
+
+**Archivos Modificados:**
+- `src/lib/movable-feasts.ts`
+- `src/context/SettingsContext.tsx`
+- `src/components/main/MainApp.tsx`
+- `src/components/Settings.tsx`
+- `AGENTS.md`
+
 ### [2026-07-11 10:48] 257. Flujo profesional de generacion del APK
 **Planificacion:**
 - Corregir mensajes incorrectos del proceso `npm run android:apk` y eliminar el copiado automatico duplicado.

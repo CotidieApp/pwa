@@ -1,20 +1,21 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import AppearanceSettings from './settings/AppearanceSettings';
 import NotificationSettings from './settings/NotificationSettings';
 import ContentSettings from './settings/ContentSettings';
 import DeveloperSettings from './settings/DeveloperSettings';
 import { Card, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import * as Icon from 'lucide-react';
-import { useSettings } from '@/context/SettingsContext';
 
-type SettingsSection = 'contenido' | 'notificaciones' | 'apariencia' | 'informacion';
+export type SettingsSection = 'contenido' | 'notificaciones' | 'apariencia' | 'informacion';
 
 interface SettingsProps {
   onOpenDeveloperDashboard?: () => void;
+  showAnnuumEntry?: boolean;
   onShowAnnuum?: () => void;
+  activeSection: SettingsSection | null;
+  onSectionChange: (section: SettingsSection | null) => void;
 }
 
 const sections: { id: SettingsSection; label: string; icon: React.ElementType }[] = [
@@ -23,23 +24,21 @@ const sections: { id: SettingsSection; label: string; icon: React.ElementType }[
   { id: 'apariencia', label: 'Apariencia', icon: Icon.Palette },
   { id: 'informacion', label: 'Información', icon: Icon.Info },
 ];
+export const getSettingsSectionLabel = (section: SettingsSection) =>
+  sections.find((entry) => entry.id === section)?.label ?? 'Ajustes';
 
-export default function Settings({ onOpenDeveloperDashboard, onShowAnnuum }: SettingsProps) {
-  const { hasViewedAnnuum } = useSettings();
-  const [activeSection, setActiveSection] = useState<SettingsSection | null>(null);
+export default function Settings({
+  onOpenDeveloperDashboard,
+  onShowAnnuum,
+  showAnnuumEntry,
+  activeSection,
+  onSectionChange,
+}: SettingsProps) {
   const active = sections.find((section) => section.id === activeSection);
 
   if (activeSection && active) {
     return (
       <div className="space-y-4 px-4 pb-20">
-        <div className="sticky top-0 z-10 flex items-center gap-2 bg-background/95 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/70">
-          <Button variant="ghost" size="icon" aria-label="Volver a Ajustes" onClick={() => setActiveSection(null)}>
-            <Icon.ArrowLeft className="size-4" />
-          </Button>
-          <active.icon className="size-5 text-primary" />
-          <h2 className="font-headline text-lg font-semibold">{active.label}</h2>
-        </div>
-
         {activeSection === 'contenido' && <ContentSettings />}
         {activeSection === 'notificaciones' && <NotificationSettings />}
         {activeSection === 'apariencia' && <AppearanceSettings />}
@@ -54,7 +53,7 @@ export default function Settings({ onOpenDeveloperDashboard, onShowAnnuum }: Set
         <Card
           key={section.id}
           className="bg-card/80 p-4 shadow-md backdrop-blur-sm border-border/50 cursor-pointer hover:bg-accent/20 transition-colors"
-          onClick={() => setActiveSection(section.id)}
+          onClick={() => onSectionChange(section.id)}
         >
           <div className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
@@ -67,7 +66,7 @@ export default function Settings({ onOpenDeveloperDashboard, onShowAnnuum }: Set
           </div>
         </Card>
       ))}
-      {hasViewedAnnuum ? (
+      {showAnnuumEntry ? (
         <Card
           className="motion-safe:animate-pulse border-amber-400/70 bg-amber-400/15 p-4 shadow-md backdrop-blur-sm cursor-pointer hover:bg-amber-400/25 transition-colors"
           onClick={onShowAnnuum}

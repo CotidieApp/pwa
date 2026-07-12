@@ -313,3 +313,63 @@ export const isAnnuumSeason = (date: Date): boolean => {
     
     return false;
 };
+
+export const getLocalDateKey = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const parseLocalDateKey = (value: string | null): Date | null => {
+  if (!value) return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return null;
+  const parsed = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  return getLocalDateKey(parsed) === value ? parsed : null;
+};
+
+export const getAnnuumAvailability = (
+  date: Date,
+  firstOpenedDate: string | null,
+  forceSeason = false
+): { bubbleVisible: boolean; settingsVisible: boolean } => {
+  if (Number.isNaN(date.getTime())) {
+    return { bubbleVisible: false, settingsVisible: false };
+  }
+
+  const year = date.getFullYear();
+  const currentDateKey = getLocalDateKey(date);
+  const openedDate = parseLocalDateKey(firstOpenedDate);
+  const openedInCurrentYear =
+    openedDate?.getFullYear() === year && getLocalDateKey(openedDate) <= currentDateKey
+      ? openedDate
+      : null;
+  const seasonActive = forceSeason || isAnnuumSeason(date);
+  const christTheKingKey = getLocalDateKey(getAdventDates(year).christTheKing);
+  const yearEndCutoff = new Date(year, 11, 31, 23, 50, 0, 0);
+
+  let bubbleVisible = seasonActive && !openedInCurrentYear;
+  if (seasonActive && openedInCurrentYear && getLocalDateKey(openedInCurrentYear) === currentDateKey) {
+    const openedDayCutoff = new Date(
+      openedInCurrentYear.getFullYear(),
+      openedInCurrentYear.getMonth(),
+      openedInCurrentYear.getDate(),
+      23,
+      59,
+      0,
+      0
+    );
+    bubbleVisible = date < openedDayCutoff;
+  }
+
+  const settingsVisible = Boolean(
+    seasonActive &&
+      openedInCurrentYear &&
+      currentDateKey > getLocalDateKey(openedInCurrentYear) &&
+      currentDateKey > christTheKingKey &&
+      date < yearEndCutoff
+  );
+
+  return { bubbleVisible, settingsVisible };
+};

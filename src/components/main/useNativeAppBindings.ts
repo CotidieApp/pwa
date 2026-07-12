@@ -15,6 +15,7 @@ type TracePush = (event: {
 export const useAndroidBackButton = (
   navStateRef: MutableRefObject<NavigationState>,
   onBack: () => void,
+  handleBackAtHome = false,
 ) => {
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
@@ -26,7 +27,7 @@ export const useAndroidBackButton = (
       listener = await App.addListener('backButton', () => {
         const s = navStateRef.current;
 
-        if (s.activeView !== 'home') {
+        if (s.activeView !== 'home' || handleBackAtHome) {
           onBack();
           return;
         }
@@ -40,7 +41,7 @@ export const useAndroidBackButton = (
     return () => {
       listener?.remove();
     };
-  }, [navStateRef, onBack]);
+  }, [handleBackAtHome, navStateRef, onBack]);
 };
 
 export const useNotificationActionBinding = ({
