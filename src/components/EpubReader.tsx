@@ -1073,6 +1073,7 @@ export default function EpubReader({
             <>
               <div
                 aria-hidden="true"
+                data-system-bar-layer="top"
                 className="pointer-events-none fixed inset-x-0 top-0 z-[200]"
                 style={{
                   height: 'env(safe-area-inset-top, 0px)',
@@ -1081,6 +1082,7 @@ export default function EpubReader({
               />
               <div
                 aria-hidden="true"
+                data-system-bar-layer="bottom"
                 className="pointer-events-none fixed inset-x-0 bottom-0 z-[200]"
                 style={{
                   height: 'env(safe-area-inset-bottom, 0px)',
@@ -1096,11 +1098,13 @@ export default function EpubReader({
             <>
               <div
                 aria-hidden="true"
+                data-system-bar-layer="top"
                 className="pointer-events-none fixed inset-x-0 top-0 z-[200] bg-black/80"
                 style={{ height: 'env(safe-area-inset-top, 0px)' }}
               />
               <div
                 aria-hidden="true"
+                data-system-bar-layer="bottom"
                 className="pointer-events-none fixed inset-x-0 bottom-0 z-[200] bg-black/80"
                 style={{ height: 'env(safe-area-inset-bottom, 0px)' }}
               />

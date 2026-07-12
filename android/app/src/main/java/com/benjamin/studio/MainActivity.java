@@ -15,6 +15,7 @@ import android.view.WindowManager;
 import android.webkit.RenderProcessGoneDetail;
 import android.webkit.WebView;
 import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.BridgeWebViewClient;
 import java.io.BufferedReader;
@@ -35,6 +36,9 @@ public class MainActivity extends BridgeActivity {
     private static final String WEBVIEW_CRASH_COUNT_KEY = "render_crash_count";
     private static final String WEBVIEW_LAST_CRASH_AT_KEY = "render_crash_at";
     private static final String RECOVERY_MODE_EXTRA = "cotidie_recovery_mode";
+    private static final String SYSTEM_BAR_PREFS = "cotidie_system_bars";
+    private static final String STATUS_BAR_DARK_ICONS_KEY = "status_dark_icons";
+    private static final String NAVIGATION_BAR_DARK_ICONS_KEY = "navigation_dark_icons";
     private static final long RENDER_CRASH_WINDOW_MS = 15000L;
     private static final int MAX_RENDER_RESTARTS = 2;
     private boolean isInForeground = false;
@@ -42,11 +46,16 @@ public class MainActivity extends BridgeActivity {
     private String pendingNavigationPayload = null;
     private int pendingFlushRetries = 0;
     private int pendingNavigationFlushRetries = 0;
+    private boolean useDarkStatusBarIcons = true;
+    private boolean useDarkNavigationBarIcons = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         registerPlugin(BackgroundActionsPlugin.class);
         super.onCreate(savedInstanceState);
+        SharedPreferences systemBarPrefs = getSharedPreferences(SYSTEM_BAR_PREFS, MODE_PRIVATE);
+        useDarkStatusBarIcons = systemBarPrefs.getBoolean(STATUS_BAR_DARK_ICONS_KEY, true);
+        useDarkNavigationBarIcons = systemBarPrefs.getBoolean(NAVIGATION_BAR_DARK_ICONS_KEY, true);
         configureSystemBars();
         keepScreenAwake();
         configureWebViewStability();
@@ -96,11 +105,6 @@ public class MainActivity extends BridgeActivity {
         window.setStatusBarColor(Color.TRANSPARENT);
         window.setNavigationBarColor(Color.TRANSPARENT);
         window.getDecorView().setBackgroundColor(Color.TRANSPARENT);
-        window.getDecorView().setSystemUiVisibility(
-                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-        );
 
         View contentView = findViewById(android.R.id.content);
         if (contentView != null) {
@@ -119,6 +123,25 @@ public class MainActivity extends BridgeActivity {
             window.setStatusBarContrastEnforced(false);
             window.setNavigationBarContrastEnforced(false);
         }
+        applySystemBarIconAppearance();
+    }
+
+    public void setSystemBarIconAppearance(boolean darkStatusIcons, boolean darkNavigationIcons) {
+        useDarkStatusBarIcons = darkStatusIcons;
+        useDarkNavigationBarIcons = darkNavigationIcons;
+        getSharedPreferences(SYSTEM_BAR_PREFS, MODE_PRIVATE)
+                .edit()
+                .putBoolean(STATUS_BAR_DARK_ICONS_KEY, darkStatusIcons)
+                .putBoolean(NAVIGATION_BAR_DARK_ICONS_KEY, darkNavigationIcons)
+                .apply();
+        runOnUiThread(this::applySystemBarIconAppearance);
+    }
+
+    private void applySystemBarIconAppearance() {
+        Window window = getWindow();
+        WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(window, window.getDecorView());
+        controller.setAppearanceLightStatusBars(useDarkStatusBarIcons);
+        controller.setAppearanceLightNavigationBars(useDarkNavigationBarIcons);
     }
 
     private void keepScreenAwake() {

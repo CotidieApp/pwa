@@ -13,6 +13,10 @@ export type BackgroundActionsPlugin = {
   getPendingMarkPrayed: () => Promise<PendingMarkPrayedResult>;
   setSmallWidgetMode: (options: { mode: SmallWidgetDisplayMode }) => Promise<{ mode: SmallWidgetDisplayMode }>;
   setMovableFeastsEnabled: (options: { enabled: boolean }) => Promise<void>;
+  setSystemBarAppearance: (options: {
+    darkStatusIcons: boolean;
+    darkNavigationIcons: boolean;
+  }) => Promise<void>;
 };
 
 const BackgroundActions = registerPlugin<BackgroundActionsPlugin>('BackgroundActions', {
@@ -20,6 +24,7 @@ const BackgroundActions = registerPlugin<BackgroundActionsPlugin>('BackgroundAct
     getPendingMarkPrayed: async () => ({ items: [] }),
     setSmallWidgetMode: async (options: { mode: SmallWidgetDisplayMode }) => ({ mode: options.mode }),
     setMovableFeastsEnabled: async () => {},
+    setSystemBarAppearance: async () => {},
   }),
 });
 

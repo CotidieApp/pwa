@@ -1572,12 +1572,14 @@ export default function MainApp() {
       {!isDistractionFree && (
         <>
           <div
+            data-system-bar-layer="top"
             className={cn(
               "fixed top-0 inset-x-0 h-[env(safe-area-inset-top)] z-[100] pointer-events-none transition-colors duration-200",
               hasTransparentSystemBars ? "bg-transparent" : "bg-primary"
             )}
           />
           <div
+            data-system-bar-layer="bottom"
             className={cn(
               "fixed bottom-0 inset-x-0 h-[env(safe-area-inset-bottom)] z-[100] pointer-events-none transition-colors duration-200",
               hasTransparentSystemBars ? "bg-transparent" : "bg-background"

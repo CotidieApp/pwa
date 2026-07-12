@@ -82,4 +82,14 @@ public class BackgroundActionsPlugin extends Plugin {
         }
         call.resolve();
     }
+
+    @PluginMethod
+    public void setSystemBarAppearance(PluginCall call) {
+        boolean darkStatusIcons = call.getBoolean("darkStatusIcons", true);
+        boolean darkNavigationIcons = call.getBoolean("darkNavigationIcons", darkStatusIcons);
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).setSystemBarIconAppearance(darkStatusIcons, darkNavigationIcons);
+        }
+        call.resolve();
+    }
 }

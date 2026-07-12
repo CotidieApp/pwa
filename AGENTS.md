@@ -8,6 +8,35 @@ Historial de intervenciones del asistente en el repo.
 - Esta obligacion aplica aunque el usuario pida tocar solo lo estrictamente necesario: el registro en `AGENTS.md` se considera parte estrictamente necesaria de cualquier edicion del repo.
 - Si una instruccion del usuario prohibe explicitamente editar `AGENTS.md`, el agente debe pedir aclaracion antes de modificar otros archivos.
 
+### [2026-07-12 19:54] 271. Contraste inteligente global en barras del sistema
+**Planificacion:**
+- Detectar el color realmente visible bajo las barras superior e inferior en toda la aplicacion.
+- Cambiar de forma independiente los iconos de estado y navegacion entre claros y oscuros segun su contraste.
+- Conservar la decision al reanudar Android e incluir las capas especiales del lector EPUB.
+
+**Ejecucion:**
+- **Deteccion global**: `ThemeManager.tsx` compone los fondos visibles, calcula su luminancia y elige los iconos claros u oscuros con mejor contraste para cada extremo de la pantalla.
+- **Cambios dinamicos**: la comprobacion responde a tema, navegacion, paneles, pantalla completa, cambios del DOM y transiciones; una segunda lectura al terminar la animacion evita conservar temporalmente el contraste del tema anterior.
+- **Puente Android**: `BackgroundActionsPlugin.java` y `BackgroundActions.ts` exponen el cambio nativo; `MainActivity.java` lo aplica mediante `WindowInsetsControllerCompat` y lo guarda para restaurarlo al reanudar la actividad.
+- **Capas identificables**: `MainApp.tsx` identifica las franjas globales y `EpubReader.tsx` las franjas de pantalla completa y del indice para que el calculo use siempre la superficie que esta realmente encima.
+
+**Validacion:**
+- Prueba movil a 360 x 780 px confirmo `true:true` en modo claro, equivalente a iconos oscuros en ambas barras, y `false:false` en modo oscuro, equivalente a iconos claros.
+- La misma prueba confirmo que la barra superior y la inferior se calculan de manera independiente a partir de sus fondos visibles.
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `npm.cmd run build` OK.
+- `android\gradlew.bat :app:compileDebugJavaWithJavac` OK.
+- `git diff --check` OK; solo avisos esperados de finales de linea CRLF en Windows.
+
+**Archivos Modificados:**
+- `android/app/src/main/java/com/benjamin/studio/MainActivity.java`
+- `android/app/src/main/java/com/benjamin/studio/BackgroundActionsPlugin.java`
+- `src/plugins/BackgroundActions.ts`
+- `src/components/ThemeManager.tsx`
+- `src/components/main/MainApp.tsx`
+- `src/components/EpubReader.tsx`
+- `AGENTS.md`
+
 ### [2026-07-12 19:30] 270. Escala EPUB persistente y barra atenuada con el indice
 **Planificacion:**
 - Guardar un unico tamano de letra compartido por el Nuevo Testamento y todos los EPUB personales.
