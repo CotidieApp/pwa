@@ -8,6 +8,54 @@ Historial de intervenciones del asistente en el repo.
 - Esta obligacion aplica aunque el usuario pida tocar solo lo estrictamente necesario: el registro en `AGENTS.md` se considera parte estrictamente necesaria de cualquier edicion del repo.
 - Si una instruccion del usuario prohibe explicitamente editar `AGENTS.md`, el agente debe pedir aclaracion antes de modificar otros archivos.
 
+### [2026-07-12 19:30] 270. Escala EPUB persistente y barra atenuada con el indice
+**Planificacion:**
+- Guardar un unico tamano de letra compartido por el Nuevo Testamento y todos los EPUB personales.
+- Retirar la lupa redundante exclusivamente de los EPUB personales.
+- Extender el oscurecimiento del panel de lectura a las barras del sistema sin llevar controles a las zonas seguras.
+
+**Ejecucion:**
+- **Escala global**: `EpubReader.tsx` guarda el porcentaje en `cotidie_epub_font_size`, lo valida entre 60 % y 200 % y lo recupera al montar cualquier lector EPUB.
+- **Lupa condicional**: el acceso directo de busqueda se conserva en el Nuevo Testamento y se oculta en Personales; la busqueda personal sigue disponible dentro del panel general.
+- **Barra atenuada**: mientras el indice/panel esta abierto, un portal replica el velo negro al 80 % sobre las zonas seguras superior e inferior en `z-200`, por encima de la franja global.
+- **Contenido protegido**: el panel mantiene relleno segun `safe-area-inset-*` y su boton de cierre se desplaza bajo la barra superior.
+- **Limpieza**: las capas especiales desaparecen al cerrar el panel, sin modificar el comportamiento global de otros paneles de la app.
+
+**Validacion:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `npm.cmd run build` OK.
+- Prueba movil a 360 x 780 px confirmo que 110 % se restauro despues de cerrar y reabrir el lector.
+- Al abrir el indice se verificaron el velo general en `z-50`, la barra global en `z-100` y el velo de zona segura en `z-200`; al cerrar, la capa superior desaparecio.
+- La consola del navegador permanecio sin errores y `git diff --check -- src/components/EpubReader.tsx` no encontro errores.
+
+**Archivos Modificados:**
+- `src/components/EpubReader.tsx`
+- `AGENTS.md`
+
+### [2026-07-12 19:23] 269. Color correcto bajo barras del sistema en EPUB
+**Planificacion:**
+- Identificar por que la barra superior conservaba el color primario pese al fondo completo del lector.
+- Corregir solamente la superposicion de las zonas seguras durante pantalla completa.
+- Mantener sin cambios los gestos, la navegacion y el tema automatico del EPUB.
+
+**Ejecucion:**
+- **Causa**: el lector vive dentro de un contexto `z-10`, mientras la franja global del sistema esta fuera de el en `z-100`; el `z-120` interno no podia superar ese contexto padre.
+- **Capa raiz**: `EpubReader.tsx` usa un portal hacia `document.body` para pintar las franjas superior e inferior en `z-200` con el fondo general activo.
+- **Alcance temporal**: las franjas solo existen mientras el lector EPUB esta en pantalla completa y se retiran inmediatamente al salir o desmontar el lector.
+- **Alcance compartido**: la correccion se aplica al Nuevo Testamento y a los EPUB personales desde su componente comun.
+
+**Validacion:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `npm.cmd run build` OK.
+- Inspeccion de capas confirmo franja global naranja en `z-100` y nueva franja del fondo del EPUB en `z-200`, como hija directa de `body`.
+- Al salir de pantalla completa la capa `z-200` desaparecio y la consola permanecio sin errores.
+- No fue posible repetir la inspeccion en el telefono porque ADB no detecto ningun dispositivo conectado.
+- `git diff --check -- src/components/EpubReader.tsx` OK; solo aviso esperado de finales de linea CRLF en Windows.
+
+**Archivos Modificados:**
+- `src/components/EpubReader.tsx`
+- `AGENTS.md`
+
 ### [2026-07-12 19:06] 268. Tema global y gestos simples en lectores EPUB
 **Planificacion:**
 - Eliminar los controles propios de color de texto y fondo en ambos lectores EPUB.

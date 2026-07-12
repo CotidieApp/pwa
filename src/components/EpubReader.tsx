@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import ePub, { type Book, type Rendition } from 'epubjs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +11,7 @@ import { useSettings } from '@/context/SettingsContext';
 import { useScreenWakeLock } from '@/hooks/useScreenWakeLock';
 
 const DEFAULT_FILE_NAME = 'nuevo-testamento.epub';
+const EPUB_FONT_SIZE_STORAGE_KEY = 'cotidie_epub_font_size';
 type EpubReaderProps = {
   fileName?: string;
   sourceBase64?: string | null;
@@ -58,6 +60,24 @@ const EPUB_PAGE_BOTTOM_GUARD = '2.5em';
 const MIN_READER_FONT_SIZE = 60;
 const MAX_READER_FONT_SIZE = 200;
 const READER_FONT_SIZE_STEP = 10;
+
+const getStoredReaderFontSize = (fallback: number) => {
+  const normalizedFallback = Math.min(
+    MAX_READER_FONT_SIZE,
+    Math.max(MIN_READER_FONT_SIZE, Math.round(fallback))
+  );
+  if (typeof window === 'undefined') return normalizedFallback;
+  try {
+    const storedValue = window.localStorage.getItem(EPUB_FONT_SIZE_STORAGE_KEY);
+    if (storedValue === null) return normalizedFallback;
+    const stored = Number(storedValue);
+    return Number.isFinite(stored)
+      ? Math.min(MAX_READER_FONT_SIZE, Math.max(MIN_READER_FONT_SIZE, Math.round(stored)))
+      : normalizedFallback;
+  } catch {
+    return normalizedFallback;
+  }
+};
 
 type ReaderThemeColors = {
   text: string;
@@ -323,7 +343,7 @@ export default function EpubReader({
   const [isReaderFullscreen, setIsReaderFullscreen] = useState(false);
   const [readerThemeColors, setReaderThemeColors] = useState<ReaderThemeColors>(() => getReaderThemeColors(theme));
   const [readerFontSize, setReaderFontSize] = useState(() =>
-    Math.min(MAX_READER_FONT_SIZE, Math.max(MIN_READER_FONT_SIZE, Math.round(prayerTextZoom * 100)))
+    getStoredReaderFontSize(prayerTextZoom * 100)
   );
   const [navigationError, setNavigationError] = useState<string | null>(null);
 
@@ -504,6 +524,12 @@ export default function EpubReader({
       observer.disconnect();
     };
   }, [theme]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(EPUB_FONT_SIZE_STORAGE_KEY, String(readerFontSize));
+    } catch {}
+  }, [readerFontSize]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1042,6 +1068,46 @@ export default function EpubReader({
             }
       }
     >
+      {isReaderFullscreen && typeof document !== 'undefined'
+        ? createPortal(
+            <>
+              <div
+                aria-hidden="true"
+                className="pointer-events-none fixed inset-x-0 top-0 z-[200]"
+                style={{
+                  height: 'env(safe-area-inset-top, 0px)',
+                  backgroundColor: readerBackgroundColor,
+                }}
+              />
+              <div
+                aria-hidden="true"
+                className="pointer-events-none fixed inset-x-0 bottom-0 z-[200]"
+                style={{
+                  height: 'env(safe-area-inset-bottom, 0px)',
+                  backgroundColor: readerBackgroundColor,
+                }}
+              />
+            </>,
+            document.body
+          )
+        : null}
+      {isPanelOpen && typeof document !== 'undefined'
+        ? createPortal(
+            <>
+              <div
+                aria-hidden="true"
+                className="pointer-events-none fixed inset-x-0 top-0 z-[200] bg-black/80"
+                style={{ height: 'env(safe-area-inset-top, 0px)' }}
+              />
+              <div
+                aria-hidden="true"
+                className="pointer-events-none fixed inset-x-0 bottom-0 z-[200] bg-black/80"
+                style={{ height: 'env(safe-area-inset-bottom, 0px)' }}
+              />
+            </>,
+            document.body
+          )
+        : null}
       <div
         className={isReaderFullscreen ? 'hidden' : 'space-y-2 shrink-0'}
       >
@@ -1059,15 +1125,17 @@ export default function EpubReader({
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-1.5">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => openReaderPanel('search')}
-                disabled={status !== 'ready'}
-                aria-label="Buscar en el EPUB"
-              >
-                <Search className="h-4 w-4" />
-              </Button>
+              {isNtContext ? (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => openReaderPanel('search')}
+                  disabled={status !== 'ready'}
+                  aria-label="Buscar en el EPUB"
+                >
+                  <Search className="h-4 w-4" />
+                </Button>
+              ) : null}
               <Button
                 variant="outline"
                 size="icon"
@@ -1207,7 +1275,7 @@ export default function EpubReader({
       <Sheet open={isPanelOpen} onOpenChange={setIsPanelOpen}>
         <SheetContent
           side="left"
-          className="w-[92vw] sm:max-w-md p-4 overflow-y-auto"
+          className="w-[92vw] sm:max-w-md p-4 overflow-y-auto [&>button]:top-[calc(1rem+env(safe-area-inset-top))]"
           style={{
             paddingTop: 'max(1rem, env(safe-area-inset-top))',
             paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
