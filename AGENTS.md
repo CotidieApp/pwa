@@ -8,6 +8,58 @@ Historial de intervenciones del asistente en el repo.
 - Esta obligacion aplica aunque el usuario pida tocar solo lo estrictamente necesario: el registro en `AGENTS.md` se considera parte estrictamente necesaria de cualquier edicion del repo.
 - Si una instruccion del usuario prohibe explicitamente editar `AGENTS.md`, el agente debe pedir aclaracion antes de modificar otros archivos.
 
+### [2026-07-12 20:53] 273. Fondo duplicado y reconciliacion de racha de Misa
+**Planificacion:**
+- Retirar exclusivamente el quinto fondo predeterminado, duplicado del segundo.
+- Identificar por que una racha extensa podia quedar reemplazada por un tramo corto del calendario.
+- Recalcular desde fechas exactas sin permitir que un historial incompleto recorte datos anteriores.
+
+**Ejecucion:**
+- **Fondos**: `placeholder-images.json` elimino la quinta entrada, que repetia `home-immaculate-heart` y `/images/immaculate-heart.jpeg`; permanecen cuatro fondos con identificadores y archivos unicos.
+- **Resumen exacto**: `stats-updates.ts` agrega un calculo puro que ordena las fechas con `santa-misa`, cuenta dias unicos y reinicia la racha solamente ante una interrupcion real entre fechas consecutivas.
+- **Reparacion al cargar**: `SettingsContext.tsx` compara el calendario con los dias de Misa ya conocidos y corrige automaticamente una racha desviada cuando el calendario contiene el historial completo.
+- **Proteccion historica**: la edicion del calendario deja de reemplazar `massStreak` y `massDaysCount` cuando solo dispone de una fraccion del historial registrado.
+- **Sin cambios ajenos**: no se modificaron la interfaz de Misa, las casillas ni las demas estadisticas.
+
+**Validacion:**
+- El catalogo resultante contiene cuatro fondos, cuatro identificadores unicos y cuatro rutas unicas.
+- Prueba de datos con 52 fechas consecutivas devolvio racha 52 y reparo una estadistica desviada de 4 a 52.
+- La misma prueba confirmo que una brecha deja una racha final de 3 y que un calendario incompleto no recorta el valor historico.
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `npm.cmd run build` OK.
+- `git diff --check` OK; solo avisos esperados de finales de linea CRLF en Windows.
+
+**Archivos Modificados:**
+- `src/lib/placeholder-images.json`
+- `src/context/settings/stats-updates.ts`
+- `src/context/SettingsContext.tsx`
+- `AGENTS.md`
+
+### [2026-07-12 20:41] 272. Avance estable y navegacion exclusiva en EPUB completo
+**Planificacion:**
+- Conservar el punto exacto de lectura al entrar y salir de pantalla completa.
+- Impedir cualquier avance o retroceso por zonas tactiles fuera de pantalla completa.
+- Aplicar la correccion al componente comun del Nuevo Testamento y los EPUB personales.
+
+**Ejecucion:**
+- **Ancla independiente**: `EpubReader.tsx` conserva un CFI canonico separado de la pagina visual que EPUB.js recalcula al cambiar el tamano del lector.
+- **Cambio de modo**: durante el redimensionamiento se ignoran ubicaciones transitorias, se restaura el CFI original una vez estabilizado el contenedor y solo entonces se actualiza la persistencia.
+- **Instancia unica**: la carga asincrona ahora cancela correctamente montajes obsoletos y cada efecto destruye solamente su propio libro y rendition, evitando lectores superpuestos que podian descoordinar controles y contenido.
+- **Navegacion limitada**: las zonas izquierda y derecha solo se renderizan en pantalla completa; las funciones de avance y retroceso tambien rechazan llamadas mientras el modo normal esta activo.
+- **Alcance compartido**: no se agrego logica particular a una biblioteca; Nuevo Testamento y Personales reciben el mismo comportamiento desde `EpubReader`.
+
+**Validacion:**
+- Prueba movil a 360 x 780 px confirmo una sola instancia y un solo iframe EPUB activo.
+- En modo normal se verificaron cero controles de pagina; en pantalla completa aparecieron exactamente Anterior y Siguiente.
+- Tras avanzar, salir y volver a entrar, reaparecieron el mismo fragmento y la misma posicion visual; solo cambio el contorno de enfoque temporal del boton pulsado.
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `npm.cmd run build` OK.
+- `git diff --check` OK; solo avisos esperados de finales de linea CRLF en Windows.
+
+**Archivos Modificados:**
+- `src/components/EpubReader.tsx`
+- `AGENTS.md`
+
 ### [2026-07-12 19:54] 271. Contraste inteligente global en barras del sistema
 **Planificacion:**
 - Detectar el color realmente visible bajo las barras superior e inferior en toda la aplicacion.

@@ -33,7 +33,13 @@ import { persistence } from '@/lib/persistence';
 import { fixedNotifications, type FixedNotificationEntry } from '@/lib/fixed-notifications';
 import type { SmallWidgetDisplayMode } from '@/plugins/BackgroundActions';
 import { addByKind, addDays, formatTemplate, getNextOccurrence, parseFixedNotificationDate } from '@/context/settings/notification-date-utils';
-import { applyPlanDeVidaAggregateIncrement, applyPrayerOpenIncrement } from '@/context/settings/stats-updates';
+import {
+  applyPlanDeVidaAggregateIncrement,
+  applyPrayerOpenIncrement,
+  hasCompleteMassCalendarHistory,
+  reconcileMassStreakFromCalendar,
+  summarizeMassCalendar,
+} from '@/context/settings/stats-updates';
 
 const saintsData = saintsDataRaw as { saints: SaintOfTheDay[] };
 const NOTIFICATION_ACTION_TYPE_ID = 'cotidie-prayer-actions';
@@ -2602,6 +2608,11 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     });
     summary.totalPrayersOpened = totalChecks;
 
+    const massSummary = summarizeMassCalendar(calendar);
+    summary.massStreak = massSummary.massStreak;
+    summary.massDaysCount = massSummary.massDaysCount;
+    summary.lastMassDate = massSummary.lastMassDate;
+
     return summary;
   }, [allPrayers, getPrayerById, getRootPlanDeVidaId]);
 
@@ -2630,14 +2641,12 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
     const numericKeys: Array<
       'totalPrayersOpened' |
-      'massDaysCount' |
       'rosaryCount' |
       'angelusCount' |
       'examinationCount' |
       'planDeVidaCompletedTotal'
     > = [
       'totalPrayersOpened',
-      'massDaysCount',
       'rosaryCount',
       'angelusCount',
       'examinationCount',
@@ -2686,7 +2695,15 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       delete nextStats.prayerLastOpened[key];
     });
 
-    if ((stats.lastMassDate ?? null) === (previousSummary.lastMassDate ?? null) || !stats.lastMassDate) {
+    const calendarHasCompleteMassHistory = hasCompleteMassCalendarHistory(stats, {
+      massStreak: previousSummary.massStreak,
+      massDaysCount: previousSummary.massDaysCount,
+      lastMassDate: previousSummary.lastMassDate,
+    });
+    if (
+      calendarHasCompleteMassHistory &&
+      ((stats.lastMassDate ?? null) === (previousSummary.lastMassDate ?? null) || !stats.lastMassDate)
+    ) {
       nextStats.lastMassDate = nextSummary.lastMassDate;
       nextStats.massStreak = nextSummary.massStreak;
       nextStats.massDaysCount = nextSummary.massDaysCount;
@@ -2694,6 +2711,15 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
     return nextStats;
   }, [buildPlanDeVidaCalendarStatsSummary]);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    const calendarMass = summarizeMassCalendar(planDeVidaCalendar);
+    if (!calendarMass.lastMassDate) return;
+
+    setUserStats((stats) => reconcileMassStreakFromCalendar(stats, calendarMass));
+    setGlobalUserStats((stats) => reconcileMassStreakFromCalendar(stats, calendarMass));
+  }, [isLoaded, planDeVidaCalendar]);
 
   const incrementGlobalStat = (key: keyof UserStats, subKey?: string, options?: StatIncrementOptions) => {
     setGlobalUserStats(prev => {

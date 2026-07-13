@@ -8,6 +8,86 @@ type PastoralDateBuilder = (date: Date) => Date;
 type AngelusKeyCheck = (value?: string) => boolean;
 type AngelusKeyList = (value?: string) => string[];
 
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
+
+const parseDateKeyAsUtc = (dateKey: string) => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateKey);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const timestamp = Date.UTC(year, month - 1, day);
+  const parsed = new Date(timestamp);
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    return null;
+  }
+  return timestamp;
+};
+
+export const summarizeMassCalendar = (calendar: Record<string, string[]>) => {
+  const massDates = Object.keys(calendar)
+    .map((dateKey) => ({ dateKey, timestamp: parseDateKeyAsUtc(dateKey) }))
+    .filter(
+      (entry): entry is { dateKey: string; timestamp: number } =>
+        entry.timestamp !== null &&
+        Array.isArray(calendar[entry.dateKey]) &&
+        calendar[entry.dateKey].includes('santa-misa')
+    )
+    .sort((a, b) => a.timestamp - b.timestamp);
+
+  let massStreak = 0;
+  let previousTimestamp: number | null = null;
+  for (const entry of massDates) {
+    massStreak = previousTimestamp !== null && entry.timestamp - previousTimestamp === DAY_IN_MS
+      ? massStreak + 1
+      : 1;
+    previousTimestamp = entry.timestamp;
+  }
+
+  return {
+    massStreak,
+    massDaysCount: massDates.length,
+    lastMassDate: massDates.length > 0 ? massDates[massDates.length - 1].dateKey : null,
+  };
+};
+
+type MassCalendarSummary = ReturnType<typeof summarizeMassCalendar>;
+
+export const hasCompleteMassCalendarHistory = (
+  stats: UserStats,
+  calendarMass: MassCalendarSummary
+) => {
+  const knownMassDays = Math.max(
+    stats.massDaysCount || 0,
+    stats.prayerDaysCount?.['santa-misa'] || 0
+  );
+  return calendarMass.massDaysCount >= knownMassDays;
+};
+
+export const reconcileMassStreakFromCalendar = (
+  stats: UserStats,
+  calendarMass: MassCalendarSummary
+): UserStats => {
+  if (!calendarMass.lastMassDate || !hasCompleteMassCalendarHistory(stats, calendarMass)) {
+    return stats;
+  }
+  if (
+    stats.massStreak === calendarMass.massStreak &&
+    stats.lastMassDate === calendarMass.lastMassDate
+  ) {
+    return stats;
+  }
+  return {
+    ...stats,
+    massStreak: calendarMass.massStreak,
+    lastMassDate: calendarMass.lastMassDate,
+  };
+};
+
 export const applyPlanDeVidaAggregateIncrement = (prev: UserStats, id: string): UserStats => ({
   ...prev,
   planDeVidaCompletedTotal: (prev.planDeVidaCompletedTotal || 0) + 1,

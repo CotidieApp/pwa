@@ -193,6 +193,18 @@ const parseStoredReaderLocation = (raw: string | null): StoredReaderLocation | n
 };
 
 const serializeStoredReaderLocation = (location: StoredReaderLocation) => JSON.stringify(location);
+const getRenditionLocation = (rendition: Rendition | null): StoredReaderLocation | null => {
+  const location = (rendition as any)?.currentLocation?.();
+  const start = Array.isArray(location) ? location[0]?.start : location?.start;
+  const cfi = typeof start?.cfi === 'string' && start.cfi.length > 0 ? start.cfi : undefined;
+  const href = typeof start?.href === 'string' && start.href.length > 0 ? start.href : undefined;
+  return cfi || href
+    ? {
+        ...(cfi ? { cfi } : {}),
+        ...(href ? { href } : {}),
+      }
+    : null;
+};
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 type NtReference = {
@@ -320,6 +332,8 @@ export default function EpubReader({
   const isMountedRef = useRef(true);
   const isReaderFullscreenRef = useRef(false);
   const readerTapHandlerRef = useRef<(event: MouseEvent) => void>(() => undefined);
+  const pendingLayoutLocationRef = useRef<StoredReaderLocation | null>(null);
+  const stableLocationRef = useRef<StoredReaderLocation | null>(null);
 
   const activeFile = typeof fileName === 'string' && fileName.trim().length > 0 ? fileName.trim() : DEFAULT_FILE_NAME;
   const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
@@ -408,10 +422,11 @@ export default function EpubReader({
   }, [getSpineItems, tocBookAnchors]);
 
   const persistCurrentLocation = useCallback(() => {
-    const location = (renditionRef.current as any)?.currentLocation?.();
-    const start = Array.isArray(location) ? location[0]?.start : location?.start;
-    const cfi = typeof start?.cfi === 'string' && start.cfi.length > 0 ? start.cfi : undefined;
-    const href = typeof start?.href === 'string' && start.href.length > 0 ? start.href : undefined;
+    const pendingLocation = pendingLayoutLocationRef.current;
+    const currentLocation = getRenditionLocation(renditionRef.current);
+    const stableLocation = stableLocationRef.current;
+    const cfi = pendingLocation?.cfi ?? stableLocation?.cfi ?? currentLocation?.cfi;
+    const href = pendingLocation?.href ?? stableLocation?.href ?? currentLocation?.href;
 
     if (!cfi && !href) return;
 
@@ -510,6 +525,8 @@ export default function EpubReader({
 
   useEffect(() => {
     isReaderFullscreenRef.current = false;
+    pendingLayoutLocationRef.current = null;
+    stableLocationRef.current = null;
     setIsReaderFullscreen(false);
   }, [activeFile, sourceBase64]);
 
@@ -533,16 +550,20 @@ export default function EpubReader({
 
   useEffect(() => {
     let cancelled = false;
+    let activeBook: Book | null = null;
+    let activeRendition: Rendition | null = null;
 
     const dispose = () => {
       try {
-        renditionRef.current?.destroy?.();
+        activeRendition?.destroy?.();
       } catch {}
       try {
-        bookRef.current?.destroy?.();
+        activeBook?.destroy?.();
       } catch {}
-      renditionRef.current = null;
-      bookRef.current = null;
+      if (renditionRef.current === activeRendition) renditionRef.current = null;
+      if (bookRef.current === activeBook) bookRef.current = null;
+      activeRendition = null;
+      activeBook = null;
     };
 
     const load = async () => {
@@ -559,7 +580,6 @@ export default function EpubReader({
       setHighlightNoteDraft('');
       setTocBookFilter('all');
 
-      dispose();
       containerRef.current.innerHTML = '';
 
       try {
@@ -567,6 +587,7 @@ export default function EpubReader({
           const response = await fetch(epubUrl, { method: 'HEAD' });
           if (!response.ok) throw new Error(`No se encontró ${epubUrl}.`);
         }
+        if (cancelled) return;
 
         const source = sourceBase64 ? base64ToArrayBuffer(sourceBase64) : epubUrl;
         const book = ePub(source as any);
@@ -577,6 +598,10 @@ export default function EpubReader({
           spread: 'none',
           minSpreadWidth: 9999,
         });
+        activeBook = book;
+        activeRendition = rendition;
+        bookRef.current = book;
+        renditionRef.current = rendition;
 
         rendition.themes.default({
           body: {
@@ -617,6 +642,7 @@ export default function EpubReader({
         const onRelocated = (location: any) => {
           try {
             if (cancelled || !isMountedRef.current) return;
+            if (pendingLayoutLocationRef.current) return;
             const displayed = location?.start?.displayed;
             if (displayed) {
               setLocationLabel(`${displayed.page}/${displayed.total}`);
@@ -624,6 +650,10 @@ export default function EpubReader({
             const cfi = location?.start?.cfi;
             const href = location?.start?.href;
             if (typeof cfi === 'string' && cfi.length > 0) {
+              stableLocationRef.current = {
+                cfi,
+                ...(typeof href === 'string' && href.length > 0 ? { href } : {}),
+              };
               const locationPayload = serializeStoredReaderLocation({
                 cfi,
                 ...(typeof href === 'string' && href.length > 0 ? { href } : {}),
@@ -733,7 +763,7 @@ export default function EpubReader({
 
     return () => {
       cancelled = true;
-      const r: any = renditionRef.current as any;
+      const r: any = activeRendition as any;
       try {
         r?.off?.('relocated', r?.__cotidieOnRelocated);
         r?.off?.('selected', r?.__cotidieOnSelected);
@@ -771,9 +801,51 @@ export default function EpubReader({
   }, [readerFontSize, refreshRenditionLayout]);
 
   useEffect(() => {
-    const tick = window.setTimeout(() => refreshRenditionLayout(), 60);
-    return () => window.clearTimeout(tick);
-  }, [isReaderFullscreen, refreshRenditionLayout]);
+    const target = pendingLayoutLocationRef.current;
+    let restoreTimer = 0;
+    const frame = window.requestAnimationFrame(() => {
+      refreshRenditionLayout();
+      restoreTimer = window.setTimeout(() => {
+        const rendition = renditionRef.current;
+        const destination = target?.cfi || target?.href;
+        refreshRenditionLayout();
+        if (rendition && destination) {
+          void rendition
+            .display(destination)
+            .then(() => {
+              const restoredLocation = target ?? getRenditionLocation(rendition);
+              const rawLocation = (rendition as any).currentLocation?.();
+              const start = Array.isArray(rawLocation) ? rawLocation[0]?.start : rawLocation?.start;
+              pendingLayoutLocationRef.current = null;
+              stableLocationRef.current = restoredLocation;
+              if (start?.displayed) {
+                setLocationLabel(`${start.displayed.page}/${start.displayed.total}`);
+              }
+              if (restoredLocation?.cfi) {
+                setCurrentCfi(restoredLocation.cfi);
+              }
+              if (restoredLocation?.cfi || restoredLocation?.href) {
+                try {
+                  window.localStorage.setItem(
+                    locationStorageKey,
+                    serializeStoredReaderLocation(restoredLocation)
+                  );
+                } catch {}
+              }
+            })
+            .catch(() => {
+              pendingLayoutLocationRef.current = null;
+            });
+        } else {
+          pendingLayoutLocationRef.current = null;
+        }
+      }, 80);
+    });
+    return () => {
+      window.cancelAnimationFrame(frame);
+      if (restoreTimer) window.clearTimeout(restoreTimer);
+    };
+  }, [isReaderFullscreen, locationStorageKey, refreshRenditionLayout]);
 
   useEffect(() => {
     const onResize = () => refreshRenditionLayout();
@@ -821,7 +893,7 @@ export default function EpubReader({
 
   const goPrev = () => {
     const rendition = renditionRef.current as any;
-    if (!rendition) return;
+    if (!rendition || !isReaderFullscreenRef.current) return;
     Promise.resolve(rendition.prev?.())
       .then(() => setNavigationError(null))
       .catch(async () => {
@@ -846,7 +918,7 @@ export default function EpubReader({
 
   const goNext = () => {
     const rendition = renditionRef.current as any;
-    if (!rendition) return;
+    if (!rendition || !isReaderFullscreenRef.current) return;
     Promise.resolve(rendition.next?.())
       .then(() => setNavigationError(null))
       .catch(async () => {
@@ -877,16 +949,16 @@ export default function EpubReader({
   };
 
   const enterReaderFullscreen = () => {
+    pendingLayoutLocationRef.current = stableLocationRef.current ?? getRenditionLocation(renditionRef.current);
     setIsPanelOpen(false);
     isReaderFullscreenRef.current = true;
     setIsReaderFullscreen(true);
-    window.setTimeout(() => refreshRenditionLayout(), 80);
   };
 
   const exitReaderFullscreen = () => {
+    pendingLayoutLocationRef.current = stableLocationRef.current ?? getRenditionLocation(renditionRef.current);
     isReaderFullscreenRef.current = false;
     setIsReaderFullscreen(false);
-    window.setTimeout(() => refreshRenditionLayout(), 80);
   };
 
   readerTapHandlerRef.current = (event) => {
@@ -1250,22 +1322,24 @@ export default function EpubReader({
             height: `calc(100% - ${EPUB_PAGE_BOTTOM_GUARD})`,
           }}
         />
-        <div className="pointer-events-none absolute inset-0 z-[30]">
-          <button
-            type="button"
-            aria-label="Pagina anterior"
-            onClick={goPrev}
-            disabled={status !== 'ready'}
-            className="pointer-events-auto absolute inset-y-0 left-0 w-1/4"
-          />
-          <button
-            type="button"
-            aria-label="Pagina siguiente"
-            onClick={goNext}
-            disabled={status !== 'ready'}
-            className="pointer-events-auto absolute inset-y-0 right-0 w-1/3"
-          />
-        </div>
+        {isReaderFullscreen ? (
+          <div className="pointer-events-none absolute inset-0 z-[30]">
+            <button
+              type="button"
+              aria-label="Pagina anterior"
+              onClick={goPrev}
+              disabled={status !== 'ready'}
+              className="pointer-events-auto absolute inset-y-0 left-0 w-1/4"
+            />
+            <button
+              type="button"
+              aria-label="Pagina siguiente"
+              onClick={goNext}
+              disabled={status !== 'ready'}
+              className="pointer-events-auto absolute inset-y-0 right-0 w-1/3"
+            />
+          </div>
+        ) : null}
         {isReaderFullscreen ? (
           <button
             type="button"
