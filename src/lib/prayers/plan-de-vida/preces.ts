@@ -6,7 +6,7 @@ export const preces: Prayer = {
   categoryId: 'plan-de-vida',
   isDaySpecific: true,
   content: {
-    latin: `Sérviam!
+    latin: `Serviam!
 V/. Ad Trinitátem Beatíssimam.
 R/. Grátias tibi, Deus, grátias tibi: vera et una Trínitas, una et summa Déitas, sancta et
 una Únitas.

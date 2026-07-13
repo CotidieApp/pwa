@@ -394,7 +394,7 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
         </CardHeader>
         <CardContent className="text-xs text-muted-foreground space-y-2">
           <p><strong>Cotidie</strong> - Versión {appVersion}</p>
-          <p><em>Sérviam cum gaudio magno!</em></p>
+          <p><em>Serviam cum gaudio magno!</em></p>
           <p>© 2025 - {new Date().getFullYear()} Cotidie. Todos los derechos reservados.</p>
           <p>"Mirad al Señor con ojos atentos, y descubriréis en Él el rostro mismo de Dios."</p>
         </CardContent>
