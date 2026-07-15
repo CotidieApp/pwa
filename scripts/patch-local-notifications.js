@@ -675,6 +675,63 @@ import java.util.regex.Pattern;`,
     );
   }
 
+  if (!publisherSource.includes('Cotidie early-delivery guard v1')) {
+    replacePublisherOnce(
+      /        notification\.when = System\.currentTimeMillis\(\);\r?\n\r?\n        int id = intent\.getIntExtra\(LocalNotificationManager\.NOTIFICATION_INTENT_KEY, Integer\.MIN_VALUE\);([\s\S]*?)        JSObject notificationJson = storage\.getSavedNotificationAsJSObject\(Integer\.toString\(id\)\);/,
+      `        int id = intent.getIntExtra(LocalNotificationManager.NOTIFICATION_INTENT_KEY, Integer.MIN_VALUE);$1        JSObject notificationJson = storage.getSavedNotificationAsJSObject(Integer.toString(id));
+        if (deferCotidieEarlyNotification(context, intent, notificationJson, id)) {
+            return;
+        }
+
+        notification.when = System.currentTimeMillis();`,
+      'timed notification early-delivery call'
+    );
+
+    replacePublisherOnce(
+      /    private Notification applyCotidieBigPictureStyle\(Context context, Notification notification, JSObject notificationJson\) \{/,
+      `    private boolean deferCotidieEarlyNotification(Context context, Intent intent, JSObject notificationJson, int id) {
+        // Cotidie early-delivery guard v1
+        if (notificationJson == null) return false;
+        try {
+            JSObject schedule = notificationJson.getJSObject("schedule");
+            if (schedule == null) return false;
+            String atValue = schedule.optString("at", null);
+            if (atValue == null || atValue.trim().isEmpty()) return false;
+
+            SimpleDateFormat formatter = new SimpleDateFormat(LocalNotificationSchedule.JS_DATE_FORMAT);
+            formatter.setTimeZone(TimeZone.getTimeZone("UTC"));
+            Date scheduledAt = formatter.parse(atValue);
+            if (scheduledAt == null || scheduledAt.getTime() <= System.currentTimeMillis()) return false;
+
+            AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+            Intent retryIntent = (Intent) intent.clone();
+            int flags = PendingIntent.FLAG_CANCEL_CURRENT;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                flags |= PendingIntent.FLAG_MUTABLE;
+            }
+            PendingIntent pendingIntent = PendingIntent.getBroadcast(context, id, retryIntent, flags);
+            long triggerAt = scheduledAt.getTime();
+
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()) {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent);
+            } else {
+                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent);
+            }
+            Logger.warn(
+                "Capacitor/LocalNotification",
+                "Notification arrived before its requested time and was deferred to the exact schedule."
+            );
+            return true;
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private Notification applyCotidieBigPictureStyle(Context context, Notification notification, JSObject notificationJson) {`,
+      'timed notification early-delivery helper'
+    );
+  }
+
   if (publisherChanged) {
     fs.writeFileSync(publisherPath, publisherSource, 'utf8');
   }

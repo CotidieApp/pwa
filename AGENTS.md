@@ -8,6 +8,66 @@ Historial de intervenciones del asistente en el repo.
 - Esta obligacion aplica aunque el usuario pida tocar solo lo estrictamente necesario: el registro en `AGENTS.md` se considera parte estrictamente necesaria de cualquier edicion del repo.
 - Si una instruccion del usuario prohibe explicitamente editar `AGENTS.md`, el agente debe pedir aclaracion antes de modificar otros archivos.
 
+### [2026-07-14 20:35] 275. Fuente general aplicada a lectores EPUB
+**Planificacion:**
+- Comprobar si los EPUB heredaban la fuente seleccionada para el resto de Cotidie.
+- Aplicar esa misma fuente dentro del documento aislado de EPUB.js sin alterar paginacion, navegacion ni tamano de texto.
+
+**Ejecucion:**
+- **Diagnostico**: el lector solo sincronizaba colores y tamano; al renderizar cada EPUB dentro de un `iframe`, no heredaba la familia tipografica de la aplicacion.
+- **Fuente compartida**: `EpubReader.tsx` obtiene `fontFamily` desde los ajustes y traduce las cinco opciones existentes a sus familias CSS correspondientes.
+- **Carga offline**: cada documento EPUB carga la hoja local `/fonts/fonts.css`, por lo que Literata, Lora, Merriweather, EB Garamond y Times New Roman quedan disponibles dentro del `iframe` sin internet.
+- **Sincronizacion**: la familia se aplica al abrir cualquier EPUB y tambien se actualiza si el usuario cambia el ajuste mientras el lector esta montado; el cambio alcanza por igual al Nuevo Testamento y a Personales.
+
+**Validacion:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `npm.cmd run build` OK.
+- La exportacion estatica conserva `/fonts/fonts.css` y las familias referenciadas por el lector.
+
+**Archivos Modificados:**
+- `src/components/EpubReader.tsx`
+- `AGENTS.md`
+
+### [2026-07-14 20:32] 274. Encabezado horizontal, compartir, tacto, Virgen del Carmen y precision de alertas
+**Planificacion:**
+- Corregir el ancho del encabezado en orientacion horizontal sin alterar la composicion vertical.
+- Recuperar en Informacion una accion para compartir el enlace oficial de instalacion.
+- Evitar que los estados visuales de toque permanezcan activos en dispositivos tactiles.
+- Incorporar la devocion chilena oficial a Nuestra Senora del Carmen, enlazarla al santoral y agregar su notificacion con imagen.
+- Reforzar la barrera nativa que impide mostrar una notificacion antes de la hora programada.
+
+**Ejecucion:**
+- **Encabezado**: `MainApp.tsx` fija el contenedor principal a `w-full`; conserva el limite de escritorio y no cambia medidas ni estilos en vertical.
+- **Compartir aplicacion**: `DeveloperSettings.tsx` agrega en Informacion el boton que abre la hoja nativa con `https://n9.cl/cotidie-installer`; en web sin API de compartir copia el enlace.
+- **Respuesta tactil**: Tailwind limita los estilos `hover` a dispositivos con puntero fino y el boton comun usa `touch-manipulation`, evitando estados visuales pegados por pulsacion larga o doble toque sin retirar la respuesta `active` normal.
+- **Virgen del Carmen**: se agrego la Oracion por Chile publicada por el Santuario Nacional y la Cofradia Nacional del Carmen, junto con una fotografia local del altar principal del Templo Votivo de Maipu de Jorge Barrios, CC BY-SA 3.0.
+- **Santoral**: no se cambio la fecha porque ambas copias del santoral ya registraban correctamente la solemnidad el 16 de julio; `devotion-day-images.ts` enlaza esa entrada con la nueva devocion e imagen.
+- **Notificacion del Carmen**: `fixed-notifications.ts` programa el 16 de julio a las 09:00, incluye el banner local y abre directamente la nueva oracion.
+- **Precision nativa**: el parche persistente de Local Notifications comprueba `schedule.at` al recibir cada alarma; si Android intenta entregarla antes, no la muestra y la vuelve a programar para ese instante mediante alarma exacta y `allowWhileIdle`, con respaldo no anticipado cuando falta el permiso exacto.
+- **Cambios ajenos protegidos**: no se modificaron las ediciones existentes en `santateresadelosandes.ts` ni `santa-misa/despues.ts`.
+
+**Validacion:**
+- Prueba de integracion confirmo que el santo `Nuestra Senora del Carmen`, la ruta de la notificacion y el titulo normalizado resuelven a `virgendelcarmen`.
+- Se verifico la solemnidad del 16 de julio en `src/lib/saints-data.json` y en el asset Android del widget.
+- El parche nativo se ejecuto dos veces sin cambios adicionales y `node --check scripts/patch-local-notifications.js` OK.
+- La compilacion de Tailwind confirmo que los `hover` quedan dentro de `@media (hover:hover) and (pointer:fine)`.
+- `npm.cmd run build` OK.
+- `android\gradlew.bat :app:compileDebugJavaWithJavac` OK usando el JBR de Android Studio.
+- `git diff --check` OK; solo avisos esperados de finales de linea CRLF en Windows.
+
+**Archivos Modificados:**
+- `src/components/main/MainApp.tsx`
+- `src/components/settings/DeveloperSettings.tsx`
+- `src/components/ui/button.tsx`
+- `tailwind.config.ts`
+- `src/lib/prayers/devociones/virgendelcarmen.ts`
+- `src/lib/data.tsx`
+- `src/lib/devotion-day-images.ts`
+- `src/lib/fixed-notifications.ts`
+- `public/images/virgen-del-carmen-chile.jpeg`
+- `scripts/patch-local-notifications.js`
+- `AGENTS.md`
+
 ### [2026-07-12 20:53] 273. Fondo duplicado y reconciliacion de racha de Misa
 **Planificacion:**
 - Retirar exclusivamente el quinto fondo predeterminado, duplicado del segundo.

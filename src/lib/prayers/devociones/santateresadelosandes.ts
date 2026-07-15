@@ -7,7 +7,8 @@ export const santaTeresaDeLosAndesPrayer: Prayer = {
 que de la mano de María te convertiste
 en una joven enamorada de Jesucristo,
 eres modelo de santidad
-y camino de perfección para la iglesia.Tú supiste reír, amar, jugar y servir.
+y camino de perfección para la iglesia.
+Tú supiste reír, amar, jugar y servir.
 
 Tú fuiste fuerte para asumir el dolor
 y generosa para amar.

@@ -56,10 +56,18 @@ type HighlightItem = {
 };
 
 const READER_STYLE_TAG_ID = 'cotidie-reader-colors';
+const READER_FONT_STYLESHEET_ID = 'cotidie-reader-fonts';
 const EPUB_PAGE_BOTTOM_GUARD = '2.5em';
 const MIN_READER_FONT_SIZE = 60;
 const MAX_READER_FONT_SIZE = 200;
 const READER_FONT_SIZE_STEP = 10;
+const READER_FONT_FAMILIES: Record<string, string> = {
+  literata: "'Literata', serif",
+  lora: "'Lora', serif",
+  merriweather: "'Merriweather', serif",
+  ebgaramond: "'EB Garamond', serif",
+  timesnewroman: "'Times New Roman', serif",
+};
 
 const getStoredReaderFontSize = (fallback: number) => {
   const normalizedFallback = Math.min(
@@ -103,9 +111,21 @@ const getReaderThemeColors = (theme: 'light' | 'dark'): ReaderThemeColors => {
   };
 };
 
-const applyReaderColorsToContents = (contents: any, textColor: string, backgroundColor: string) => {
+const applyReaderAppearanceToContents = (
+  contents: any,
+  textColor: string,
+  backgroundColor: string,
+  fontFamily: string
+) => {
   const doc = contents?.document as Document | undefined;
   if (!doc) return;
+  if (!doc.getElementById(READER_FONT_STYLESHEET_ID)) {
+    const fontStylesheet = doc.createElement('link');
+    fontStylesheet.id = READER_FONT_STYLESHEET_ID;
+    fontStylesheet.rel = 'stylesheet';
+    fontStylesheet.href = new URL('/fonts/fonts.css', window.location.href).href;
+    doc.head?.appendChild(fontStylesheet);
+  }
   let styleEl = doc.getElementById(READER_STYLE_TAG_ID) as HTMLStyleElement | null;
   if (!styleEl) {
     styleEl = doc.createElement('style');
@@ -120,11 +140,15 @@ const applyReaderColorsToContents = (contents: any, textColor: string, backgroun
       margin: 0 !important;
       padding: 0 !important;
       box-sizing: border-box !important;
+      font-family: ${fontFamily} !important;
     }
     body {
       padding-bottom: 1.25em !important;
     }
-    body * { color: ${textColor} !important; }
+    body * {
+      color: ${textColor} !important;
+      font-family: ${fontFamily} !important;
+    }
     a { color: ${textColor} !important; }
   `;
 };
@@ -323,7 +347,7 @@ export default function EpubReader({
   sourceBase64 = null,
   context = 'nt',
 }: EpubReaderProps) {
-  const { theme, pushDevLiveTrace, prayerTextZoom } = useSettings();
+  const { theme, fontFamily, pushDevLiveTrace, prayerTextZoom } = useSettings();
   useScreenWakeLock(true);
   const isNtContext = context === 'nt';
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -367,6 +391,7 @@ export default function EpubReader({
   const highlightsStorageKey = useMemo(() => toHighlightsKey(activeFile), [activeFile]);
   const readerTextColor = readerThemeColors.text;
   const readerBackgroundColor = readerThemeColors.background;
+  const readerFontFamily = READER_FONT_FAMILIES[fontFamily] ?? READER_FONT_FAMILIES.literata;
   const tocBookAnchors = useMemo(() => {
     if (!isNtContext) return {};
     const map: Record<string, TocEntry> = {};
@@ -607,6 +632,7 @@ export default function EpubReader({
           body: {
             color: readerTextColor,
             background: readerBackgroundColor,
+            'font-family': readerFontFamily,
           },
           '::selection': {
             background: 'rgba(251,191,36,0.45)',
@@ -615,9 +641,15 @@ export default function EpubReader({
         rendition.themes.override('color', readerTextColor);
         rendition.themes.override('background', readerBackgroundColor);
         rendition.themes.override('background-color', readerBackgroundColor);
+        rendition.themes.override('font-family', readerFontFamily);
         rendition.themes.fontSize(`${readerFontSize}%`);
         rendition.hooks.content.register((contents: any) => {
-          applyReaderColorsToContents(contents, readerTextColor, readerBackgroundColor);
+          applyReaderAppearanceToContents(
+            contents,
+            readerTextColor,
+            readerBackgroundColor,
+            readerFontFamily
+          );
           const doc = contents?.document as Document | undefined;
           if (!doc || doc.documentElement.dataset.cotidieReaderTapBound === 'true') return;
           doc.documentElement.dataset.cotidieReaderTapBound = 'true';
@@ -735,7 +767,12 @@ export default function EpubReader({
 
         const currentContents = (rendition as any).getContents?.() ?? [];
         currentContents.forEach((contents: any) =>
-          applyReaderColorsToContents(contents, readerTextColor, readerBackgroundColor)
+          applyReaderAppearanceToContents(
+            contents,
+            readerTextColor,
+            readerBackgroundColor,
+            readerFontFamily
+          )
         );
 
         storedHighlights.forEach(applyHighlight);
@@ -778,9 +815,17 @@ export default function EpubReader({
     rendition.themes.override('color', readerTextColor);
     rendition.themes.override('background', readerBackgroundColor);
     rendition.themes.override('background-color', readerBackgroundColor);
+    rendition.themes.override('font-family', readerFontFamily);
     const currentContents = (rendition as any).getContents?.() ?? [];
-    currentContents.forEach((contents: any) => applyReaderColorsToContents(contents, readerTextColor, readerBackgroundColor));
-  }, [readerBackgroundColor, readerTextColor]);
+    currentContents.forEach((contents: any) =>
+      applyReaderAppearanceToContents(
+        contents,
+        readerTextColor,
+        readerBackgroundColor,
+        readerFontFamily
+      )
+    );
+  }, [readerBackgroundColor, readerFontFamily, readerTextColor]);
 
   const refreshRenditionLayout = useCallback(() => {
     const rendition = renditionRef.current as any;

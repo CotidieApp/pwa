@@ -1619,7 +1619,7 @@ export default function MainApp() {
         </div>
       )}
 
-      <div className="relative z-10 flex flex-col h-full md:max-w-6xl md:mx-auto md:border-x md:border-border/50">
+      <div className="relative z-10 flex h-full w-full flex-col md:max-w-6xl md:mx-auto md:border-x md:border-border/50">
         {showsStandardHeader && (
           <Header
             title={headerTitle}

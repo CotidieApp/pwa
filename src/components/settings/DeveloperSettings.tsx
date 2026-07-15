@@ -30,6 +30,8 @@ interface DeveloperSettingsProps {
   onOpenDashboard?: () => void;
 }
 
+const APP_SHARE_URL = 'https://n9.cl/cotidie-installer';
+
 export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettingsProps) {
   const {
     resetSettings,
@@ -204,6 +206,30 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
     setIsAlertOpen(false);
   };
 
+  const handleShareApplication = async () => {
+    try {
+      if (!Capacitor.isNativePlatform() && typeof navigator.share !== 'function') {
+        await navigator.clipboard.writeText(APP_SHARE_URL);
+        toast({ title: 'Enlace copiado', description: APP_SHARE_URL });
+        return;
+      }
+
+      await Share.share({
+        title: 'Cotidie',
+        text: 'Descarga Cotidie desde su enlace oficial.',
+        url: APP_SHARE_URL,
+        dialogTitle: 'Compartir Cotidie',
+      });
+    } catch (error) {
+      if (error instanceof Error && /cancel/i.test(error.message)) return;
+      toast({
+        variant: 'destructive',
+        title: 'No se pudo compartir',
+        description: APP_SHARE_URL,
+      });
+    }
+  };
+
   return (
     <div className="space-y-5 pb-4">
       <Card>
@@ -255,6 +281,11 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
           <CardTitle className="font-headline text-base">General</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
+          <Button variant="outline" onClick={handleShareApplication}>
+            <Icon.Share2 className="mr-2 size-4" />
+            Compartir aplicación
+          </Button>
+
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="outline">

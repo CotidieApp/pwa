@@ -295,9 +295,9 @@ const paraprolongarMisa: Prayer = {
   content: {
     español: `Señor Jesús, que te has ofrecido al Padre por mí en el santo sacrificio de la Misa, haz que yo prolongue durante este día la gracia que he recibido.
 
-Que mi trabajo sea ofrenda, mi oración sea continua, mi alegría sea testimonio, mi mortificación sea amor, y mi trato con los demás sea reflejo de tu caridad.
+Que mi trabajo sea ofrenda, mi oración sea continua, mi alegría sea testimonio, mi mortificación sea amor, y mi trato con los demás sea reflejo de Tu Caridad.
 
-Enséñame a encontrarte en las ocupaciones ordinarias, a servirte en las cosas pequeñas, y a vivir en tu presencia con corazón fiel y agradecido.
+Enséñame a encontrarte en las ocupaciones ordinarias, a servirte en las cosas pequeñas, y a vivir en Tu presencia con corazón fiel y agradecido.
 
 Que todo lo que piense, diga y haga sea para gloria de Dios Padre, en unión contigo y bajo la acción del Espíritu Santo.
 

@@ -65,6 +65,13 @@ export const fixedNotifications: FixedNotificationEntry[] = [
     route: 'inicio/devociones/oracion-a-san-josemaria'
   },
   {
+    date: '16/07 09:00', // Nuestra Señora del Carmen, Madre y Reina de Chile
+    title: 'Nuestra Señora del Carmen',
+    text: 'En su solemnidad, encomienda Chile a su Madre y Reina y renueva tu confianza en su protección.',
+    image: './images/virgen-del-carmen-chile.jpeg',
+    route: 'inicio/devociones/oracion-por-chile-a-nuestra-senora-del-carmen'
+  },
+  {
     date: '25/03 09:00', // Anunciación del Señor
     title: 'Anunciación del Señor',
     text: 'Di tu «hágase» al Señor y renueva tu confianza en su plan.'

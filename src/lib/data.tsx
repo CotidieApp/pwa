@@ -18,6 +18,7 @@ import { sanFranciscoDeSalesPrayer } from './prayers/devociones/sanfranciscodesa
 import { sanAgustinDeHiponaPrayer } from './prayers/devociones/sanagustindehipona';
 import { santoTomasDeAquinoPrayer } from './prayers/devociones/santotomasdeaquino';
 import { sanJosePrayer } from './prayers/devociones/sanjose';
+import { virgenDelCarmenPrayer } from './prayers/devociones/virgendelcarmen';
 
 // Plan de Vida
 import { ofrecimientoDeObras } from './prayers/plan-de-vida/ofrecimiento-obras';
@@ -219,6 +220,7 @@ export const initialPrayers: Prayer[] = [
   sanAgustinDeHiponaPrayer,
   santoTomasDeAquinoPrayer,
   sanJosePrayer,
+  virgenDelCarmenPrayer,
 
   // Plan de Vida
   ofrecimientoDeObras,

@@ -11,6 +11,7 @@ import { sanJuanPabloIIPrayer } from '@/lib/prayers/devociones/sanjuanpabloii';
 import { sanPedroPrayer } from '@/lib/prayers/devociones/sanpedro';
 import { santaTeresaDeLosAndesPrayer } from '@/lib/prayers/devociones/santateresadelosandes';
 import { santoTomasDeAquinoPrayer } from '@/lib/prayers/devociones/santotomasdeaquino';
+import { virgenDelCarmenPrayer } from '@/lib/prayers/devociones/virgendelcarmen';
 import type { ImagePlaceholder, Prayer, SaintOfTheDay } from '@/lib/types';
 
 type DevotionDayImageEntry = {
@@ -60,6 +61,7 @@ const devotionPrayersWithImages: Prayer[] = [
   sanAgustinDeHiponaPrayer,
   santoTomasDeAquinoPrayer,
   sanJosePrayer,
+  virgenDelCarmenPrayer,
 ].filter((prayer) => Boolean(prayer.id && prayer.imageUrl));
 
 const devotionAliasesByPrayerId: Record<string, string[]> = {
@@ -76,6 +78,7 @@ const devotionAliasesByPrayerId: Record<string, string[]> = {
   sanagustindehipona: ['San Agustin, obispo y doctor de la Iglesia', 'San Agustin de Hipona'],
   santotomasdeaquino: ['Santo Tomas de Aquino'],
   'devocion-san-jose': ['San Jose, esposo de la Virgen Maria', 'San Jose Obrero'],
+  virgendelcarmen: ['Nuestra Senora del Carmen', 'Nuestra Senora del Carmen, Madre y Reina de Chile'],
 };
 
 const missingAliasPrayerIds = devotionPrayersWithImages
