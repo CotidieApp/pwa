@@ -35,6 +35,7 @@ function hideFunctionProperties(value, seen = new WeakSet()) {
 export default function nextConfig(phase) {
   const config = {
     ...(phase === PHASE_DEVELOPMENT_SERVER ? {} : { output: "export" }),
+    distDir: phase === PHASE_DEVELOPMENT_SERVER ? ".next-dev" : ".next",
     eslint: {
       ignoreDuringBuilds: true,
     },

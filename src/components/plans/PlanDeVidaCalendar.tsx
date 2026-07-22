@@ -121,7 +121,7 @@ export default function PlanDeVidaCalendar() {
             No hay oraciones registradas para este mes.
           </div>
         ) : (
-          <table className="min-w-max border-collapse text-xs">
+          <table className="min-w-max border-separate border-spacing-0 text-xs">
             <thead>
               <tr>
                 <th className="sticky left-0 z-20 min-w-[180px] border-b border-r border-border bg-card px-3 py-2 text-left">

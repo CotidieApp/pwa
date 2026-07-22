@@ -48,6 +48,8 @@ final class SaintWidgetContentFactory {
                     new String[] {"santo tomas de aquino"}),
             new DevotionImageEntry("devocion-san-jose", "public/images/san-jose.jpg",
                     new String[] {"san jose esposo de la virgen maria", "san jose obrero"}),
+            new DevotionImageEntry("virgendelcarmen", "public/images/virgen-del-carmen-chile.jpeg",
+                    new String[] {"nuestra senora del carmen", "nuestra senora del carmen madre y reina de chile"}),
             new DevotionImageEntry("sagrado-corazon", "public/images/sacred-heart.jpeg",
                     new String[] {"sagrado corazon", "sagrado corazon de jesus"}),
             new DevotionImageEntry("immaculate-heart", "public/images/immaculate-heart.jpeg",

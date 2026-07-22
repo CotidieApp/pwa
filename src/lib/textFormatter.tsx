@@ -44,6 +44,16 @@ export const renderText = (text: string): React.ReactNode[] => {
     
     for (let j = 0; j < lines.length; j++) {
       let line = lines[j];
+      const trimmedSourceLine = line.trim();
+
+    if (/^(Oremos|Or[eé]mus|Oraci[oó]n)\s*[.:]?\s*$/i.test(trimmedSourceLine)) {
+        lineElements.push(
+          <span key={`subtitle-${i}-${j}`} className="block font-semibold text-muted-foreground">
+            {trimmedSourceLine}
+          </span>
+        );
+        continue;
+      }
 
       // Format bold, italic, underline first
       line = escapeHtml(line)
@@ -51,10 +61,15 @@ export const renderText = (text: string): React.ReactNode[] => {
         .replace(/\*(.*?)\*/g, '<em>$1</em>')
         .replace(/_(.*?)_/g, '<u>$1</u>');
 
+      line = line.replace(
+        /^(\s*)([VR](?:\/\.|\.\/|\.))(?=\s|$)/,
+        '$1<strong>$2</strong>'
+      );
+
       // V. / R. lines
-      if (line.trim().startsWith('<strong>V.</strong>') || line.trim().startsWith('<strong>R.</strong>')) {
+      if (/^<strong>[VR](?:\/\.|\.\/|\.)<\/strong>/.test(line.trim())) {
         lineElements.push(
-          <p key={`vr-${i}-${j}`} className="mt-2" dangerouslySetInnerHTML={{ __html: line }} />
+          <span key={`vr-${i}-${j}`} className="mt-2 block" dangerouslySetInnerHTML={{ __html: line }} />
         );
         continue;
       }

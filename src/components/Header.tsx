@@ -209,7 +209,7 @@ export default function Header({
   // Si está en modo sin distracciones, solo mostrar botón para salir
   if (isGlobalDistractionFree) {
     return (
-      <div className="fixed top-2 right-2 z-30 mt-[env(safe-area-inset-top)]">
+      <div className="fixed top-2 right-[max(0.5rem,env(safe-area-inset-right))] z-30 mt-[env(safe-area-inset-top)]">
         <Button
           variant="ghost"
           size="icon"
@@ -292,7 +292,7 @@ export default function Header({
           "bg-primary text-primary-foreground shadow-md border-b border-primary-foreground/10"
         )}
       >
-        <div className="w-full max-w-6xl mx-auto px-4 relative flex items-center justify-between">
+        <div className="w-full max-w-6xl mx-auto pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] relative flex items-center justify-between">
         <h1
           className={cn(
             "absolute inset-x-0 text-center pointer-events-none",
@@ -310,7 +310,7 @@ export default function Header({
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-primary-foreground -ml-2 hover:bg-transparent hover:text-primary-foreground active:bg-primary-foreground/15"
+                className="text-primary-foreground -ml-2 hover:bg-transparent hover:text-primary-foreground data-[pressed=true]:bg-primary-foreground/15"
                 onClick={onBack}
                 title="Volver"
               >
@@ -335,6 +335,15 @@ export default function Header({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="min-w-64 p-1.5">
+                  {showSearchButton && onToggleSearch ? (
+                    <DropdownMenuItem
+                      className="min-h-11 px-3 py-2.5 text-[0.95rem] [&_svg]:size-5"
+                      onSelect={onToggleSearch}
+                    >
+                      <Search />
+                      Buscar en Camino
+                    </DropdownMenuItem>
+                  ) : null}
                   <DropdownMenuItem
                     className="min-h-11 px-3 py-2.5 text-[0.95rem] [&_svg]:size-5"
                     onSelect={onToggleDistractionFree}

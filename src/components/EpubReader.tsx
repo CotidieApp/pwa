@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { BookOpen, Maximize2, Menu, Search } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 import { useScreenWakeLock } from '@/hooks/useScreenWakeLock';
+import { cn } from '@/lib/utils';
 
 const DEFAULT_FILE_NAME = 'nuevo-testamento.epub';
 const EPUB_FONT_SIZE_STORAGE_KEY = 'cotidie_epub_font_size';
@@ -408,12 +409,11 @@ export default function EpubReader({
     return tocEntries.filter((entry) => detectNtBookId(entry.label) === tocBookFilter);
   }, [isNtContext, tocBookFilter, tocEntries]);
   const availablePanelTabs = useMemo<Array<'toc' | 'search' | 'bookmarks' | 'highlights'>>(() => {
-    const tabs: Array<'toc' | 'search' | 'bookmarks' | 'highlights'> = ['search'];
+    const tabs: Array<'toc' | 'search' | 'bookmarks' | 'highlights'> = ['search', 'highlights'];
     if (tocEntries.length > 0) tabs.unshift('toc');
     if (bookmarks.length > 0) tabs.push('bookmarks');
-    if (highlights.length > 0) tabs.push('highlights');
     return tabs;
-  }, [bookmarks.length, highlights.length, tocEntries.length]);
+  }, [bookmarks.length, tocEntries.length]);
 
   const getSpineItems = useCallback(() => {
     const items = ((bookRef.current as any)?.spine?.spineItems ?? []) as any[];
@@ -446,25 +446,21 @@ export default function EpubReader({
       : spineItems.slice(startIndex);
   }, [getSpineItems, tocBookAnchors]);
 
+  const persistReaderLocation = useCallback((location: StoredReaderLocation | null) => {
+    if (!location?.cfi && !location?.href) return;
+    stableLocationRef.current = location;
+    if (location.cfi) setCurrentCfi(location.cfi);
+    try {
+      window.localStorage.setItem(locationStorageKey, serializeStoredReaderLocation(location));
+    } catch {}
+  }, [locationStorageKey]);
+
   const persistCurrentLocation = useCallback(() => {
     const pendingLocation = pendingLayoutLocationRef.current;
     const currentLocation = getRenditionLocation(renditionRef.current);
     const stableLocation = stableLocationRef.current;
-    const cfi = pendingLocation?.cfi ?? stableLocation?.cfi ?? currentLocation?.cfi;
-    const href = pendingLocation?.href ?? stableLocation?.href ?? currentLocation?.href;
-
-    if (!cfi && !href) return;
-
-    try {
-      window.localStorage.setItem(
-        locationStorageKey,
-        serializeStoredReaderLocation({
-          ...(cfi ? { cfi } : {}),
-          ...(href ? { href } : {}),
-        })
-      );
-    } catch {}
-  }, [locationStorageKey]);
+    persistReaderLocation(pendingLocation ?? currentLocation ?? stableLocation);
+  }, [persistReaderLocation]);
 
   const findNtReferenceInSection = useCallback(async (section: any, reference: NtReference): Promise<SearchResult | null> => {
     if (!bookRef.current) return null;
@@ -579,14 +575,14 @@ export default function EpubReader({
     let activeRendition: Rendition | null = null;
 
     const dispose = () => {
+      if (renditionRef.current === activeRendition) renditionRef.current = null;
+      if (bookRef.current === activeBook) bookRef.current = null;
       try {
         activeRendition?.destroy?.();
       } catch {}
       try {
         activeBook?.destroy?.();
       } catch {}
-      if (renditionRef.current === activeRendition) renditionRef.current = null;
-      if (bookRef.current === activeBook) bookRef.current = null;
       activeRendition = null;
       activeBook = null;
     };
@@ -679,24 +675,16 @@ export default function EpubReader({
             if (displayed) {
               setLocationLabel(`${displayed.page}/${displayed.total}`);
             }
-            const cfi = location?.start?.cfi;
-            const href = location?.start?.href;
-            if (typeof cfi === 'string' && cfi.length > 0) {
-              stableLocationRef.current = {
-                cfi,
-                ...(typeof href === 'string' && href.length > 0 ? { href } : {}),
-              };
-              const locationPayload = serializeStoredReaderLocation({
-                cfi,
-                ...(typeof href === 'string' && href.length > 0 ? { href } : {}),
+            const cfi = typeof location?.start?.cfi === 'string' ? location.start.cfi : '';
+            const href = typeof location?.start?.href === 'string' ? location.start.href : '';
+            if (cfi || href) {
+              persistReaderLocation({
+                ...(cfi ? { cfi } : {}),
+                ...(href ? { href } : {}),
               });
-              try {
-                window.localStorage.setItem(locationStorageKey, locationPayload);
-              } catch {}
-              setCurrentCfi(cfi);
 
               // Emit event for debug or external sync if needed
-              pushDevLiveTrace({
+              if (cfi) pushDevLiveTrace({
                 level: 'info',
                 source: 'epub-reader',
                 message: 'Ubicacion guardada.',
@@ -720,7 +708,6 @@ export default function EpubReader({
             setPendingSelectionCfi(cfiRange);
             const selectedText = contents?.window?.getSelection?.()?.toString?.() ?? '';
             setPendingSelectionText(selectedText.trim());
-            contents?.window?.getSelection?.()?.removeAllRanges?.();
           } catch (err) {
             const message = err instanceof Error ? err.message : 'Fallo en callback selected.';
             pushDevLiveTrace({
@@ -765,6 +752,8 @@ export default function EpubReader({
         }
         if (cancelled) return;
 
+        persistReaderLocation(getRenditionLocation(rendition) ?? savedLocation);
+
         const currentContents = (rendition as any).getContents?.() ?? [];
         currentContents.forEach((contents: any) =>
           applyReaderAppearanceToContents(
@@ -807,7 +796,7 @@ export default function EpubReader({
       } catch {}
       dispose();
     };
-  }, [bookmarksStorageKey, epubUrl, highlightsStorageKey, locationStorageKey, sourceBase64]);
+  }, [bookmarksStorageKey, epubUrl, highlightsStorageKey, locationStorageKey, persistReaderLocation, sourceBase64]);
 
   useEffect(() => {
     const rendition = renditionRef.current;
@@ -830,11 +819,13 @@ export default function EpubReader({
   const refreshRenditionLayout = useCallback(() => {
     const rendition = renditionRef.current as any;
     const container = containerRef.current;
-    if (!rendition || !container) return;
+    if (!rendition?.manager || !container) return;
     const width = container.clientWidth;
     const height = container.clientHeight;
     if (width <= 0 || height <= 0) return;
-    rendition.resize?.(width, height);
+    try {
+      rendition.resize?.(width, height);
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -869,14 +860,7 @@ export default function EpubReader({
               if (restoredLocation?.cfi) {
                 setCurrentCfi(restoredLocation.cfi);
               }
-              if (restoredLocation?.cfi || restoredLocation?.href) {
-                try {
-                  window.localStorage.setItem(
-                    locationStorageKey,
-                    serializeStoredReaderLocation(restoredLocation)
-                  );
-                } catch {}
-              }
+              persistReaderLocation(restoredLocation);
             })
             .catch(() => {
               pendingLayoutLocationRef.current = null;
@@ -884,13 +868,13 @@ export default function EpubReader({
         } else {
           pendingLayoutLocationRef.current = null;
         }
-      }, 80);
+      }, 160);
     });
     return () => {
       window.cancelAnimationFrame(frame);
       if (restoreTimer) window.clearTimeout(restoreTimer);
     };
-  }, [isReaderFullscreen, locationStorageKey, refreshRenditionLayout]);
+  }, [isReaderFullscreen, persistReaderLocation, refreshRenditionLayout]);
 
   useEffect(() => {
     const onResize = () => refreshRenditionLayout();
@@ -922,6 +906,13 @@ export default function EpubReader({
     };
   }, [persistCurrentLocation]);
 
+  const persistAfterNavigation = () => {
+    window.setTimeout(() => {
+      const location = getRenditionLocation(renditionRef.current);
+      if (location) persistReaderLocation(location);
+    }, 80);
+  };
+
   const moveBySpine = async (delta: -1 | 1) => {
     const rendition = renditionRef.current as any;
     const book = bookRef.current as any;
@@ -940,11 +931,15 @@ export default function EpubReader({
     const rendition = renditionRef.current as any;
     if (!rendition || !isReaderFullscreenRef.current) return;
     Promise.resolve(rendition.prev?.())
-      .then(() => setNavigationError(null))
+      .then(() => {
+        setNavigationError(null);
+        persistAfterNavigation();
+      })
       .catch(async () => {
         try {
           await moveBySpine(-1);
           setNavigationError(null);
+          persistAfterNavigation();
         } catch (err) {
           const message = err instanceof Error ? err.message : 'No se pudo retroceder de pagina.';
           setNavigationError(message);
@@ -955,9 +950,6 @@ export default function EpubReader({
             data: message,
           });
         }
-      })
-      .finally(() => {
-        window.setTimeout(() => refreshRenditionLayout(), 40);
       });
   };
 
@@ -965,11 +957,15 @@ export default function EpubReader({
     const rendition = renditionRef.current as any;
     if (!rendition || !isReaderFullscreenRef.current) return;
     Promise.resolve(rendition.next?.())
-      .then(() => setNavigationError(null))
+      .then(() => {
+        setNavigationError(null);
+        persistAfterNavigation();
+      })
       .catch(async () => {
         try {
           await moveBySpine(1);
           setNavigationError(null);
+          persistAfterNavigation();
         } catch (err) {
           const message = err instanceof Error ? err.message : 'No se pudo avanzar de pagina.';
           setNavigationError(message);
@@ -980,9 +976,6 @@ export default function EpubReader({
             data: message,
           });
         }
-      })
-      .finally(() => {
-        window.setTimeout(() => refreshRenditionLayout(), 40);
       });
   };
 
@@ -994,25 +987,44 @@ export default function EpubReader({
   };
 
   const enterReaderFullscreen = () => {
-    pendingLayoutLocationRef.current = stableLocationRef.current ?? getRenditionLocation(renditionRef.current);
+    const location = getRenditionLocation(renditionRef.current) ?? stableLocationRef.current;
+    persistReaderLocation(location);
+    pendingLayoutLocationRef.current = location;
     setIsPanelOpen(false);
     isReaderFullscreenRef.current = true;
     setIsReaderFullscreen(true);
   };
 
   const exitReaderFullscreen = () => {
-    pendingLayoutLocationRef.current = stableLocationRef.current ?? getRenditionLocation(renditionRef.current);
+    const location = getRenditionLocation(renditionRef.current) ?? stableLocationRef.current;
+    persistReaderLocation(location);
+    pendingLayoutLocationRef.current = location;
     isReaderFullscreenRef.current = false;
     setIsReaderFullscreen(false);
   };
 
   readerTapHandlerRef.current = (event) => {
-    if (isReaderFullscreenRef.current) return;
     const selection = event.view?.getSelection?.()?.toString().trim() ?? '';
     if (selection) return;
     const target = event.target as Element | null;
     if (target?.closest?.('a, button, input, textarea, select')) return;
-    enterReaderFullscreen();
+    if (!isReaderFullscreenRef.current) {
+      enterReaderFullscreen();
+      return;
+    }
+
+    const width = containerRef.current?.clientWidth ?? window.innerWidth;
+    const height = containerRef.current?.clientHeight ?? window.innerHeight;
+    if (width <= 0 || height <= 0) return;
+    const localX = ((event.clientX % width) + width) % width;
+
+    if (localX < width * 0.25) {
+      goPrev();
+    } else if (localX > width * 0.66) {
+      goNext();
+    } else if (event.clientY < height * 0.5) {
+      exitReaderFullscreen();
+    }
   };
 
   useEffect(() => {
@@ -1026,9 +1038,14 @@ export default function EpubReader({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isReaderFullscreen]);
 
+  const displayAndPersist = async (target: string) => {
+    await renditionRef.current?.display(target);
+    persistAfterNavigation();
+  };
+
   const jumpToToc = async (href: string) => {
     setSelectedToc(href);
-    await renditionRef.current?.display(href);
+    await displayAndPersist(href);
     setIsPanelOpen(false);
   };
 
@@ -1087,7 +1104,7 @@ export default function EpubReader({
   };
 
   const openSearchResult = async (item: SearchResult) => {
-    await renditionRef.current?.display(item.target);
+    await displayAndPersist(item.target);
     setIsPanelOpen(false);
   };
 
@@ -1122,6 +1139,14 @@ export default function EpubReader({
     } catch {}
   };
 
+  const clearPendingSelection = () => {
+    const contents = (renditionRef.current as any)?.getContents?.() ?? [];
+    contents.forEach((content: any) => content?.window?.getSelection?.()?.removeAllRanges?.());
+    setPendingSelectionCfi('');
+    setPendingSelectionText('');
+    setHighlightNoteDraft('');
+  };
+
   const addHighlightFromSelection = () => {
     if (!pendingSelectionCfi || !renditionRef.current) return;
     const note = highlightNoteDraft.trim();
@@ -1147,9 +1172,7 @@ export default function EpubReader({
       );
     } catch {}
     persistHighlights([item, ...highlights]);
-    setPendingSelectionCfi('');
-    setPendingSelectionText('');
-    setHighlightNoteDraft('');
+    clearPendingSelection();
   };
 
   const removeHighlight = (item: HighlightItem) => {
@@ -1312,36 +1335,6 @@ export default function EpubReader({
           </div>
         </div>
 
-      {pendingSelectionCfi ? (
-        <div className="space-y-2 rounded-md border border-border p-2 bg-background/60">
-          <div className="text-xs text-muted-foreground">
-            Selección lista para subrayar: {pendingSelectionText || '(sin texto)'}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Input
-              value={highlightNoteDraft}
-              onChange={(e) => setHighlightNoteDraft(e.target.value)}
-              placeholder="Nota opcional para este subrayado"
-            />
-            <Button
-              variant="outline"
-              onClick={addHighlightFromSelection}
-              disabled={!pendingSelectionCfi || status !== 'ready'}
-            >
-              Subrayar selección
-            </Button>
-            <Input
-              value={bookmarkLabel}
-              onChange={(e) => setBookmarkLabel(e.target.value)}
-              placeholder="Nombre del marcador"
-            />
-            <Button variant="outline" onClick={addBookmark} disabled={!currentCfi || status !== 'ready'}>
-              Guardar marcador
-            </Button>
-          </div>
-        </div>
-      ) : null}
-
       {status === 'loading' && <div className="text-xs text-muted-foreground">Cargando EPUB...</div>}
       {status === 'error' && (
         <div className="text-xs text-destructive">
@@ -1367,33 +1360,55 @@ export default function EpubReader({
             height: `calc(100% - ${EPUB_PAGE_BOTTOM_GUARD})`,
           }}
         />
-        {isReaderFullscreen ? (
-          <div className="pointer-events-none absolute inset-0 z-[30]">
-            <button
-              type="button"
-              aria-label="Pagina anterior"
-              onClick={goPrev}
-              disabled={status !== 'ready'}
-              className="pointer-events-auto absolute inset-y-0 left-0 w-1/4"
-            />
-            <button
-              type="button"
-              aria-label="Pagina siguiente"
-              onClick={goNext}
-              disabled={status !== 'ready'}
-              className="pointer-events-auto absolute inset-y-0 right-0 w-1/3"
-            />
-          </div>
-        ) : null}
-        {isReaderFullscreen ? (
-          <button
-            type="button"
-            aria-label="Salir de pantalla completa"
-            onClick={exitReaderFullscreen}
-            className="absolute left-1/3 right-1/3 top-0 z-[40] h-1/2 opacity-0"
-          />
-        ) : null}
       </div>
+
+      {pendingSelectionCfi ? (
+        <div
+          data-no-touch-nav
+          className={cn(
+            'z-[160] space-y-2 rounded-md border border-border p-3',
+            isReaderFullscreen
+              ? 'fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-[max(0.75rem,env(safe-area-inset-left))] right-[max(0.75rem,env(safe-area-inset-right))] shadow-xl'
+              : 'bg-background/60'
+          )}
+          style={isReaderFullscreen ? { backgroundColor: readerBackgroundColor } : undefined}
+        >
+          <div className="line-clamp-2 text-xs text-muted-foreground">
+            Selección: {pendingSelectionText || '(sin texto)'}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Input
+              className="min-w-0 flex-1"
+              value={highlightNoteDraft}
+              onChange={(e) => setHighlightNoteDraft(e.target.value)}
+              placeholder="Nota opcional"
+            />
+            <Button
+              variant="outline"
+              onClick={addHighlightFromSelection}
+              disabled={status !== 'ready'}
+            >
+              Guardar subrayado
+            </Button>
+            <Button variant="ghost" onClick={clearPendingSelection}>
+              Cancelar
+            </Button>
+          </div>
+          {!isReaderFullscreen ? (
+            <div className="flex flex-wrap gap-2">
+              <Input
+                className="min-w-0 flex-1"
+                value={bookmarkLabel}
+                onChange={(e) => setBookmarkLabel(e.target.value)}
+                placeholder="Nombre del marcador"
+              />
+              <Button variant="outline" onClick={addBookmark} disabled={!currentCfi || status !== 'ready'}>
+                Guardar marcador
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       <Sheet open={isPanelOpen} onOpenChange={setIsPanelOpen}>
         <SheetContent
@@ -1530,7 +1545,7 @@ export default function EpubReader({
                         <button
                           className="flex-1 text-left text-xs hover:underline"
                           onClick={() => {
-                            renditionRef.current?.display(item.cfi);
+                            void displayAndPersist(item.cfi);
                             setIsPanelOpen(false);
                           }}
                         >
@@ -1558,7 +1573,7 @@ export default function EpubReader({
                         <button
                           className="w-full text-left text-xs hover:underline"
                           onClick={() => {
-                            renditionRef.current?.display(item.cfiRange);
+                            void displayAndPersist(item.cfiRange);
                             setIsPanelOpen(false);
                           }}
                         >

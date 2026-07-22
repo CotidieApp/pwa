@@ -2,7 +2,9 @@ package com.benjamin.studio;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import com.benjamin.studio.widgets.SaintWidgetPreferences;
+import com.benjamin.studio.widgets.SaintWidgetContent;
 import com.benjamin.studio.widgets.SaintWidgetUpdater;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
@@ -81,6 +83,54 @@ public class BackgroundActionsPlugin extends Plugin {
             SaintWidgetUpdater.updateAll(context);
         }
         call.resolve();
+    }
+
+    @PluginMethod
+    public void refreshSaintWidgets(PluginCall call) {
+        Context context = getContext();
+        if (context != null) {
+            SaintWidgetContent fallback = SaintWidgetUpdater.contentForNow(context);
+            String name = call.getString("name", fallback.name);
+            String bio = call.getString("bio", fallback.bio);
+            String prayerId = call.getString("prayerId", fallback.prayerId);
+            String imageId = call.getString("imageId", fallback.imageId);
+            String imageAssetPath = resolvePublicAssetPath(call.getString("imageUrl", ""), fallback.imageAssetPath);
+            int backgroundColor = parseColor(call.getString("backgroundColor", ""), fallback.backgroundColor);
+            boolean lightBackground = isLightColor(backgroundColor);
+            SaintWidgetContent synced = new SaintWidgetContent(
+                    name,
+                    bio,
+                    prayerId,
+                    imageId,
+                    imageAssetPath,
+                    fallback.overlayImageAssetPath,
+                    backgroundColor,
+                    lightBackground ? Color.parseColor("#1E293B") : Color.WHITE,
+                    lightBackground ? Color.parseColor("#334155") : Color.argb(230, 255, 255, 255)
+            );
+            SaintWidgetUpdater.updateAll(context, synced);
+        }
+        call.resolve();
+    }
+
+    private static String resolvePublicAssetPath(String imageUrl, String fallback) {
+        if (imageUrl == null || !imageUrl.startsWith("/")) return fallback;
+        return "public" + imageUrl;
+    }
+
+    private static int parseColor(String value, int fallback) {
+        try {
+            return Color.parseColor(value);
+        } catch (Exception ignored) {
+            return fallback;
+        }
+    }
+
+    private static boolean isLightColor(int color) {
+        double luminance = (0.2126 * Color.red(color))
+                + (0.7152 * Color.green(color))
+                + (0.0722 * Color.blue(color));
+        return luminance > 153;
     }
 
     @PluginMethod

@@ -10,7 +10,7 @@ import { resolveDevotionDayPrayerId } from '@/lib/devotion-day-images';
 import { cn } from '@/lib/utils';
 import { getLiturgicalColor } from '@/lib/getLiturgicalColor';
 import { renderText } from '@/lib/textFormatter';
-import { getImageObjectPosition } from '@/lib/image-display';
+import { getImageObjectPosition, getImageObjectScale } from '@/lib/image-display';
 
 type SaintOfTheDayCardProps = {
   onOpenPrayerById?: (id: string) => void;
@@ -59,6 +59,7 @@ export default function SaintOfTheDayCard({ onOpenPrayerById }: SaintOfTheDayCar
   const isLightColor = isLightHexColor(color);
   const textColor = isLightColor ? 'text-slate-800' : 'text-white';
   const objectPosition = getImageObjectPosition(activeImage?.id);
+  const objectScale = getImageObjectScale(activeImage?.id);
 
   const handleOpen = () => {
     if (!activePrayerId || !onOpenPrayerById) return;
@@ -68,7 +69,7 @@ export default function SaintOfTheDayCard({ onOpenPrayerById }: SaintOfTheDayCar
   return (
     <Card
       className={cn(
-        'shadow-md mb-4 overflow-hidden relative',
+        'saint-day-card shadow-md mb-4 overflow-hidden relative',
         textColor,
         isClickable && 'cursor-pointer transition-colors hover:bg-accent/20'
       )}
@@ -85,14 +86,14 @@ export default function SaintOfTheDayCard({ onOpenPrayerById }: SaintOfTheDayCar
       aria-label={isClickable ? `Abrir ${activeSaint.name}` : undefined}
     >
       {activeImage && (
-        <div className="relative w-full aspect-[3/2]">
+        <div className="saint-day-image relative w-full aspect-[3/2]">
           <Image
             src={activeImage.imageUrl}
             alt={activeImage.description || 'Imagen del Santo del Día'}
             fill
             sizes="(max-width: 768px) 100vw, 33vw"
             className="object-cover"
-            style={{ objectPosition }}
+            style={{ objectPosition, transform: `scale(${objectScale})` }}
             data-ai-hint={activeImage.imageHint}
             priority
           />
@@ -137,12 +138,12 @@ export default function SaintOfTheDayCard({ onOpenPrayerById }: SaintOfTheDayCar
           )}
         </div>
       )}
-      <CardHeader>
+      <CardHeader className="saint-day-header">
         <CardTitle className="font-headline text-base font-bold flex justify-between items-start gap-2">
           <span>{activeSaint.name}</span>
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="saint-day-content">
         <div
           className={cn(
             'text-sm leading-relaxed space-y-2',

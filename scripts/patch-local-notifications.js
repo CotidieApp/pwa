@@ -134,7 +134,7 @@ if (!source.includes('NotificationCompat.BigPictureStyle')) {
   );
 }
 
-if (!source.includes('Cotidie exact alarm safe fallback v2')) {
+if (!source.includes('Cotidie strict exact alarm v3')) {
   replaceOnce(
     /    private void setExactIfPossible\(\r?\n        AlarmManager alarmManager,\r?\n        LocalNotificationSchedule schedule,\r?\n        long trigger,\r?\n        PendingIntent pendingIntent\r?\n    \) \{[\s\S]*?\r?\n    \}\r?\n\r?\n    public void cancel\(PluginCall call\) \{/,
     `    private void setExactIfPossible(
@@ -143,27 +143,13 @@ if (!source.includes('Cotidie exact alarm safe fallback v2')) {
         long trigger,
         PendingIntent pendingIntent
     ) {
-        // Cotidie exact alarm safe fallback v2
+        // Cotidie strict exact alarm v3
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
-            Logger.warn(
-                "Capacitor/LocalNotification",
-                "Exact alarms not allowed in user settings. Notification scheduled with alarm-clock fallback."
+            Logger.error(
+                Logger.tags("LN"),
+                "Exact alarm access is required. Notification was not scheduled with an imprecise fallback.",
+                null
             );
-            try {
-                Intent launchIntent = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
-                PendingIntent showIntent = launchIntent != null
-                    ? PendingIntent.getActivity(
-                        context,
-                        (int) (trigger % Integer.MAX_VALUE),
-                        launchIntent,
-                        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-                    )
-                    : pendingIntent;
-                alarmManager.setAlarmClock(new AlarmManager.AlarmClockInfo(trigger, showIntent), pendingIntent);
-                return;
-            } catch (Exception ignored) {}
-
-            setInexactFallback(alarmManager, schedule, trigger, pendingIntent);
             return;
         }
 
@@ -174,27 +160,11 @@ if (!source.includes('Cotidie exact alarm safe fallback v2')) {
                 alarmManager.setExact(AlarmManager.RTC_WAKEUP, trigger, pendingIntent);
             }
         } catch (Exception exactError) {
-            Logger.warn(
-                "Capacitor/LocalNotification",
-                "Exact alarm scheduling failed. Notification scheduled with inexact fallback."
+            Logger.error(
+                Logger.tags("LN"),
+                "Exact alarm scheduling failed. Notification was not scheduled with an imprecise fallback.",
+                exactError
             );
-            setInexactFallback(alarmManager, schedule, trigger, pendingIntent);
-        }
-    }
-
-    private void setInexactFallback(
-        AlarmManager alarmManager,
-        LocalNotificationSchedule schedule,
-        long trigger,
-        PendingIntent pendingIntent
-    ) {
-        try {
-            if (schedule.allowWhileIdle()) {
-                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, trigger, pendingIntent);
-            } else {
-                alarmManager.set(AlarmManager.RTC_WAKEUP, trigger, pendingIntent);
-            }
-        } catch (Exception ignored) {
         }
     }
 
@@ -675,22 +645,24 @@ import java.util.regex.Pattern;`,
     );
   }
 
-  if (!publisherSource.includes('Cotidie early-delivery guard v1')) {
-    replacePublisherOnce(
-      /        notification\.when = System\.currentTimeMillis\(\);\r?\n\r?\n        int id = intent\.getIntExtra\(LocalNotificationManager\.NOTIFICATION_INTENT_KEY, Integer\.MIN_VALUE\);([\s\S]*?)        JSObject notificationJson = storage\.getSavedNotificationAsJSObject\(Integer\.toString\(id\)\);/,
-      `        int id = intent.getIntExtra(LocalNotificationManager.NOTIFICATION_INTENT_KEY, Integer.MIN_VALUE);$1        JSObject notificationJson = storage.getSavedNotificationAsJSObject(Integer.toString(id));
+  if (!publisherSource.includes('Cotidie early-delivery guard v2')) {
+    if (!publisherSource.includes('deferCotidieEarlyNotification(context, intent, notificationJson, id)')) {
+      replacePublisherOnce(
+        /        notification\.when = System\.currentTimeMillis\(\);\r?\n\r?\n        int id = intent\.getIntExtra\(LocalNotificationManager\.NOTIFICATION_INTENT_KEY, Integer\.MIN_VALUE\);([\s\S]*?)        JSObject notificationJson = storage\.getSavedNotificationAsJSObject\(Integer\.toString\(id\)\);/,
+        `        int id = intent.getIntExtra(LocalNotificationManager.NOTIFICATION_INTENT_KEY, Integer.MIN_VALUE);$1        JSObject notificationJson = storage.getSavedNotificationAsJSObject(Integer.toString(id));
         if (deferCotidieEarlyNotification(context, intent, notificationJson, id)) {
             return;
         }
 
         notification.when = System.currentTimeMillis();`,
-      'timed notification early-delivery call'
-    );
+        'timed notification early-delivery call'
+      );
+    }
 
     replacePublisherOnce(
-      /    private Notification applyCotidieBigPictureStyle\(Context context, Notification notification, JSObject notificationJson\) \{/,
+      /    private boolean deferCotidieEarlyNotification\(Context context, Intent intent, JSObject notificationJson, int id\) \{[\s\S]*?\r?\n    \}\r?\n\r?\n    private Notification applyCotidieBigPictureStyle\(Context context, Notification notification, JSObject notificationJson\) \{|    private Notification applyCotidieBigPictureStyle\(Context context, Notification notification, JSObject notificationJson\) \{/,
       `    private boolean deferCotidieEarlyNotification(Context context, Intent intent, JSObject notificationJson, int id) {
-        // Cotidie early-delivery guard v1
+        // Cotidie early-delivery guard v2
         if (notificationJson == null) return false;
         try {
             JSObject schedule = notificationJson.getJSObject("schedule");
@@ -712,18 +684,24 @@ import java.util.regex.Pattern;`,
             PendingIntent pendingIntent = PendingIntent.getBroadcast(context, id, retryIntent, flags);
             long triggerAt = scheduledAt.getTime();
 
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()) {
-                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent);
-            } else {
-                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+                Logger.error(
+                    Logger.tags("LN"),
+                    "An early notification was suppressed because exact alarm access is unavailable.",
+                    null
+                );
+                return true;
             }
+
+            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent);
             Logger.warn(
                 "Capacitor/LocalNotification",
                 "Notification arrived before its requested time and was deferred to the exact schedule."
             );
             return true;
-        } catch (Exception ignored) {
-            return false;
+        } catch (Exception exactError) {
+            Logger.error(Logger.tags("LN"), "Failed to defer an early notification exactly.", exactError);
+            return true;
         }
     }
 

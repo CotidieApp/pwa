@@ -28,6 +28,7 @@ export const RESTORABLE_VIEWS = new Set([
   'settings',
   'customPlan',
   'viaCrucis',
+  'exposition',
   'rosary',
   'rosaryMeditated',
   'planCalendar',

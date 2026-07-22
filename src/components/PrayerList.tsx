@@ -165,15 +165,17 @@ export default function PrayerList({
   }, [isOracionesRoot, filteredPrayers]);
 
   return (
-    <div className="space-y-3 pb-4">
+    <div className="prayer-list-layout space-y-3 pb-4" data-category={categoryId || undefined}>
       {/* Santo del día arriba solo en devociones */}
       {categoryId === 'devociones' && prayerPathLength === 0 && (
-        <SaintOfTheDayCard onOpenPrayerById={onOpenPrayerById} />
+        <div className="prayer-list-feature">
+          <SaintOfTheDayCard onOpenPrayerById={onOpenPrayerById} />
+        </div>
       )}
 
       {/* Grid de Subcategorías para Oraciones */}
       {isOracionesRoot && subcategories.length > 0 && (
-        <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="prayer-list-subcategories grid grid-cols-2 gap-3 mb-4">
           {subcategories.map((sub, idx) => (
             <Card
               key={sub.id || idx}
@@ -204,40 +206,42 @@ export default function PrayerList({
 
       {/* Lista de oraciones (normal o después del grid) */}
       {otherPrayers.length > 0 ? (
-        otherPrayers.map((prayer, index) => (
-          <Card
-            key={prayer.id || index}
-            className={cn(
-              "bg-card/80 shadow-md backdrop-blur-sm border-border/50 p-4 flex flex-col gap-2 cursor-pointer hover:bg-accent/20 transition-colors",
-              isOracionesRoot && index === 0 && subcategories.length > 0 && "mt-4"
-            )}
-            onClick={() => onSelectPrayer(prayer)}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3 flex-1 overflow-hidden">
-                {showTracker && prayer.id && (
-                  <Checkbox
-                    id={`tracker-${prayer.id}`}
-                    checked={planDeVidaProgress.includes(prayer.id)}
-                    onCheckedChange={() => togglePlanDeVidaItem(prayer.id!)}
-                    onClick={(e) => e.stopPropagation()}
-                    className="size-5"
-                  />
-                )}
-                <CardTitle className="font-headline text-base font-normal truncate">
-                  {prayer.title}
-                </CardTitle>
-              </div>
+        <div className="prayer-list-items space-y-3">
+          {otherPrayers.map((prayer, index) => (
+            <Card
+              key={prayer.id || index}
+              className={cn(
+                "prayer-list-item bg-card/80 shadow-md backdrop-blur-sm border-border/50 p-4 flex flex-col gap-2 cursor-pointer hover:bg-accent/20 transition-colors",
+                isOracionesRoot && index === 0 && subcategories.length > 0 && "mt-4"
+              )}
+              onClick={() => onSelectPrayer(prayer)}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3 flex-1 overflow-hidden">
+                  {showTracker && prayer.id && (
+                    <Checkbox
+                      id={`tracker-${prayer.id}`}
+                      checked={planDeVidaProgress.includes(prayer.id)}
+                      onCheckedChange={() => togglePlanDeVidaItem(prayer.id!)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="size-5 border-2"
+                    />
+                  )}
+                  <CardTitle className="font-headline text-base font-normal truncate">
+                    {prayer.title}
+                  </CardTitle>
+                </div>
 
-              <div className="flex items-center shrink-0">
-                {renderActionMenu(prayer)}
-                <ChevronRight className="size-5 text-muted-foreground" />
+                <div className="flex items-center shrink-0">
+                  {renderActionMenu(prayer)}
+                  <ChevronRight className="size-5 text-muted-foreground" />
+                </div>
               </div>
-            </div>
-          </Card>
-        ))
+            </Card>
+          ))}
+        </div>
       ) : (showEmptyState && !isOracionesRoot) ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-border/80 bg-card/50 h-96 text-center p-4">
+        <div className="prayer-list-empty flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-border/80 bg-card/50 h-96 text-center p-4">
           <h3 className="text-lg font-semibold text-foreground/80">No se encontraron oraciones</h3>
           <p className="text-muted-foreground mt-2 text-sm">
             Aún no hay nada en esta categoría.
@@ -247,7 +251,7 @@ export default function PrayerList({
 
       {/* Botón Agregar */}
       {showAddButton && onAddButtonClick && (
-        <div className="mt-4">
+        <div className="prayer-list-add mt-4">
           <Button onClick={onAddButtonClick} className="w-full">
             <PlusCircle className="mr-2" />
             {addButtonLabel}

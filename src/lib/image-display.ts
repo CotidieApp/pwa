@@ -40,6 +40,7 @@ export const prayerImagePreference: Record<string, ImageDisplay> = {
   sanagustindehipona: "center",
   santotomasdeaquino: "center",
   "devocion-san-jose": "center",
+  virgendelcarmen: "center",
   "ofrecimiento-obras": "center",
   "oracion-manana": "center",
   "santa-misa": "center",
@@ -62,6 +63,7 @@ export const prayerImagePreference: Record<string, ImageDisplay> = {
   "sagrado-corazon": "center",
   preces: "center",
   "via-crucis": "center",
+  "exposicion-bendicion": "top",
   "padre-nuestro": "top",
   "ave-maria": "top",
   "gloria": "top",
@@ -108,3 +110,6 @@ export const getImageObjectPosition = (id?: string): string => {
   const placeholderPref = placeholderImagePreference[id];
   return toObjectPosition(prayerPref || placeholderPref || "center");
 };
+
+export const getImageObjectScale = (id?: string): number =>
+  id === "virgendelcarmen" ? 1.35 : 1;

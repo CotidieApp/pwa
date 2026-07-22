@@ -54,7 +54,7 @@ export default function Settings({
   }
 
   return (
-    <div className="space-y-3 px-4 pb-20">
+    <div className="mobile-landscape-two-column-list space-y-3 px-4 pb-20">
       {visibleSections.map((section) => (
         <Card
           key={section.id}

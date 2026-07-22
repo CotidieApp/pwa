@@ -192,7 +192,7 @@ export default function HomePage({ onSelectCategory, onOpenCustomPlan, onCreateC
 
       {/* Content */}
       <div
-        className="relative z-10 flex flex-col h-[100dvh] min-h-[100dvh] pt-[env(safe-area-inset-top)] text-white"
+        className="mobile-landscape-home relative z-10 flex flex-col h-[100dvh] min-h-[100dvh] pt-[env(safe-area-inset-top)] text-white"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -203,9 +203,9 @@ export default function HomePage({ onSelectCategory, onOpenCustomPlan, onCreateC
           className="absolute right-0 top-0 z-30 h-[9px] w-[9px] opacity-0 focus:outline-none"
           onClick={() => setIsCustomPlansVisible((v) => !v)}
         />
-        <main className="flex flex-col flex-1 min-h-0 items-center justify-center text-center px-4 py-[clamp(0.75rem,2vh,1.5rem)]">
-          <div className="md:max-w-md mx-auto">
-            <h1 className="!text-[clamp(4.25rem,18vw,8rem)] leading-none font-premium text-white [text-shadow:0_4px_16px_rgba(0,0,0,0.9)] w-full px-2 break-words">
+        <main className="mobile-landscape-home-copy flex flex-col flex-1 min-h-0 items-center justify-center text-center px-4 py-[clamp(0.75rem,2vh,1.5rem)]">
+          <div className="mobile-landscape-home-copy-inner md:max-w-md mx-auto">
+            <h1 className="mobile-landscape-home-title !text-[clamp(4.25rem,18vw,8rem)] leading-none font-premium text-white [text-shadow:0_4px_16px_rgba(0,0,0,0.9)] w-full px-2 whitespace-nowrap">
               <span
                 role="button"
                 tabIndex={0}
@@ -223,11 +223,11 @@ export default function HomePage({ onSelectCategory, onOpenCustomPlan, onCreateC
             </h1>
 
             {quoteOfTheDay && (
-              <div className="mt-[clamp(0.75rem,2vh,1.5rem)] px-4">
-                <blockquote className="text-white/95 text-[clamp(1.25rem,5.5vw,1.85rem)] leading-snug italic whitespace-normal break-words [text-shadow:0_10px_40px_rgba(0,0,0,1),0_4px_14px_rgba(0,0,0,1)]">
+              <div className="mobile-landscape-home-quote mt-[clamp(0.75rem,2vh,1.5rem)] px-4">
+                <blockquote className="mobile-landscape-home-quote-text text-white/95 text-[clamp(1.25rem,5.5vw,1.85rem)] leading-snug italic whitespace-normal break-words [text-shadow:0_10px_40px_rgba(0,0,0,1),0_4px_14px_rgba(0,0,0,1)]">
                   “{quoteOfTheDay.text}”
                 </blockquote>
-                <p className="text-white/95 text-[clamp(1.1rem,4.5vw,1.4rem)] mt-[clamp(0.35rem,1vh,0.5rem)] [text-shadow:0_10px_40px_rgba(0,0,0,1),0_4px_14px_rgba(0,0,0,1)]">
+                <p className="mobile-landscape-home-author text-white/95 text-[clamp(1.1rem,4.5vw,1.4rem)] mt-[clamp(0.35rem,1vh,0.5rem)] [text-shadow:0_10px_40px_rgba(0,0,0,1),0_4px_14px_rgba(0,0,0,1)]">
                   – {quoteOfTheDay.author}
                 </p>
               </div>
@@ -235,7 +235,7 @@ export default function HomePage({ onSelectCategory, onOpenCustomPlan, onCreateC
           </div>
         </main>
 
-        <footer className="w-full md:max-w-md mx-auto px-0 pb-[max(0.75rem,env(safe-area-inset-bottom))] overflow-hidden">
+        <footer className="mobile-landscape-home-menu w-full md:max-w-md mx-auto px-0 pb-[max(0.75rem,env(safe-area-inset-bottom))] overflow-hidden">
           <div
             className={[
               "flex w-full transform-gpu transition-transform duration-300 ease-out",

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { ChevronUp, ChevronDown, Search, X } from 'lucide-react';
+import { countCaminoMatches } from '@/lib/camino-search';
 
 type CaminoSearchState = {
   term: string;
@@ -35,16 +36,14 @@ export default function SearchCamino({
   }, []);
 
   const countMatches = useCallback((term: string) => {
-    if (!term.trim()) return 0;
-    const regex = new RegExp(`^${term}\\.`, 'gm');
-    const matches = prayerContent.match(regex);
-    return matches ? matches.length : 0;
+    return countCaminoMatches(prayerContent, term);
   }, [prayerContent]);
 
   const triggerSearch = useCallback(() => {
-    const total = countMatches(localTerm);
+    const term = inputRef.current?.value ?? localTerm;
+    const total = countMatches(term);
     setSearchState({
-      term: localTerm,
+      term,
       activeIndex: total > 0 ? 0 : -1,
       resultsCount: total,
     });
@@ -80,21 +79,26 @@ export default function SearchCamino({
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    if (/^[0-9]*$/.test(value)) {
-      setLocalTerm(value);
-    }
+    setLocalTerm(e.target.value);
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 md:max-w-6xl mx-auto bg-background/90 backdrop-blur-sm shadow-t-lg z-30 p-2 border-t border-border/50 animate-in slide-in-from-bottom-full duration-300">
+    <div className="fixed bottom-0 left-0 right-0 md:max-w-6xl mx-auto bg-background/90 backdrop-blur-sm shadow-t-lg z-30 py-2 pl-[max(0.5rem,env(safe-area-inset-left))] pr-[max(0.5rem,env(safe-area-inset-right))] border-t border-border/50 animate-in slide-in-from-bottom-full duration-300">
       <div className="container mx-auto px-4 flex items-center gap-2">
-        <Search className="size-5 text-muted-foreground" />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          onClick={triggerSearch}
+          title="Buscar"
+        >
+          <Search className="size-5" />
+        </Button>
         <Input
           ref={inputRef}
-          type="tel"
-          inputMode="numeric"
-          placeholder="Buscar punto (ej: 301)..."
+          type="search"
+          inputMode="search"
+          placeholder="Palabra, punto o capítulo..."
           value={localTerm}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}

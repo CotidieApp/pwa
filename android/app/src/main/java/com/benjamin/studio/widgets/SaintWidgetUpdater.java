@@ -29,9 +29,16 @@ import java.util.regex.Pattern;
 public final class SaintWidgetUpdater {
     private static Map<String, CropBias> cachedBiasByPlaceholderId;
 
+    public static SaintWidgetContent contentForNow(Context context) {
+        return SaintWidgetContentFactory.forNow(context);
+    }
+
     public static void updateAll(Context context) {
+        updateAll(context, contentForNow(context));
+    }
+
+    public static void updateAll(Context context, SaintWidgetContent content) {
         AppWidgetManager manager = AppWidgetManager.getInstance(context);
-        SaintWidgetContent content = SaintWidgetContentFactory.forNow(context);
 
         int[] largeIds = manager.getAppWidgetIds(new ComponentName(context, SaintWidgetLargeProvider.class));
         for (int id : largeIds) {
@@ -56,9 +63,16 @@ public final class SaintWidgetUpdater {
             CropBias bias = resolveCropBiasForImageId(context, content.imageId);
             Bitmap cropped = cropToAspectWithBias(bmp, 1.5f, bias.horizontal, bias.vertical);
             if (cropped != bmp) bmp.recycle();
-            Bitmap composited = composeOverlayBitmap(context, cropped, content.overlayImageAssetPath);
-            if (composited != cropped) {
-                cropped.recycle();
+            Bitmap zoomed = zoomBitmapWithBias(
+                    cropped,
+                    "virgendelcarmen".equals(content.imageId) ? 1.35f : 1f,
+                    bias.horizontal,
+                    bias.vertical
+            );
+            if (zoomed != cropped) cropped.recycle();
+            Bitmap composited = composeOverlayBitmap(context, zoomed, content.overlayImageAssetPath);
+            if (composited != zoomed) {
+                zoomed.recycle();
             }
             views.setImageViewBitmap(R.id.widget_saint_image, composited);
             views.setViewVisibility(R.id.widget_saint_image, android.view.View.VISIBLE);
@@ -204,6 +218,27 @@ public final class SaintWidgetUpdater {
 
         try {
             return Bitmap.createBitmap(src, x, y, cropW, cropH);
+        } catch (Exception ignored) {
+            return src;
+        }
+    }
+
+    private static Bitmap zoomBitmapWithBias(Bitmap src, float zoom, float horizontalBias, float verticalBias) {
+        if (src == null || zoom <= 1f) return src;
+        int width = src.getWidth();
+        int height = src.getHeight();
+        int cropWidth = Math.max(1, Math.round(width / zoom));
+        int cropHeight = Math.max(1, Math.round(height / zoom));
+        int maxX = Math.max(0, width - cropWidth);
+        int maxY = Math.max(0, height - cropHeight);
+        int x = Math.round(maxX * Math.max(0f, Math.min(1f, horizontalBias)));
+        int y = Math.round(maxY * Math.max(0f, Math.min(1f, verticalBias)));
+
+        try {
+            Bitmap cropped = Bitmap.createBitmap(src, x, y, cropWidth, cropHeight);
+            Bitmap scaled = Bitmap.createScaledBitmap(cropped, width, height, true);
+            if (scaled != cropped) cropped.recycle();
+            return scaled;
         } catch (Exception ignored) {
             return src;
         }

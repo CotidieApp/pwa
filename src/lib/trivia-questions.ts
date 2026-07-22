@@ -1,4 +1,7 @@
+import { additionalSpiritualTriviaQuestions } from '@/lib/trivia-questions-extra';
+
 export type TriviaCategoryId = 'jesus' | 'antiguo-testamento' | 'santos' | 'san-josemaria';
+export type TriviaDifficultyId = 'inicial' | 'intermedia' | 'avanzada';
 
 export interface TriviaCategory {
   id: TriviaCategoryId;
@@ -6,7 +9,7 @@ export interface TriviaCategory {
   description: string;
 }
 
-export interface TriviaQuestion {
+export interface TriviaQuestionDefinition {
   id: string;
   category: TriviaCategoryId;
   prompt: string;
@@ -14,6 +17,16 @@ export interface TriviaQuestion {
   correctIndex: 0 | 1 | 2 | 3;
   explanation: string;
   source: string;
+}
+
+export interface TriviaQuestion extends TriviaQuestionDefinition {
+  difficulty: TriviaDifficultyId;
+}
+
+export interface TriviaDifficulty {
+  id: TriviaDifficultyId;
+  label: string;
+  description: string;
 }
 
 export const triviaCategories: readonly TriviaCategory[] = [
@@ -39,7 +52,25 @@ export const triviaCategories: readonly TriviaCategory[] = [
   },
 ] as const;
 
-export const spiritualTriviaQuestions: readonly TriviaQuestion[] = [
+export const triviaDifficulties: readonly TriviaDifficulty[] = [
+  {
+    id: 'inicial',
+    label: 'Inicial',
+    description: 'Hechos centrales y referencias ampliamente conocidas.',
+  },
+  {
+    id: 'intermedia',
+    label: 'Intermedia',
+    description: 'Detalles que requieren una lectura más atenta o conocimiento previo.',
+  },
+  {
+    id: 'avanzada',
+    label: 'Avanzada',
+    description: 'Personajes, textos y datos específicos para profundizar.',
+  },
+] as const;
+
+const originalSpiritualTriviaQuestions: readonly TriviaQuestionDefinition[] = [
   {
     id: 'jesus-01',
     category: 'jesus',
@@ -954,3 +985,35 @@ export const spiritualTriviaQuestions: readonly TriviaQuestion[] = [
     source: 'San Josemaría, Conversaciones, n. 114',
   },
 ] as const;
+
+const legacyInitialQuestionIds = new Set([
+  'jesus-01', 'jesus-03', 'jesus-04', 'jesus-05', 'jesus-07', 'jesus-09', 'jesus-11', 'jesus-12', 'jesus-20',
+  'antiguo-testamento-01', 'antiguo-testamento-02', 'antiguo-testamento-03', 'antiguo-testamento-04',
+  'antiguo-testamento-07', 'antiguo-testamento-09', 'antiguo-testamento-10', 'antiguo-testamento-11', 'antiguo-testamento-17',
+  'santos-01', 'santos-02', 'santos-03', 'santos-06', 'santos-12', 'santos-18', 'santos-20', 'santos-22', 'santos-25',
+  'san-josemaria-01', 'san-josemaria-02', 'san-josemaria-05', 'san-josemaria-06', 'san-josemaria-09',
+  'san-josemaria-10', 'san-josemaria-19', 'san-josemaria-20', 'san-josemaria-22',
+]);
+
+const legacyAdvancedQuestionIds = new Set([
+  'jesus-06', 'jesus-13', 'jesus-15', 'jesus-16', 'jesus-19', 'jesus-21', 'jesus-24', 'jesus-25',
+  'antiguo-testamento-05', 'antiguo-testamento-08', 'antiguo-testamento-14', 'antiguo-testamento-18',
+  'antiguo-testamento-20', 'antiguo-testamento-22', 'antiguo-testamento-23', 'antiguo-testamento-24',
+  'santos-05', 'santos-07', 'santos-10', 'santos-11', 'santos-14', 'santos-16', 'santos-17', 'santos-24',
+  'san-josemaria-07', 'san-josemaria-08', 'san-josemaria-11', 'san-josemaria-12',
+  'san-josemaria-13', 'san-josemaria-14', 'san-josemaria-15', 'san-josemaria-16',
+]);
+
+const originalQuestionsWithDifficulty: readonly TriviaQuestion[] = originalSpiritualTriviaQuestions.map((question) => ({
+  ...question,
+  difficulty: legacyInitialQuestionIds.has(question.id)
+    ? 'inicial'
+    : legacyAdvancedQuestionIds.has(question.id)
+      ? 'avanzada'
+      : 'intermedia',
+}));
+
+export const spiritualTriviaQuestions: readonly TriviaQuestion[] = [
+  ...originalQuestionsWithDifficulty,
+  ...additionalSpiritualTriviaQuestions,
+];

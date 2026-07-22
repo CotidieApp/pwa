@@ -12,9 +12,10 @@ import { Label } from './ui/label';
 import * as Icon from 'lucide-react';
 import { AudioPlayer } from './AudioPlayer';
 import { useScreenWakeLock } from '@/hooks/useScreenWakeLock';
+import { isCaminoLineMatch } from '@/lib/camino-search';
 
 // Encadre centralizado por id (si no tienes este archivo, coméntalo o ajusta):
-import { getImageObjectPosition } from '@/lib/image-display';
+import { getImageObjectPosition, getImageObjectScale } from '@/lib/image-display';
 
 // ---------- util: escapar HTML ----------
 const escapeHtml = (str: string) =>
@@ -36,17 +37,12 @@ const formatInlineHtml = (escaped: string) => {
     .replace(/(^|[^\w_])_(?!_)(.+?)_(?!\w)/g, '$1<em>$2</em>');
 };
 
-const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
 const renderCaminoLines = (
   content: string,
   searchTerm: string,
   activeIndex: number,
   theme: 'light' | 'dark'
 ): React.ReactNode[] => {
-  const normalizedTerm = searchTerm.trim();
-  const termRegex = normalizedTerm ? new RegExp(`^${escapeRegExp(normalizedTerm)}\\.`) : null;
-
   const lines = content.split('\n');
   const rendered: React.ReactNode[] = [];
   let matchCounter = 0;
@@ -60,7 +56,7 @@ const renderCaminoLines = (
 
     const trimmed = rawLine.trim();
     const pointMatch = trimmed.match(/^(\d+)\.\s*(.*)$/);
-    const isMatch = Boolean(termRegex && termRegex.test(trimmed));
+    const isMatch = isCaminoLineMatch(trimmed, searchTerm);
 
     const highlightClass =
       theme === 'dark'
@@ -417,7 +413,7 @@ const BilingualText = ({
   rightLabel: string;
   rightText: string;
 }) => (
-  <div className="w-full space-y-3">
+  <div className="prayer-bilingual-text w-full space-y-3">
     <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2 text-xs font-semibold uppercase text-muted-foreground">
       <div className="min-w-0 [overflow-wrap:anywhere]">{leftLabel}</div>
       <div className="min-w-0 [overflow-wrap:anywhere]">{rightLabel}</div>
@@ -492,13 +488,15 @@ const PrayerContent = ({
         );
 
         // Calculate scale factor
-        const scale = d / initialDistance;
+        const rawScale = d / initialDistance;
+        const scale = 1 + (rawScale - 1) * 0.35;
 
         // New zoom
         let newZoom = initialZoom * scale;
 
         // Clamp between 0.5 and 2.0 (same as SettingsContext normalization)
         newZoom = Math.max(0.5, Math.min(newZoom, 2.0));
+        newZoom = Math.round(newZoom * 100) / 100;
 
         setPrayerTextZoom(newZoom);
       }
@@ -625,7 +623,7 @@ const PrayerContent = ({
     const { term = '', activeIndex = -1 } = searchState || {};
     return (
       <div
-        className="text-foreground/90 leading-relaxed touch-pan-y"
+        className="prayer-single-language-text text-foreground/90 leading-relaxed touch-pan-y"
         style={{ fontSize: `${prayerTextZoom}em` }}
       >
         {isCamino
@@ -683,7 +681,10 @@ const PrayerContent = ({
           </div>
         ) : null}
         <div
-          className="text-foreground/90 leading-relaxed"
+          className={cn(
+            'text-foreground/90 leading-relaxed',
+            !isBothVariantKey(resolvedMode) && 'prayer-single-language-text'
+          )}
           style={{ fontSize: `${prayerTextZoom}em` }}
         >
           {isBothVariantKey(resolvedMode) && leftLang && rightLang ? (
@@ -736,17 +737,22 @@ export default function PrayerDetail({
   const audioSrc = localAudioSrc || prayer.audio || '';
 
   const objectPosition = getImageObjectPosition(prayer.id);
+  const objectScale = getImageObjectScale(prayer.id);
 
   return (
-    <div className={cn(
-      'flex min-h-0 flex-col h-full overscroll-contain',
+    <div
+      className={cn(
+      'prayer-detail-layout flex min-h-0 flex-col h-full overscroll-contain',
       showsPerpetualBackground ? 'bg-transparent' : 'bg-background',
       isDistractionFree
         ? 'pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] px-0'
         : 'p-0'
-    )}>
+      )}
+      data-prayer-has-image={Boolean(prayer.imageUrl)}
+      data-prayer-bilingual={isBilingualMode}
+    >
       {prayer.imageUrl && (
-        <div className={cn('px-4 py-4 shrink-0 z-10', showsPerpetualBackground ? 'bg-transparent' : 'bg-background')}>
+        <div className={cn('prayer-detail-image px-4 py-4 shrink-0 z-10', showsPerpetualBackground ? 'bg-transparent' : 'bg-background')}>
           <div
             className={cn(
               'relative overflow-hidden rounded-lg shadow-sm border border-border/10',
@@ -759,14 +765,14 @@ export default function PrayerDetail({
               alt={prayer.title || 'Imagen de la oración'}
               fill
               className="object-cover"
-              style={{ objectPosition }}
+              style={{ objectPosition, transform: `scale(${objectScale})` }}
               priority
             />
           </div>
         </div>
       )}
 
-      <div className={cn('flex-1 min-h-0 flex flex-col', isDistractionFree && 'mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 w-full')}>
+      <div className={cn('prayer-detail-body flex-1 min-h-0 flex flex-col', isDistractionFree && 'mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 w-full')}>
         {showAudioPlayer && (
           <div className="px-4 mb-4 shrink-0">
             <div className="sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-2 rounded-xl border shadow-sm">
@@ -790,7 +796,7 @@ export default function PrayerDetail({
             )}
           >
             <CardContent className={cn(
-              'flex flex-1 flex-col min-h-0',
+              'prayer-detail-card-content flex flex-1 flex-col min-h-0',
               isBilingualMode ? 'px-2 py-4' : 'p-6',
               isDistractionFree && 'p-0 text-[1.05rem] leading-[1.85]'
             )}>
@@ -798,7 +804,7 @@ export default function PrayerDetail({
                 ref={scrollContainerRef}
                 data-app-scroll-container="true"
                 className={cn(
-                  'flex-1 min-h-0 overflow-y-auto touch-pan-y overscroll-contain scroll-smooth',
+                  'prayer-detail-scroll flex-1 min-h-0 overflow-y-auto touch-pan-y overscroll-contain scroll-smooth',
                   !isBilingualMode && 'pr-6'
                 )}
               >

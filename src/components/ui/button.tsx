@@ -9,14 +9,14 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground active:bg-primary/90 md:hover:bg-primary/90",
+        default: "bg-primary text-primary-foreground data-[pressed=true]:bg-primary/90 md:hover:bg-primary/90",
         destructive:
-          "bg-destructive text-destructive-foreground active:bg-destructive/90 md:hover:bg-destructive/90",
+          "bg-destructive text-destructive-foreground data-[pressed=true]:bg-destructive/90 md:hover:bg-destructive/90",
         outline:
-          "border border-input bg-background active:bg-accent active:text-accent-foreground md:hover:bg-accent md:hover:text-accent-foreground",
+          "border border-input bg-background data-[pressed=true]:bg-accent data-[pressed=true]:text-accent-foreground md:hover:bg-accent md:hover:text-accent-foreground",
         secondary:
-          "bg-secondary text-secondary-foreground active:bg-secondary/80 md:hover:bg-secondary/80",
-        ghost: "active:bg-accent active:text-accent-foreground md:hover:bg-accent md:hover:text-accent-foreground",
+          "bg-secondary text-secondary-foreground data-[pressed=true]:bg-secondary/80 md:hover:bg-secondary/80",
+        ghost: "data-[pressed=true]:bg-accent data-[pressed=true]:text-accent-foreground md:hover:bg-accent md:hover:text-accent-foreground",
         link: "text-primary underline-offset-4 md:hover:underline",
       },
       size: {
@@ -42,12 +42,59 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({
+    className,
+    variant,
+    size,
+    asChild = false,
+    disabled,
+    onPointerDown,
+    onPointerUp,
+    onPointerCancel,
+    onPointerLeave,
+    onLostPointerCapture,
+    onClick,
+    onBlur,
+    ...props
+  }, ref) => {
     const Comp = asChild ? Slot : "button"
+    const [isPressed, setIsPressed] = React.useState(false)
+    const clearPressed = () => setIsPressed(false)
+
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
+        disabled={disabled}
+        data-pressed={isPressed ? "true" : undefined}
+        onPointerDown={(event: React.PointerEvent<HTMLButtonElement>) => {
+          if (!disabled && event.isPrimary && event.button === 0) setIsPressed(true)
+          onPointerDown?.(event)
+        }}
+        onPointerUp={(event: React.PointerEvent<HTMLButtonElement>) => {
+          clearPressed()
+          onPointerUp?.(event)
+        }}
+        onPointerCancel={(event: React.PointerEvent<HTMLButtonElement>) => {
+          clearPressed()
+          onPointerCancel?.(event)
+        }}
+        onPointerLeave={(event: React.PointerEvent<HTMLButtonElement>) => {
+          clearPressed()
+          onPointerLeave?.(event)
+        }}
+        onLostPointerCapture={(event: React.PointerEvent<HTMLButtonElement>) => {
+          clearPressed()
+          onLostPointerCapture?.(event)
+        }}
+        onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+          clearPressed()
+          onClick?.(event)
+        }}
+        onBlur={(event: React.FocusEvent<HTMLButtonElement>) => {
+          clearPressed()
+          onBlur?.(event)
+        }}
         {...props}
       />
     )

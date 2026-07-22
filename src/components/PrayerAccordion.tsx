@@ -30,8 +30,8 @@ export default function PrayerAccordion({
   const { isDeveloperMode, isEditModeEnabled } = useSettings();
 
   return (
-    <div className="space-y-4">
-      <Card className="bg-card shadow-md border-border/50 p-4 md:p-6">
+    <div className="prayer-accordion-layout space-y-4">
+      <Card className="prayer-accordion-predefined bg-card shadow-md border-border/50 p-4 md:p-6">
         <div className="space-y-4">
           <h2 className="text-base font-headline font-bold">Predeterminadas</h2>
           <PrayerList
@@ -45,7 +45,7 @@ export default function PrayerAccordion({
         </div>
       </Card>
 
-      <Card className="bg-card shadow-md border-border/50 p-4 md:p-6">
+      <Card className="prayer-accordion-personal bg-card shadow-md border-border/50 p-4 md:p-6">
         <div className="space-y-4">
           <h2 className="text-base font-headline font-bold">Mis Oraciones</h2>
 

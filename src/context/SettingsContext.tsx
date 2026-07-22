@@ -28,6 +28,7 @@ import { catholicQuotes } from '@/lib/quotes';
 import { allowedDevCredentials } from '@/lib/dev-credentials';
 import saintsDataRaw from '@/lib/saints-data.json';
 import { resolveDevotionDayMatch } from '@/lib/devotion-day-images';
+import { getLiturgicalColor } from '@/lib/getLiturgicalColor';
 import { getMovableFeast, getEasterDate } from '@/lib/movable-feasts';
 import { persistence } from '@/lib/persistence';
 import { fixedNotifications, type FixedNotificationEntry } from '@/lib/fixed-notifications';
@@ -1007,6 +1008,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [cartasReminderAnchorAt, setCartasReminderAnchorAt] = useState<number>(() => Date.now());
   const [devTestNotificationEnabled, setDevTestNotificationEnabledState] = useState(false);
   const [notificationSyncVersion, setNotificationSyncVersion] = useState(0);
+  const exactAlarmSettingsRequestedRef = useRef(false);
   const [devLiveTraceEnabled, setDevLiveTraceEnabledState] = useState(false);
   const [devLiveTraceEvents, setDevLiveTraceEvents] = useState<DevTraceEvent[]>([]);
   const [userStats, setUserStats] = useState<UserStats>(defaultUserStats);
@@ -1417,6 +1419,27 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     void BackgroundActions.setSmallWidgetMode({ mode: smallWidgetMode }).catch(() => {});
   }, [isLoaded, smallWidgetMode]);
 
+  useEffect(() => {
+    if (!isLoaded || !saintOfTheDay) return;
+    if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'android') return;
+    void BackgroundActions.refreshSaintWidgets({
+      name: saintOfTheDay.name,
+      bio: saintOfTheDay.bio,
+      prayerId: saintOfTheDayPrayerId ?? '',
+      imageId: saintOfTheDayImage?.id,
+      imageUrl: saintOfTheDayImage?.imageUrl,
+      backgroundColor: getLiturgicalColor(saintOfTheDay, simulatedDate),
+    }).catch(() => {});
+  }, [
+    isLoaded,
+    saintOfTheDay?.name,
+    saintOfTheDay?.bio,
+    saintOfTheDayImage?.id,
+    saintOfTheDayImage?.imageUrl,
+    saintOfTheDayPrayerId,
+    simulatedDate,
+  ]);
+
   // Track Days Active & Morning/Night Usage (App Open)
   useEffect(() => {
     if (!isLoaded) return;
@@ -1600,17 +1623,19 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         if (Capacitor.getPlatform() === 'android') {
           const anyLN = LocalNotifications as any;
           if (typeof anyLN.checkExactNotificationSetting === 'function' && typeof anyLN.changeExactNotificationSetting === 'function') {
-            anyLN
-              .checkExactNotificationSetting()
-              .then((status: any) => {
-                if (status?.exact_alarm === 'granted') return;
-                toast({
-                  title: 'Activa alarmas exactas',
-                  description: 'Para que los recordatorios lleguen a la hora exacta, habilita "Alarmas exactas" para Cotidie.',
-                });
-                return anyLN.changeExactNotificationSetting();
-              })
-              .catch(() => {});
+            const status = await anyLN.checkExactNotificationSetting().catch(() => null);
+            if (status?.exact_alarm === 'granted') {
+              exactAlarmSettingsRequestedRef.current = false;
+            } else if (!exactAlarmSettingsRequestedRef.current) {
+              exactAlarmSettingsRequestedRef.current = true;
+              toast({
+                title: 'Activa alarmas exactas',
+                description: 'Para que los recordatorios lleguen a la hora exacta, habilita "Alarmas exactas" para Cotidie.',
+              });
+              await anyLN.changeExactNotificationSetting().catch(() => {
+                exactAlarmSettingsRequestedRef.current = false;
+              });
+            }
           }
         }
       })();
@@ -2876,18 +2901,22 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       const horizonEnd = new Date(now);
       horizonEnd.setDate(now.getDate() + horizonDays);
 
-      const pending = await LocalNotifications.getPending().catch(() => null);
-      const pendingIds =
-        pending && Array.isArray((pending as any).notifications)
-          ? ((pending as any).notifications as Array<{ id: number }>).map((n) => n.id).filter(Number.isFinite)
-          : [];
-      if (pendingIds.length > 0) {
+      const cancelPendingNotifications = async () => {
+        const pending = await LocalNotifications.getPending().catch(() => null);
+        const pendingIds =
+          pending && Array.isArray((pending as any).notifications)
+            ? ((pending as any).notifications as Array<{ id: number }>).map((n) => n.id).filter(Number.isFinite)
+            : [];
+        if (pendingIds.length === 0) return;
         await LocalNotifications.cancel({ notifications: pendingIds.map((id) => ({ id })) }).catch((error) => {
           console.warn('Failed to cancel pending notifications', error);
         });
-      }
+      };
 
-      if (active.length === 0 && fixedActive.length === 0 && !cartasReminderActive) return;
+      if (active.length === 0 && fixedActive.length === 0 && !cartasReminderActive) {
+        await cancelPendingNotifications();
+        return;
+      }
 
       const currentPerms = await LocalNotifications.checkPermissions().catch((error) => {
         console.warn('Failed to check notification permissions', error);
@@ -2896,6 +2925,33 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       if (!currentPerms || currentPerms.display !== 'granted') {
         return;
       }
+
+      if (platform === 'android') {
+        const anyLN = LocalNotifications as any;
+        if (typeof anyLN.checkExactNotificationSetting === 'function') {
+          const status = await anyLN.checkExactNotificationSetting().catch(() => null);
+          if (status?.exact_alarm !== 'granted') {
+            console.warn('Exact alarm access is required. Notification synchronization is paused.');
+            if (
+              typeof anyLN.changeExactNotificationSetting === 'function' &&
+              !exactAlarmSettingsRequestedRef.current
+            ) {
+              exactAlarmSettingsRequestedRef.current = true;
+              toast({
+                title: 'Activa alarmas exactas',
+                description: 'Android debe permitir alarmas exactas para entregar los recordatorios a la hora configurada.',
+              });
+              await anyLN.changeExactNotificationSetting().catch(() => {
+                exactAlarmSettingsRequestedRef.current = false;
+              });
+            }
+            return;
+          }
+          exactAlarmSettingsRequestedRef.current = false;
+        }
+      }
+
+      await cancelPendingNotifications();
 
       try {
         await LocalNotifications.registerActionTypes({
@@ -2910,19 +2966,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           ],
         });
       } catch {}
-
-      // Check for exact alarm permission on Android
-      if (Capacitor.getPlatform() === 'android') {
-        const anyLN = LocalNotifications as any;
-        if (typeof anyLN.checkExactNotificationSetting === 'function') {
-           const status = await anyLN.checkExactNotificationSetting().catch(() => null);
-           if (status && status.exact_alarm !== 'granted') {
-             // We don't want to spam the user, but we should probably warn them once or log it.
-             // Ideally, we prompt them to fix it.
-             console.warn('Exact alarm permission not granted. Notifications might be delayed.');
-           }
-        }
-      }
 
       await ensureAndroidNotificationChannel().catch((error) => {
         console.warn('Failed to ensure Android notification channel', error);

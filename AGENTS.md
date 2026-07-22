@@ -8,6 +8,492 @@ Historial de intervenciones del asistente en el repo.
 - Esta obligacion aplica aunque el usuario pida tocar solo lo estrictamente necesario: el registro en `AGENTS.md` se considera parte estrictamente necesaria de cualquier edicion del repo.
 - Si una instruccion del usuario prohibe explicitamente editar `AGENTS.md`, el agente debe pedir aclaracion antes de modificar otros archivos.
 
+### [2026-07-21 23:27] 295. Comando para apagar Cotidie dev
+**Planificacion:**
+- Extender la funcion `apagar` del perfil de PowerShell con el comando solicitado.
+- Limitar el cierre al servidor local de Cotidie en el puerto 3018 y evitar terminar procesos ajenos.
+
+**Ejecucion:**
+- **Nuevo comando**: `apagar cotidie dev` localiza el proceso que escucha en el puerto 3018 y cierra el servidor de desarrollo.
+- **Proteccion**: antes de detenerlo comprueba que su linea de comandos pertenezca a `C:\Users\balca\Documents\Cotidie`; si el puerto esta ocupado por otro programa, no lo cierra.
+- **Estados claros**: informa cuando Cotidie se apaga, ya estaba apagado, no pudo cerrarse o falta indicar `dev`.
+- **Ayuda**: el mensaje general de `apagar` incluye ahora el nuevo ejemplo de uso.
+
+**Validacion:**
+- El perfil completo paso el parser de PowerShell sin errores.
+- La ejecucion literal de `apagar cotidie dev` cerro el servidor y mostro `Cotidie dev apagado.`.
+- El servidor se restauro despues de la prueba y `http://127.0.0.1:3018/` volvio a responder HTTP 200.
+
+**Archivos Modificados:**
+- `C:\Users\balca\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1`
+- `AGENTS.md`
+
+### [2026-07-21 23:24] 294. Separacion de compilaciones dev y produccion
+**Planificacion:**
+- Diagnosticar por que la vista web local mostraba el HTML de bienvenida sin estilos ni funcionamiento.
+- Corregir la causa sin modificar componentes visuales ni la trivia.
+- Reproducir una compilacion de produccion con el servidor dev activo para comprobar que el problema no reaparezca.
+
+**Ejecucion:**
+- **Diagnostico**: el servidor de `armar cotidie dev` devolvia `404` para su CSS, `main-app.js` y `app/page.js`; `npm run build` habia reemplazado la carpeta `.next` que la instancia dev mantenia abierta.
+- **Aislamiento**: Next.js usa ahora `.next-dev` durante `next dev` y conserva `.next` para las compilaciones de produccion y del APK.
+- **Repositorio limpio**: `.next-dev` se agrego a `.gitignore` como salida generada.
+- **Reinicio**: se cerraron las dos instancias dev duplicadas de Cotidie en los puertos 3018 y 3019 y se dejo una sola instancia limpia en `http://127.0.0.1:3018/`.
+
+**Validacion:**
+- Antes de la correccion, el CSS y dos scripts esenciales devolvian HTTP 404.
+- Despues del reinicio, la vista movil cargo tres hojas de estilo, titulo blanco de 64,8 px, margen de documento en cero y cero errores de consola.
+- `npm.cmd run build` OK mientras el servidor dev permanecia activo.
+- Tras esa compilacion concurrente, el CSS y `app/page.js` del servidor dev continuaron respondiendo HTTP 200 desde `.next-dev`.
+- Se confirmo la coexistencia independiente de `.next` y `.next-dev`.
+
+**Archivos Modificados:**
+- `next.config.mjs`
+- `.gitignore`
+- `AGENTS.md`
+
+### [2026-07-21 22:53] 293. Segunda biblioteca y dificultades de la trivia espiritual
+**Planificacion:**
+- Investigar y agregar otras 100 preguntas manteniendo los cuatro temas existentes y fuentes identificables.
+- Clasificar tanto la biblioteca original como la nueva en niveles de dificultad coherentes.
+- Incorporar el filtro de dificultad a la preparacion de partidas sin repetir preguntas ni alterar las otras secciones de Cotidie.
+
+**Ejecucion:**
+- **Biblioteca ampliada**: se agregaron 100 preguntas nuevas, 25 por cada tema, para alcanzar 200 preguntas totales y 50 en cada categoria.
+- **Dificultades**: todas las preguntas, incluidas las 100 originales, quedaron clasificadas como `Inicial`, `Intermedia` o `Avanzada`; cada tema contiene 17 iniciales, 17 intermedias y 16 avanzadas.
+- **Selector**: la pantalla inicial de la trivia permite elegir todas las dificultades o un nivel concreto y explica brevemente el alcance del nivel seleccionado.
+- **Partidas coherentes**: el generador filtra primero por tema y dificultad, mantiene el reparto entre temas cuando corresponde y no repite preguntas. Las cantidades disponibles se adaptan al conjunto filtrado; una combinacion especifica ofrece hasta 15 preguntas, mientras los conjuntos amplios conservan partidas de 20.
+- **Contexto durante la partida**: cada pregunta muestra su tema y dificultad junto al progreso.
+- **Fuentes**: las nuevas preguntas se contrastaron principalmente con la Biblia publicada por la Santa Sede, biografias de santos del Vaticano y cronologias oficiales del Opus Dei.
+
+**Validacion:**
+- Auditoria automatizada: 200 preguntas, 50 por tema, 68 iniciales, 68 intermedias y 64 avanzadas.
+- Cero identificadores o enunciados duplicados; todas las preguntas contienen cuatro opciones, una respuesta valida, explicacion y fuente.
+- `\.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `npm.cmd run build` OK; exportacion estatica de produccion generada correctamente.
+
+**Archivos Modificados:**
+- `src/lib/trivia-questions.ts`
+- `src/lib/trivia-questions-extra.ts`
+- `src/components/trivia/SpiritualTrivia.tsx`
+- `AGENTS.md`
+
+### [2026-07-21 22:12] 292. Retorno de Exposicion a Himnos y Letanias
+**Planificacion:**
+- Identificar el estado de navegacion que representa la pantalla padre de Exposicion y Bendicion con el Santisimo.
+- Unificar el cierre con la X y el retroceso de Android para que ambos regresen a esa pantalla.
+
+**Ejecucion:**
+- **Destino exacto**: ambas salidas reconstruyen la ruta de oracion `subcat-himnos`, correspondiente a `Himnos y Letanias`, en lugar de regresar a la categoria general `Oraciones`.
+- **Cierre visual**: la X usa el reemplazo de estado compartido y deja visible inmediatamente la lista de Himnos y Letanias.
+- **Retroceso nativo**: el caso `exposition` del manejador de Atrás de Android usa exactamente el mismo estado de retorno.
+- **Alcance**: no se altero la navegacion de Via Crucis, Rosario ni otros ambientes inmersivos.
+
+**Validacion:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- Prueba local a 360 x 780 px: cerrar con la X devolvio a `Himnos y Letanias` con sus cinco entradas visibles.
+- Una segunda prueba mediante retroceso del entorno devolvio a la misma pantalla y conservo el encabezado `Himnos y Letanias`.
+
+**Archivos Modificados:**
+- `src/components/main/MainApp.tsx`
+- `AGENTS.md`
+
+### [2026-07-21 21:44] 291. Revision completa del plan bilingue de Exposicion
+**Planificacion:**
+- Auditar nuevamente todas las entradas agregadas al plan de Exposicion, incluidas las incorporadas despues de la revision anterior.
+- Comprobar identificadores, modos de una o dos columnas, contenido obligatorio, estrofas y emparejamiento de versos.
+- Retirar las lineas visuales entre versos sin modificar los textos ingresados por el usuario.
+
+**Ejecucion:**
+- **Estrofas con sangria**: el separador bilingue ahora reconoce como vacias tambien las lineas que contienen espacios o tabulaciones; esto evita unir varias estrofas en una sola en textos como `Regina Coeli`, `Ave Maris Stella` y otras entradas con sangria.
+- **Compatibilidad de saltos**: la division de versos admite finales de linea de Windows y Unix.
+- **Presentacion limpia**: se eliminaron el borde inferior y su relleno asociado de cada fila bilingue; se conserva solamente el espaciado entre versos.
+- **Contenido preservado**: no se modificaron palabras, titulos, identificadores ni el orden de `exposicion-bendicion-plan.ts`.
+
+**Validacion:**
+- Auditoria de datos: 14 partes, identificadores unicos, ningun contenido vacio y todos los modos acordes con su estructura declarada.
+- Las nueve partes bilingues tienen igual cantidad de estrofas en ambos idiomas; cada par tiene igual cantidad de versos o una diferencia maxima de una linea, contemplada por la agrupacion existente.
+- Prueba visual local a 360 x 780 px con `Ave Maris Stella`: 29 filas bilingues, cero filas desalineadas y cero bordes separadores.
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+
+**Archivos Modificados:**
+- `src/components/ExpositionImmersive.tsx`
+- `AGENTS.md`
+
+### [2026-07-21 16:25] 290. Versos bilingues alineados en Exposicion
+**Planificacion:**
+- Revisar el contenido bilingue actual de Exposicion y Bendicion con el Santisimo para emparejar los versos equivalentes como en las demas oraciones.
+- Corregir la presentacion sin modificar el archivo de contenido que el usuario esta editando.
+
+**Ejecucion:**
+- **Alineacion por bloques**: la vista inmersiva separa estrofas y crea una fila compartida por cada verso latino y espanol, de modo que ambos comienzan siempre a la misma altura.
+- **Traducciones desiguales**: cuando el ultimo verso de un idioma ocupa dos lineas frente a una del otro, ambas lineas permanecen agrupadas en la misma fila equivalente en vez de dejar contenido enfrentado a un espacio vacio.
+- **Subtitulos con punto**: `Oremus.` y `Oremos.` reciben el mismo formato seminegrita y gris ya aplicado a esos subtitulos sin puntuacion o con dos puntos.
+- **Contenido preservado**: no se modifico `exposicion-bendicion-plan.ts` ni ninguno de los textos ingresados por el usuario.
+
+**Validacion:**
+- `\.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- Prueba visual local a 360 x 780 px sobre `Canto eucaristico`: todos los pares de versos mostraron igual coordenada superior y altura en ambas columnas.
+- La segunda estrofa quedo en seis filas equivalentes, con las dos lineas finales espanolas agrupadas frente al ultimo verso latino y sin celdas huerfanas.
+- Inspeccion DOM confirmo `Oremus.` y `Oremos.` con `font-semibold text-muted-foreground`.
+
+**Archivos Modificados:**
+- `src/components/ExpositionImmersive.tsx`
+- `src/lib/textFormatter.tsx`
+- `AGENTS.md`
+
+### [2026-07-21 15:56] 289. Subtitulo latino Oremus
+**Planificacion:**
+- Extender la regla de subtitulos liturgicos a la forma latina sin alterar los demas formatos.
+
+**Ejecucion:**
+- El formateador reconoce `Oremus` y `Oremus` con acento en la primera `e`, con mayusculas/minusculas y dos puntos opcionales.
+- Ambas formas reciben el mismo estilo seminegrita y gris de `Oremos` y `Oracion`.
+
+**Validacion:**
+- Prueba aislada de render: `Oremus` y su variante acentuada con `:` produjeron `font-semibold text-muted-foreground`.
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `git diff --check` OK; solo avisos esperados de finales de linea CRLF en Windows.
+
+**Archivos Modificados:**
+- `src/lib/textFormatter.tsx`
+- `AGENTS.md`
+
+### [2026-07-21 15:53] 288. Marcadores y subtitulos liturgicos automaticos
+**Planificacion:**
+- Comprobar si el formateador compartido reconocia automaticamente los marcadores solicitados.
+- Agregar negrita al marcador de versiculo/respuesta y estilo de subtitulo a `Oremos` y `Oracion` sin modificar los textos que el usuario estaba editando.
+
+**Ejecucion:**
+- **V y R**: el formateador reconoce al inicio de linea `V/.`, `R/.`, `V./`, `R./`, `V.` y `R.`, y envuelve automaticamente solo el marcador en negrita.
+- **Compatibilidad**: los marcadores que ya vienen escritos manualmente en negrita siguen funcionando sin duplicar etiquetas.
+- **Subtitulos**: una linea compuesta unicamente por `Oremos` u `Oracion`, con tilde opcional y dos puntos opcionales, se muestra en seminegrita y `text-muted-foreground`.
+- **Alcance compartido**: la regla vive en `renderText`, usado por Exposicion y las demas lecturas normales de Cotidie.
+
+**Validacion:**
+- Prueba visual en `Oracion ante el Santisimo Sacramento`: cuatro marcadores `V/.` y `R/.` renderizados como elementos `strong`.
+- Prueba aislada sin editar el plan activo: `Oremos` y `Oracion:` recibieron `font-semibold text-muted-foreground`; `V/.`, `R/.` y `R./` recibieron negrita.
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `git diff --check` OK; solo avisos esperados de finales de linea CRLF en Windows.
+
+**Archivos Modificados:**
+- `src/lib/textFormatter.tsx`
+- `AGENTS.md`
+
+### [2026-07-21 15:23] 287. Contenido unico estricto en Exposicion
+**Planificacion:**
+- Corregir `singleColumn` para que controle tambien la estructura permitida del contenido, no solo su disposicion visual.
+- Mantener los ejemplos bilingues actuales sin cambios de presentacion.
+
+**Ejecucion:**
+- **Tipo discriminado**: `singleColumn: true` exige `content` como un unico `string`; `singleColumn: false` exige un objeto con `espanol` y `latin`.
+- **Render estricto**: las entradas de una columna muestran exclusivamente su texto unico, sin seleccionar ni descartar variantes de idioma.
+- **Bilingue**: las entradas `false` siguen extrayendo los dos textos y mostrandolos en columnas paralelas.
+- **Guia local**: los comentarios del archivo indican la sintaxis requerida para ambos valores.
+
+**Validacion:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK con los tres ejemplos bilingues en `false`.
+- Prueba temporal valida con `singleColumn: true` y un `content` de texto unico: TypeScript OK; el ejemplo se restauro despues a su forma bilingue.
+- Inspeccion confirmo que la rama `true` recibe y renderiza directamente `prayer.content` como texto unico.
+- Los tres valores finales permanecen en `false`; no se altero la presentacion actual de los ejemplos.
+- `git diff --check` OK; solo avisos esperados de finales de linea CRLF en Windows.
+
+**Archivos Modificados:**
+- `src/lib/prayers/oraciones/exposicion-bendicion-plan.ts`
+- `src/components/ExpositionImmersive.tsx`
+- `AGENTS.md`
+
+### [2026-07-21 15:22] 286. Selector de una o dos columnas en Exposicion
+**Planificacion:**
+- Agregar una condicion sencilla a cada entrada editable del plan de Exposicion.
+- Mantener la presentacion bilingue actual por defecto y comprobar ambos valores de la condicion.
+
+**Ejecucion:**
+- **Propiedad**: las entradas admiten `singleColumn`, documentada directamente en `exposicion-bendicion-plan.ts` y visible en los tres ejemplos.
+- **Valor `false`**: conserva Latin a la izquierda y Espanol a la derecha.
+- **Valor `true`**: muestra una sola columna sin etiquetas de idioma, usando el contenido directo o Espanol; si Espanol esta vacio, usa Latin.
+- **Estado inicial**: los tres ejemplos permanecen en `false`, por lo que la presentacion existente no cambia hasta que el archivo sea editado.
+
+**Validacion:**
+- `singleColumn: false`: cuadricula de dos columnas de 136,875 px, con etiquetas Latin y Espanol.
+- Prueba temporal con `singleColumn: true`: cero cuadriculas, cero etiquetas y un unico parrafo `Texto...`; el ejemplo se restauro despues a `false`.
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `git diff --check` OK; solo avisos esperados de finales de linea CRLF en Windows.
+
+**Archivos Modificados:**
+- `src/lib/prayers/oraciones/exposicion-bendicion-plan.ts`
+- `src/components/ExpositionImmersive.tsx`
+- `AGENTS.md`
+
+### [2026-07-21 15:16] 285. Jerarquia superior en Exposicion
+**Planificacion:**
+- Eliminar el contador y la repeticion del titulo en el ambiente de Exposicion.
+- Llevar el contenido bilingue a la parte superior y proteger los nombres largos junto a la flecha del indice.
+
+**Ejecucion:**
+- **Titulo unico**: el nombre de la parte se muestra una sola vez en el encabezado, con mayor tamano; se retiraron el contador `n de n` y el segundo titulo del articulo.
+- **Lectura superior**: el contenedor principal usa alineacion vertical inicial, por lo que Latin y Espanol comienzan inmediatamente bajo el encabezado.
+- **Indice seguro**: el nombre admite varias lineas y corte seguro de palabras, mientras la flecha conserva un espacio propio con `shrink-0`; se elimino el truncamiento.
+
+**Validacion:**
+- Prueba visual movil a 360 x 780 px: titulo unico arriba, cero contador y ambas columnas alineadas desde la parte superior.
+- Inspeccion: una sola aparicion de `Ejemplo 1`, `align-items: flex-start`, `white-space: normal` y `overflow-wrap: anywhere`.
+- El indice se abrio correctamente, mostro los tres ejemplos y la flecha permanecio separada del nombre.
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `git diff --check` OK; solo avisos esperados de finales de linea CRLF en Windows.
+
+**Archivos Modificados:**
+- `src/components/ExpositionImmersive.tsx`
+- `AGENTS.md`
+
+### [2026-07-21 15:11] 284. Fondo de Himnos y contenido exclusivo de Exposicion
+**Planificacion:**
+- Retirar el fondo propio asignado a `Himnos y Letanias` sin interferir con el fondo perpetuo global.
+- Hacer que el ambiente de Exposicion use exclusivamente las entradas editables del archivo de plan.
+- Eliminar la tarjeta de contraste y reforzar moderadamente el velo tematico de la imagen.
+
+**Ejecucion:**
+- **Himnos y Letanias**: se elimino `crucifixion.jpeg` de la subcategoria; la vista ya no monta imagen propia y solo puede recibir el fondo general cuando el usuario activa el modo perpetuo.
+- **Contenido de Exposicion**: se retiro la conversion y concatenacion de las secciones antiguas de `exposicion-bendicion`; el recorrido se construye solamente con `exposicionBendicionPlanAdicional`.
+- **Lectura limpia**: se eliminaron fondo, borde redondeado, sombra y desenfoque del articulo de texto.
+- **Contraste por tema**: el velo de la imagen paso de 70 % a 80 % negro en oscuro y de 65 % a 75 % blanco en claro.
+
+**Validacion:**
+- `Himnos y Letanias` devolvio `data-has-image=false` y cero imagenes de seccion; el fondo global permanecio disponible sin agregar otro.
+- Exposicion mostro `1 de 3` y el contenido visible se limito a `Ejemplo 1`, Latin `Texto...` y Espanol `Texto...`.
+- Estilos computados del articulo: fondo transparente, `box-shadow: none` y `backdrop-filter: none`; velo oscuro medido en 80 %.
+- Prueba adicional en modo claro: velo blanco medido en 75 %, texto oscuro legible y articulo igualmente transparente; se restauro despues el modo oscuro de la sesion.
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `git diff --check` OK; solo avisos esperados de finales de linea CRLF en Windows.
+
+**Archivos Modificados:**
+- `src/lib/data.tsx`
+- `src/components/ExpositionImmersive.tsx`
+- `AGENTS.md`
+
+### [2026-07-21 15:08] 283. Correccion definitiva de filtracion en calendario
+**Planificacion:**
+- Reexaminar la rendija tras comprobar que desplazar un pixel la columna fija no resolvia el defecto real.
+- Reproducir el problema forzando columnas numericas bajo el borde izquierdo y corregir el modelo de pintado de la tabla.
+
+**Ejecucion:**
+- **Diagnostico corregido**: la filtracion provenia de `border-collapse`; el navegador podia pintar fragmentos de las celdas desplazadas en la zona de borde compartida con las celdas fijas.
+- **Solucion**: la tabla usa `border-separate` con espaciado cero, conservando las mismas lineas y dimensiones pero dando a cada celda fija una caja de fondo completa y opaca.
+- **Limpieza**: se retiro `left: -1px` de la intervencion anterior y las celdas fijas volvieron a `left: 0`, ahora alineadas exactamente con el limite interior del contenedor.
+
+**Validacion:**
+- Prueba movil a 360 x 780 px con scroll horizontal en 620 px y 843,2 px.
+- Se forzaron los numeros de dias bajo el extremo izquierdo de la columna fija; no aparecieron pixeles ni trazos a traves del encabezado o la fila.
+- Geometria verificada: borde interior en x=15,8 px y celda fija en x=15,8 px, con `border-spacing: 0px`.
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `git diff --check` OK; solo avisos esperados de finales de linea CRLF en Windows.
+
+**Archivos Modificados:**
+- `src/components/plans/PlanDeVidaCalendar.tsx`
+- `AGENTS.md`
+
+### [2026-07-21 15:01] 282. Cierre de rendija en columna fija del calendario
+**Planificacion:**
+- Localizar la capa fija que dejaba asomar los dias durante el desplazamiento horizontal.
+- Cerrar exclusivamente la abertura izquierda sin alterar anchos, datos ni navegacion de la tabla.
+
+**Ejecucion:**
+- **Causa**: las celdas fijas comenzaban en `left: 0`, despues del pixel interior del borde del contenedor desplazable.
+- **Cobertura**: el encabezado y las celdas de la primera columna se extienden un pixel hacia la izquierda mediante `left: -1px`, cubriendo el borde interior por completo.
+- **Alcance**: no se modificaron el ancho de la columna, el contenido, los checks ni el comportamiento del scroll.
+
+**Validacion:**
+- Prueba visual movil a 360 x 780 px con desplazamiento horizontal hasta los dias 19-23: ningun numero aparece a la izquierda de `Seccion / oracion` ni de la fila fija.
+- Medicion: el contenedor comienza en x=15 px y las celdas fijas en x=14,8 px, sin rendija visible.
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `git diff --check` OK; solo avisos esperados de finales de linea CRLF en Windows.
+
+**Archivos Modificados:**
+- `src/components/plans/PlanDeVidaCalendar.tsx`
+- `AGENTS.md`
+
+### [2026-07-21 14:47] 281. Bordes completos en checks del Plan de Vida
+**Planificacion:**
+- Identificar si los checks estaban recortados por su contenedor o por el renderizado del borde.
+- Corregir exclusivamente las casillas de seguimiento del Plan de Vida y comprobar ambos modos de orientacion.
+
+**Ejecucion:**
+- **Diagnostico**: el escalado general convertia el borde de 1 px en 0,8 px efectivos, haciendo que el lado derecho pudiera caer entre pixeles y desaparecer visualmente en ciertas escalas o densidades.
+- **Correccion localizada**: los checks del Plan de Vida usan un borde de 2 px; su tamano, posicion, estado y funcionamiento permanecen sin cambios.
+- **Alcance**: no se modifico el componente global de checkbox ni otras casillas de la aplicacion.
+
+**Validacion:**
+- Prueba visual en modo oscuro a 360 x 780 px: los cuatro lados son continuos y visibles.
+- Prueba visual en modo oscuro a 780 x 360 px: todos los checks de ambas columnas conservan sus bordes completos.
+- Medicion computada: 1,6 px efectivos e iguales en los cuatro lados bajo el escalado activo; sin desborde horizontal.
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `git diff --check` OK; solo avisos esperados de finales de linea CRLF en Windows.
+
+**Archivos Modificados:**
+- `src/components/PrayerList.tsx`
+- `AGENTS.md`
+
+### [2026-07-21 14:41] 280. Composicion movil horizontal por tipo de contenido
+**Planificacion:**
+- Reorganizar exclusivamente la experiencia movil horizontal, conservando intacta la composicion vertical.
+- Distribuir portada, listas, secciones con imagen, oraciones y contenido bilingue segun el espacio horizontal disponible.
+- Verificar cada variante en dimensiones reales de telefono horizontal y repetir las vistas principales en vertical.
+
+**Ejecucion:**
+- **Alcance horizontal**: todos los estilos nuevos quedan limitados a `orientation: landscape` y una altura maxima de 600 px, por lo que no intervienen en vertical ni en escritorios altos.
+- **Portada**: el nombre y la cita ocupan la mitad izquierda; los cuatro accesos principales ocupan la mitad derecha sin dividir `Cotidie`.
+- **Listas**: Plan de Vida, Ajustes y listas equivalentes se distribuyen en dos columnas. Devociones conserva el santo y su imagen a la izquierda, con la lista de devociones de tamano normal a la derecha.
+- **Oraciones personales**: la interfaz de Oraciones muestra `Mis Oraciones` a la izquierda y `Predeterminadas` a la derecha.
+- **Secciones anidadas**: los agrupadores con imagen muestran la imagen a la izquierda y su lista a la derecha; los que no tienen imagen reutilizan la lista en dos columnas.
+- **Lectura**: una oracion con imagen queda dividida entre imagen y texto; una oracion sin imagen hace fluir su texto por dos columnas. El modo `Ambos` mantiene Latin en la mitad izquierda y Espanol en la derecha.
+- **Vertical preservado**: los contenedores auxiliares recuperan el flujo y espaciado originales fuera de la consulta horizontal.
+
+**Validacion:**
+- `\.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- Pruebas visuales a 780 x 360 px: portada 50/50; Plan de Vida y Ajustes en dos columnas; Devociones con imagen/lista; Oraciones con personales/predeterminadas; lectura con imagen, sin imagen y bilingue, todas sin desborde horizontal.
+- Pruebas de regresion a 360 x 780 px: portada en flujo vertical, Plan de Vida en una columna con separacion original de 11 px y oracion en disposicion vertical; `scrollWidth` igual al viewport.
+- `git diff --check` OK; solo avisos esperados de finales de linea CRLF en Windows.
+
+**Archivos Modificados:**
+- `src/app/globals.css`
+- `src/components/home/HomePage.tsx`
+- `src/components/PrayerList.tsx`
+- `src/components/PrayerAccordion.tsx`
+- `src/components/Settings.tsx`
+- `src/components/saints/SaintOfTheDayCard.tsx`
+- `src/components/PrayerDetail.tsx`
+- `src/components/main/MainApp.tsx`
+- `AGENTS.md`
+
+### [2026-07-21 14:20] 279. Titulo Cotidie indivisible en la portada
+**Planificacion:**
+- Identificar por que el nombre de la aplicacion podia dividirse aun con espacio disponible en escritorio.
+- Corregir exclusivamente el titulo y comprobarlo en dimensiones moviles y de escritorio.
+
+**Ejecucion:**
+- **Causa**: el titulo principal combinaba una tipografia grande con `break-words` dentro de un contenedor de ancho limitado, permitiendo cortar la palabra `Cotidie`.
+- **Correccion**: `HomePage.tsx` usa `whitespace-nowrap` para mantener el nombre completo en una sola linea sin alterar su fuente, tamano, posicion ni apariencia.
+
+**Validacion:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- Prueba visual a 360 x 780 px: el titulo ocupa exactamente una linea, no se recorta y el documento conserva `scrollWidth` de 360 px.
+- Prueba a 1856 x 1040 px: el titulo conserva una sola linea y no genera desbordamiento horizontal.
+- `git diff --check -- src/components/home/HomePage.tsx` OK; solo aviso esperado de finales de linea CRLF en Windows.
+
+**Archivos Modificados:**
+- `src/components/home/HomePage.tsx`
+- `AGENTS.md`
+
+### [2026-07-21 14:15] 278. Entorno web directo y alarmas estrictamente exactas
+**Planificacion:**
+- Agregar `armar cotidie dev` al perfil de PowerShell sin modificar los modos de compilacion existentes.
+- Revisar toda la ruta de programacion Android para identificar por que las notificaciones podian llegar minutos tarde.
+- Impedir que una alarma solicitada como exacta se degrade silenciosamente a una alarma aproximada.
+
+**Ejecucion:**
+- **Comando de desarrollo**: el perfil inicia Cotidie con Next.js en el puerto 3018, espera hasta que el servidor responda y abre `http://127.0.0.1:3018/`; si ya esta activo, reutiliza la misma instancia.
+- **Diagnostico de precision**: el parche nativo usaba `setAndAllowWhileIdle` o `set` cuando Android no concedia alarmas exactas o fallaba su programacion. Esas API son aproximadas y explican el retraso de varios minutos.
+- **Permiso previo**: `SettingsContext.tsx` comprueba notificaciones y alarmas exactas antes de cancelar la agenda vigente. Si falta el acceso especial, pausa la sincronizacion, abre una sola vez el ajuste de Android y vuelve a sincronizar al regresar a Cotidie.
+- **Programacion estricta**: el parche persistente conserva exclusivamente `setExactAndAllowWhileIdle` o `setExact`; ya no utiliza `setAlarmClock`, `setAndAllowWhileIdle` ni `set` como sustitutos silenciosos.
+- **Proteccion temprana**: si Android entrega excepcionalmente una alarma antes de `schedule.at`, el receptor solo puede diferirla mediante otra alarma exacta; nunca la publica antes ni la convierte en aproximada.
+
+**Validacion:**
+- El perfil completo fue validado con el parser de PowerShell, sin errores.
+- `armar cotidie dev` inicio correctamente el servidor y `http://127.0.0.1:3018/` respondio HTTP 200.
+- `node --check scripts/patch-local-notifications.js` OK.
+- El parche nativo se ejecuto dos veces y conservo hashes identicos en la segunda ejecucion.
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `android\gradlew.bat :app:compileDebugJavaWithJavac` OK con el JBR de Android Studio.
+- ADB no detecto un telefono conectado y no habia un AVD instalado, por lo que no se midio aun la entrega sobre un dispositivo real.
+- `git diff --check` OK para los archivos funcionales modificados; solo avisos esperados de finales de linea CRLF en Windows.
+
+**Archivos Modificados:**
+- `C:\Users\balca\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1`
+- `src/context/SettingsContext.tsx`
+- `scripts/patch-local-notifications.js`
+- `AGENTS.md`
+
+### [2026-07-21 11:43] 277. Ejemplos bilingues para el recorrido de Exposicion
+**Planificacion:**
+- Dejar tres entradas de muestra faciles de sustituir en el archivo reservado para el plan manual.
+- Mostrar Latin y Espanol al mismo tiempo, sin selector, conservando el recorrido secuencial y el fondo ya existente.
+
+**Ejecucion:**
+- **Plantilla editable**: `exposicion-bendicion-plan.ts` contiene `Ejemplo 1`, `Ejemplo 2` y `Ejemplo 3`, cada uno con campos `espanol` y `latin` cuyo contenido provisional es `Texto...`.
+- **Recorrido**: las tres entradas se incorporan en el orden del arreglo al indice, progreso y navegacion por zonas de toque de Exposicion y Bendicion.
+- **Vista bilingue fija**: `ExpositionImmersive.tsx` presenta Latin a la izquierda y Espanol a la derecha en dos columnas iguales, sin exponer cambio de idioma; las partes originales de un solo idioma conservan su presentacion.
+- **Fondo**: el plan mantiene visible la imagen existente de Exposicion y Bendicion con la capa de contraste del modo claro u oscuro.
+
+**Validacion:**
+- `.\\node_modules\\.bin\\tsc.cmd --noEmit` OK.
+- `npm.cmd run build` OK; exportacion estatica de produccion generada correctamente.
+- Prueba visual a 360 x 780 px: los tres ejemplos aparecen como pasos 5, 6 y 7; `Ejemplo 1` muestra ambas columnas, conserva el fondo y no presenta desborde horizontal (`scrollWidth` 360 px).
+- Se confirmo que la vista no contiene selector ni boton de cambio de idioma.
+- `git diff --check` OK para los archivos funcionales modificados.
+
+**Archivos Modificados:**
+- `src/lib/prayers/oraciones/exposicion-bendicion-plan.ts`
+- `src/components/ExpositionImmersive.tsx`
+- `AGENTS.md`
+
+### [2026-07-21 11:28] 276. Widgets sincronizados, lectura persistente y recursos espirituales
+**Planificacion:**
+- Sincronizar ambos widgets con el mismo santo resuelto por la aplicacion y recuperar la imagen chilena de la Virgen del Carmen en el widget grande.
+- Agregar la oracion por las almas del purgatorio y ajustar solamente los encuadres solicitados.
+- Reforzar progreso, seleccion, subrayados, notas y gestos en el lector EPUB compartido.
+- Proteger el contenido en horizontal, recuperar la edicion general del examen y la busqueda completa de Camino.
+- Conservar los asteriscos liturgicos del Quicumque con una explicacion y crear el recorrido inmersivo de Exposicion y Bendicion.
+
+**Ejecucion:**
+- **Widgets**: el estado ya resuelto del cartel envia nombre, biografia, devocion, imagen y color al plugin Android; `SaintWidgetUpdater` actualiza en la misma llamada los widgets pequeno y grande. Se agrego la asociacion nativa de Nuestra Senora del Carmen con su imagen local.
+- **Virgen del Carmen**: la imagen usa un acercamiento central de 1,35 tanto en el cartel y la devocion como en el widget grande.
+- **Contenido**: se agrego `Oracion por las almas del purgatorio` en Oraciones > Intercesion y Santos; la imagen de Exposicion y Bendicion queda alineada hacia arriba.
+- **EPUB**: cada libro guarda su CFI al reubicarse, navegar, cambiar de modo, ocultarse o desmontarse. El cambio de pantalla completa restaura el mismo ancla, deja de repaginar despues de cada avance y evita redimensionar instancias ya destruidas.
+- **Zonas EPUB**: las coordenadas se normalizan contra el ancho visible y no contra el `iframe` multipagina de EPUB.js; izquierda retrocede, derecha avanza y el centro superior sale del modo completo.
+- **Subrayados y notas**: la seleccion permanece activa hasta guardar o cancelar; cada EPUB conserva localmente sus rangos, textos y notas, permite volver a ellos, editar la nota y eliminarlos desde la pestana Subrayados.
+- **Gestos y zonas seguras**: el pellizco de las oraciones aplica solo el 35 % del desplazamiento detectado y redondea a centesimas. Encabezado, contenido general y experiencias inmersivas respetan los margenes laterales de la camara en horizontal.
+- **Respuesta tactil**: el boton comun controla su estado presionado por eventos de puntero y lo limpia al soltar, cancelar, salir, perder captura, pulsar o perder foco; el doble toque de los menus de tres puntos ya no conserva la apariencia activa.
+- **Examen y Camino**: cualquier usuario puede editar `examen-conciencia` mediante el override persistente existente. Camino vuelve a buscar por numero de punto, palabra, frase o encabezado de capitulo desde el menu de la oracion.
+- **Quicumque**: se conservaron los asteriscos porque senalan la pausa entre las dos mitades del versiculo en la salmodia; el texto latino ahora lo aclara antes de comenzar.
+- **Exposicion**: se agrego un recorrido inmersivo con indice, progreso, zonas de toque y el fondo existente. Las oraciones manuales futuras se agregan en `src/lib/prayers/oraciones/exposicion-bendicion-plan.ts`.
+
+**Validacion:**
+- `.\node_modules\.bin\tsc.cmd --noEmit` OK.
+- `npm.cmd run build` OK; exportacion estatica de produccion generada correctamente.
+- `android\gradlew.bat :app:compileDebugJavaWithJavac` OK con el JBR de Android Studio.
+- Prueba de produccion a 360 x 780 px: avance derecho, salida central superior, conservacion del archivo interno al salir y restauracion despues de cerrar y reabrir el lector, sin errores de consola.
+- Doble toque en `Opciones de oracion` dejo `data-pressed` vacio.
+- Prueba de busqueda Camino confirmo coincidencias por `capitulo 46`, punto `999` y palabra `perseverancia`.
+- Se contrasto el uso del asterisco con la convencion oficial del Salterio para la pausa entre mitades del versiculo.
+- `git diff --check` OK; solo avisos esperados de finales de linea CRLF en Windows.
+
+**Archivos Modificados:**
+- `android/app/src/main/assets/image-display.ts`
+- `android/app/src/main/java/com/benjamin/studio/BackgroundActionsPlugin.java`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetContentFactory.java`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java`
+- `src/components/EpubReader.tsx`
+- `src/components/ExpositionImmersive.tsx`
+- `src/components/Header.tsx`
+- `src/components/PrayerDetail.tsx`
+- `src/components/RosaryImmersive.tsx`
+- `src/components/RosaryMeditated.tsx`
+- `src/components/SearchCamino.tsx`
+- `src/components/ViaCrucisImmersive.tsx`
+- `src/components/main/MainApp.tsx`
+- `src/components/main/navigation.ts`
+- `src/components/saints/SaintOfTheDayCard.tsx`
+- `src/components/ui/button.tsx`
+- `src/context/SettingsContext.tsx`
+- `src/lib/camino-search.ts`
+- `src/lib/data.tsx`
+- `src/lib/image-display.ts`
+- `src/lib/prayers/oraciones/exposicion-bendicion-plan.ts`
+- `src/lib/prayers/oraciones/oracion-almas-purgatorio.ts`
+- `src/lib/prayers/plan-de-vida/simbolo-quicumque.ts`
+- `src/plugins/BackgroundActions.ts`
+- `AGENTS.md`
+
 ### [2026-07-14 20:35] 275. Fuente general aplicada a lectores EPUB
 **Planificacion:**
 - Comprobar si los EPUB heredaban la fuente seleccionada para el resto de Cotidie.

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import * as Icon from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,12 +16,17 @@ import { cn } from '@/lib/utils';
 import {
   spiritualTriviaQuestions,
   triviaCategories,
+  triviaDifficulties,
   type TriviaCategoryId,
+  type TriviaDifficultyId,
   type TriviaQuestion,
 } from '@/lib/trivia-questions';
 
 type CategorySelection = 'todas' | TriviaCategoryId;
-type SessionLength = 5 | 10 | 20;
+type DifficultySelection = 'todas' | TriviaDifficultyId;
+type SessionLength = 5 | 10 | 15 | 20;
+
+const sessionLengthOptions: readonly SessionLength[] = [5, 10, 15, 20];
 
 interface PreparedOption {
   text: string;
@@ -59,27 +64,49 @@ const prepareQuestion = (question: TriviaQuestion): PreparedQuestion => ({
   ),
 });
 
-const buildSession = (category: CategorySelection, length: SessionLength): PreparedQuestion[] => {
+const questionMatchesFilters = (
+  question: TriviaQuestion,
+  category: CategorySelection,
+  difficulty: DifficultySelection
+) =>
+  (category === 'todas' || question.category === category) &&
+  (difficulty === 'todas' || question.difficulty === difficulty);
+
+const buildSession = (
+  category: CategorySelection,
+  difficulty: DifficultySelection,
+  length: SessionLength
+): PreparedQuestion[] => {
+  const eligibleQuestions = spiritualTriviaQuestions.filter((question) =>
+    questionMatchesFilters(question, category, difficulty)
+  );
+  const targetLength = Math.min(length, eligibleQuestions.length);
+
   if (category !== 'todas') {
-    return shuffle(spiritualTriviaQuestions.filter((question) => question.category === category))
-      .slice(0, length)
+    return shuffle(eligibleQuestions)
+      .slice(0, targetLength)
       .map(prepareQuestion);
   }
 
   const buckets = new Map(
     triviaCategories.map((entry) => [
       entry.id,
-      shuffle(spiritualTriviaQuestions.filter((question) => question.category === entry.id)),
+      shuffle(eligibleQuestions.filter((question) => question.category === entry.id)),
     ])
   );
   const selected: TriviaQuestion[] = [];
 
-  while (selected.length < length) {
+  while (selected.length < targetLength) {
+    let addedQuestion = false;
     for (const categoryEntry of shuffle(triviaCategories)) {
       const next = buckets.get(categoryEntry.id)?.pop();
-      if (next) selected.push(next);
-      if (selected.length === length) break;
+      if (next) {
+        selected.push(next);
+        addedQuestion = true;
+      }
+      if (selected.length === targetLength) break;
     }
+    if (!addedQuestion) break;
   }
 
   return selected.map(prepareQuestion);
@@ -88,8 +115,12 @@ const buildSession = (category: CategorySelection, length: SessionLength): Prepa
 const categoryLabel = (category: TriviaCategoryId) =>
   triviaCategories.find((entry) => entry.id === category)?.label ?? category;
 
+const difficultyLabel = (difficulty: TriviaDifficultyId) =>
+  triviaDifficulties.find((entry) => entry.id === difficulty)?.label ?? difficulty;
+
 export default function SpiritualTrivia() {
   const [category, setCategory] = useState<CategorySelection>('todas');
+  const [difficulty, setDifficulty] = useState<DifficultySelection>('todas');
   const [sessionLength, setSessionLength] = useState<SessionLength>(10);
   const [questions, setQuestions] = useState<PreparedQuestion[]>([]);
   const [questionIndex, setQuestionIndex] = useState(0);
@@ -101,6 +132,21 @@ export default function SpiritualTrivia() {
   const currentAnswered = selectedOptionIndex !== null;
   const correctCount = answers.filter((answer) => answer.isCorrect).length;
   const incorrectAnswers = answers.filter((answer) => !answer.isCorrect);
+  const eligibleQuestionCount = useMemo(
+    () => spiritualTriviaQuestions.filter((question) =>
+      questionMatchesFilters(question, category, difficulty)
+    ).length,
+    [category, difficulty]
+  );
+  const availableSessionLengths = useMemo(
+    () => sessionLengthOptions.filter((length) => length <= eligibleQuestionCount),
+    [eligibleQuestionCount]
+  );
+
+  useEffect(() => {
+    if (availableSessionLengths.includes(sessionLength)) return;
+    setSessionLength(availableSessionLengths[availableSessionLengths.length - 1] ?? 5);
+  }, [availableSessionLengths, sessionLength]);
 
   const categoryResults = useMemo(
     () =>
@@ -118,7 +164,7 @@ export default function SpiritualTrivia() {
   );
 
   const startSession = () => {
-    setQuestions(buildSession(category, sessionLength));
+    setQuestions(buildSession(category, difficulty, sessionLength));
     setQuestionIndex(0);
     setSelectedOptionIndex(null);
     setAnswers([]);
@@ -200,6 +246,33 @@ export default function SpiritualTrivia() {
           </div>
 
           <div className="space-y-2">
+            <label htmlFor="trivia-difficulty" className="text-sm font-medium">
+              Dificultad
+            </label>
+            <Select
+              value={difficulty}
+              onValueChange={(value) => setDifficulty(value as DifficultySelection)}
+            >
+              <SelectTrigger id="trivia-difficulty" className="h-12">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas" className="min-h-11">Todas las dificultades</SelectItem>
+                {triviaDifficulties.map((entry) => (
+                  <SelectItem key={entry.id} value={entry.id} className="min-h-11">
+                    {entry.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              {difficulty === 'todas'
+                ? 'La sesión combina distintos niveles de profundidad.'
+                : triviaDifficulties.find((entry) => entry.id === difficulty)?.description}
+            </p>
+          </div>
+
+          <div className="space-y-2">
             <label htmlFor="trivia-length" className="text-sm font-medium">
               Cantidad de preguntas
             </label>
@@ -211,11 +284,16 @@ export default function SpiritualTrivia() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="5" className="min-h-11">5 preguntas</SelectItem>
-                <SelectItem value="10" className="min-h-11">10 preguntas</SelectItem>
-                <SelectItem value="20" className="min-h-11">20 preguntas</SelectItem>
+                {availableSessionLengths.map((length) => (
+                  <SelectItem key={length} value={String(length)} className="min-h-11">
+                    {length} preguntas
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">
+              {eligibleQuestionCount} disponibles con estos filtros.
+            </p>
           </div>
 
           <div className="flex items-center justify-between gap-3 border-t pt-4 text-xs text-muted-foreground">
@@ -302,7 +380,7 @@ export default function SpiritualTrivia() {
     <Card>
       <CardHeader className="space-y-3 pb-4">
         <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-          <span>{categoryLabel(current.question.category)}</span>
+          <span>{categoryLabel(current.question.category)} · {difficultyLabel(current.question.difficulty)}</span>
           <span className="tabular-nums">{questionIndex + 1} de {questions.length}</span>
         </div>
         <Progress value={progress} className="h-1.5" />

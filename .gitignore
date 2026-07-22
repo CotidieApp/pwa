@@ -15,6 +15,7 @@
 
 # next.js
 /.next/
+/.next-dev/
 /out/
 /.gradle-user-home/
 /android/.android-user-home/

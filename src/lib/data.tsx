@@ -54,6 +54,7 @@ import { oracionAlEspirituSanto } from './prayers/oraciones/oracion-espiritu-san
 import { oracionJuventudInquieta } from './prayers/oraciones/oracion-juventud-inquieta';
 import { queBienSeEstaContigo } from './prayers/oraciones/que-bien-se-esta-contigo';
 import { oracionPorLosDifuntos } from './prayers/oraciones/oracion-difuntos';
+import { oracionAlmasPurgatorio } from './prayers/oraciones/oracion-almas-purgatorio';
 import { oracionDeLaFamilia } from './prayers/oraciones/oracion-familia';
 import { letaniasHumildad } from './prayers/oraciones/letanias-humildad';
 import { estructurales } from './prayers/oraciones/estructurales';
@@ -185,6 +186,7 @@ const oracionesSubcategories: Prayer[] = [
       oracionporelPapa,
       oracionPorLasVocaciones,
       oracionPorLosDifuntos,
+      oracionAlmasPurgatorio,
       oracionDeLaFamilia,
       oracionSanFrancisco,
       almaDeCristo,
@@ -194,7 +196,6 @@ const oracionesSubcategories: Prayer[] = [
     id: 'subcat-himnos',
     title: 'Himnos y Letanías',
     categoryId: 'oraciones',
-    imageUrl: '/images/crucifixion.jpeg',
     prayers: [
       oracionAlSagradoCorazonDeJesus,
       letaniasHumildad,

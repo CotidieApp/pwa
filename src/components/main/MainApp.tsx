@@ -19,6 +19,7 @@ import RosaryImmersive from '../RosaryImmersive';
 import RosaryMeditated from '../RosaryMeditated';
 import PlanDeVidaCalendar from '../plans/PlanDeVidaCalendar';
 import ViaCrucisImmersive from '../ViaCrucisImmersive';
+import ExpositionImmersive from '../ExpositionImmersive';
 import EpubReader from '@/components/EpubReader';
 import PersonalEpubLibrary from '@/components/PersonalEpubLibrary';
 import SearchCamino from '@/components/SearchCamino';
@@ -28,6 +29,7 @@ import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
 import { AnimatePresence } from 'framer-motion';
 import { getAnnuumAvailability, getLocalDateKey } from '@/lib/movable-feasts';
+import { getImageObjectPosition, getImageObjectScale } from '@/lib/image-display';
 import AnnuumStory from '../AnnuumStory';
 import Image from 'next/image';
 import { Play } from 'lucide-react';
@@ -753,6 +755,11 @@ export default function MainApp() {
       return;
     }
 
+    if (currentState.activeView === 'exposition') {
+      replaceNavState(buildPrayerNavState(['subcat-himnos']));
+      return;
+    }
+
     if (currentState.activeView === 'rosaryMeditated') {
       replaceNavState(buildCategoryNavState('plan-de-vida'));
       return;
@@ -831,6 +838,15 @@ export default function MainApp() {
 
   const handleSelectPrayer = (prayer: Prayer) => {
     if (!prayer.id) return;
+
+    if (prayer.id === 'exposicion-bendicion') {
+      setNavState((prevState) => ({
+        ...prevState,
+        activeView: 'exposition',
+      }));
+      incrementStat('prayersOpenedHistory', prayer.id);
+      return;
+    }
 
     if (prayer.id === 'via-crucis') {
       setNavState(prevState => ({
@@ -1034,6 +1050,8 @@ export default function MainApp() {
         return <DeveloperDashboard onBack={handleBack} />;
       case 'viaCrucis':
         return <ViaCrucisImmersive onClose={() => setNavState({ ...initialState, activeView: 'category', selectedCategoryId: 'plan-de-vida' })} />;
+      case 'exposition':
+        return <ExpositionImmersive onClose={() => replaceNavState(buildPrayerNavState(['subcat-himnos']))} />;
       case 'rosary':
         return <RosaryImmersive
           onClose={(targetId) => {
@@ -1187,16 +1205,35 @@ export default function MainApp() {
         }
         if (currentPrayer.prayers && currentPrayer.prayers.length > 0) {
           return (
-            <div className="p-4">
-              <PrayerList
-                prayers={currentPrayer.prayers}
-                onSelectPrayer={handleSelectPrayer}
-                onOpenPrayerById={handleOpenPrayerById}
-                onRemovePrayer={isDeveloperMode && isEditModeEnabled ? removePredefinedPrayer : undefined}
-                onEditPrayer={isDeveloperMode && isEditModeEnabled ? (p) => handleEditEntrada(p, 'predefined') : undefined}
-                categoryId={currentPrayer.id || ''}
-                prayerPathLength={prayerPath.length}
-              />
+            <div
+              className="mobile-landscape-section-layout p-4"
+              data-has-image={Boolean(currentPrayer.imageUrl)}
+            >
+              {currentPrayer.imageUrl ? (
+                <div className="mobile-landscape-section-image">
+                  <Image
+                    src={currentPrayer.imageUrl}
+                    alt={currentPrayer.title}
+                    fill
+                    className="object-cover"
+                    style={{
+                      objectPosition: getImageObjectPosition(currentPrayer.id),
+                      transform: `scale(${getImageObjectScale(currentPrayer.id)})`,
+                    }}
+                  />
+                </div>
+              ) : null}
+              <div className="mobile-landscape-section-list">
+                <PrayerList
+                  prayers={currentPrayer.prayers}
+                  onSelectPrayer={handleSelectPrayer}
+                  onOpenPrayerById={handleOpenPrayerById}
+                  onRemovePrayer={isDeveloperMode && isEditModeEnabled ? removePredefinedPrayer : undefined}
+                  onEditPrayer={isDeveloperMode && isEditModeEnabled ? (p) => handleEditEntrada(p, 'predefined') : undefined}
+                  categoryId={currentPrayer.id || ''}
+                  prayerPathLength={prayerPath.length}
+                />
+              </div>
             </div>
           );
         }
@@ -1473,6 +1510,13 @@ export default function MainApp() {
     !currentPrayer?.prayers?.length;
   const canEditCurrentPrayer =
     isPrayerReadingView &&
+    (
+      currentPrayer?.id === 'examen-conciencia' ||
+      currentPrayer?.isUserDefined === true ||
+      (isDeveloperMode && isEditModeEnabled)
+    );
+  const canDeleteCurrentPrayer =
+    isPrayerReadingView &&
     (currentPrayer?.isUserDefined === true || (isDeveloperMode && isEditModeEnabled));
   const currentPrayerLanguageModes = getPrayerLanguageModes(currentPrayer);
   const preferredPrayerLanguage = normalizeLanguageKey(
@@ -1497,6 +1541,7 @@ export default function MainApp() {
   const hasTransparentSystemBars =
     showsBackgroundImage ||
     navState.activeView === 'viaCrucis' ||
+    navState.activeView === 'exposition' ||
     navState.activeView === 'rosary' ||
     navState.activeView === 'rosaryMeditated' ||
     showAnnuum;
@@ -1643,7 +1688,7 @@ export default function MainApp() {
             nextDisabled={
               !hasCustomPlanPrayerNav
             }
-            showSearchButton={isCaminoActive && !isPrayerReadingView}
+            showSearchButton={isCaminoActive}
             onToggleSearch={() => setIsSearchVisible((p) => !p)}
             isDistractionFree={isDistractionFree}
             onToggleDistractionFree={toggleDistractionFree}
@@ -1658,8 +1703,8 @@ export default function MainApp() {
             onInfo={() => setShowLettersInfo(true)}
             showPrayerMenu={isPrayerReadingView}
             onStartTimer={startTimer}
-            showDeleteButton={canEditCurrentPrayer}
-            onDelete={canEditCurrentPrayer && currentPrayer ? () => setPrayerPendingDelete(currentPrayer) : undefined}
+            showDeleteButton={canDeleteCurrentPrayer}
+            onDelete={canDeleteCurrentPrayer && currentPrayer ? () => setPrayerPendingDelete(currentPrayer) : undefined}
             languageModeLabel={currentPrayerLanguageMode ? languageModeLabel[currentPrayerLanguageMode] : undefined}
             onCycleLanguage={currentPrayerLanguageModes.length > 1 ? cycleCurrentPrayerLanguage : undefined}
           />
@@ -1673,6 +1718,10 @@ export default function MainApp() {
                 ? 'overflow-hidden'
                 : 'overflow-y-auto pr-2'
           )}
+          style={{
+            paddingLeft: 'env(safe-area-inset-left, 0px)',
+            paddingRight: 'env(safe-area-inset-right, 0px)',
+          }}
           data-app-scroll-container={(navState.activeView !== 'home' && (navState.activeView !== 'prayer' || (currentPrayer && currentPrayer.prayers?.length))) ? 'true' : undefined}
           onClick={(e) => {
             if (!customPlanTouchNavEnabled) return

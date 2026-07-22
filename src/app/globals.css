@@ -178,3 +178,247 @@ blockquote {
 .touch-nav-zone:active {
   background: transparent;
 }
+
+/* Mobile landscape layout. Portrait and taller desktop/tablet viewports remain unchanged. */
+@media (orientation: landscape) and (max-height: 600px) {
+  .mobile-landscape-home {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .mobile-landscape-home-copy {
+    grid-column: 1;
+    min-width: 0;
+    padding: 0.75rem 1rem;
+  }
+
+  .mobile-landscape-home-copy-inner {
+    width: 100%;
+    max-width: none;
+  }
+
+  .mobile-landscape-home-title {
+    font-size: clamp(3.5rem, 15vh, 5rem) !important;
+  }
+
+  .mobile-landscape-home-quote {
+    margin-top: 0.5rem;
+    padding-inline: 0.75rem;
+  }
+
+  .mobile-landscape-home-quote-text {
+    font-size: clamp(0.95rem, 4.5vh, 1.25rem) !important;
+  }
+
+  .mobile-landscape-home-author {
+    margin-top: 0.25rem;
+    font-size: clamp(0.85rem, 4vh, 1rem) !important;
+  }
+
+  .mobile-landscape-home-menu {
+    grid-column: 2;
+    width: 100%;
+    max-width: none;
+    align-self: center;
+    margin: 0;
+    padding: 0.5rem 0.75rem max(0.5rem, env(safe-area-inset-bottom));
+  }
+
+  .prayer-list-layout {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+    gap: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .prayer-list-layout > :not([hidden]) ~ :not([hidden]),
+  .prayer-accordion-layout > :not([hidden]) ~ :not([hidden]),
+  .mobile-landscape-two-column-list > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 0;
+  }
+
+  .prayer-list-item {
+    min-width: 0;
+  }
+
+  .prayer-list-layout:not([data-category="devociones"]) .prayer-list-items {
+    display: contents;
+  }
+
+  .prayer-list-items > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 0;
+  }
+
+  .prayer-list-subcategories,
+  .prayer-list-empty,
+  .prayer-list-add {
+    grid-column: 1 / -1;
+  }
+
+  .prayer-list-layout[data-category="devociones"] {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .prayer-list-layout[data-category="devociones"] .prayer-list-feature {
+    position: sticky;
+    top: 0;
+    grid-column: 1;
+    grid-row: 1;
+    height: calc(100dvh - 5.5rem);
+    min-height: 12rem;
+  }
+
+  .prayer-list-layout[data-category="devociones"] .prayer-list-items,
+  .prayer-list-layout[data-category="devociones"] .prayer-list-empty,
+  .prayer-list-layout[data-category="devociones"] .prayer-list-add {
+    grid-column: 2;
+  }
+
+  .prayer-list-layout[data-category="devociones"] .prayer-list-items {
+    grid-row: 1;
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .prayer-list-feature .saint-day-card {
+    height: 100%;
+    margin-bottom: 0;
+  }
+
+  .prayer-list-feature .saint-day-image {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+  }
+
+  .prayer-list-feature .saint-day-header {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 10;
+    padding: 3rem 1rem 1rem;
+    background: linear-gradient(to top, rgb(0 0 0 / 0.78), transparent);
+    color: white;
+  }
+
+  .prayer-list-feature .saint-day-content {
+    display: none;
+  }
+
+  .prayer-accordion-layout {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 0.75rem;
+  }
+
+  .prayer-accordion-predefined {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+    padding: 0.75rem !important;
+  }
+
+  .prayer-accordion-personal {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+    padding: 0.75rem !important;
+  }
+
+  .prayer-accordion-layout .prayer-list-layout,
+  .mobile-landscape-section-layout[data-has-image="true"] .prayer-list-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .mobile-landscape-two-column-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+    gap: 0.75rem;
+    padding-bottom: 1rem;
+  }
+
+  .mobile-landscape-section-image {
+    display: none;
+  }
+
+  .mobile-landscape-section-layout[data-has-image="true"] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+    gap: 0.75rem;
+    min-height: calc(100dvh - 4.5rem);
+  }
+
+  .mobile-landscape-section-layout[data-has-image="true"] .mobile-landscape-section-image {
+    position: sticky;
+    top: 0;
+    display: block;
+    height: calc(100dvh - 5.5rem);
+    min-height: 12rem;
+    overflow: hidden;
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+  }
+
+  .mobile-landscape-section-list {
+    min-width: 0;
+  }
+
+  .prayer-detail-layout[data-prayer-has-image="true"][data-prayer-bilingual="false"] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .prayer-detail-layout[data-prayer-has-image="true"][data-prayer-bilingual="false"] .prayer-detail-image {
+    height: 100%;
+    min-height: 0;
+    padding: 0.5rem;
+  }
+
+  .prayer-detail-layout[data-prayer-has-image="true"][data-prayer-bilingual="false"] .prayer-detail-image > div {
+    height: 100% !important;
+  }
+
+  .prayer-detail-layout[data-prayer-bilingual="true"] .prayer-detail-image {
+    display: none;
+  }
+
+  .prayer-detail-body {
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .prayer-detail-card-content {
+    padding: 1rem !important;
+  }
+
+  .prayer-detail-scroll {
+    padding-right: 0.75rem !important;
+  }
+
+  .prayer-detail-layout[data-prayer-has-image="false"][data-prayer-bilingual="false"] .prayer-single-language-text {
+    column-count: 2;
+    column-gap: 2rem;
+    column-rule: 1px solid hsl(var(--border));
+  }
+
+  .prayer-detail-layout[data-prayer-has-image="false"][data-prayer-bilingual="false"] .prayer-single-language-text > * {
+    break-inside: auto;
+  }
+
+  .prayer-bilingual-text {
+    width: 100%;
+  }
+}

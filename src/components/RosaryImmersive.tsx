@@ -1004,7 +1004,7 @@ export default function RosaryImmersive({
   if (mode === 'selection') {
     return (
       <div className={cn(
-        "fixed inset-0 z-50 flex flex-col items-center justify-center p-6 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] bg-background/95 backdrop-blur-sm",
+        "fixed inset-0 z-50 flex flex-col items-center justify-center p-6 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[max(1.5rem,env(safe-area-inset-left))] pr-[max(1.5rem,env(safe-area-inset-right))] bg-background/95 backdrop-blur-sm",
         isDark ? "text-white" : "text-zinc-900"
       )}>
         <Button variant="ghost" size="icon" className="absolute top-4 left-4 mt-[env(safe-area-inset-top)]" onClick={() => onClose()}>
@@ -1077,7 +1077,7 @@ export default function RosaryImmersive({
         })
       }}
       className={cn(
-        "fixed inset-0 z-50 flex flex-col items-center justify-between pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] overflow-hidden",
+        "fixed inset-0 z-50 flex flex-col items-center justify-between pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] overflow-hidden",
         isDark ? "bg-black text-white" : "bg-zinc-50 text-zinc-900"
       )}>
       {/* Background Layer */}

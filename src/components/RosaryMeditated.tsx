@@ -123,7 +123,7 @@ export default function RosaryMeditated({
 
   return (
     <div className={cn(
-      "fixed inset-0 z-50 bg-background flex flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]",
+      "fixed inset-0 z-50 bg-background flex flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]",
       isDark ? "text-white" : "text-zinc-900"
     )}>
       <div className="flex items-center justify-between p-4 border-b border-border bg-background z-10 shrink-0">
