@@ -134,7 +134,7 @@ if (!source.includes('NotificationCompat.BigPictureStyle')) {
   );
 }
 
-if (!source.includes('Cotidie strict exact alarm v3')) {
+if (!source.includes('Cotidie strict exact alarm v4')) {
   replaceOnce(
     /    private void setExactIfPossible\(\r?\n        AlarmManager alarmManager,\r?\n        LocalNotificationSchedule schedule,\r?\n        long trigger,\r?\n        PendingIntent pendingIntent\r?\n    \) \{[\s\S]*?\r?\n    \}\r?\n\r?\n    public void cancel\(PluginCall call\) \{/,
     `    private void setExactIfPossible(
@@ -143,7 +143,7 @@ if (!source.includes('Cotidie strict exact alarm v3')) {
         long trigger,
         PendingIntent pendingIntent
     ) {
-        // Cotidie strict exact alarm v3
+        // Cotidie strict exact alarm v4 (setAlarmClock for maximum precision)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
             Logger.error(
                 Logger.tags("LN"),
@@ -154,11 +154,25 @@ if (!source.includes('Cotidie strict exact alarm v3')) {
         }
 
         try {
-            if (schedule.allowWhileIdle()) {
-                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, trigger, pendingIntent);
+            Intent showIntent;
+            if (activity != null) {
+                showIntent = new Intent(context, activity.getClass());
             } else {
-                alarmManager.setExact(AlarmManager.RTC_WAKEUP, trigger, pendingIntent);
+                showIntent = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
             }
+            if (showIntent != null) {
+                showIntent.setAction(Intent.ACTION_MAIN);
+                showIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+                showIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            } else {
+                showIntent = new Intent();
+            }
+            int showFlags = PendingIntent.FLAG_UPDATE_CURRENT;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                showFlags |= PendingIntent.FLAG_IMMUTABLE;
+            }
+            PendingIntent showPendingIntent = PendingIntent.getActivity(context, 0, showIntent, showFlags);
+            alarmManager.setAlarmClock(new AlarmManager.AlarmClockInfo(trigger, showPendingIntent), pendingIntent);
         } catch (Exception exactError) {
             Logger.error(
                 Logger.tags("LN"),

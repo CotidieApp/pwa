@@ -50,7 +50,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-.genkit/*
 .env*
 
 # firebase
@@ -66,4 +65,13 @@ out/
 
 node_modules/
 .next/
+
+# generated and local-only files
+/.modified
+/.codex-dev/
+/tmp/
+/icons/
+/android/.gradle-user-home-verify/
+/public/sw.js
+/public/workbox-*.js
 

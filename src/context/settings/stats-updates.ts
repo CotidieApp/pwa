@@ -1,5 +1,5 @@
 import type { Prayer } from '@/lib/types';
-import type { UserStats } from '@/context/SettingsContext';
+import type { UserStats } from '@/context/settings/types';
 
 type PrayerLookup = (id: string, list: Prayer[]) => Prayer | null;
 type RootLookup = (id: string) => string | null;

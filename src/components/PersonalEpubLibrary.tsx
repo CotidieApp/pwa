@@ -190,38 +190,18 @@ export default function PersonalEpubLibrary() {
 
   if (selected && selectedSource) {
     return (
-      <div className="flex h-full min-h-0 flex-col gap-3 p-4">
-        <div className="flex shrink-0 items-center gap-3 rounded-lg border bg-card/95 p-3 shadow-sm">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setSelectedId(null);
-              setSelectedSource(null);
-            }}
-          >
-            Volver
-          </Button>
-          <div className="flex min-w-0 flex-1 items-center gap-2">
-            <BookOpen className="size-4 shrink-0 text-muted-foreground" />
-            <span className="truncate text-sm font-medium">{selected.name}</span>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Editar nombre visible"
-            onClick={() => openRename(selected.id)}
-          >
-            <Pencil className="size-4" />
-          </Button>
-        </div>
+      <>
         <EpubReader
           fileName={`personal-${selected.id}.epub`}
           sourceBase64={selectedSource}
           context="general"
+          onClose={() => {
+            setSelectedId(null);
+            setSelectedSource(null);
+          }}
         />
         {renameDialog}
-      </div>
+      </>
     );
   }
 

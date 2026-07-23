@@ -6,347 +6,68 @@ import ePub, { type Book, type Rendition } from 'epubjs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { BookOpen, Maximize2, Menu, Search } from 'lucide-react';
+import { ArrowLeft, BookOpen, Menu, Search } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 import { useScreenWakeLock } from '@/hooks/useScreenWakeLock';
 import { cn } from '@/lib/utils';
 
-const DEFAULT_FILE_NAME = 'nuevo-testamento.epub';
-const EPUB_FONT_SIZE_STORAGE_KEY = 'cotidie_epub_font_size';
-type EpubReaderProps = {
-  fileName?: string;
-  sourceBase64?: string | null;
-  context?: 'nt' | 'general';
-};
-
-const toStorageKey = (fileName: string) => `cotidie_epub_location_${fileName.trim().toLowerCase()}`;
-const toBookmarksKey = (fileName: string) => `cotidie_epub_bookmarks_${fileName.trim().toLowerCase()}`;
-const toHighlightsKey = (fileName: string) => `cotidie_epub_highlights_${fileName.trim().toLowerCase()}`;
-
-type TocEntry = {
-  id: string;
-  href: string;
-  label: string;
-  depth: number;
-};
-
-type SearchResult = {
-  id: string;
-  target: string;
-  excerpt: string;
-};
-
-type StoredReaderLocation = {
-  cfi?: string;
-  href?: string;
-};
-
-type BookmarkItem = {
-  id: string;
-  cfi: string;
-  label: string;
-  createdAt: number;
-};
-
-type HighlightItem = {
-  id: string;
-  cfiRange: string;
-  text: string;
-  note?: string;
-  createdAt: number;
-};
-
-const READER_STYLE_TAG_ID = 'cotidie-reader-colors';
-const READER_FONT_STYLESHEET_ID = 'cotidie-reader-fonts';
-const EPUB_PAGE_BOTTOM_GUARD = '2.5em';
-const MIN_READER_FONT_SIZE = 60;
-const MAX_READER_FONT_SIZE = 200;
-const READER_FONT_SIZE_STEP = 10;
-const READER_FONT_FAMILIES: Record<string, string> = {
-  literata: "'Literata', serif",
-  lora: "'Lora', serif",
-  merriweather: "'Merriweather', serif",
-  ebgaramond: "'EB Garamond', serif",
-  timesnewroman: "'Times New Roman', serif",
-};
-
-const getStoredReaderFontSize = (fallback: number) => {
-  const normalizedFallback = Math.min(
-    MAX_READER_FONT_SIZE,
-    Math.max(MIN_READER_FONT_SIZE, Math.round(fallback))
-  );
-  if (typeof window === 'undefined') return normalizedFallback;
-  try {
-    const storedValue = window.localStorage.getItem(EPUB_FONT_SIZE_STORAGE_KEY);
-    if (storedValue === null) return normalizedFallback;
-    const stored = Number(storedValue);
-    return Number.isFinite(stored)
-      ? Math.min(MAX_READER_FONT_SIZE, Math.max(MIN_READER_FONT_SIZE, Math.round(stored)))
-      : normalizedFallback;
-  } catch {
-    return normalizedFallback;
-  }
-};
-
-type ReaderThemeColors = {
-  text: string;
-  background: string;
-};
-
-const resolveCssThemeColor = (value: string, fallback: string) => {
-  const normalized = value.trim();
-  if (!normalized || normalized.includes('var(')) return fallback;
-  return normalized.startsWith('hsl(') ? normalized : `hsl(${normalized})`;
-};
-
-const getReaderThemeColors = (theme: 'light' | 'dark'): ReaderThemeColors => {
-  const fallback = theme === 'dark'
-    ? { text: '#fafafa', background: '#0f172a' }
-    : { text: '#0f172a', background: '#f8fafc' };
-
-  if (typeof window === 'undefined') return fallback;
-  const styles = window.getComputedStyle(document.documentElement);
-  return {
-    text: resolveCssThemeColor(styles.getPropertyValue('--foreground'), fallback.text),
-    background: resolveCssThemeColor(styles.getPropertyValue('--background'), fallback.background),
-  };
-};
-
-const applyReaderAppearanceToContents = (
-  contents: any,
-  textColor: string,
-  backgroundColor: string,
-  fontFamily: string
-) => {
-  const doc = contents?.document as Document | undefined;
-  if (!doc) return;
-  if (!doc.getElementById(READER_FONT_STYLESHEET_ID)) {
-    const fontStylesheet = doc.createElement('link');
-    fontStylesheet.id = READER_FONT_STYLESHEET_ID;
-    fontStylesheet.rel = 'stylesheet';
-    fontStylesheet.href = new URL('/fonts/fonts.css', window.location.href).href;
-    doc.head?.appendChild(fontStylesheet);
-  }
-  let styleEl = doc.getElementById(READER_STYLE_TAG_ID) as HTMLStyleElement | null;
-  if (!styleEl) {
-    styleEl = doc.createElement('style');
-    styleEl.id = READER_STYLE_TAG_ID;
-    doc.head?.appendChild(styleEl);
-  }
-  styleEl.textContent = `
-    html, body {
-      color: ${textColor} !important;
-      background: ${backgroundColor} !important;
-      background-color: ${backgroundColor} !important;
-      margin: 0 !important;
-      padding: 0 !important;
-      box-sizing: border-box !important;
-      font-family: ${fontFamily} !important;
-    }
-    body {
-      padding-bottom: 1.25em !important;
-    }
-    body * {
-      color: ${textColor} !important;
-      font-family: ${fontFamily} !important;
-    }
-    a { color: ${textColor} !important; }
-  `;
-};
-
-const base64ToArrayBuffer = (input: string) => {
-  const base64 = input.includes(',') ? input.split(',')[1] : input;
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i += 1) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes.buffer;
-};
-
-const safeParseList = <T,>(raw: string | null): T[] => {
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as T[]) : [];
-  } catch {
-    return [];
-  }
-};
-
-const flattenToc = (items: any[], depth = 0): TocEntry[] => {
-  const out: TocEntry[] = [];
-  for (const item of items || []) {
-    if (item && typeof item.href === 'string') {
-      out.push({
-        id: `${item.id || item.href}-${depth}`,
-        href: item.href,
-        label: String(item.label || item.href),
-        depth,
-      });
-    }
-    if (Array.isArray(item?.subitems) && item.subitems.length > 0) {
-      out.push(...flattenToc(item.subitems, depth + 1));
-    }
-  }
-  return out;
-};
-
-const normalizeText = (value: string) =>
-  value
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim();
-
-const stripHash = (value: string) => value.split('#')[0] || value;
-
-const parseStoredReaderLocation = (raw: string | null): StoredReaderLocation | null => {
-  if (!raw) return null;
-
-  try {
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') return null;
-
-    const cfi = typeof parsed.cfi === 'string' && parsed.cfi.trim().length > 0 ? parsed.cfi : undefined;
-    const href = typeof parsed.href === 'string' && parsed.href.trim().length > 0 ? parsed.href : undefined;
-    return cfi || href ? { cfi, href } : null;
-  } catch {
-    return raw.trim().length > 0 ? { cfi: raw } : null;
-  }
-};
-
-const serializeStoredReaderLocation = (location: StoredReaderLocation) => JSON.stringify(location);
-const getRenditionLocation = (rendition: Rendition | null): StoredReaderLocation | null => {
-  const location = (rendition as any)?.currentLocation?.();
-  const start = Array.isArray(location) ? location[0]?.start : location?.start;
-  const cfi = typeof start?.cfi === 'string' && start.cfi.length > 0 ? start.cfi : undefined;
-  const href = typeof start?.href === 'string' && start.href.length > 0 ? start.href : undefined;
-  return cfi || href
-    ? {
-        ...(cfi ? { cfi } : {}),
-        ...(href ? { href } : {}),
-      }
-    : null;
-};
-const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-type NtReference = {
-  bookId: string;
-  chapter: number;
-  verse?: number;
-};
-
-const parseNtReference = (query: string): NtReference | null => {
-  const normalizedQuery = String(query || '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9:.,\s]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  if (!normalizedQuery) return null;
-
-  const sortedBooks = [...NT_BOOKS].sort((a, b) => {
-    const longestA = Math.max(...a.aliases.map((alias) => normalizeText(alias).length));
-    const longestB = Math.max(...b.aliases.map((alias) => normalizeText(alias).length));
-    return longestB - longestA;
-  });
-
-  for (const book of sortedBooks) {
-    for (const alias of book.aliases) {
-      const normalizedAlias = normalizeText(alias);
-      const pattern = new RegExp(`^${escapeRegExp(normalizedAlias)}\\s+(\\d+)(?:\\s*[:.,]\\s*(\\d+))?$`);
-      const match = normalizedQuery.match(pattern);
-      if (!match) continue;
-
-      const chapter = Number(match[1]);
-      const verse = match[2] ? Number(match[2]) : undefined;
-      if (!Number.isFinite(chapter) || chapter <= 0) return null;
-      if (verse !== undefined && (!Number.isFinite(verse) || verse <= 0)) return null;
-
-      return {
-        bookId: book.id,
-        chapter,
-        ...(verse !== undefined ? { verse } : {}),
-      };
-    }
-  }
-
-  return null;
-};
-
-const getElementCfi = (section: any, doc: Document, element: Element) => {
-  if (typeof section?.cfiFromElement === 'function') {
-    try {
-      const cfi = section.cfiFromElement(element);
-      if (typeof cfi === 'string' && cfi.length > 0) return cfi;
-    } catch {}
-  }
-
-  if (typeof section?.cfiFromRange === 'function') {
-    try {
-      const range = doc.createRange();
-      range.selectNode(element);
-      const cfi = section.cfiFromRange(range);
-      if (typeof cfi === 'string' && cfi.length > 0) return cfi;
-    } catch {}
-  }
-
-  return null;
-};
-
-const getExcerptFromElement = (element: Element | null, fallback: string) => {
-  const text = (element?.textContent || '').replace(/\s+/g, ' ').trim();
-  if (!text) return fallback;
-  return text.length > 220 ? `${text.slice(0, 217)}...` : text;
-};
-
-const NT_BOOKS = [
-  { id: 'mateo', label: 'Mateo', aliases: ['mateo', 'mt'] },
-  { id: 'marcos', label: 'Marcos', aliases: ['marcos', 'mc'] },
-  { id: 'lucas', label: 'Lucas', aliases: ['lucas', 'lc'] },
-  { id: 'juan', label: 'Juan', aliases: ['juan', 'jn'] },
-  { id: 'hechos', label: 'Hechos', aliases: ['hechos', 'actos'] },
-  { id: 'romanos', label: 'Romanos', aliases: ['romanos', 'rom'] },
-  { id: '1-corintios', label: '1 Corintios', aliases: ['1 corintios', 'i corintios'] },
-  { id: '2-corintios', label: '2 Corintios', aliases: ['2 corintios', 'ii corintios'] },
-  { id: 'galatas', label: 'Galatas', aliases: ['galatas', 'gal'] },
-  { id: 'efesios', label: 'Efesios', aliases: ['efesios', 'efe'] },
-  { id: 'filipenses', label: 'Filipenses', aliases: ['filipenses', 'flp'] },
-  { id: 'colosenses', label: 'Colosenses', aliases: ['colosenses', 'col'] },
-  { id: '1-tesalonicenses', label: '1 Tesalonicenses', aliases: ['1 tesalonicenses', 'i tesalonicenses'] },
-  { id: '2-tesalonicenses', label: '2 Tesalonicenses', aliases: ['2 tesalonicenses', 'ii tesalonicenses'] },
-  { id: '1-timoteo', label: '1 Timoteo', aliases: ['1 timoteo', 'i timoteo'] },
-  { id: '2-timoteo', label: '2 Timoteo', aliases: ['2 timoteo', 'ii timoteo'] },
-  { id: 'tito', label: 'Tito', aliases: ['tito'] },
-  { id: 'filemon', label: 'Filemon', aliases: ['filemon'] },
-  { id: 'hebreos', label: 'Hebreos', aliases: ['hebreos'] },
-  { id: 'santiago', label: 'Santiago', aliases: ['santiago', 'stg'] },
-  { id: '1-pedro', label: '1 Pedro', aliases: ['1 pedro', 'i pedro'] },
-  { id: '2-pedro', label: '2 Pedro', aliases: ['2 pedro', 'ii pedro'] },
-  { id: '1-juan', label: '1 Juan', aliases: ['1 juan', 'i juan'] },
-  { id: '2-juan', label: '2 Juan', aliases: ['2 juan', 'ii juan'] },
-  { id: '3-juan', label: '3 Juan', aliases: ['3 juan', 'iii juan'] },
-  { id: 'judas', label: 'Judas', aliases: ['judas'] },
-  { id: 'apocalipsis', label: 'Apocalipsis', aliases: ['apocalipsis', 'revelacion'] },
-];
-
-const detectNtBookId = (label: string): string | null => {
-  const normalizedLabel = ` ${normalizeText(label)} `;
-  for (const book of NT_BOOKS) {
-    const hit = book.aliases.some((alias) => normalizedLabel.includes(` ${normalizeText(alias)} `));
-    if (hit) return book.id;
-  }
-  return null;
-};
-
+import {
+  DEFAULT_FILE_NAME,
+  EPUB_FONT_SIZE_STORAGE_KEY,
+  READER_STYLE_TAG_ID,
+  READER_FONT_STYLESHEET_ID,
+  EPUB_PAGE_BOTTOM_GUARD,
+  MIN_READER_FONT_SIZE,
+  MAX_READER_FONT_SIZE,
+  READER_FONT_SIZE_STEP,
+  READER_FONT_FAMILIES,
+  READER_RESIZE_DEBOUNCE_MS,
+  READER_MAX_RESTORE_SUPPRESSION_MS,
+  NT_BOOKS,
+} from '@/lib/epub-reader/constants';
+import type {
+  EpubReaderProps,
+  TocEntry,
+  SearchResult,
+  StoredReaderLocation,
+  BookmarkItem,
+  HighlightItem,
+  ReaderThemeColors,
+  NtReference,
+} from '@/lib/epub-reader/types';
+import {
+  toStorageKey,
+  toBookmarksKey,
+  toHighlightsKey,
+  getStoredReaderFontSize,
+  resolveCssThemeColor,
+  getReaderThemeColors,
+  applyReaderAppearanceToContents,
+  base64ToArrayBuffer,
+  safeParseList,
+  flattenToc,
+  normalizeText,
+  stripHash,
+  parseStoredReaderLocation,
+  serializeStoredReaderLocation,
+  getRenditionLocation,
+  escapeRegExp,
+  parseNtReference,
+  getElementCfi,
+  getExcerptFromElement,
+  detectNtBookId,
+} from '@/lib/epub-reader/helpers';
+import { ReaderTocPanel } from '@/components/epub-reader/ReaderTocPanel';
+import { ReaderSearchPanel } from '@/components/epub-reader/ReaderSearchPanel';
+import { ReaderBookmarksPanel } from '@/components/epub-reader/ReaderBookmarksPanel';
+import { ReaderHighlightsPanel } from '@/components/epub-reader/ReaderHighlightsPanel';
+import { ReaderSelectionToolbar } from '@/components/epub-reader/ReaderSelectionToolbar';
 
 export default function EpubReader({
   fileName,
   sourceBase64 = null,
   context = 'nt',
+  onClose,
 }: EpubReaderProps) {
   const { theme, fontFamily, pushDevLiveTrace, prayerTextZoom } = useSettings();
   useScreenWakeLock(true);
@@ -355,10 +76,17 @@ export default function EpubReader({
   const bookRef = useRef<Book | null>(null);
   const renditionRef = useRef<Rendition | null>(null);
   const isMountedRef = useRef(true);
-  const isReaderFullscreenRef = useRef(false);
+  const showControlsRef = useRef(true);
   const readerTapHandlerRef = useRef<(event: MouseEvent) => void>(() => undefined);
-  const pendingLayoutLocationRef = useRef<StoredReaderLocation | null>(null);
   const stableLocationRef = useRef<StoredReaderLocation | null>(null);
+  const hasDisplayedOnceRef = useRef(false);
+  const isRestoringLocationRef = useRef(true);
+  const restoringSinceRef = useRef<number | null>(null);
+  const lastLayoutSizeRef = useRef<{ width: number; height: number } | null>(null);
+  const resizeReleaseTimerRef = useRef<number | null>(null);
+  const resizeDebounceTimerRef = useRef<number | null>(null);
+  const highlightNoteDraftRef = useRef('');
+  const bookmarkLabelRef = useRef('');
 
   const activeFile = typeof fileName === 'string' && fileName.trim().length > 0 ? fileName.trim() : DEFAULT_FILE_NAME;
   const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
@@ -379,7 +107,7 @@ export default function EpubReader({
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [panelTab, setPanelTab] = useState<'toc' | 'search' | 'bookmarks' | 'highlights'>('toc');
   const [tocBookFilter, setTocBookFilter] = useState<string>('all');
-  const [isReaderFullscreen, setIsReaderFullscreen] = useState(false);
+  const [showControls, setShowControls] = useState(true);
   const [readerThemeColors, setReaderThemeColors] = useState<ReaderThemeColors>(() => getReaderThemeColors(theme));
   const [readerFontSize, setReaderFontSize] = useState(() =>
     getStoredReaderFontSize(prayerTextZoom * 100)
@@ -447,20 +175,47 @@ export default function EpubReader({
   }, [getSpineItems, tocBookAnchors]);
 
   const persistReaderLocation = useCallback((location: StoredReaderLocation | null) => {
-    if (!location?.cfi && !location?.href) return;
+    if (!location?.endCfi && !location?.cfi && !location?.href) return;
     stableLocationRef.current = location;
-    if (location.cfi) setCurrentCfi(location.cfi);
+    const visibleCfi = location.cfi ?? location.endCfi;
+    if (visibleCfi) setCurrentCfi(visibleCfi);
     try {
       window.localStorage.setItem(locationStorageKey, serializeStoredReaderLocation(location));
     } catch {}
   }, [locationStorageKey]);
 
   const persistCurrentLocation = useCallback(() => {
-    const pendingLocation = pendingLayoutLocationRef.current;
+    // Prefer the live query: stableLocationRef can be stale for up to
+    // READER_MAX_RESTORE_SUPPRESSION_MS after a resize (onRelocated skips
+    // updating it while isRestoringLocationRef is true), but this is called
+    // at moments where there's no next chance to correct it (pagehide,
+    // visibility change), so the true current position always wins when
+    // it's available.
     const currentLocation = getRenditionLocation(renditionRef.current);
     const stableLocation = stableLocationRef.current;
-    persistReaderLocation(pendingLocation ?? currentLocation ?? stableLocation);
+    persistReaderLocation(currentLocation ?? stableLocation);
   }, [persistReaderLocation]);
+
+  // (Re)schedules the release of the "restoring" suppression window, capped
+  // at READER_MAX_RESTORE_SUPPRESSION_MS from when restoring first began, so
+  // a burst of resize events landing back-to-back can't keep pushing it out
+  // indefinitely.
+  const scheduleRestoreRelease = useCallback((delayMs: number) => {
+    const now = Date.now();
+    if (restoringSinceRef.current === null) {
+      restoringSinceRef.current = now;
+    }
+    const remainingBudget = READER_MAX_RESTORE_SUPPRESSION_MS - (now - restoringSinceRef.current);
+    const effectiveDelay = Math.max(0, Math.min(delayMs, remainingBudget));
+    if (resizeReleaseTimerRef.current !== null) {
+      window.clearTimeout(resizeReleaseTimerRef.current);
+    }
+    resizeReleaseTimerRef.current = window.setTimeout(() => {
+      isRestoringLocationRef.current = false;
+      restoringSinceRef.current = null;
+      resizeReleaseTimerRef.current = null;
+    }, effectiveDelay);
+  }, []);
 
   const findNtReferenceInSection = useCallback(async (section: any, reference: NtReference): Promise<SearchResult | null> => {
     if (!bookRef.current) return null;
@@ -538,6 +293,14 @@ export default function EpubReader({
   }, [availablePanelTabs, panelTab]);
 
   useEffect(() => {
+    highlightNoteDraftRef.current = highlightNoteDraft;
+  }, [highlightNoteDraft]);
+
+  useEffect(() => {
+    bookmarkLabelRef.current = bookmarkLabel;
+  }, [bookmarkLabel]);
+
+  useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
@@ -545,10 +308,21 @@ export default function EpubReader({
   }, []);
 
   useEffect(() => {
-    isReaderFullscreenRef.current = false;
-    pendingLayoutLocationRef.current = null;
+    showControlsRef.current = true;
     stableLocationRef.current = null;
-    setIsReaderFullscreen(false);
+    hasDisplayedOnceRef.current = false;
+    isRestoringLocationRef.current = true;
+    restoringSinceRef.current = null;
+    lastLayoutSizeRef.current = null;
+    if (resizeReleaseTimerRef.current !== null) {
+      window.clearTimeout(resizeReleaseTimerRef.current);
+      resizeReleaseTimerRef.current = null;
+    }
+    if (resizeDebounceTimerRef.current !== null) {
+      window.clearTimeout(resizeDebounceTimerRef.current);
+      resizeDebounceTimerRef.current = null;
+    }
+    setShowControls(true);
   }, [activeFile, sourceBase64]);
 
   useEffect(() => {
@@ -612,12 +386,15 @@ export default function EpubReader({
 
         const source = sourceBase64 ? base64ToArrayBuffer(sourceBase64) : epubUrl;
         const book = ePub(source as any);
+        const initialWidth = containerRef.current.clientWidth;
+        const initialHeight = containerRef.current.clientHeight;
         const rendition = book.renderTo(containerRef.current, {
-          width: '100%',
-          height: '100%',
+          width: initialWidth,
+          height: initialHeight,
           flow: 'paginated',
           spread: 'none',
           minSpreadWidth: 9999,
+          resizeOnOrientationChange: false,
         });
         activeBook = book;
         activeRendition = rendition;
@@ -650,6 +427,17 @@ export default function EpubReader({
           if (!doc || doc.documentElement.dataset.cotidieReaderTapBound === 'true') return;
           doc.documentElement.dataset.cotidieReaderTapBound = 'true';
           doc.addEventListener('click', (event) => readerTapHandlerRef.current(event));
+          doc.addEventListener('selectionchange', () => {
+            const remainingSelection = doc.getSelection?.()?.toString().trim() ?? '';
+            if (remainingSelection) return;
+            // Only auto-dismiss if the user hasn't started writing a note or a
+            // bookmark label yet, so an unrelated selection loss (e.g. focus
+            // moving to the toolbar's input) never discards typed text.
+            if (highlightNoteDraftRef.current.trim() || bookmarkLabelRef.current.trim()) return;
+            setPendingSelectionCfi('');
+            setPendingSelectionText('');
+            setHighlightNoteDraft('');
+          });
         });
 
         const applyHighlight = (item: HighlightItem) => {
@@ -670,25 +458,36 @@ export default function EpubReader({
         const onRelocated = (location: any) => {
           try {
             if (cancelled || !isMountedRef.current) return;
-            if (pendingLayoutLocationRef.current) return;
             const displayed = location?.start?.displayed;
             if (displayed) {
               setLocationLabel(`${displayed.page}/${displayed.total}`);
             }
-            const cfi = typeof location?.start?.cfi === 'string' ? location.start.cfi : '';
-            const href = typeof location?.start?.href === 'string' ? location.start.href : '';
-            if (cfi || href) {
-              persistReaderLocation({
-                ...(cfi ? { cfi } : {}),
-                ...(href ? { href } : {}),
+            const readerLocation = getRenditionLocation(rendition, location);
+            if (
+              readerLocation &&
+              isRestoringLocationRef.current &&
+              hasDisplayedOnceRef.current &&
+              resizeReleaseTimerRef.current !== null
+            ) {
+              pushDevLiveTrace({
+                level: 'warn',
+                source: 'epub-reader',
+                message: 'Relocated ignorado (ventana de asentamiento activa).',
+                data: `cfi=${(readerLocation.endCfi ?? readerLocation.cfi ?? '').slice(0, 30)}...`,
               });
+              scheduleRestoreRelease(250);
+              return;
+            }
+            if (readerLocation && !isRestoringLocationRef.current) {
+              persistReaderLocation(readerLocation);
 
               // Emit event for debug or external sync if needed
-              if (cfi) pushDevLiveTrace({
+              const traceCfi = readerLocation.endCfi ?? readerLocation.cfi;
+              if (traceCfi) pushDevLiveTrace({
                 level: 'info',
                 source: 'epub-reader',
                 message: 'Ubicacion guardada.',
-                data: `cfi=${cfi.slice(0, 30)}...`,
+                data: `cfi=${traceCfi.slice(0, 30)}...`,
               });
             }
           } catch (err) {
@@ -736,9 +535,20 @@ export default function EpubReader({
         if (!cancelled) setHighlights(storedHighlights);
 
         const savedLocation = parseStoredReaderLocation(window.localStorage.getItem(locationStorageKey));
+        pushDevLiveTrace({
+          level: 'info',
+          source: 'epub-reader',
+          message: 'Ubicacion leida de localStorage al abrir.',
+          data: savedLocation
+            ? `cfi=${(savedLocation.endCfi ?? savedLocation.cfi ?? savedLocation.href ?? '').slice(0, 30)}...`
+            : '(sin ubicacion guardada)',
+        });
         try {
-          if (savedLocation?.cfi) {
+          if (savedLocation?.endCfi) {
+            await rendition.display(savedLocation.endCfi);
+          } else if (savedLocation?.cfi) {
             await rendition.display(savedLocation.cfi);
+            await rendition.next();
           } else if (savedLocation?.href) {
             await rendition.display(savedLocation.href);
           } else {
@@ -752,7 +562,24 @@ export default function EpubReader({
         }
         if (cancelled) return;
 
+        hasDisplayedOnceRef.current = true;
+        if (containerRef.current) {
+          lastLayoutSizeRef.current = {
+            width: containerRef.current.clientWidth,
+            height: containerRef.current.clientHeight,
+          };
+        }
         persistReaderLocation(getRenditionLocation(rendition) ?? savedLocation);
+        // Keep suppressing relocate-driven persistence for a brief settling
+        // window: epub.js can still emit a late 'relocated' event while it
+        // finishes stabilizing this very first render (the freshly opened
+        // book hasn't fully settled yet), and trusting it blindly could
+        // silently overwrite the position we just correctly restored above
+        // with an intermediate, slightly-off one. Every other path that can
+        // move the page (resize, font size) already gets this same window;
+        // the initial restore was the one place that didn't.
+        isRestoringLocationRef.current = true;
+        scheduleRestoreRelease(400);
 
         const currentContents = (rendition as any).getContents?.() ?? [];
         currentContents.forEach((contents: any) =>
@@ -794,9 +621,34 @@ export default function EpubReader({
         r?.off?.('relocated', r?.__cotidieOnRelocated);
         r?.off?.('selected', r?.__cotidieOnSelected);
       } catch {}
+      // Persist the live location before destroying the rendition, so leaving
+      // the reader (unmount) never loses progress to a stale snapshot.
+      try {
+        // Same reasoning as persistCurrentLocation: prefer the live query at
+        // this final moment, since stableLocationRef may still be lagging
+        // behind a recent resize's suppression window.
+        const exitLocation = getRenditionLocation(activeRendition) ?? stableLocationRef.current;
+        if (exitLocation) {
+          persistReaderLocation(exitLocation);
+          pushDevLiveTrace({
+            level: 'info',
+            source: 'epub-reader',
+            message: 'Ubicacion guardada al salir.',
+            data: `cfi=${(exitLocation.endCfi ?? exitLocation.cfi ?? exitLocation.href ?? '').slice(0, 30)}...`,
+          });
+        }
+      } catch {}
+      if (resizeReleaseTimerRef.current !== null) {
+        window.clearTimeout(resizeReleaseTimerRef.current);
+        resizeReleaseTimerRef.current = null;
+      }
+      if (resizeDebounceTimerRef.current !== null) {
+        window.clearTimeout(resizeDebounceTimerRef.current);
+        resizeDebounceTimerRef.current = null;
+      }
       dispose();
     };
-  }, [bookmarksStorageKey, epubUrl, highlightsStorageKey, locationStorageKey, persistReaderLocation, sourceBase64]);
+  }, [bookmarksStorageKey, epubUrl, highlightsStorageKey, locationStorageKey, persistReaderLocation, scheduleRestoreRelease, sourceBase64]);
 
   useEffect(() => {
     const rendition = renditionRef.current;
@@ -819,76 +671,86 @@ export default function EpubReader({
   const refreshRenditionLayout = useCallback(() => {
     const rendition = renditionRef.current as any;
     const container = containerRef.current;
-    if (!rendition?.manager || !container) return;
+    // Ignore resizes until the initial saved location has been displayed at
+    // least once: 100dvh/safe-area-inset can settle a moment after mount, and
+    // a resize landing mid-restore was overriding the just-restored page.
+    if (!rendition?.manager || !container || !hasDisplayedOnceRef.current) return;
     const width = container.clientWidth;
     const height = container.clientHeight;
     if (width <= 0 || height <= 0) return;
+    const lastSize = lastLayoutSizeRef.current;
+    if (lastSize?.width === width && lastSize.height === height) return;
+    // Prefer the live query, same reasoning as persistCurrentLocation/exit:
+    // stableLocationRef can lag behind (onRelocated skips updating it while
+    // isRestoringLocationRef is true), and unlike there, this value isn't
+    // just being *recorded* — rendition.resize(..., anchor) below actively
+    // re-navigates the book to it. Anchoring to a stale position doesn't
+    // just mis-save history, it silently drags the reader backward.
+    const currentLocation = getRenditionLocation(rendition) ?? stableLocationRef.current;
+    const resizeAnchor = currentLocation?.endCfi ?? currentLocation?.cfi;
+    lastLayoutSizeRef.current = { width, height };
+    isRestoringLocationRef.current = true;
+    pushDevLiveTrace({
+      level: 'info',
+      source: 'epub-reader',
+      message: 'Resize de rendicion ejecutado.',
+      data: `${width}x${height}; anchor=${(resizeAnchor ?? '(ninguno)').slice(0, 30)}`,
+    });
     try {
-      rendition.resize?.(width, height);
+      rendition.resize?.(
+        width,
+        height,
+        resizeAnchor
+      );
     } catch {}
-  }, []);
+    scheduleRestoreRelease(1500);
+  }, [scheduleRestoreRelease]);
+
+  // Collapses bursts of resize events (window drag, rotation animation, an
+  // on-screen keyboard opening/closing) into a single actual rendition
+  // resize shortly after they settle, instead of repaginating on every tick.
+  const scheduleRenditionResize = useCallback(() => {
+    if (resizeDebounceTimerRef.current !== null) {
+      window.clearTimeout(resizeDebounceTimerRef.current);
+    }
+    resizeDebounceTimerRef.current = window.setTimeout(() => {
+      resizeDebounceTimerRef.current = null;
+      refreshRenditionLayout();
+    }, READER_RESIZE_DEBOUNCE_MS);
+  }, [refreshRenditionLayout]);
 
   useEffect(() => {
     const rendition = renditionRef.current;
     if (!rendition) return;
+    // Same reasoning as refreshRenditionLayout: prefer the live position over
+    // stableLocationRef, since this value drives an active re-navigation
+    // (rendition.display below), not just a record of where we've been.
+    const liveLocation = getRenditionLocation(rendition) ?? stableLocationRef.current;
+    const fontResizeAnchor = liveLocation?.endCfi ?? liveLocation?.cfi;
     rendition.themes.fontSize(`${readerFontSize}%`);
-    const tick = window.setTimeout(() => refreshRenditionLayout(), 60);
+    if (!fontResizeAnchor) return;
+
+    isRestoringLocationRef.current = true;
+    scheduleRestoreRelease(1500);
+    const tick = window.setTimeout(() => {
+      void rendition.display(fontResizeAnchor).catch(() => undefined);
+    }, 60);
     return () => window.clearTimeout(tick);
-  }, [readerFontSize, refreshRenditionLayout]);
+  }, [readerFontSize, scheduleRestoreRelease]);
 
   useEffect(() => {
-    const target = pendingLayoutLocationRef.current;
-    let restoreTimer = 0;
-    const frame = window.requestAnimationFrame(() => {
-      refreshRenditionLayout();
-      restoreTimer = window.setTimeout(() => {
-        const rendition = renditionRef.current;
-        const destination = target?.cfi || target?.href;
-        refreshRenditionLayout();
-        if (rendition && destination) {
-          void rendition
-            .display(destination)
-            .then(() => {
-              const restoredLocation = target ?? getRenditionLocation(rendition);
-              const rawLocation = (rendition as any).currentLocation?.();
-              const start = Array.isArray(rawLocation) ? rawLocation[0]?.start : rawLocation?.start;
-              pendingLayoutLocationRef.current = null;
-              stableLocationRef.current = restoredLocation;
-              if (start?.displayed) {
-                setLocationLabel(`${start.displayed.page}/${start.displayed.total}`);
-              }
-              if (restoredLocation?.cfi) {
-                setCurrentCfi(restoredLocation.cfi);
-              }
-              persistReaderLocation(restoredLocation);
-            })
-            .catch(() => {
-              pendingLayoutLocationRef.current = null;
-            });
-        } else {
-          pendingLayoutLocationRef.current = null;
-        }
-      }, 160);
-    });
-    return () => {
-      window.cancelAnimationFrame(frame);
-      if (restoreTimer) window.clearTimeout(restoreTimer);
-    };
-  }, [isReaderFullscreen, persistReaderLocation, refreshRenditionLayout]);
-
-  useEffect(() => {
-    const onResize = () => refreshRenditionLayout();
+    const onResize = () => scheduleRenditionResize();
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
-  }, [refreshRenditionLayout]);
+  }, [scheduleRenditionResize]);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container || typeof ResizeObserver === 'undefined') return;
-    const observer = new ResizeObserver(() => refreshRenditionLayout());
+    const observer = new ResizeObserver(() => scheduleRenditionResize());
     observer.observe(container);
     return () => observer.disconnect();
-  }, [refreshRenditionLayout]);
+  }, [scheduleRenditionResize]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -909,8 +771,25 @@ export default function EpubReader({
   const persistAfterNavigation = () => {
     window.setTimeout(() => {
       const location = getRenditionLocation(renditionRef.current);
-      if (location) persistReaderLocation(location);
+      if (location) {
+        persistReaderLocation(location);
+        pushDevLiveTrace({
+          level: 'info',
+          source: 'epub-reader',
+          message: 'Posicion guardada tras navegacion explicita.',
+          data: `cfi=${(location.endCfi ?? location.cfi ?? '').slice(0, 30)}...`,
+        });
+      }
     }, 80);
+  };
+
+  const prepareForReaderNavigation = () => {
+    if (resizeReleaseTimerRef.current !== null) {
+      window.clearTimeout(resizeReleaseTimerRef.current);
+      resizeReleaseTimerRef.current = null;
+    }
+    isRestoringLocationRef.current = false;
+    restoringSinceRef.current = null;
   };
 
   const moveBySpine = async (delta: -1 | 1) => {
@@ -929,7 +808,17 @@ export default function EpubReader({
 
   const goPrev = () => {
     const rendition = renditionRef.current as any;
-    if (!rendition || !isReaderFullscreenRef.current) return;
+    if (!rendition || showControlsRef.current) {
+      pushDevLiveTrace({
+        level: 'warn',
+        source: 'epub-reader',
+        message: 'goPrev bloqueado.',
+        data: `rendition=${Boolean(rendition)}; showControls=${showControlsRef.current}`,
+      });
+      return;
+    }
+    pushDevLiveTrace({ level: 'info', source: 'epub-reader', message: 'goPrev ejecutado.' });
+    prepareForReaderNavigation();
     Promise.resolve(rendition.prev?.())
       .then(() => {
         setNavigationError(null);
@@ -955,7 +844,17 @@ export default function EpubReader({
 
   const goNext = () => {
     const rendition = renditionRef.current as any;
-    if (!rendition || !isReaderFullscreenRef.current) return;
+    if (!rendition || showControlsRef.current) {
+      pushDevLiveTrace({
+        level: 'warn',
+        source: 'epub-reader',
+        message: 'goNext bloqueado.',
+        data: `rendition=${Boolean(rendition)}; showControls=${showControlsRef.current}`,
+      });
+      return;
+    }
+    pushDevLiveTrace({ level: 'info', source: 'epub-reader', message: 'goNext ejecutado.' });
+    prepareForReaderNavigation();
     Promise.resolve(rendition.next?.())
       .then(() => {
         setNavigationError(null);
@@ -986,21 +885,15 @@ export default function EpubReader({
     setIsPanelOpen(true);
   };
 
-  const enterReaderFullscreen = () => {
-    const location = getRenditionLocation(renditionRef.current) ?? stableLocationRef.current;
-    persistReaderLocation(location);
-    pendingLayoutLocationRef.current = location;
-    setIsPanelOpen(false);
-    isReaderFullscreenRef.current = true;
-    setIsReaderFullscreen(true);
+  const showReaderControls = () => {
+    showControlsRef.current = true;
+    setShowControls(true);
   };
 
-  const exitReaderFullscreen = () => {
-    const location = getRenditionLocation(renditionRef.current) ?? stableLocationRef.current;
-    persistReaderLocation(location);
-    pendingLayoutLocationRef.current = location;
-    isReaderFullscreenRef.current = false;
-    setIsReaderFullscreen(false);
+  const hideReaderControls = () => {
+    setIsPanelOpen(false);
+    showControlsRef.current = false;
+    setShowControls(false);
   };
 
   readerTapHandlerRef.current = (event) => {
@@ -1008,8 +901,13 @@ export default function EpubReader({
     if (selection) return;
     const target = event.target as Element | null;
     if (target?.closest?.('a, button, input, textarea, select')) return;
-    if (!isReaderFullscreenRef.current) {
-      enterReaderFullscreen();
+    if (showControlsRef.current) {
+      pushDevLiveTrace({
+        level: 'info',
+        source: 'epub-reader',
+        message: 'Tap: ocultando controles (no se interpreto como pasar de pagina).',
+      });
+      hideReaderControls();
       return;
     }
 
@@ -1023,22 +921,28 @@ export default function EpubReader({
     } else if (localX > width * 0.66) {
       goNext();
     } else if (event.clientY < height * 0.5) {
-      exitReaderFullscreen();
+      pushDevLiveTrace({
+        level: 'info',
+        source: 'epub-reader',
+        message: 'Tap: mostrando controles.',
+      });
+      showReaderControls();
     }
   };
 
   useEffect(() => {
-    if (!isReaderFullscreen) return;
+    if (showControls) return;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        exitReaderFullscreen();
+        showReaderControls();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isReaderFullscreen]);
+  }, [showControls]);
 
   const displayAndPersist = async (target: string) => {
+    prepareForReaderNavigation();
     await renditionRef.current?.display(target);
     persistAfterNavigation();
   };
@@ -1191,24 +1095,18 @@ export default function EpubReader({
 
   return (
     <div
-      className={isReaderFullscreen ? 'fixed inset-0 z-[120] flex flex-col' : 'flex flex-col h-full min-h-0 gap-3'}
-      style={
-        isReaderFullscreen
-          ? {
-              height: '100dvh',
-              maxHeight: '100dvh',
-              backgroundColor: readerBackgroundColor,
-              paddingTop: 'env(safe-area-inset-top, 0px)',
-              paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-              paddingLeft: 'env(safe-area-inset-left, 0px)',
-              paddingRight: 'env(safe-area-inset-right, 0px)',
-            }
-          : {
-              paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 0px))',
-            }
-      }
+      className="fixed inset-0 z-[120] flex flex-col"
+      style={{
+        height: '100dvh',
+        maxHeight: '100dvh',
+        backgroundColor: readerBackgroundColor,
+        paddingTop: 'env(safe-area-inset-top, 0px)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        paddingLeft: 'env(safe-area-inset-left, 0px)',
+        paddingRight: 'env(safe-area-inset-right, 0px)',
+      }}
     >
-      {isReaderFullscreen && typeof document !== 'undefined'
+      {typeof document !== 'undefined'
         ? createPortal(
             <>
               <div
@@ -1252,12 +1150,20 @@ export default function EpubReader({
             document.body
           )
         : null}
-      <div
-        className={isReaderFullscreen ? 'hidden' : 'space-y-2 shrink-0'}
-      >
+      <div className={cn('absolute inset-x-0 top-0 z-20 space-y-2 p-3', !showControls && 'hidden')}>
         <div className="rounded-lg border border-border bg-card/95 p-3 shadow-sm backdrop-blur">
           <div className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2">
+              {onClose ? (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onClose()}
+                  aria-label="Volver"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              ) : null}
               <div className="rounded-md bg-primary/10 p-2 text-primary">
                 <BookOpen className="h-4 w-4" />
               </div>
@@ -1280,14 +1186,6 @@ export default function EpubReader({
                   <Search className="h-4 w-4" />
                 </Button>
               ) : null}
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={enterReaderFullscreen}
-                aria-label="Pantalla completa"
-              >
-                <Maximize2 className="h-4 w-4" />
-              </Button>
               <Button
                 variant="ghost"
                 size="icon"
@@ -1335,23 +1233,20 @@ export default function EpubReader({
           </div>
         </div>
 
-      {status === 'loading' && <div className="text-xs text-muted-foreground">Cargando EPUB...</div>}
-      {status === 'error' && (
-        <div className="text-xs text-destructive">
-          {errorMessage ?? 'No se pudo abrir el EPUB.'}
-        </div>
-      )}
-      {navigationError && status === 'ready' && (
-        <div className="text-xs text-destructive">{navigationError}</div>
-      )}
+        {status === 'loading' && <div className="text-xs text-muted-foreground">Cargando EPUB...</div>}
+        {status === 'error' && (
+          <div className="text-xs text-destructive">
+            {errorMessage ?? 'No se pudo abrir el EPUB.'}
+          </div>
+        )}
+        {navigationError && status === 'ready' && (
+          <div className="text-xs text-destructive">{navigationError}</div>
+        )}
       </div>
 
       <div
-        className={isReaderFullscreen
-          ? 'relative overflow-hidden flex-1 min-h-0'
-          : 'relative rounded-lg border border-border bg-card/40 overflow-hidden flex-1 min-h-0'
-        }
-        style={isReaderFullscreen ? { backgroundColor: readerBackgroundColor } : undefined}
+        className="relative overflow-hidden flex-1 min-h-0"
+        style={{ backgroundColor: readerBackgroundColor }}
       >
         <div
           ref={containerRef}
@@ -1362,53 +1257,21 @@ export default function EpubReader({
         />
       </div>
 
-      {pendingSelectionCfi ? (
-        <div
-          data-no-touch-nav
-          className={cn(
-            'z-[160] space-y-2 rounded-md border border-border p-3',
-            isReaderFullscreen
-              ? 'fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-[max(0.75rem,env(safe-area-inset-left))] right-[max(0.75rem,env(safe-area-inset-right))] shadow-xl'
-              : 'bg-background/60'
-          )}
-          style={isReaderFullscreen ? { backgroundColor: readerBackgroundColor } : undefined}
-        >
-          <div className="line-clamp-2 text-xs text-muted-foreground">
-            Selección: {pendingSelectionText || '(sin texto)'}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Input
-              className="min-w-0 flex-1"
-              value={highlightNoteDraft}
-              onChange={(e) => setHighlightNoteDraft(e.target.value)}
-              placeholder="Nota opcional"
-            />
-            <Button
-              variant="outline"
-              onClick={addHighlightFromSelection}
-              disabled={status !== 'ready'}
-            >
-              Guardar subrayado
-            </Button>
-            <Button variant="ghost" onClick={clearPendingSelection}>
-              Cancelar
-            </Button>
-          </div>
-          {!isReaderFullscreen ? (
-            <div className="flex flex-wrap gap-2">
-              <Input
-                className="min-w-0 flex-1"
-                value={bookmarkLabel}
-                onChange={(e) => setBookmarkLabel(e.target.value)}
-                placeholder="Nombre del marcador"
-              />
-              <Button variant="outline" onClick={addBookmark} disabled={!currentCfi || status !== 'ready'}>
-                Guardar marcador
-              </Button>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
+      <ReaderSelectionToolbar
+        pendingSelectionCfi={pendingSelectionCfi}
+        showBookmarkInput={showControls}
+        readerBackgroundColor={readerBackgroundColor}
+        pendingSelectionText={pendingSelectionText}
+        highlightNoteDraft={highlightNoteDraft}
+        setHighlightNoteDraft={setHighlightNoteDraft}
+        addHighlightFromSelection={addHighlightFromSelection}
+        status={status}
+        clearPendingSelection={clearPendingSelection}
+        bookmarkLabel={bookmarkLabel}
+        setBookmarkLabel={setBookmarkLabel}
+        addBookmark={addBookmark}
+        currentCfi={currentCfi}
+      />
 
       <Sheet open={isPanelOpen} onOpenChange={setIsPanelOpen}>
         <SheetContent
@@ -1463,137 +1326,48 @@ export default function EpubReader({
 
           <div className="mt-4">
             {panelTab === 'toc' && (
-              <div className="space-y-2">
-                <div className="text-xs font-semibold">Índice</div>
-                {isNtContext && Object.keys(tocBookAnchors).length > 0 ? (
-                  <select
-                    id="epub-reader-toc-book"
-                    name="epub-reader-toc-book"
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    value={tocBookFilter}
-                    onChange={(e) => setTocBookFilter(e.target.value)}
-                    disabled={status !== 'ready'}
-                    aria-label="Libro del índice"
-                  >
-                    <option value="all">Todos los libros</option>
-                    {NT_BOOKS.filter((book) => Boolean(tocBookAnchors[book.id])).map((book) => (
-                      <option key={book.id} value={book.id}>
-                        {book.label}
-                      </option>
-                    ))}
-                  </select>
-                ) : null}
-                <select
-                  id="epub-reader-toc-entry"
-                  name="epub-reader-toc-entry"
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  value={selectedToc}
-                  onChange={(e) => jumpToToc(e.target.value)}
-                  disabled={status !== 'ready' || filteredTocEntries.length === 0}
-                  aria-label="Sección del índice"
-                >
-                  <option value="">{filteredTocEntries.length === 0 ? 'Sin secciones' : 'Selecciona una sección'}</option>
-                  {filteredTocEntries.map((entry) => (
-                    <option key={entry.id} value={entry.href}>
-                      {`${'  '.repeat(entry.depth)}${entry.label}`}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <ReaderTocPanel
+                isNtContext={isNtContext}
+                tocBookAnchors={tocBookAnchors}
+                tocBookFilter={tocBookFilter}
+                setTocBookFilter={setTocBookFilter}
+                status={status}
+                selectedToc={selectedToc}
+                jumpToToc={jumpToToc}
+                filteredTocEntries={filteredTocEntries}
+              />
             )}
 
             {panelTab === 'search' && (
-              <div className="space-y-2">
-                <div className="text-xs font-semibold">{isNtContext ? 'Buscar texto o referencia bíblica' : 'Buscar texto'}</div>
-                <div className="flex gap-2">
-                  <Input
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder={isNtContext ? 'Ej: Juan 3:16 o palabra clave' : 'Escribe una palabra o frase'}
-                  />
-                  <Button variant="outline" onClick={searchInBook} disabled={status !== 'ready' || isSearching}>
-                    {isSearching ? 'Buscando...' : 'Buscar'}
-                  </Button>
-                </div>
-                <div className="max-h-80 overflow-auto rounded-md border border-border bg-background/60 p-2 space-y-1">
-                  {searchResults.length === 0 ? (
-                    <div className="text-xs text-muted-foreground">Sin resultados.</div>
-                  ) : (
-                    searchResults.map((item) => (
-                      <button
-                        key={item.id}
-                        className="w-full text-left text-xs hover:bg-accent/30 rounded px-2 py-1"
-                        onClick={() => openSearchResult(item)}
-                      >
-                        {item.excerpt}
-                      </button>
-                    ))
-                  )}
-                </div>
-              </div>
+              <ReaderSearchPanel
+                isNtContext={isNtContext}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                searchInBook={searchInBook}
+                status={status}
+                isSearching={isSearching}
+                searchResults={searchResults}
+                openSearchResult={openSearchResult}
+              />
             )}
 
             {panelTab === 'bookmarks' && (
-              <div className="space-y-2">
-                <div className="text-xs font-semibold">Marcadores</div>
-                <div className="max-h-80 overflow-auto rounded-md border border-border bg-background/60 p-2 space-y-1">
-                  {bookmarks.length === 0 ? (
-                    <div className="text-xs text-muted-foreground">Sin marcadores.</div>
-                  ) : (
-                    bookmarks.map((item) => (
-                      <div key={item.id} className="flex items-center gap-1">
-                        <button
-                          className="flex-1 text-left text-xs hover:underline"
-                          onClick={() => {
-                            void displayAndPersist(item.cfi);
-                            setIsPanelOpen(false);
-                          }}
-                        >
-                          {item.label}
-                        </button>
-                        <Button size="sm" variant="ghost" onClick={() => removeBookmark(item.id)}>
-                          x
-                        </Button>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
+              <ReaderBookmarksPanel
+                bookmarks={bookmarks}
+                displayAndPersist={displayAndPersist}
+                setIsPanelOpen={setIsPanelOpen}
+                removeBookmark={removeBookmark}
+              />
             )}
 
             {panelTab === 'highlights' && (
-              <div className="space-y-2">
-                <div className="text-xs font-semibold">Subrayados</div>
-                <div className="max-h-80 overflow-auto rounded-md border border-border bg-background/60 p-2 space-y-2">
-                  {highlights.length === 0 ? (
-                    <div className="text-xs text-muted-foreground">Sin subrayados.</div>
-                  ) : (
-                    highlights.map((item) => (
-                      <div key={item.id} className="rounded border border-border/60 p-2 space-y-1">
-                        <button
-                          className="w-full text-left text-xs hover:underline"
-                          onClick={() => {
-                            void displayAndPersist(item.cfiRange);
-                            setIsPanelOpen(false);
-                          }}
-                        >
-                          {item.text}
-                        </button>
-                        <Input
-                          value={item.note ?? ''}
-                          onChange={(e) => updateHighlightNote(item.id, e.target.value)}
-                          placeholder="Nota opcional"
-                        />
-                        <div className="flex justify-end">
-                          <Button size="sm" variant="ghost" onClick={() => removeHighlight(item)}>
-                            Eliminar
-                          </Button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
+              <ReaderHighlightsPanel
+                highlights={highlights}
+                displayAndPersist={displayAndPersist}
+                setIsPanelOpen={setIsPanelOpen}
+                updateHighlightNote={updateHighlightNote}
+                removeHighlight={removeHighlight}
+              />
             )}
 
             {isNtContext && Object.keys(tocBookAnchors).length > 0 && (
@@ -1624,10 +1398,3 @@ export default function EpubReader({
     </div>
   );
 }
-
-
-
-
-
-
-

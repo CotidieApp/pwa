@@ -41,6 +41,25 @@ import { initialState, loadPersistedNavState, persistNavState } from '@/componen
 import type { NavigationState } from '@/components/main/navigation';
 import { findPrayerIdByTitle, getPrayerPathIds, normalizeRouteSegment, resolvePlanPrayerId } from '@/components/main/prayer-navigation';
 import { useAndroidBackButton, useNotificationActionBinding, useSharedImportBinding } from '@/components/main/useNativeAppBindings';
+import { normalizeLanguageKey, getPrayerLanguageModes, languageModeLabel } from '@/components/main/language-mode';
+import {
+  type SpiritualAudioItem,
+  type StoredSpiritualAudioItem,
+  DEFAULT_SPIRITUAL_AUDIOS,
+  MAX_SPIRITUAL_AUDIO_SIZE_BYTES,
+  toSpiritualAudioFileKey,
+  removeAudioExtension,
+  loadStoredSpiritualAudios,
+  saveStoredSpiritualAudios,
+  loadSpiritualAudioProgress,
+  saveSpiritualAudioProgress,
+} from '@/components/main/spiritualAudio';
+import { TimerFinishedDialog } from '@/components/main/dialogs/TimerFinishedDialog';
+import { ErrorReportDialog } from '@/components/main/dialogs/ErrorReportDialog';
+import { LettersInfoDialog } from '@/components/main/dialogs/LettersInfoDialog';
+import { AudioRenameDialog } from '@/components/main/dialogs/AudioRenameDialog';
+import { AudioDeleteDialog } from '@/components/main/dialogs/AudioDeleteDialog';
+import { PrayerDeleteDialog } from '@/components/main/dialogs/PrayerDeleteDialog';
 
 import {
   AlertDialog,
@@ -72,122 +91,6 @@ const DEFAULT_CAMINO_SEARCH_STATE = {
   term: '',
   activeIndex: -1,
   resultsCount: 0,
-};
-
-const normalizeLanguageKey = (value?: string | null) =>
-  String(value || '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '');
-
-const getPrayerLanguageModes = (prayer: Prayer | null): PrayerLanguageMode[] => {
-  if (!prayer?.content || typeof prayer.content !== 'object') return [];
-  if (prayer.id === 'angelus-regina-coeli') return ['espanol', 'latin', 'ambos'];
-
-  const keys = Object.keys(prayer.content);
-  const spanishIndex = keys.findIndex((key) => normalizeLanguageKey(key) === 'espanol');
-  const latinIndex = keys.findIndex((key) => normalizeLanguageKey(key) === 'latin');
-  if (spanishIndex < 0 || latinIndex < 0) return [];
-  return spanishIndex < latinIndex
-    ? ['espanol', 'latin', 'ambos']
-    : ['latin', 'espanol', 'ambos'];
-};
-
-const languageModeLabel: Record<PrayerLanguageMode, string> = {
-  espanol: 'Español',
-  latin: 'Latín',
-  ambos: 'Ambos',
-};
-
-type SpiritualAudioItem = {
-  id: string;
-  title: string;
-  src: string;
-  isUser?: boolean;
-  sizeBytes?: number;
-  updatedAt?: number;
-};
-
-type StoredSpiritualAudioItem = Required<Pick<SpiritualAudioItem, 'id' | 'title' | 'src' | 'sizeBytes' | 'updatedAt'>>;
-
-const DEFAULT_SPIRITUAL_AUDIOS: SpiritualAudioItem[] = [
-  {
-    id: 'san-josemaria-discurso',
-    title: 'Discurso San Josemaría',
-    src: '/media/Discurso San Josemaría.mp3',
-  },
-  {
-    id: 'san-juan-pablo-ii-discurso',
-    title: 'Discurso San Juan Pablo II',
-    src: '/media/Discurso San Juan Pablo II.mp3',
-  },
-];
-const SPIRITUAL_AUDIO_INDEX_STORAGE_KEY = 'cotidie_spiritual_audio_library';
-const SPIRITUAL_AUDIO_FILE_KEY_PREFIX = 'cotidie_spiritual_audio_file_';
-const SPIRITUAL_AUDIO_PROGRESS_STORAGE_KEY = 'cotidie_spiritual_audio_progress';
-const MAX_SPIRITUAL_AUDIO_SIZE_BYTES = 25 * 1024 * 1024;
-
-const toSpiritualAudioFileKey = (id: string) => `${SPIRITUAL_AUDIO_FILE_KEY_PREFIX}${id}`;
-
-const removeAudioExtension = (name: string) =>
-  name.replace(/\.[^.]+$/, '').trim();
-
-const loadStoredSpiritualAudios = (): StoredSpiritualAudioItem[] => {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = window.localStorage.getItem(SPIRITUAL_AUDIO_INDEX_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter(
-        (item): item is Omit<StoredSpiritualAudioItem, 'src'> =>
-          item &&
-          typeof item.id === 'string' &&
-          typeof item.title === 'string' &&
-          typeof item.sizeBytes === 'number' &&
-          typeof item.updatedAt === 'number'
-      )
-      .map((item) => ({
-        ...item,
-        src: window.localStorage.getItem(toSpiritualAudioFileKey(item.id)) ?? '',
-      }))
-      .filter((item) => item.src.length > 0);
-  } catch {
-    return [];
-  }
-};
-
-const saveStoredSpiritualAudios = (items: StoredSpiritualAudioItem[]) => {
-  if (typeof window === 'undefined') return;
-  const index = items.map(({ id, title, sizeBytes, updatedAt }) => ({ id, title, sizeBytes, updatedAt }));
-  window.localStorage.setItem(SPIRITUAL_AUDIO_INDEX_STORAGE_KEY, JSON.stringify(index));
-};
-
-const loadSpiritualAudioProgress = (): Record<string, number> => {
-  if (typeof window === 'undefined') return {};
-  try {
-    const raw = window.localStorage.getItem(SPIRITUAL_AUDIO_PROGRESS_STORAGE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
-    return Object.fromEntries(
-      Object.entries(parsed).filter((entry): entry is [string, number] => (
-        typeof entry[0] === 'string' &&
-        typeof entry[1] === 'number' &&
-        Number.isFinite(entry[1]) &&
-        entry[1] >= 0
-      ))
-    );
-  } catch {
-    return {};
-  }
-};
-
-const saveSpiritualAudioProgress = (progress: Record<string, number>) => {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(SPIRITUAL_AUDIO_PROGRESS_STORAGE_KEY, JSON.stringify(progress));
 };
 
 export default function MainApp() {
@@ -1238,7 +1141,7 @@ export default function MainApp() {
           );
         }
         if (currentPrayer.id === 'lectura-nuevo-testamento') {
-          return <EpubReader />;
+          return <EpubReader onClose={handleBack} />;
         }
         if (currentPrayer.id === 'lectura-espiritual-personales') {
           return <PersonalEpubLibrary />;
@@ -1758,224 +1661,49 @@ export default function MainApp() {
         />
       )}
 
-      <AlertDialog
+      <TimerFinishedDialog
         open={showTimerFinishedAlert}
         onOpenChange={setShowTimerFinishedAlert}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¡Tiempo terminado!</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tu tiempo de oración ha concluido.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogAction onClick={() => setShowTimerFinishedAlert(false)}>
-            Aceptar
-          </AlertDialogAction>
-        </AlertDialogContent>
-      </AlertDialog>
+      />
 
-      <AlertDialog open={showErrorReport} onOpenChange={setShowErrorReport}>
-        <AlertDialogContent className="max-w-[90vw] sm:max-w-md rounded-2xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-center font-headline text-xl">Reporte de error</AlertDialogTitle>
-            <AlertDialogDescription className="text-center pt-2">
-              ¿Detectaste algún fallo en Cotidie? <br/>
-              Selecciona una vía para informar al desarrollador:
-            </AlertDialogDescription>
-          </AlertDialogHeader>
+      <ErrorReportDialog open={showErrorReport} onOpenChange={setShowErrorReport} />
 
-          <div className="grid grid-cols-3 gap-4 py-6">
-            <button
-              onClick={() => {
-                window.location.href = "mailto:cotidieapp@gmail.com?subject=Reporte de error";
-                setShowErrorReport(false);
-              }}
-              className="flex flex-col items-center gap-2 group transition-transform active:scale-95"
-            >
-              <div className="size-14 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-600 group-hover:bg-blue-500/20 transition-colors">
-                <Icon.Mail className="size-7" />
-              </div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Email</span>
-            </button>
-
-            <button
-              onClick={() => {
-                window.location.href = "https://wa.me/56929474804?text=Reporte%20de%20error:";
-                setShowErrorReport(false);
-              }}
-              className="flex flex-col items-center gap-2 group transition-transform active:scale-95"
-            >
-              <div className="size-14 rounded-2xl bg-green-500/10 flex items-center justify-center text-green-600 group-hover:bg-green-500/20 transition-colors">
-                <Icon.MessageCircle className="size-7" />
-              </div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">WhatsApp</span>
-            </button>
-
-            <button
-              onClick={() => {
-                const username = 'cotidieapp';
-                const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-                if (isMobile) {
-                  window.location.href = `https://ig.me/m/${username}`;
-                } else {
-                  window.open(`https://instagram.com/${username}`, '_blank');
-                }
-                setShowErrorReport(false);
-              }}
-              className="flex flex-col items-center gap-2 group transition-transform active:scale-95"
-            >
-              <div className="size-14 rounded-2xl bg-pink-500/10 flex items-center justify-center text-pink-600 group-hover:bg-pink-500/20 transition-colors">
-                <Icon.Instagram className="size-7" />
-              </div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Instagram</span>
-            </button>
-          </div>
-
-          <div className="flex justify-center border-t pt-4">
-            <AlertDialogAction
-              onClick={() => setShowErrorReport(false)}
-              className="bg-secondary text-secondary-foreground hover:bg-secondary/80 border-0 shadow-none px-8"
-            >
-              Cancelar
-            </AlertDialogAction>
-          </div>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog
+      <LettersInfoDialog
         open={showLettersInfo}
         onOpenChange={setShowLettersInfo}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Información sobre Cartas</AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-4">
-                <p>
-                  Escribe una carta al Señor. Agradece lo vivido, pide claridad por lo que se viene,
-                  ruega ante una necesidad..., pero, sobre todo, háblale; no como un servidor a su señor,
-                  sino como un hijo a su Padre. Amor de Padre es el Suyo, no lo olvides.
-                </p>
-                <div className="rounded-md border border-border/60 bg-muted/30 p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-1 flex-1">
-                      <div className="font-medium text-foreground">Recordatorio de Cartas</div>
-                      <p className="text-xs text-foreground/75 leading-relaxed">
-                        Si pasan 30 días sin escribir una carta nueva, Cotidie te enviará una notificación
-                        para invitarte a retomar este hábito filial.
-                      </p>
-                    </div>
-                    <Switch
-                      checked={cartasReminderEnabled}
-                      onCheckedChange={setCartasReminderEnabled}
-                      aria-label="Activar recordatorio de Cartas"
-                    />
-                  </div>
-                  <p className="text-[10px] text-muted-foreground italic">
-                    * El contador se reinicia automáticamente al crear una carta nueva.
-                  </p>
-                </div>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="flex justify-end">
-            <AlertDialogAction onClick={() => setShowLettersInfo(false)}>
-              Entendido
-            </AlertDialogAction>
-          </div>
-        </AlertDialogContent>
-      </AlertDialog>
+        cartasReminderEnabled={cartasReminderEnabled}
+        setCartasReminderEnabled={setCartasReminderEnabled}
+      />
 
-      <Dialog open={Boolean(audioRenameTarget)} onOpenChange={(open) => {
-        if (!open) closeUserSpiritualAudioRename();
-      }}>
-        <DialogContent className="max-w-[90vw] sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Editar nombre visible</DialogTitle>
-          </DialogHeader>
-          <form
-            className="space-y-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              submitUserSpiritualAudioRename();
-            }}
-          >
-            <Input
-              ref={audioRenameInputRef}
-              value={audioRenameValue}
-              onChange={(e) => setAudioRenameValue(e.target.value)}
-              onFocus={(e) => e.currentTarget.select()}
-              aria-label="Nombre visible del audio"
-            />
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={closeUserSpiritualAudioRename}>
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={audioRenameValue.trim().length === 0}>
-                Guardar
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <AudioRenameDialog
+        open={Boolean(audioRenameTarget)}
+        onClose={closeUserSpiritualAudioRename}
+        inputRef={audioRenameInputRef}
+        value={audioRenameValue}
+        onChangeValue={setAudioRenameValue}
+        onSubmit={submitUserSpiritualAudioRename}
+      />
 
-      <AlertDialog
-        open={Boolean(audioPendingDelete)}
+      <AudioDeleteDialog
+        audioPendingDelete={audioPendingDelete}
         onOpenChange={(open) => {
           if (!open) setAudioPendingDelete(null);
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Eliminar audio</AlertDialogTitle>
-            <AlertDialogDescription>
-              ¿Seguro que deseas eliminar "{audioPendingDelete?.title}" de tu biblioteca?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={deletePendingSpiritualAudio}
-            >
-              Eliminar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        onConfirmDelete={deletePendingSpiritualAudio}
+      />
 
-      <AlertDialog
-        open={Boolean(prayerPendingDelete)}
+      <PrayerDeleteDialog
+        prayerPendingDelete={prayerPendingDelete}
         onOpenChange={(open) => {
           if (!open) setPrayerPendingDelete(null);
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Eliminar {prayerPendingDelete?.title}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {prayerPendingDelete?.isUserDefined
-                ? 'Esta acción eliminará permanentemente este contenido.'
-                : 'Este contenido se ocultará y podrá restaurarse desde Control de Contenido.'}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => {
-                if (!prayerPendingDelete) return;
-                deletePrayer(prayerPendingDelete);
-                setPrayerPendingDelete(null);
-                handleBack();
-              }}
-            >
-              Eliminar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        onConfirmDelete={() => {
+          if (!prayerPendingDelete) return;
+          deletePrayer(prayerPendingDelete);
+          setPrayerPendingDelete(null);
+          handleBack();
+        }}
+      />
 
       <AnimatePresence>
         {showAnnuum && (

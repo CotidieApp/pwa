@@ -8,6 +8,521 @@ Historial de intervenciones del asistente en el repo.
 - Esta obligacion aplica aunque el usuario pida tocar solo lo estrictamente necesario: el registro en `AGENTS.md` se considera parte estrictamente necesaria de cualquier edicion del repo.
 - Si una instruccion del usuario prohibe explicitamente editar `AGENTS.md`, el agente debe pedir aclaracion antes de modificar otros archivos.
 
+### [2026-07-22 20:44] 315. Limpieza integral de archivos muertos y dependencias sin consumidores
+**Planificacion:**
+- Auditar los archivos versionados mediante referencias textuales, convenciones de Next/Android y un grafo de importaciones de todo `src`.
+- Eliminar solamente residuos inequivocos, contenido temporal autorizado por el usuario, recursos antiguos de Apple/iOS, modulos desconectados y dependencias que quedaron sin consumidores.
+- Conservar recursos nativos duplicados deliberadamente para widgets/notificaciones, fuentes y sus licencias OFL, configuracion PWA, recursos Android activos y herramientas de desarrollo vigentes.
+
+**Ejecucion:**
+- Se eliminaron 125 archivos versionados: `.modified`, una imagen residual de `.codex-dev`, dos restos vacios de descarga Gradle, 41 archivos de `tmp`, 33 recursos sin uso de `icons/`, dos pruebas Android genericas de Capacitor, salidas PWA obsoletas versionadas, recursos publicos sin consumidores, documentacion auxiliar empaquetada, dos scripts superados y 30 modulos desconectados de `src`.
+- Los 30 modulos de `src` retirados incluian componentes Shadcn sin uso, tres iconos SVG sin consumidores, un wrapper de providers duplicado, un hook aislado, datos antiguos de Camino y copias redundantes de Magnificat, Oracion de la Manana/Tarde y los misterios del Rosario.
+- Se retiraron 17 dependencias directas sin consumidores; npm elimino 80 paquetes contando sus dependencias transitivas. Se mantuvo `@capacitor/assets` para poder regenerar recursos Android desde `assets/`.
+- `.gitignore` ahora impide que reaparezcan `.modified`, `.codex-dev`, `tmp`, `icons`, el Gradle home de verificacion y las salidas generadas `public/sw.js`/`public/workbox-*.js`.
+- Se conservaron el manifiesto y la configuracion de la PWA. Los `sw.js`/Workbox eliminados eran salidas antiguas sin registro en el bundle actual, no codigo fuente de la PWA.
+
+**Validacion:**
+- `npx tsc --noEmit` OK.
+- Grafo de importaciones posterior a la limpieza: 196 archivos fuente, 196 alcanzables y 0 huerfanos.
+- `npm ls --depth=0` OK, sin dependencias directas rotas.
+- `npm run build` OK; Next.js genero y exporto las rutas `/` y `/_not-found` correctamente.
+- `npx cap sync android` OK; se detectaron los cuatro plugins Capacitor esperados y no quedaron copias de los recursos eliminados en los assets Android.
+- La exportacion paso de 115 a 102 archivos y de 128.528.081 a 128.383.750 bytes. `tmp` quedo con 0 archivos.
+- No se ejecuto `npm audit fix`, porque sus actualizaciones exceden esta limpieza y podrian introducir cambios de compatibilidad no solicitados.
+
+**Archivos Modificados:**
+- `.gitignore`
+- `package.json`
+- `package-lock.json`
+- `.modified` (eliminado)
+- `.codex-dev/` (contenido eliminado)
+- `tmp/` (contenido eliminado)
+- `icons/` (eliminado)
+- `android/.gradle-user-home-verify/` (eliminado)
+- `android/app/src/test/` y `android/app/src/androidTest/` (plantillas genericas eliminadas)
+- `public/epub/.gitkeep`, `public/epub/README.txt`, seis `public/fonts/*/README.txt`, tres iconos publicos sin uso y las salidas PWA obsoletas (eliminados)
+- `scripts/_git-checkout-file.mjs` y `scripts/copy-apk.mjs` (eliminados)
+- 30 archivos desconectados bajo `src/components/`, `src/context/`, `src/hooks/` y `src/lib/` (eliminados)
+- `AGENTS.md`
+
+### [2026-07-22] 314. EpubReader: la misma ancla obsoleta tambien re-navegaba al cambiar el tamano de fuente
+
+**Planificacion:**
+- Tras corregir `refreshRenditionLayout` para preferir la posicion leida en vivo (`getRenditionLocation(rendition)`) sobre `stableLocationRef.current` como ancla de `rendition.resize(...)`, se reviso si el mismo patron de bug existia en otros lugares del componente que tambien re-navegan activamente (no solo registran la posicion).
+- Se encontro el efecto de cambio de tamano de fuente: calculaba `fontResizeAnchor` leyendo *unicamente* `stableLocationRef.current` (sin ni siquiera intentar la lectura en vivo como respaldo) y luego llamaba `rendition.display(fontResizeAnchor)`. Como `stableLocationRef` solo se actualiza cuando `onRelocated` decide no suprimir el evento, puede quedar desactualizado hasta `READER_MAX_RESTORE_SUPPRESSION_MS` (5000 ms) tras cualquier resize o restauracion — exactamente el mismo defecto de raiz que en `refreshRenditionLayout`, pero mas expuesto porque aqui no habia ningun respaldo con la lectura en vivo.
+
+**Ejecucion:**
+- Se cambio el efecto de `readerFontSize` para calcular `fontResizeAnchor` a partir de `getRenditionLocation(rendition) ?? stableLocationRef.current` (lectura en vivo primero, con el ref como respaldo), igual que ya se hizo en `refreshRenditionLayout` y en `persistCurrentLocation`.
+
+**Validacion:**
+- `npx tsc --noEmit` sin errores.
+- No fue posible reproducir el flujo completo del lector EPUB en el navegador sandboxed de este entorno (la carga del EPUB nunca supera "Cargando EPUB..." aqui, limitacion ya documentada en entradas anteriores); la verificacion en dispositivo real queda pendiente de confirmacion del usuario.
+
+**Archivos Modificados:**
+- `src/components/EpubReader.tsx`
+- `AGENTS.md`
+
+### [2026-07-22] 311. README: funcionamiento completamente offline
+**Planificacion:**
+- Corregir la introduccion para que no sugiera una dependencia ocasional de internet y exprese con precision que Cotidie funciona enteramente sin conexion una vez instalada.
+
+**Ejecucion:**
+- Se sustituyo la formulacion "no depender permanentemente" por una declaracion explicita: tras su instalacion, Cotidie no necesita conectividad para acceder a sus contenidos ni utilizar sus funciones.
+
+**Validacion:**
+- Se reviso el fragmento actualizado y se ejecuto `git diff --check` sobre los dos archivos documentales.
+- No se ejecutaron pruebas de aplicacion porque el cambio es exclusivamente documental.
+
+**Archivos Modificados:**
+- `README.md`
+- `AGENTS.md`
+
+### [2026-07-22 19:49] 310. README convertido en guia operativa y aclaracion de reproduccion del contenido
+**Planificacion:**
+- Sustituir la nota breve de autoria por una introduccion util para desarrolladores y agentes, basada en la estructura y los comandos reales del repositorio.
+- Distinguir la autorizacion para reproducir textos devocionales y de lectura espiritual de los derechos reservados sobre el software y los elementos originales de Cotidie.
+
+**Ejecucion:**
+- `README.md` ahora explica el proposito de Cotidie, estado del proyecto, tecnologias, preparacion del entorno, desarrollo local, limites de la simulacion web, verificaciones y estructura principal.
+- Se documento el comportamiento potencialmente publicador de `npm run android:apk`, sus cuatro opciones reales (`--set`, `--no-bump`, `--no-push`, `--no-drive`) y un comando de compilacion local sin publicacion ni cambio de version.
+- Se agrego una seccion obligatoria para agentes que remite a `AGENTS.md` y exige leer ambos archivos antes de modificar el proyecto.
+- La seccion de autoria permite expresamente reproducir los textos devocionales y de lectura espiritual, pero aclara que esa autorizacion no libera el codigo, el APK, la identidad visual ni otros elementos originales. Tambien preserva los derechos que puedan corresponder a recursos de terceros.
+
+**Validacion:**
+- Lectura completa del archivo final en UTF-8: 165 lineas, un unico H1, seis bloques de codigo correctamente emparejados y ningun caracter de reemplazo Unicode.
+- `git diff --check -- README.md` sin errores (solo aviso informativo de conversion LF/CRLF de Git).
+- No se ejecutaron pruebas de aplicacion porque el cambio es exclusivamente documental.
+
+**Archivos Modificados:**
+- `README.md`
+- `AGENTS.md`
+
+### [2026-07-22 17:39] 309. Lector EPUB: progreso estable inspirado en la arquitectura observable de ReadEra
+**Planificacion:**
+- Analizar `C:\Users\balca\Downloads\lector epub.apk` solo como referencia de comportamiento y arquitectura, sin descompilar ni copiar codigo o recursos propietarios, y corregir el componente EPUB compartido por Nuevo Testamento y Lectura Espiritual > Personales.
+- Reproducir en el navegador movil el retroceso exacto de una pagina al reabrir y el desplazamiento acumulativo al repaginar por cambios de orientacion.
+
+**Ejecucion:**
+- Se inspeccionaron metadatos, manifiesto y archivos publicamente identificables del APK. ReadEra usa un motor EPUB nativo independiente (`liberaepub.so` / EraEPUB); la leccion aplicable a Cotidie es separar la posicion logica de lectura de los limites visuales de pagina.
+- La ubicacion persistida ahora incluye el CFI final visible (`endCfi`). En este EPUB, el CFI inicial puede apuntar al comienzo de un parrafo que atraviesa varias paginas; restaurarlo era la causa del retroceso. El CFI final identifica de forma estable la pagina correcta.
+- Las ubicaciones antiguas que solo contienen el CFI inicial se migran una vez avanzando a la pagina que el lector anterior pretendia guardar; despues quedan almacenadas en el formato nuevo.
+- Se impidio que los eventos iniciales de `relocated` sobrescriban la ubicacion mientras esta se restaura.
+- `epub.js` ahora recibe dimensiones numericas y Cotidie controla los cambios de tamano con un unico flujo. Rotaciones y cambios de fuente conservan el mismo CFI estable y no reemplazan el progreso con el nuevo final de una pagina repaginada.
+- El guardado al ocultar, cerrar o desmontar prioriza la ultima posicion estable confirmada. Solo un avance, retroceso o salto explicito del usuario actualiza esa posicion.
+
+**Validacion:**
+- `npx tsc --noEmit` OK.
+- `git diff --check -- src/components/EpubReader.tsx` sin errores (solo aviso informativo de conversion LF/CRLF de Git).
+- Prueba movil real en `http://127.0.0.1:3018/` a 360 x 780: Nuevo Testamento avanzo a pagina 2, se cerro y reabrio en pagina 2.
+- Prueba de repaginacion: pagina 2 vertical -> horizontal -> vertical termino nuevamente en pagina 2; una reapertura posterior tambien quedo en pagina 2.
+- Prueba de Lectura Espiritual > Personales: se agrego temporalmente el EPUB local del Nuevo Testamento, se avanzo a pagina 2, se cerro y reabrio en pagina 2. El archivo de prueba fue eliminado al terminar.
+- Cero errores o advertencias en la consola durante la prueba final.
+
+**Archivos Modificados:**
+- `src/components/EpubReader.tsx`
+- `src/lib/epub-reader/helpers.ts`
+- `src/lib/epub-reader/types.ts`
+- `AGENTS.md`
+
+### [2026-07-22 15:58] 305. Prueba de humo final del refactor de los 5 archivos grandes
+**Planificacion:**
+- Ultimo paso del plan aprobado: verificar en el navegador, con el servidor de desarrollo real, que los 5 archivos divididos (`camino.ts`, `SettingsContext.tsx`, `MainApp.tsx`, `EpubReader.tsx`, `RosaryImmersive.tsx`) siguen funcionando exactamente igual que antes.
+- Se creo `.claude/launch.json` (nuevo) apuntando a `npm run dev -- -p 3018`, replicando el puerto que ya usa el propio flujo `armar cotidie dev` del usuario.
+
+**Ejecucion (todo probado en `http://localhost:3018`, revisando consola tras cada paso):**
+- Ajustes → Notificaciones: renderiza y funciona (ejercita `useNotificationScheduling`).
+- Ajustes → Apariencia: renderiza "Fondo de Pantalla" / "Rotación diaria" (ejercita `useHomeBackgroundRotation`/`activeThemeColors`).
+- Plan de Vida → Santo Rosario: pantalla de seleccion de misterios (`RosarySelectionView`) → paso "Adoración" del pre-rosario con el texto exacto movido a `content.ts` → se abrio "Mis Intenciones" (`IntentionsMenuOverlay`), se agrego una intencion nueva y aparecio en la lista de inmediato → se avanzo al primer misterio ("La Anunciación"), confirmando que la maquina de estados de navegacion (no tocada) sigue funcionando con las piezas movidas.
+- Plan de Vida → Lectura Espiritual → Predeterminadas → Camino: el libro completo se abrio y el Capitulo 0 y 1 se leyeron identicos, palabra por palabra, al texto original (reconstruido en vivo a partir de las 7 partes).
+- Plan de Vida → Lectura Espiritual → Audios: aparecen los dos audios por defecto (ejercita `spiritualAudio.ts`).
+- Plan de Vida → Lectura Nuevo Testamento: el EPUB cargo (`GET /epub/nuevo-testamento.epub` → 200), la barra de herramientas y el panel de lectura abrieron correctamente mostrando la pestana de busqueda y el indice de libros del Nuevo Testamento (ejercita los 5 componentes de `epub-reader/` y `NT_BOOKS`).
+- **Cero errores en consola** en cualquiera de los pasos anteriores.
+
+**Validacion:**
+- `npx tsc --noEmit` limpio (verificado al final de cada archivo, y se mantiene limpio ahora).
+- Prueba de humo en navegador real sin errores.
+
+**Archivos Modificados:**
+- `.claude/launch.json` (nuevo)
+- `AGENTS.md`
+
+### [2026-07-22 15:49] 304. RosaryImmersive.tsx: extraccion de contenido, tipos y sub-vistas
+**Planificacion:**
+- Sexto y ultimo archivo del refactor mayor aprobado. `src/components/RosaryImmersive.tsx` (1502 lineas): mover textos/datos/tipos puros a `src/lib/rosary-immersive/`, y las 3 vistas autocontenidas (pantalla de seleccion de misterios, overlay de intenciones, overlay de jaculatorias) a `src/components/rosary-immersive/`. Dejar intacto el cluster de arrastre de la burbuja de navegacion, la maquina de estados (`handleNext`/`handlePrev`/etc.) y `rosaryIndexSections`, tal como preveia el plan por lo entrelazados que estan.
+
+**Ejecucion:**
+- `src/lib/rosary-immersive/types.ts`, `content.ts`, `helpers.tsx` (nuevos): `Jaculatoria`/`MysteryType`/`ImmersiveRosaryProps`, todos los textos de oraciones y datos de misterios (colores/imagenes/nombres), y `renderRosaryText`/`renderCenterIcon`/`getMysteryByDay`.
+- `src/components/rosary-immersive/` (nuevo, 3 componentes): `RosarySelectionView` (pantalla completa de seleccion), `IntentionsMenuOverlay`, `JaculatoriasMenuOverlay` — cada uno recibe su estado y callbacks por props.
+- Mismo cuidado que en `EpubReader.tsx`: los scripts de extraccion insertaron texto con `\n` sobre un archivo que estaba en `\r\n` en disco; se normalizo el archivo completo a `\n` al terminar.
+
+**Validacion:**
+- `npx tsc --noEmit` OK en cada paso (5 verificaciones independientes a lo largo de la extraccion).
+- Barrido final de `src/**/*.{ts,tsx}` sin caracteres Unicode sueltos.
+- `RosaryImmersive.tsx` paso de 1502 a 1118 lineas.
+
+**Archivos Modificados:**
+- `src/components/RosaryImmersive.tsx`
+- `src/lib/rosary-immersive/types.ts` (nuevo)
+- `src/lib/rosary-immersive/content.ts` (nuevo)
+- `src/lib/rosary-immersive/helpers.tsx` (nuevo)
+- `src/components/rosary-immersive/RosarySelectionView.tsx` (nuevo)
+- `src/components/rosary-immersive/IntentionsMenuOverlay.tsx` (nuevo)
+- `src/components/rosary-immersive/JaculatoriasMenuOverlay.tsx` (nuevo)
+- `AGENTS.md`
+
+### [2026-07-22 15:43] 303. EpubReader.tsx: extraccion de helpers puros y paneles de presentacion
+**Planificacion:**
+- Quinto archivo del refactor mayor aprobado. `src/components/EpubReader.tsx` (1633 lineas): mover funciones/tipos/constantes puras a `src/lib/epub-reader/`, y los 4 paneles del `Sheet` + la barra de seleccion pendiente a componentes de presentacion en `src/components/epub-reader/`. Dejar intacto el efecto grande de carga del libro (epub.js) y todos sus refs/handlers asociados, tal como preveia el plan.
+
+**Ejecucion:**
+- `src/lib/epub-reader/types.ts`, `constants.ts`, `helpers.ts` (nuevos): tipos, constantes (incluye datos `NT_BOOKS`) y funciones puras (storage keys, tamano de fuente, colores de tema, base64/listas, TOC, parseo de referencias biblicas, helpers de CFI).
+- `src/components/epub-reader/` (nuevo, 5 componentes): `ReaderTocPanel`, `ReaderSearchPanel`, `ReaderBookmarksPanel`, `ReaderHighlightsPanel`, `ReaderSelectionToolbar` — cada uno recibe sus datos y callbacks por props; el efecto de carga del libro y todos los refs/handlers quedan intactos en `EpubReader.tsx`.
+- **Correccion de un error propio detectado a tiempo**: al escribir `helpers.ts` y (antes) `src/components/main/language-mode.ts`, el asistente transcribio por error el rango unicode `̀-ͯ` como caracteres combinantes literales en vez del texto de escape. Aunque el regex compilado era identico (mismo rango de codepoints, cero cambio de comportamiento), se corrigio de inmediato por higiene de codigo fuente, y se escaneo todo `src/**/*.{ts,tsx}` para confirmar que no quedaba ningun caso mas.
+- **Correccion de finales de linea propios**: los scripts de extraccion usados en `EpubReader.tsx` y `MainApp.tsx` insertaron texto nuevo con `\n` sobre archivos que Windows habia entregado en disco con `\r\n` (por `core.autocrlf`), dejando finales de linea mixtos. Se normalizaron ambos archivos completos a `\n` (el estilo real del repositorio, confirmado con `git show HEAD:<archivo>`). No se tocaron otros archivos del repo que ya tenian finales de linea mixtos de antes (no relacionado con este refactor).
+
+**Validacion:**
+- `npx tsc --noEmit` OK en cada paso.
+- Barrido de todo `src/**/*.{ts,tsx}` sin caracteres Unicode sueltos y sin archivos con finales de linea mixtos introducidos por el asistente.
+- `EpubReader.tsx` paso de 1633 a 1230 lineas.
+
+**Archivos Modificados:**
+- `src/components/EpubReader.tsx`
+- `src/components/main/MainApp.tsx` (solo normalizacion de finales de linea, sin cambios de contenido)
+- `src/components/main/language-mode.ts` (correccion del regex)
+- `src/lib/epub-reader/types.ts` (nuevo)
+- `src/lib/epub-reader/constants.ts` (nuevo)
+- `src/lib/epub-reader/helpers.ts` (nuevo)
+- `src/components/epub-reader/ReaderTocPanel.tsx` (nuevo)
+- `src/components/epub-reader/ReaderSearchPanel.tsx` (nuevo)
+- `src/components/epub-reader/ReaderBookmarksPanel.tsx` (nuevo)
+- `src/components/epub-reader/ReaderHighlightsPanel.tsx` (nuevo)
+- `src/components/epub-reader/ReaderSelectionToolbar.tsx` (nuevo)
+- `AGENTS.md`
+
+### [2026-07-22 20:21] 313. EpubReader: instrumentacion de diagnostico + arreglo de infraestructura de rastro invisible
+**Planificacion:**
+- El usuario reporto, tras la entrada #312, un patron muy especifico: entra a una pagina ya conocida, avanza 4, sale, vuelve a entrar, y queda 2 paginas antes de donde salio (dos despues de la inicial). Cuatro intentos de diagnostico por lectura de codigo sin poder probar en vivo ya no son suficientes — se decidio instrumentar en vez de seguir adivinando.
+- Al ir a agregar los rastros, se descubrio que `pushDevLiveTrace` (usado ya desde antes del refactor, y en todos los arreglos de esta sesion) **solo actualiza estado de React** — no existe ninguna pantalla en toda la app que muestre `devLiveTraceEvents`. Ademas, `devLiveTraceEnabled` (el interruptor que activa el sistema completo) nunca se conecta a ningun control de la interfaz — solo se puede activar via `SettingsContext`, no hay forma de encenderlo desde la app. Conclusion: ningun rastro, ni los viejos ni los nuevos, se genero jamas durante las pruebas del usuario.
+
+**Ejecucion:**
+- `src/components/EpubReader.tsx`: se agregaron rastros en los puntos clave para diagnosticar el patron reportado: al leer la ubicacion guardada al abrir el libro; en cada tap que oculta o muestra los controles (para detectar si un toque destinado a pasar de pagina termina interpretado como mostrar/ocultar el encabezado); en `goPrev`/`goNext` (tanto cuando se ejecutan como cuando quedan bloqueados); en la supresion de un `relocated` durante la ventana de asentamiento; en cada resize real de la rendicion; y en el guardado tras una navegacion explicita.
+- `src/context/settings/useDevLiveTrace.ts`: `pushDevLiveTrace` ahora tambien imprime a `console.info`/`warn`/`error` (prefijo `[COTIDIE-TRACE]`) ademas de guardar en estado — es la unica forma real de ver estos rastros hoy (consola del navegador en modo dev, o `adb logcat` en el APK instalado).
+- `src/components/developer/DeveloperDashboard.tsx`: se agrego el interruptor "Rastro en vivo (consola/logcat)" que faltaba (`devLiveTraceEnabled`/`setDevLiveTraceEnabled`), junto al de "Notificación de prueba" que ya existia con el mismo patron (`SwitchRow`).
+
+**Validacion:**
+- `npx tsc --noEmit` OK.
+- Pendiente: el usuario debe activar el interruptor nuevo, reproducir sus pasos exactos (entrar, avanzar 4, salir, volver a entrar), y compartir lo que aparezca en la consola/logcat filtrando por `COTIDIE-TRACE` para poder diagnosticar con datos reales en vez de teoria.
+
+**Archivos Modificados:**
+- `src/components/EpubReader.tsx`
+- `src/context/settings/useDevLiveTrace.ts`
+- `src/components/developer/DeveloperDashboard.tsx`
+- `AGENTS.md`
+
+### [2026-07-22 20:10] 312. EpubReader: cuarta causa del progreso perdido (la restauracion inicial no tenia ventana de asentamiento)
+**Planificacion:**
+- El usuario reporto, tras la entrada #311, que al volver a entrar lo dejaba en la pagina anterior — el mismo patron especifico de antes, esta vez en el momento de restaurar al abrir el libro.
+- Se releyo `load()` comparando el tratamiento de la restauracion inicial contra el de un resize/cambio de tamano de fuente, y aparecio una asimetria: el resize y el cambio de tamano de fuente SI le dan a `isRestoringLocationRef` una ventana de asentamiento antes de volver a confiar en los eventos `relocated` (via `scheduleRestoreRelease`). La restauracion inicial, en cambio, ponia `isRestoringLocationRef.current = false` de inmediato apenas terminaba el `await rendition.display(...)`, sin ninguna ventana. Si epub.js todavia emitia un `relocated` tardio mientras terminaba de asentar el primer render del libro recien abierto, ese evento pasaba el filtro y sobrescribia en silencio la posicion recien restaurada (correcta) con una intermedia (incorrecta, una pagina antes).
+
+**Ejecucion:**
+- Se quito el `isRestoringLocationRef.current = false;` inmediato tras la restauracion inicial. Ahora, despues de persistir explicitamente la posicion restaurada (eso no cambia), se vuelve a poner `isRestoringLocationRef.current = true` y se llama a `scheduleRestoreRelease(400)` — la misma ventana de asentamiento que ya protegia al resize y al cambio de tamano de fuente, ahora tambien protege la restauracion inicial.
+- Una navegacion real del usuario durante esa ventana (tocar para pasar de pagina) sigue teniendo prioridad: `prepareForReaderNavigation()` ya limpiaba `isRestoringLocationRef`/el timer antes de cualquier `goPrev`/`goNext`/`displayAndPersist`, sin cambios ahi.
+
+**Validacion:**
+- `npx tsc --noEmit` OK.
+- No se pudo probar de punta a punta en este entorno (misma limitacion de renderizado de epub.js ya documentada).
+
+**Archivos Modificados:**
+- `src/components/EpubReader.tsx`
+- `AGENTS.md`
+
+### [2026-07-22 20:05] 311. EpubReader: tercera causa del progreso perdido (preferencia de dato viejo sobre el vivo al salir)
+**Planificacion:**
+- El usuario reporto que el guardado de progreso volvio a fallar. Se releyo el codigo con la mecanica de supresion agregada en la entrada #308/309 en mente (en vez de suponer algo nuevo desde cero).
+- Causa encontrada: `onRelocated` solo actualiza `stableLocationRef` cuando `!isRestoringLocationRef.current`. Un resize (rotacion, teclado en pantalla, ventana asentandose) deja `isRestoringLocationRef` en `true` hasta 1.5s (o hasta el tope de 5s si llegan varios seguidos). Si el usuario sigue leyendo durante esa ventana y sale del lector, `stableLocationRef` queda con la posicion de *antes* del resize — pero tanto `persistCurrentLocation` (usado en pagehide/visibilitychange) como el cleanup de salida preferian `stableLocationRef` por sobre una consulta en vivo (`getRenditionLocation`), guardando esa posicion vieja en vez de la real.
+
+**Ejecucion:**
+- Se invirtio el orden de preferencia en los dos unicos lugares donde importa (`persistCurrentLocation` y el cleanup de desmontaje del efecto de carga): ahora prefieren la consulta en vivo (`getRenditionLocation`) y solo caen a `stableLocationRef` si esa consulta no devuelve nada (rendition ya destruida). En ambos casos es el "ultimo momento", sin otra oportunidad de corregir, asi que la posicion real siempre gana cuando esta disponible.
+- Se dejo sin tocar el unico otro lugar que usa `stableLocationRef` primero (`refreshRenditionLayout`, para decidir a que CFI anclar un resize) — ese es un caso distinto (elegir ancla, no persistir un valor final) y no forma parte de este bug.
+
+**Validacion:**
+- `npx tsc --noEmit` OK.
+- No se pudo probar de punta a punta en este entorno (misma limitacion de renderizado de epub.js ya documentada).
+
+**Archivos Modificados:**
+- `src/components/EpubReader.tsx`
+- `AGENTS.md`
+
+### [2026-07-22 19:52] 310. EpubReader: la barra de seleccion se cierra sola al deseleccionar el texto
+**Planificacion:**
+- El usuario reporto: al seleccionar una palabra por error, la barra para guardar subrayado/nota queda abierta hasta que se presiona "Cancelar" a mano, incluso si ya deselecciono el texto tocando en otro lado.
+
+**Ejecucion:**
+- Se agrego un listener de `selectionchange` en el `document` del contenido del EPUB (mismo lugar donde ya se registra el listener de `click` para mostrar/ocultar controles, dentro de `rendition.hooks.content.register`, con la misma guarda anti-doble-registro).
+- Cuando la seleccion queda vacia, se limpian `pendingSelectionCfi`/`pendingSelectionText`/`highlightNoteDraft` (lo mismo que ya hacia el boton "Cancelar"), ocultando la barra automaticamente.
+- **Salvaguarda**: si el usuario ya empezo a escribir una nota o una etiqueta de marcador, no se cierra sola — se agregaron `highlightNoteDraftRef`/`bookmarkLabelRef` (sincronizados con el estado via un efecto chico cada uno) para poder leer el valor mas reciente desde dentro del listener sin tener que re-registrar el listener en cada tecla. Esto evita que mover el foco hacia el campo de nota (que podria deseleccionar el texto del iframe como efecto secundario) borre lo que el usuario ya escribio.
+
+**Validacion:**
+- `npx tsc --noEmit` OK.
+- No se pudo probar de punta a punta en este entorno (misma limitacion de renderizado de epub.js ya documentada).
+
+**Archivos Modificados:**
+- `src/components/EpubReader.tsx`
+- `AGENTS.md`
+
+### [2026-07-22 19:42] 309. EpubReader: tope maximo de supresion + debounce de resize (afinamiento sobre el fix del usuario)
+**Planificacion:**
+- El usuario reescribio buena parte de la logica de restauracion de posicion (entradas #306-308 como base): agrego `endCfi` (ancla al final de la pagina visible en vez del inicio, evitando el redondeo de epub.js hacia la pagina anterior en el limite), un `isRestoringLocationRef` con temporizador para no persistir relocaciones causadas por una restauracion/resize, dimensiones reales en pixeles al crear la rendicion, y `resizeOnOrientationChange: false`. Confirmo que funciono bien.
+- Se verifico contra el codigo fuente real de epub.js instalado (`node_modules/epubjs/src/rendition.js`, v0.3.93): `resize(width, height, epubcfi)` efectivamente reenvia ese tercer argumento hasta `onResized`, que hace `this.display(epubcfi || this.location.start.cfi)` — confirma que el mecanismo del usuario usa la API tal como esta disenada, y que la causa raiz original era el comportamiento *por defecto* de epub.js (usar `location.start.cfi`, ambiguo en un limite de pagina) cuando no se le pasa ancla.
+- El usuario pidio dos afinamientos puntuales tras aprobar la idea en conversacion: (1) un tope maximo para que una rafaga de resizes seguidos no mantenga `isRestoringLocationRef` en `true` indefinidamente (cada uno reiniciaba su propio timer); (2) debounce del resize real para no repaginar en cada evento de `ResizeObserver`/`resize` durante un arrastre continuo o una animacion de rotacion.
+- Se discutio ademas la idea del usuario de anclar al *centro* de la pagina en vez de al inicio/fin (evita la ambiguedad de raiz en vez de solo cambiar de borde) — valida en teoria, pero requiere calcular el CFI a mano (via `caretRangeFromPoint` + `cfiFromElement`, no lo entrega epub.js gratis como `start`/`end`). Se decidio no implementarla ahora: `endCfi` ya funciono en la prueba del usuario, y no hay evidencia de que haga falta la complejidad extra. Queda anotada como proximo paso si reaparece algun salto.
+
+**Ejecucion:**
+- `src/lib/epub-reader/constants.ts`: nuevas constantes `READER_RESIZE_DEBOUNCE_MS` (120ms) y `READER_MAX_RESTORE_SUPPRESSION_MS` (5000ms).
+- `src/components/EpubReader.tsx`: nuevo helper `scheduleRestoreRelease(delayMs)` que centraliza los 3 lugares que reprograman el temporizador de liberacion de `isRestoringLocationRef` (el caso de limite en `onRelocated`, el resize normal, el cambio de tamano de fuente) — ahora todos calculan el delay efectivo con tope respecto a `restoringSinceRef` (marca de cuando empezo a restaurar por primera vez, no se reinicia en cada resize individual).
+- Nuevo `scheduleRenditionResize()`: envuelve `refreshRenditionLayout` con un debounce de `READER_RESIZE_DEBOUNCE_MS`; el listener de `resize` de la ventana y el `ResizeObserver` ahora llaman a este wrapper en vez de ejecutar el resize real en cada evento.
+- `prepareForReaderNavigation()` (se llama antes de cualquier cambio de pagina real) tambien limpia `restoringSinceRef`, y ambos refs nuevos se resetean en el efecto de cambio de archivo y se limpian en el cleanup de desmontaje, igual que los timers existentes.
+
+**Validacion:**
+- `npx tsc --noEmit` OK.
+- No se volvio a probar de punta a punta en este entorno (misma limitacion de renderizado de epub.js ya documentada). El usuario confirmo que la base (entrada #308) ya funcionaba bien antes de este afinamiento adicional.
+
+**Archivos Modificados:**
+- `src/lib/epub-reader/constants.ts`
+- `src/components/EpubReader.tsx`
+- `AGENTS.md`
+
+### [2026-07-22 17:01] 308. EpubReader: se revierte el "redisplay en cada resize" (probable causa del retroceso de 1 pagina)
+**Planificacion:**
+- El usuario probo la entrada #307 y reporto un sintoma nuevo y muy especifico: retrocede exactamente una pagina cada vez, incluso saltando directo a una pagina (sin pasar por la anterior). Eso descarta las hipotesis anteriores (perdida de posicion generica) y apunta a algo deterministico.
+- Hipotesis: el arreglo de la entrada #307 (capturar la ubicacion actual y volver a hacer `rendition.display(cfi)` en *cada* llamada a `refreshRenditionLayout`, incluida cada vez que el `ResizeObserver`/el listener de `resize` disparaban) probablemente **causo** este retroceso: cuando un CFI cae justo en el limite entre dos paginas, epub.js puede paginarlo hacia la pagina anterior al recalcular. Como el mecanismo nuevo volvia a llamar `display()` con ese mismo CFI en cada resize (y puede haber varios seguidos al montar, ya que `ResizeObserver.observe()` dispara un primer callback inmediato por spec), cada llamada adicional podia ir corriendo la posicion una pagina hacia atras.
+
+**Ejecucion:**
+- Se revirtio `refreshRenditionLayout` a su forma simple (solo `rendition.resize(width, height)`, sin capturar ni volver a mostrar el CFI) — ya no hay redisplay repetido que pueda ir arrastrando la posicion hacia atras.
+- En su lugar, se ataca directamente la ventana de tiempo problematica: un nuevo ref `hasDisplayedOnceRef` arranca en `false` en cada montaje/cambio de archivo, se pone en `true` justo despues de que `load()` termina de mostrar la ubicacion guardada por primera vez, y `refreshRenditionLayout` ahora ignora cualquier resize mientras siga en `false`. Asi, ningun resize (incluido el disparo inicial del `ResizeObserver`, o el posible asentamiento de `100dvh`/`env(safe-area-inset-*)` justo despues de montar) puede interferir con la restauracion inicial; una vez que el libro ya mostro la pagina guardada, los resizes genuinos posteriores (rotacion, teclado en pantalla, etc.) se comportan exactamente igual que siempre lo hicieron (nunca se habia reportado un bug ahi).
+
+**Validacion:**
+- `npx tsc --noEmit` OK.
+- Sigue sin poder probarse de punta a punta en este entorno (misma limitacion de renderizado de epub.js documentada en la entrada #306). Pendiente de confirmacion del usuario.
+
+**Archivos Modificados:**
+- `src/components/EpubReader.tsx`
+- `AGENTS.md`
+
+### [2026-07-22 16:53] 307. EpubReader: segunda causa del progreso perdido (resize tras el montaje)
+**Planificacion:**
+- El usuario probo la entrada #306 en su propio navegador (no en el sandbox de pruebas) y confirmo que el progreso del Nuevo Testamento seguia sin restaurarse bien al volver a entrar. El arreglo anterior (persistir la ubicacion real en el cleanup del efecto de carga, antes de destruir la rendition) sigue siendo correcto y necesario, pero no era la unica causa.
+- Segunda hipotesis, mas probable: el contenedor del lector ahora siempre usa `100dvh` + `env(safe-area-inset-*)` (parte del rediseno de la entrada #306). Estas unidades pueden asentarse a su valor final un instante despues del primer render. Si eso dispara un resize justo despues de que `load()` restaura el CFI guardado, y epub.js no vuelve a mostrar exactamente esa misma posicion tras recalcular la paginacion para el nuevo tamano, el resultado visual es identico a "no me dejo donde estaba" aunque el CFI guardado en `localStorage` sea correcto.
+
+**Ejecucion:**
+- `refreshRenditionLayout` (llamada por el listener de `resize` de la ventana, el `ResizeObserver` del contenedor, y el efecto de cambio de tamano de fuente) ahora captura la ubicacion actual (`getRenditionLocation`) *antes* de `rendition.resize(...)`, y vuelve a mostrarla (`rendition.display(...)`) inmediatamente despues. Antes solo llamaba a `resize()` y confiaba en que epub.js mantuviera la posicion por su cuenta — ya no se confia en eso para ningun resize, no solo para el que pasaba al activar/desactivar pantalla completa (ese caso especifico ya se habia eliminado en la entrada #306 al quitar el doble layout).
+- Se agrego un `pushDevLiveTrace` en el punto donde se persiste la ubicacion al salir (mismo patron que ya existia para "Ubicacion guardada" en cada `relocated`), para que el usuario pueda confirmar desde el Panel de Desarrollador si el guardado al salir esta ocurriendo y con que CFI, en caso de que el problema persista y haga falta seguir diagnosticando.
+
+**Validacion:**
+- `npx tsc --noEmit` OK.
+- No se pudo volver a probar de punta a punta en el navegador de este entorno (la limitacion de renderizado de epub.js dentro del iframe, ya documentada en la entrada #306, sigue sin permitir que el libro termine de cargar visualmente aqui). Se le pidio al usuario que vuelva a probar en su propio navegador/APK.
+
+**Archivos Modificados:**
+- `src/components/EpubReader.tsx`
+- `AGENTS.md`
+
+### [2026-07-22 16:40] 306. Fix lector EPUB (progreso + salto en pantalla completa), notificaciones exactas (setAlarmClock), limpieza
+**Planificacion:**
+- Pedido del usuario, fuera del refactor de archivos grandes: (1) el progreso de lectura en `EpubReader` no se guarda bien al salir y se corre al activar/desactivar pantalla completa, con pedido explicito de rediseno (solo modo pantalla completa, controles en un encabezado que se oculta/muestra al tocar, sin boton dedicado); (2) las notificaciones no llegan a la hora exacta; (3) borrar codigo muerto que aparezca. Se investigo el codigo real antes de tocar nada (ver plan aprobado) y se pidio confirmacion al usuario sobre el trade-off de `setAlarmClock` (icono de alarma persistente) antes de aplicarlo.
+
+**Ejecucion:**
+- **`src/components/EpubReader.tsx` (rediseno completo)**: se elimino el doble layout (`isReaderFullscreen` chico/grande) — el lector ahora siempre usa el layout de pantalla completa (`fixed inset-0`, 100dvh, safe-area, portales de system-bar). El encabezado (volver, buscar, tamano de texto, panel) paso a ser un overlay `absolute` que no cambia el tamano del contenedor de lectura; se muestra/oculta con `showControls`, controlado por el mismo gesto de toque que antes activaba/desactivaba pantalla completa. Se borro el boton dedicado "Pantalla completa" (`Maximize2`).
+  - **Fix de raiz del salto de pagina**: al eliminar el doble layout, el contenedor de epub.js deja de cambiar de tamano en pixeles al mostrar/ocultar el encabezado, asi que epub.js ya no tiene que re-paginar — se borro por completo el mecanismo `pendingLayoutLocationRef` + el efecto de "restaurar layout tras fullscreen" que intentaba compensar ese resize.
+  - **Fix de raiz del progreso perdido al salir**: el efecto que carga el libro ahora persiste la ubicacion real (leida de la variable local `activeRendition`, no del ref) en su propio cleanup, antes de destruir la `rendition` — ya no depende del orden de cleanup entre efectos distintos (React corre los cleanups en el mismo orden en que los efectos fueron declarados, no al reves; antes, el efecto de carga se limpiaba primero y dejaba `renditionRef.current` en `null` antes de que el efecto de `pagehide`/`visibilitychange` intentara leer la ubicacion).
+  - Se agrego `onClose?: () => void` a `EpubReaderProps`, siguiendo el mismo patron que ya usan `RosaryImmersive`/`ViaCrucisImmersive`/`ExpositionImmersive` (componentes de pantalla completa con su propio boton de cierre).
+  - `src/components/main/MainApp.tsx`: `<EpubReader onClose={handleBack} />` en la vista de Nuevo Testamento.
+  - `src/components/PersonalEpubLibrary.tsx`: se simplifico — su propio envoltorio con header (Volver/titulo/renombrar) ya no hace falta (el renombrar ya existia tambien desde la lista de la biblioteca, confirmado antes de quitarlo); ahora pasa `onClose` directo a `EpubReader`.
+  - `src/components/epub-reader/ReaderSelectionToolbar.tsx`: se actualizo para el nuevo diseno (ya no recibe `isReaderFullscreen`; el input de "Guardar marcador" ahora se gatilla con `showBookmarkInput` en vez de "no fullscreen").
+- **`scripts/patch-local-notifications.js` (notificaciones exactas)**: el metodo `setExactIfPossible` que el parche inyecta en `LocalNotificationManager.java` ahora usa `AlarmManager.setAlarmClock(...)` en vez de `setExactAndAllowWhileIdle`/`setExact` — es la API mas exacta que ofrece Android (usada por apps de alarma), a cambio de un icono de alarma persistente en la barra de estado mientras haya una notificacion pendiente (aceptado explicitamente por el usuario). El `showIntent` (que abre la app al tocar el icono) se construye con el mismo patron ya usado en `buildIntent(...)` del mismo archivo. Se mantuvo intacta la verificacion de permiso `canScheduleExactAlarms()` (sigue siendo necesaria) y el "guardian de entrega temprana" ya existente en `TimedNotificationPublisher.java`. Marcador de version `v3` -> `v4` para que el postinstall reaplique el parche.
+- **`src/context/settings/useNotificationScheduling.ts`**: se quito `theme` del arreglo de dependencias del efecto de sincronizacion — cada cambio de modo claro/oscuro cancelaba y reprogramaba *todas* las notificaciones solo para actualizar el color del icono; innecesario.
+- **Codigo muerto**: se borro `src/components/main/renderContent.tsx` (ya identificado en una entrada anterior como no usado, confirmado de nuevo). Se re-confirmo que no quedan restos de Genkit en el repo.
+
+**Validacion:**
+- `npx tsc --noEmit` limpio despues de cada cambio.
+- El script de parche nativo se corrio dos veces contra el `node_modules` real: la primera aplico el reemplazo `v3` -> `v4` sin error de patron; la segunda confirmo que es idempotente (no vuelve a tocar nada). Se reviso a mano el Java resultante.
+- Prueba en navegador con servidor de desarrollo real: el encabezado nuevo (con boton "Volver", buscar, tamano de texto, panel) renderiza correctamente sin el boton de pantalla completa; el boton "Volver" del propio lector navega correctamente hacia atras (confirma el cableado de `onClose`); el panel de lectura (indice del Nuevo Testamento) sigue funcionando; cero errores de consola en todo momento.
+- **Limitacion honesta**: no se pudo confirmar visualmente que epub.js termine de renderizar el contenido paginado dentro de este navegador de pruebas en sandbox (se queda en "Cargando EPUB..." incluso con una recarga completa de pagina) — el mismo comportamiento parcial (el indice de navegacion carga bien, pero el render final no) ya ocurria en la sesion anterior *antes* de este cambio, con el diseno viejo. Todo apunta a una restriccion propia de este entorno de automatizacion con el iframe que usa epub.js para renderizar, no a algo introducido por este cambio — pero no se pudo verificar el guardado de progreso ni la ausencia de salto de pagina de forma visual/interactiva de punta a punta. Se le informara al usuario para que lo confirme en el APK real.
+
+**Archivos Modificados:**
+- `src/components/EpubReader.tsx`
+- `src/components/epub-reader/ReaderSelectionToolbar.tsx`
+- `src/lib/epub-reader/types.ts`
+- `src/components/main/MainApp.tsx`
+- `src/components/PersonalEpubLibrary.tsx`
+- `scripts/patch-local-notifications.js`
+- `src/context/settings/useNotificationScheduling.ts`
+- `src/components/main/renderContent.tsx` (eliminado)
+- `.claude/launch.json` (nuevo, de la entrada anterior)
+- `AGENTS.md`
+
+### [2026-07-22 15:33] 302. MainApp.tsx: extraccion de helpers y dialogos
+**Planificacion:**
+- Cuarto archivo del refactor mayor aprobado por el usuario. `src/components/main/MainApp.tsx` (1997 lineas): mover lo puro (helpers, datos) y lo autocontenido (dialogos con su propio estado open/onOpenChange) a archivos nuevos; dejar intactos `renderContent()`/`renderCategory()`, `handleBack` y los handlers con muchos refs por lo entrelazados que estan (tal como preveia el plan aprobado).
+
+**Ejecucion:**
+- `src/components/main/spiritualAudio.ts` (nuevo): tipos, constantes y funciones de storage de la biblioteca de audios espirituales.
+- `src/components/main/language-mode.ts` (nuevo): `normalizeLanguageKey`, `getPrayerLanguageModes`, `languageModeLabel`.
+- `src/components/main/dialogs/` (nuevo, 6 componentes): `TimerFinishedDialog`, `ErrorReportDialog`, `LettersInfoDialog`, `AudioRenameDialog`, `AudioDeleteDialog`, `PrayerDeleteDialog` — cada uno recibe su estado y handlers por props; la logica de cada handler se quedo igual, solo se movio el JSX.
+- **Aviso, sin tocar**: `src/components/main/renderContent.tsx` sigue siendo un archivo muerto (no importado en ningun lado, logica desactualizada) — se le informo al usuario, no se modifico como parte de este refactor.
+
+**Validacion:**
+- `npx tsc --noEmit` OK (un error de tipos menor en `AudioRenameDialog.tsx` — un ref tipado como `RefObject` en vez de `MutableRefObject` — detectado y corregido en el momento por el propio compilador).
+- `MainApp.tsx` paso de 1997 a 1725 lineas.
+
+**Archivos Modificados:**
+- `src/components/main/MainApp.tsx`
+- `src/components/main/spiritualAudio.ts` (nuevo)
+- `src/components/main/language-mode.ts` (nuevo)
+- `src/components/main/dialogs/TimerFinishedDialog.tsx` (nuevo)
+- `src/components/main/dialogs/ErrorReportDialog.tsx` (nuevo)
+- `src/components/main/dialogs/LettersInfoDialog.tsx` (nuevo)
+- `src/components/main/dialogs/AudioRenameDialog.tsx` (nuevo)
+- `src/components/main/dialogs/AudioDeleteDialog.tsx` (nuevo)
+- `src/components/main/dialogs/PrayerDeleteDialog.tsx` (nuevo)
+- `AGENTS.md`
+
+### [2026-07-22 15:26] 301. SettingsContext.tsx: useHomeBackgroundRotation + decision de detener la extraccion de hooks aqui
+**Planificacion:**
+- Extraer el ultimo hook de bajo riesgo que quedaba segun el plan (`useHomeBackgroundRotation`), y evaluar los dos restantes (`usePlanDeVidaTracker`, `useBackupAndImport`) leyendo su codigo real antes de tocarlos.
+
+**Ejecucion:**
+- `src/context/settings/useHomeBackgroundRotation.ts` (nuevo): junta `allHomeBackgrounds` (memo), el efecto que fija `--home-bg-image` en `documentElement` y lo persiste en `localStorage`, `activeThemeColors` (memo) y el efecto de rotacion diaria de fondo a las 00:00. Los 4 pedazos eran mutuamente dependientes entre si (comparten `allHomeBackgrounds`) pero no dependian de nada mas del Provider, asi que el hook completo devuelve `{ allHomeBackgrounds, activeThemeColors }`.
+- **Decision de alcance** (leyendo el codigo real de `togglePlanDeVidaItem`/`incrementStat` antes de decidir, tal como se le prometio al usuario): `usePlanDeVidaTracker` y `useBackupAndImport` NO se extrajeron. Motivo concreto encontrado al leer:
+  - `togglePlanDeVidaItem` llama a `incrementStat` (linea ~1470), e `incrementStat`/`incrementGlobalStat` a su vez llaman a `togglePlanDeVidaItem` (lineas ~1959/1987) y usan `getRootPlanDeVidaId`/`getPastoralDayKey`. Es una dependencia circular por closure entre "Plan de Vida" y "stats" que solo funciona porque ambas viven en el mismo cuerpo de `SettingsProvider` y se invocan despues del render, no durante. Separarlas en dos hooks distintos obligaria a mover tambien `incrementStat`/`incrementGlobalStat` (que el plan no contemplaba tocar) o rompe la circularidad con un cambio de comportamiento real, no un simple traslado de codigo.
+  - `backupSnapshot`/`applyBackupSnapshot` (para `useBackupAndImport`) tocan practicamente los ~60 `useState` del Provider a la vez (el propio agente de exploracion ya lo habia marcado como "toca todo a la vez"); extraerlos no reduce el acoplamiento real, solo lo cambiaria de forma, con alto riesgo de olvidar una dependencia en el traspaso.
+  - Ambos casos caen exactamente en la categoria que el plan aprobado ya preveia dejar intacta ("no es necesario para lograr una reduccion de tamano significativa, y si conlleva riesgo real de cambiar comportamiento"). Se prefirio no forzarlo.
+
+**Validacion:**
+- `npx tsc --noEmit` OK tras extraer `useHomeBackgroundRotation`.
+- `SettingsContext.tsx` paso de 3830 a 2214 lineas (42% de reduccion) solo con las partes seguras: `types.ts`, `defaults.ts`, `normalize.ts`, `useDevLiveTrace`, `useNotificationScheduling`, `useSaintOfTheDay`, `useHomeBackgroundRotation`.
+- El resto del archivo (CRUD de oraciones/citas/planes personalizados, Plan de Vida + stats, backup/import, los ~60 `useState`/`useRef`, y el armado final del `value` del contexto) queda como un solo bloque, intencionalmente sin dividir.
+
+**Archivos Modificados:**
+- `src/context/SettingsContext.tsx`
+- `src/context/settings/useHomeBackgroundRotation.ts` (nuevo)
+- `AGENTS.md`
+
+### [2026-07-22 15:24] 300. SettingsContext.tsx: extraccion de useSaintOfTheDay
+**Planificacion:**
+- Continuacion del refactor. Unir en un solo hook los 3 efectos relacionados con el santo del dia que estaban dispersos en el archivo: el refresco del widget nativo de Android, el temporizador de medianoche/cambio de visibilidad, y el calculo principal (fiestas movibles vs. santos fijos, imagenes, "peek" de santo fijo oculto).
+
+**Ejecucion:**
+- `src/context/settings/useSaintOfTheDay.ts` (nuevo): junta los 3 efectos, copiados caracter por caracter.
+- `saintRefreshClock` (estado interno, solo usado por estos efectos) se movio a vivir DENTRO del hook via su propio `useState`, ya que no lo usa ningun otro lugar del Provider.
+- El resto de los campos (`saintOfTheDay`, `saintOfTheDayImage`, `saintOfTheDayPrayerId`, `overriddenFixedSaint`, `overriddenFixedSaintImage`, `lastSaintUpdate`) siguen declarados en el Provider porque tambien los usan `backupSnapshot`, `applyBackupSnapshot` y el `value` final del contexto — el hook recibe tanto el valor como el setter de cada uno por parametro.
+- `saintsData`/`saintsDataRaw` (constante de modulo) se removieron de `SettingsContext.tsx` por quedar sin uso ahi; el hook nuevo tiene su propia copia.
+
+**Validacion:**
+- `npx tsc --noEmit` OK.
+- `SettingsContext.tsx` paso de 2513 a 2340 lineas.
+
+**Archivos Modificados:**
+- `src/context/SettingsContext.tsx`
+- `src/context/settings/useSaintOfTheDay.ts` (nuevo)
+- `AGENTS.md`
+
+### [2026-07-22 15:20] 299. SettingsContext.tsx: extraccion de useDevLiveTrace y useNotificationScheduling
+**Planificacion:**
+- Continuacion del refactor de `SettingsContext.tsx`: extraer, uno a la vez con verificacion `tsc` despues de cada uno, los hooks internos identificados como seguros de mover (misma logica, se siguen llamando desde dentro de `SettingsProvider`).
+- Se prioriza primero el hook mas pequeño y autocontenido (`useDevLiveTrace`) para validar el patron, y despues el bloque mas grande y riesgoso de todo el archivo: el efecto de sincronizacion de notificaciones (~480 lineas, identificado por el agente de exploracion como "el bloque indivisible mas grande").
+
+**Ejecucion:**
+- `src/context/settings/useDevLiveTrace.ts` (nuevo): `pushDevLiveTrace`, `clearDevLiveTraceEvents` y el listener de `window.error`/`unhandledrejection`, movidos tal cual. `generateId` (usado para IDs de oraciones/citas/planes, no relacionado) se dejo en el Provider.
+- `src/context/settings/useNotificationScheduling.ts` (nuevo): `getReminderTitle`, `buildDefaultReminderMessage`, `ensureAndroidNotificationChannel` y el efecto completo de sincronizacion de notificaciones (recordatorios diarios, notificaciones fijas, fiestas movibles, recordatorio de cartas, notificacion de prueba dev), copiados caracter por caracter desde el archivo original.
+  - Se leyeron primero todas las variables libres que usa el efecto (estado, callbacks, refs) para pasarlas como parametros del hook sin omitir ninguna: `isLoaded`, `notificationsEnabled`, `dailyReminders`, `cartasReminderEnabled`, `cartasReminderAnchorAt`, `devTestNotificationEnabled`, `isDeveloperMode`, `notificationSyncVersion`, `theme`, `skipNotificationIfChecked`, `planDeVidaCalendar`, `allPrayers`, `getPrayerById`, `getRootPlanDeVidaId`, `exactAlarmSettingsRequestedRef`, `toast`.
+  - El arreglo de dependencias del `useEffect` se preservo exactamente igual al original (incluidas las variables que el efecto usa pero que el codigo original ya NO incluia en sus dependencias, como `skipNotificationIfChecked` o `planDeVidaCalendar` — no se "corrigio" nada, solo se movio).
+
+**Validacion:**
+- `npx tsc --noEmit` OK despues de cada uno de los dos hooks (dos verificaciones independientes).
+- `SettingsContext.tsx` paso de 3058 a 2513 lineas.
+
+**Archivos Modificados:**
+- `src/context/SettingsContext.tsx`
+- `src/context/settings/useDevLiveTrace.ts` (nuevo)
+- `src/context/settings/useNotificationScheduling.ts` (nuevo)
+- `AGENTS.md`
+
+### [2026-07-22 15:14] 298. SettingsContext.tsx: extraccion de tipos, defaults y normalizadores
+**Planificacion:**
+- Segundo paso del refactor mayor aprobado por el usuario. `src/context/SettingsContext.tsx` (3830 lineas) es el archivo mas grande y riesgoso del repo: un unico `SettingsProvider` con ~60 `useState`.
+- Paso de menor riesgo primero: mover solo lo puro (tipos, valores por defecto, funciones de normalizacion sin closures) a archivos nuevos, dejando el cuerpo del Provider (905-3824 original) completamente intacto.
+
+**Ejecucion:**
+- `src/context/settings/types.ts` (nuevo): todos los tipos/interfaces (`Theme`, `FontSize`, `NavMode`, `OverlayPosition(s)`, `DevTraceLevel`, `DevTraceEvent`, `DailyReminder`, `UserStats`, `StatIncrementOptions`, `ThemeColor`, `CustomThemeColors`, `CustomPlan`, `PredefinedPrayerOverrideData`, `ImportResult`, `Settings`, `PrayerLanguageMode`, `PrayerLanguageProfiles`).
+- `src/context/settings/defaults.ts` (nuevo): `defaultThemeColors`, `defaultHomeBackgroundId`, `defaultAlwaysShowPrayers`, `defaultOverlayPositions`, `defaultUserStats`, `FULL_BACKUP_KEYS`, `FORCED_DAILY_QUOTES`/`getForcedDailyQuote`.
+- `src/context/settings/normalize.ts` (nuevo): todas las funciones puras `normalizeX`, `applyPredefinedPrayerState`, `stableSort/stableSerialize`, `normalizeBackupState`, `normalizePartialImportPayload`, `pickSnapshotKeys`, `isCustomPlanPayload`, `isFullAppStatePayload`.
+- `SettingsContext.tsx` ahora importa todo lo anterior y re-exporta con `export type { ... }` los tipos que ya eran publicos (`PrayerLanguageMode`, `DevTraceLevel`, `DevTraceEvent`, `DailyReminder`, `UserStats`, `CustomPlan`) para no cambiar la superficie publica que consumen ~28 archivos del repo.
+- De paso se corrigio el import circular ya existente: `src/context/settings/stats-updates.ts` importaba `UserStats` desde `@/context/SettingsContext`; ahora importa directo desde `@/context/settings/types`.
+- El cuerpo de `SettingsProvider` no se toco linea por linea; solo se removieron las declaraciones que ya quedaron en los archivos nuevos.
+
+**Validacion:**
+- `npx tsc --noEmit` OK antes y despues de corregir el import circular de `stats-updates.ts`.
+- `SettingsContext.tsx` paso de 3830 a 3058 lineas.
+
+**Archivos Modificados:**
+- `src/context/SettingsContext.tsx`
+- `src/context/settings/types.ts` (nuevo)
+- `src/context/settings/defaults.ts` (nuevo)
+- `src/context/settings/normalize.ts` (nuevo)
+- `src/context/settings/stats-updates.ts`
+- `AGENTS.md`
+
+### [2026-07-22 15:01] 297. Division de camino.ts en archivos mas chicos
+**Planificacion:**
+- Primer paso de un refactor mayor (aprobado por el usuario en un plan) para reducir el tamano de los 5 archivos mas grandes del repo, sin cambiar comportamiento, antes de abordar bugs pendientes.
+- `src/lib/prayers/plan-de-vida/camino.ts` (2534 lineas) es 100% texto estatico (el libro "Camino" de san Josemaria Escriva) sin ninguna logica, unico importador `src/lib/data.tsx` — el mas simple y de menor riesgo, elegido para validar el proceso primero.
+
+**Ejecucion:**
+- Se escribio un script puntual en Node (no se leyo el archivo completo por el asistente, para evitar gasto innecesario de tokens en texto estatico) que:
+  1. Extrae el string exacto del template literal `content`.
+  2. Lo parte en 7 archivos agrupando los 46 capitulos (`camino-content/part-1.ts` .. `part-7.ts`), cada uno exportando una constante de texto.
+  3. Reescribe `camino.ts` para importar las 7 partes y reconstruir `content` por concatenacion.
+- `camino.ts` paso de 2534 a 16 lineas.
+
+**Validacion:**
+- Verificacion en memoria: el string reconstruido a partir de las 7 partes es identico caracter por caracter al original antes de escribir ningun archivo.
+- Verificacion post-escritura: se releyeron los 7 archivos ya escritos en disco y se volvio a comparar la concatenacion contra el original — identica.
+- `npx tsc --noEmit` OK, sin errores.
+
+**Archivos Modificados:**
+- `src/lib/prayers/plan-de-vida/camino.ts`
+- `src/lib/prayers/plan-de-vida/camino-content/part-1.ts` (nuevo)
+- `src/lib/prayers/plan-de-vida/camino-content/part-2.ts` (nuevo)
+- `src/lib/prayers/plan-de-vida/camino-content/part-3.ts` (nuevo)
+- `src/lib/prayers/plan-de-vida/camino-content/part-4.ts` (nuevo)
+- `src/lib/prayers/plan-de-vida/camino-content/part-5.ts` (nuevo)
+- `src/lib/prayers/plan-de-vida/camino-content/part-6.ts` (nuevo)
+- `src/lib/prayers/plan-de-vida/camino-content/part-7.ts` (nuevo)
+- `AGENTS.md`
+
+### [2026-07-22 14:35] 296. Eliminacion completa de Genkit AI
+**Planificacion:**
+- Confirmar que Genkit no tuviera ningun uso real en la app antes de tocar nada (busqueda de imports de `src/ai/genkit.ts` y `src/ai/dev.ts` en todo `src`, y de variables `GEMINI_API_KEY`/`GOOGLE_GENAI` en `.env`, `.env.local` y `next.config.mjs`).
+- Retirar el paquete y su andamiaje de arranque (scaffold de Firebase Studio) sin afectar el resto de la app.
+
+**Ejecucion:**
+- **Confirmacion de uso**: ningun archivo de `src` importaba `src/ai/genkit.ts` ni `src/ai/dev.ts`; no habia `GEMINI_API_KEY` configurada en ningun `.env`; `next.config.mjs` no referenciaba Genkit.
+- **Carpeta eliminada**: `src/ai/` (`genkit.ts`, `dev.ts`).
+- **Dependencias removidas** via `npm uninstall`: `genkit`, `genkit-cli`, `@genkit-ai/google-genai`, `@genkit-ai/next` (limpio `package.json` y `package-lock.json`, elimino 507 paquetes transitivos de `node_modules`).
+- **Gitignore**: se quito la linea `.genkit/*` por quedar obsoleta.
+
+**Validacion:**
+- `npx tsc --noEmit` OK, sin errores tras la eliminacion.
+- `git status` confirmo solo los cambios esperados: `.gitignore`, `package.json`, `package-lock.json` modificados; `src/ai/dev.ts` y `src/ai/genkit.ts` eliminados.
+
+**Archivos Modificados:**
+- `.gitignore`
+- `package.json`
+- `package-lock.json`
+- `src/ai/dev.ts` (eliminado)
+- `src/ai/genkit.ts` (eliminado)
+- `AGENTS.md`
+
 ### [2026-07-21 23:27] 295. Comando para apagar Cotidie dev
 **Planificacion:**
 - Extender la funcion `apagar` del perfil de PowerShell con el comando solicitado.

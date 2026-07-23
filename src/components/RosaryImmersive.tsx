@@ -13,267 +13,23 @@ import { letanias as letaniasData } from '@/lib/prayers/plan-de-vida/santo-rosar
 import type { Prayer } from '@/lib/types';
 import ImmersivePrayerIndexOverlay, { type ImmersiveIndexItem, type ImmersiveIndexSection } from '@/components/immersive/ImmersivePrayerIndexOverlay';
 
-const PRAYERS_TEXT = {
-  padre_nuestro: `Padre nuestro, que estás en el cielo, santificado sea tu Nombre; venga a nosotros tu reino; hágase tu voluntad en la tierra como en el cielo. Danos hoy nuestro pan de cada día; perdona nuestras ofensas, como también nosotros perdonamos a los que nos ofenden; no nos dejes caer en la tentación, y líbranos del mal. Amén.`,
-  ave_maria: `Dios te salve, María, llena eres de gracia; el Señor es contigo; bendita Tú eres entre todas las mujeres, y bendito es el fruto de tu vientre, Jesús. Santa María, Madre de Dios, ruega por nosotros, pecadores, ahora y en la hora de nuestra muerte. Amén.`,
-  gloria: `Gloria al Padre, y al Hijo, y al Espíritu Santo. Como era en el principio, ahora y siempre, por los siglos de los siglos. Amén.`,
-  jaculatoria: `¡Oh Jesús mío! Perdona nuestros pecados, líbranos del fuego del infierno, lleva al cielo a todas las almas, especialmente a las más necesitadas de tu misericordia.`,
-  start: `Ofrecemos este misterio por...`,
-};
-
-type Jaculatoria = { v: string; r: string };
-
-const DEFAULT_JACULATORIAS: Jaculatoria[] = [
-  { v: 'Sagrado Corazón de Jesús', r: 'En vos confío' },
-  { v: 'Dulce e inmaculado Corazón de María', r: 'Sé la salvación nuestra' },
-  { v: 'San José y todos los santos', r: 'Rueguen por nosotros' },
-  { v: 'Santa María, Esperanza nuestra, Asiento de la Sabiduría', r: 'Ruega por nosotros' },
-];
-
-const ADORACION_SANTISIMO_TEXT_1 = `Bendito sea Jesús en el Santísimo Sacramento.
-
-${PRAYERS_TEXT.padre_nuestro}
-
-${PRAYERS_TEXT.ave_maria}
-
-${PRAYERS_TEXT.gloria}`;
-
-const ADORACION_SANTISIMO_TEXT_2 = `Bendito sea Jesús en el Santísimo Sacramento.
-
-${PRAYERS_TEXT.padre_nuestro}
-
-${PRAYERS_TEXT.ave_maria}
-
-${PRAYERS_TEXT.gloria}`;
-
-const ADORACION_SANTISIMO_TEXT_3 = `Bendito sea Jesús en el Santísimo Sacramento.
-
-${PRAYERS_TEXT.padre_nuestro}
-
-${PRAYERS_TEXT.ave_maria}
-
-${PRAYERS_TEXT.gloria}`;
-
-const ADORACION_SANTISIMO_TEXT_4 = 'Bendito sea Jesús en el Santísimo Sacramento.';
-
-const COMUNION_ESPIRITUAL_TEXT = `Yo quisiera, Señor, recibiros con aquella pureza, humildad y devoción con que os recibió vuestra Santísima Madre, con el espíritu y fervor de los santos.`;
-
-const SENAL_DE_LA_CRUZ_TEXT = `Por la señal † de la Santa Cruz, de nuestros † enemigos, líbranos, Señor, † Dios nuestro. En el nombre del Padre, y del Hijo, † y del Espíritu Santo. Amén.`;
-
-const ACTO_CONTRICION_TEXT = `Señor mío Jesucristo, Dios y hombre verdadero, Creador, Padre y Redentor mío; por ser Tú quien eres y porque te amo sobre todas las cosas, me pesa de todo corazón haberte ofendido. Propongo firmemente enmendarme y nunca más pecar; confesarme a su tiempo y cumplir la penitencia que me fuera impuesta.
-
-Te ofrezco, Señor, mi vida, obras y trabajos en satisfacción de mis pecados. Así como te lo suplico, así confío en tu bondad y misericordia infinitas, que me los perdonarás y me darás gracia para perseverar en tu santo servicio hasta el fin de mi vida.
-Amén.
-
-Abre + Señor mis labios.
-Y mi boca proclamará tus alabanzas.
-
-Ven + oh Dios, en mi ayuda.
-Apresúrate, Señor, a socorrerme.`;
-
-const SALVE_TEXT = `Dios te salve, Reina y Madre de misericordia, vida, dulzura y esperanza nuestra; Dios te salve. A Ti llamamos los desterrados hijos de Eva; a Ti suspiramos, gimiendo y llorando, en este valle de lágrimas. Ea, pues, Señora, abogada nuestra, vuelve a nosotros esos tus ojos misericordiosos; y después de este destierro muéstranos a Jesús, fruto bendito de tu vientre. ¡Oh clementísima, oh piadosa, oh dulce Virgen María! Ruega por nosotros, Santa Madre de Dios, para que seamos dignos de alcanzar las promesas de Nuestro Señor Jesucristo. Amén.`;
-
-const PRE_ROSARY_STEPS = [
-  { type: 'adoracion', label: 'Adoración', content: ADORACION_SANTISIMO_TEXT_1 },
-  { type: 'adoracion', label: 'Adoración', content: ADORACION_SANTISIMO_TEXT_2 },
-  { type: 'adoracion', label: 'Adoración', content: ADORACION_SANTISIMO_TEXT_3 },
-  { type: 'adoracion', label: 'Adoración', content: ADORACION_SANTISIMO_TEXT_4 },
-  { type: 'comunion', label: 'Comunión Espiritual', content: COMUNION_ESPIRITUAL_TEXT },
-  { type: 'senal_cruz', label: 'Señal de la Cruz', content: SENAL_DE_LA_CRUZ_TEXT },
-  { type: 'acto_contricion', label: 'Acto de contrición', content: ACTO_CONTRICION_TEXT },
-  { type: 'gloria', label: 'Gloria', content: PRAYERS_TEXT.gloria },
-];
-
-const renderRosaryText = (text: string) => {
-  const lines = text.split('\n');
-  return (
-    <div className="text-center space-y-1">
-      {lines.map((line, i) => {
-        if (line.trim().length === 0) {
-          return <div key={`blank-${i}`} className="h-3" />;
-        }
-        const parts = line.split(/(\*\*.*?\*\*|\*.*?\*|_.*?_)/g);
-        return (
-          <div key={`line-${i}`} className="min-h-[1.2rem]">
-            {parts.map((part, j) => {
-              if (part.startsWith('**') && part.endsWith('**')) {
-                return (
-                  <span key={`bold-${i}-${j}`} className="font-bold text-foreground">
-                    {part.slice(2, -2)}
-                  </span>
-                );
-              }
-              if (part.startsWith('*') && part.endsWith('*')) {
-                return (
-                  <span key={`soft-${i}-${j}`} className="font-semibold text-muted-foreground">
-                    {part.slice(1, -1)}
-                  </span>
-                );
-              }
-              if (part.startsWith('_') && part.endsWith('_')) {
-                return (
-                  <span key={`italic-${i}-${j}`} className="italic">
-                    {part.slice(1, -1)}
-                  </span>
-                );
-              }
-              return <span key={`text-${i}-${j}`}>{part}</span>;
-            })}
-          </div>
-        );
-      })}
-    </div>
-  );
-};
-
-const renderCenterIcon = (
-  isPreRosaryActive: boolean,
-  isPostRosaryActive: boolean,
-  currentPreStep: { type: string } | undefined,
-  currentPostStep: { type: string } | undefined,
-  currentStep: { type: string; index?: number } | undefined
-) => {
-  if (isPreRosaryActive) {
-    switch (currentPreStep?.type) {
-      case 'adoracion':
-        return <Crown className="h-20 w-20" />;
-      case 'senal_cruz':
-        return <Cross className="h-20 w-20" />;
-      case 'comunion':
-      case 'acto_contricion':
-      default:
-        return <Crown className="h-20 w-20" />;
-    }
-  }
-
-  if (isPostRosaryActive) {
-    switch (currentPostStep?.type) {
-      case 'letanias':
-        return <BookOpen className="h-20 w-20" />;
-      case 'salve':
-        return <Crown className="h-20 w-20" />;
-      case 'jaculatorias':
-      default:
-        return <Sparkles className="h-20 w-20" />;
-    }
-  }
-
-  switch (currentStep?.type) {
-    case 'ave_maria':
-      return <span>{`#${currentStep.index ?? ''}`}</span>;
-    case 'gloria':
-      return <span>†</span>;
-    case 'intro':
-      return <Crown className="h-20 w-20" />;
-    case 'reading':
-      return <BookOpen className="h-20 w-20" />;
-    case 'jaculatoria':
-      return <Sparkles className="h-20 w-20" />;
-    case 'padre_nuestro':
-      return <Cross className="h-20 w-20" />;
-    default:
-      return <span />;
-  }
-};
-
-type MysteryType = 'gozosos' | 'luminosos' | 'dolorosos' | 'gloriosos';
-
-const MYSTERY_COLORS: Record<MysteryType, string> = {
-  gozosos: 'from-amber-100 to-orange-100 dark:from-amber-950 dark:to-orange-950',
-  luminosos: 'from-yellow-100 to-amber-100 dark:from-yellow-950 dark:to-amber-950',
-  dolorosos: 'from-rose-100 to-red-100 dark:from-rose-950 dark:to-red-950',
-  gloriosos: 'from-sky-100 to-blue-100 dark:from-sky-950 dark:to-blue-950',
-};
-
-const MYSTERY_IMAGES: Record<MysteryType, string> = {
-  gozosos: '/images/nativity.jpeg',
-  luminosos: '/images/eucharist.jpeg',
-  dolorosos: '/images/crucifixion.jpeg',
-  gloriosos: '/images/resurrection.jpeg',
-};
-
-// Placeholder for user-defined or specific mystery images
-// Format: 'type-index' (e.g. 'gozoso-1') -> url
-const MYSTERY_SPECIFIC_IMAGES: Record<string, string> = {
-  // Misterios Gozosos
-  'gozoso-1': '/images/rosario/gozoso-1.jpg',
-  'gozoso-2': '/images/rosario/gozoso-2.jpg',
-  'gozoso-3': '/images/rosario/gozoso-3.jpg',
-  'gozoso-4': '/images/rosario/gozoso-4.jpg',
-  'gozoso-5': '/images/rosario/gozoso-5.jpg',
-  // Misterios Luminosos
-  'luminoso-1': '/images/rosario/luminoso-1.jpg',
-  'luminoso-2': '/images/rosario/luminoso-2.jpg',
-  'luminoso-3': '/images/rosario/luminoso-3.jpg',
-  'luminoso-4': '/images/rosario/luminoso-4.jpg',
-  'luminoso-5': '/images/rosario/luminoso-5.jpg',
-  // Misterios Dolorosos
-  'doloroso-1': '/images/rosario/doloroso-1.jpg',
-  'doloroso-2': '/images/rosario/doloroso-2.jpg',
-  'doloroso-3': '/images/rosario/doloroso-3.jpg',
-  'doloroso-4': '/images/rosario/doloroso-4.jpg',
-  'doloroso-5': '/images/rosario/doloroso-5.jpg',
-  // Misterios Gloriosos
-  'glorioso-1': '/images/rosario/glorioso-1.jpg',
-  'glorioso-2': '/images/rosario/glorioso-2.jpg',
-  'glorioso-3': '/images/rosario/glorioso-3.jpg',
-  'glorioso-4': '/images/rosario/glorioso-4.jpg',
-  'glorioso-5': '/images/rosario/glorioso-5.jpg',
-};
-
-const MYSTERY_NAMES: Record<MysteryType, string> = {
-  gozosos: 'Misterios Gozosos',
-  luminosos: 'Misterios Luminosos',
-  dolorosos: 'Misterios Dolorosos',
-  gloriosos: 'Misterios Gloriosos',
-};
-
-const FULL_MYSTERY_TITLES: Record<string, string> = {
-  'gozoso-1': 'La Encarnación del Hijo de Dios',
-  'gozoso-2': 'La Visitación de la Virgen María a su prima Santa Isabel',
-  'gozoso-3': 'El Nacimiento del Hijo de Dios en Belén',
-  'gozoso-4': 'La Presentación del Señor en el Templo',
-  'gozoso-5': 'El Niño Jesús perdido y hallado en el Templo',
-  'luminoso-1': 'El Bautismo del Señor en el Jordán',
-  'luminoso-2': 'La autorrevelación de Jesús en las bodas de Caná',
-  'luminoso-3': 'El Anuncio del Reino de Dios y la invitación a la conversión',
-  'luminoso-4': 'La Transfiguración del Señor',
-  'luminoso-5': 'La Institución de la Eucaristía',
-  'doloroso-1': 'La Oración de Jesús en el Huerto',
-  'doloroso-2': 'La Flagelación del Señor',
-  'doloroso-3': 'La Coronación de espinas',
-  'doloroso-4': 'Jesús con la Cruz a cuestas',
-  'doloroso-5': 'La Crucifixión y Muerte del Señor',
-  'glorioso-1': 'La Resurrección del Señor',
-  'glorioso-2': 'La Ascensión del Señor',
-  'glorioso-3': 'La Venida del Espíritu Santo',
-  'glorioso-4': 'La Asunción de la Virgen María',
-  'glorioso-5': 'La Coronación de la Virgen María',
-};
-
-const getMysteryByDay = (): MysteryType => {
-  const day = new Date().getDay();
-  switch (day) {
-    case 1: return 'gozosos'; // Lunes
-    case 2: return 'dolorosos'; // Martes
-    case 3: return 'gloriosos'; // Miércoles
-    case 4: return 'luminosos'; // Jueves
-    case 5: return 'dolorosos'; // Viernes
-    case 6: return 'gozosos'; // Sábado
-    case 0: return 'gloriosos'; // Domingo
-    default: return 'gozosos';
-  }
-};
-
-type ImmersiveRosaryProps = {
-  mysteryTitle?: string;
-  mysteryGroup?: string;
-  mysteryContent?: string;
-  onClose: (targetId?: string) => void;
-  onSwitchToMeditated?: () => void;
-};
-
-const JACULATORIAS_STORAGE_KEY = 'rosary_jaculatorias';
+import {
+  PRAYERS_TEXT,
+  DEFAULT_JACULATORIAS,
+  SALVE_TEXT,
+  PRE_ROSARY_STEPS,
+  MYSTERY_COLORS,
+  MYSTERY_IMAGES,
+  MYSTERY_SPECIFIC_IMAGES,
+  MYSTERY_NAMES,
+  FULL_MYSTERY_TITLES,
+  JACULATORIAS_STORAGE_KEY,
+} from '@/lib/rosary-immersive/content';
+import type { Jaculatoria, MysteryType, ImmersiveRosaryProps } from '@/lib/rosary-immersive/types';
+import { renderRosaryText, renderCenterIcon, getMysteryByDay } from '@/lib/rosary-immersive/helpers';
+import { RosarySelectionView } from '@/components/rosary-immersive/RosarySelectionView';
+import { IntentionsMenuOverlay } from '@/components/rosary-immersive/IntentionsMenuOverlay';
+import { JaculatoriasMenuOverlay } from '@/components/rosary-immersive/JaculatoriasMenuOverlay';
 
 export default function RosaryImmersive({
   onClose,
@@ -1003,67 +759,14 @@ export default function RosaryImmersive({
   // --- SELECTION VIEW ---
   if (mode === 'selection') {
     return (
-      <div className={cn(
-        "fixed inset-0 z-50 flex flex-col items-center justify-center p-6 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[max(1.5rem,env(safe-area-inset-left))] pr-[max(1.5rem,env(safe-area-inset-right))] bg-background/95 backdrop-blur-sm",
-        isDark ? "text-white" : "text-zinc-900"
-      )}>
-        <Button variant="ghost" size="icon" className="absolute top-4 left-4 mt-[env(safe-area-inset-top)]" onClick={() => onClose()}>
-          <X />
-        </Button>
-
-        <div className="absolute top-4 right-4 mt-[env(safe-area-inset-top)] flex gap-2">
-          {onSwitchToMeditated && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2"
-              onClick={onSwitchToMeditated}
-            >
-              <BookOpen className="size-4" />
-              Leer
-            </Button>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={() => startMystery(getMysteryByDay())}
-          >
-            <Calendar className="size-4" />
-            Día: {MYSTERY_NAMES[getMysteryByDay()].replace('Misterios ', '')}
-          </Button>
-        </div>
-
-        <h2 className="text-2xl font-bold mb-8">Selecciona los Misterios</h2>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-md">
-          {(['gozosos', 'luminosos', 'dolorosos', 'gloriosos'] as const).map((type) => (
-            <div key={type} className="flex flex-col gap-2">
-              <Button
-                variant={selectedMysteryType === type ? 'default' : 'outline'}
-                className={cn(
-                  "h-24 text-lg font-serif flex flex-col gap-1",
-                  selectedMysteryType === type && "ring-2 ring-offset-2"
-                )}
-                onClick={() => startMystery(type)}
-              >
-                <span>{MYSTERY_NAMES[type]}</span>
-              </Button>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-8 flex flex-col gap-3 items-center">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground hover:text-foreground"
-            onClick={handleJumpToLitanies}
-          >
-            Ir directamente a Letanías
-          </Button>
-        </div>
-      </div>
+      <RosarySelectionView
+        isDark={isDark}
+        onClose={onClose}
+        onSwitchToMeditated={onSwitchToMeditated}
+        selectedMysteryType={selectedMysteryType}
+        startMystery={startMystery}
+        handleJumpToLitanies={handleJumpToLitanies}
+      />
     );
   }
 
@@ -1227,114 +930,27 @@ export default function RosaryImmersive({
       />
 
       {/* Intentions Menu Overlay */}
-      <AnimatePresence>
-        {showIntentionsMenu && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="absolute top-16 left-4 right-4 bg-popover/95 backdrop-blur border border-border rounded-xl shadow-2xl p-4 z-50 max-w-sm mx-auto"
-          >
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="font-bold">Mis Intenciones</h3>
-              <Button variant="ghost" size="sm" onClick={() => setShowIntentionsMenu(false)}><X className="size-4" /></Button>
-            </div>
-
-            <div className="flex gap-2 mb-4">
-              <input
-                value={newIntention}
-                onChange={(e) => setNewIntention(e.target.value)}
-                placeholder="Nueva intención..."
-                className="flex-1 bg-background border rounded px-3 py-2 text-sm"
-                onKeyDown={(e) => e.key === 'Enter' && addIntention()}
-                name="rosary-new-intention"
-                aria-label="Nueva intención"
-              />
-              <Button size="sm" onClick={addIntention}><Plus className="size-4" /></Button>
-            </div>
-
-            <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
-              {intentions.map((int, i) => (
-                <div key={i} className="flex justify-between items-center text-sm bg-muted/50 p-2 rounded group">
-                  <span className="truncate flex-1 font-medium">{int}</span>
-                  <button onClick={() => removeIntention(i)} className="text-muted-foreground hover:text-destructive transition-colors"><Trash2 className="size-4" /></button>
-                </div>
-              ))}
-              {intentions.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">Agrega intenciones para ofrecerlas durante el rosario.</p>}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <IntentionsMenuOverlay
+        show={showIntentionsMenu}
+        onClose={() => setShowIntentionsMenu(false)}
+        intentions={intentions}
+        newIntention={newIntention}
+        setNewIntention={setNewIntention}
+        addIntention={addIntention}
+        removeIntention={removeIntention}
+      />
 
       {/* Jaculatorias Menu Overlay */}
-      <AnimatePresence>
-        {showJaculatoriasMenu && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="absolute top-16 left-4 right-4 bg-popover/95 backdrop-blur border border-border rounded-xl shadow-2xl p-4 z-50 max-w-md mx-auto"
-          >
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="font-bold">Jaculatorias</h3>
-              <Button variant="ghost" size="sm" onClick={() => setShowJaculatoriasMenu(false)}><X className="size-4" /></Button>
-            </div>
-
-            <div className="grid grid-cols-1 gap-2 mb-4">
-              <input
-                value={newJaculatoria.v}
-                onChange={(e) => setNewJaculatoria((prev) => ({ ...prev, v: e.target.value }))}
-                placeholder="V. ..."
-                className="w-full bg-background border rounded px-3 py-2 text-sm"
-                name="rosary-new-jaculatoria-v"
-                aria-label="Nueva jaculatoria V"
-              />
-              <input
-                value={newJaculatoria.r}
-                onChange={(e) => setNewJaculatoria((prev) => ({ ...prev, r: e.target.value }))}
-                placeholder="F. ..."
-                className="w-full bg-background border rounded px-3 py-2 text-sm"
-                onKeyDown={(e) => e.key === 'Enter' && addJaculatoria()}
-                name="rosary-new-jaculatoria-r"
-                aria-label="Nueva jaculatoria F"
-              />
-              <Button size="sm" onClick={addJaculatoria}><Plus className="size-4" /></Button>
-            </div>
-
-            <div className="max-h-60 overflow-y-auto space-y-3 pr-1">
-              {jaculatorias.map((item, i) => (
-                <div key={i} className="space-y-2 bg-muted/50 p-2 rounded">
-                  <div className="flex items-center gap-2">
-                    <input
-                      value={item.v}
-                      onChange={(e) => updateJaculatoria(i, 'v', e.target.value)}
-                      placeholder="V. ..."
-                      className="flex-1 bg-background border rounded px-3 py-2 text-sm"
-                      name={`rosary-jaculatoria-${i}-v`}
-                      aria-label={`Jaculatoria ${i + 1} V`}
-                    />
-                    <button
-                      onClick={() => removeJaculatoria(i)}
-                      className="text-muted-foreground hover:text-destructive transition-colors"
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
-                  </div>
-                  <input
-                    value={item.r}
-                    onChange={(e) => updateJaculatoria(i, 'r', e.target.value)}
-                    placeholder="F. ..."
-                    className="w-full bg-background border rounded px-3 py-2 text-sm"
-                    name={`rosary-jaculatoria-${i}-r`}
-                    aria-label={`Jaculatoria ${i + 1} F`}
-                  />
-                </div>
-              ))}
-              {jaculatorias.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">Agrega jaculatorias para el cierre del rosario.</p>}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <JaculatoriasMenuOverlay
+        show={showJaculatoriasMenu}
+        onClose={() => setShowJaculatoriasMenu(false)}
+        jaculatorias={jaculatorias}
+        newJaculatoria={newJaculatoria}
+        setNewJaculatoria={setNewJaculatoria}
+        addJaculatoria={addJaculatoria}
+        updateJaculatoria={updateJaculatoria}
+        removeJaculatoria={removeJaculatoria}
+      />
 
       {/* Main Content Center */}
       <div className="flex-1 flex flex-col items-center justify-center w-full px-6 text-center relative z-10">
