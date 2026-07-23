@@ -337,6 +337,9 @@ export const getAnnuumAvailability = (
   if (Number.isNaN(date.getTime())) {
     return { bubbleVisible: false, settingsVisible: false };
   }
+  if (forceSeason) {
+    return { bubbleVisible: true, settingsVisible: true };
+  }
 
   const year = date.getFullYear();
   const currentDateKey = getLocalDateKey(date);
@@ -345,7 +348,7 @@ export const getAnnuumAvailability = (
     openedDate?.getFullYear() === year && getLocalDateKey(openedDate) <= currentDateKey
       ? openedDate
       : null;
-  const seasonActive = forceSeason || isAnnuumSeason(date);
+  const seasonActive = isAnnuumSeason(date);
   const christTheKingKey = getLocalDateKey(getAdventDates(year).christTheKing);
   const yearEndCutoff = new Date(year, 11, 31, 23, 50, 0, 0);
 

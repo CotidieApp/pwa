@@ -165,7 +165,15 @@ export const getRenditionLocation = (
   reportedLocation?: any
 ): StoredReaderLocation | null => {
   if (!rendition) return null;
-  const location = reportedLocation ?? (rendition as any).currentLocation?.();
+  let location = reportedLocation;
+  if (location == null) {
+    try {
+      location = (rendition as any).currentLocation?.();
+    } catch {
+      // epub.js can dispose its manager before React's final persistence callback runs.
+      return null;
+    }
+  }
   const start = Array.isArray(location) ? location[0]?.start : location?.start;
   const end = Array.isArray(location) ? location[location.length - 1]?.end : location?.end;
   const cfi = typeof start?.cfi === 'string' && start.cfi.length > 0 ? start.cfi : undefined;

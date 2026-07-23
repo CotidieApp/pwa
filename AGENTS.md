@@ -8,6 +8,72 @@ Historial de intervenciones del asistente en el repo.
 - Esta obligacion aplica aunque el usuario pida tocar solo lo estrictamente necesario: el registro en `AGENTS.md` se considera parte estrictamente necesaria de cualquier edicion del repo.
 - Si una instruccion del usuario prohibe explicitamente editar `AGENTS.md`, el agente debe pedir aclaracion antes de modificar otros archivos.
 
+### [2026-07-22 23:09] 319. Modo forzado de Cotidie Annuum visible fuera de temporada
+
+**Planificacion:**
+- Seguir el interruptor "Forzar temporada Annuum" hasta la funcion que decide la visibilidad del globo de inicio y la entrada de Ajustes.
+- Mantener intactas las reglas anuales normales y corregir exclusivamente el comportamiento de prueba para desarrolladores.
+
+**Ejecucion:**
+- Se detecto que el modo forzado solo activaba la temporada, pero seguia condicionado por el historial de apertura y por la fecha real posterior a Cristo Rey. Fuera de temporada podia ocultar simultaneamente ambos accesos.
+- Cuando `forceAnnuumSeason` esta activo, la disponibilidad ahora expone tanto el globo de inicio como el boton de Cotidie Annuum en Ajustes. Al desactivarlo se vuelven a aplicar sin cambios las fechas y transiciones normales.
+
+**Validacion:**
+- `npx tsc --noEmit` sin errores.
+- ESLint sobre `movable-feasts.ts` sin errores ni advertencias.
+- Prueba movil local a 360 x 780 con fecha real fuera de temporada, historial previo y modo forzado activo: se mostro 1 globo Annuum en inicio y 1 entrada "Cotidie Annuum" en Ajustes, sin errores de consola.
+- La misma prueba con el modo forzado desactivado mantuvo ambos accesos ocultos fuera de temporada, confirmando que la logica normal no cambio.
+
+**Archivos Modificados:**
+- `src/lib/movable-feasts.ts`
+- `AGENTS.md`
+
+### [2026-07-22] 318. Etiqueta correcta para el acumulado de aperturas en el panel de desarrollador
+
+**Planificacion:**
+- Verificar si la tarjeta "Oraciones Hoy" utilizaba una estadistica diaria o un acumulado historico antes de modificar el panel.
+
+**Ejecucion:**
+- Se confirmo que la tarjeta muestra `realUserStats.totalPrayersOpened`, el acumulado historico que tambien utiliza Cotidie Annuum, y no un conteo del dia actual.
+- Se cambio la etiqueta de la tarjeta y del campo editable correspondiente a "Aperturas totales".
+
+**Validacion:**
+- `npx tsc --noEmit` sin errores.
+- ESLint sobre `DeveloperDashboard.tsx` sin errores ni advertencias.
+- `git diff --check` sin errores de formato.
+
+**Archivos Modificados:**
+- `src/components/developer/DeveloperDashboard.tsx`
+- `AGENTS.md`
+
+### [2026-07-22 22:47] 317. Checks exclusivos del Plan de Vida y cierre seguro de lectores EPUB
+
+**Planificacion:**
+- Revisar los dos registros de consola entregados por el usuario y separar los sintomas demostrados: oraciones ajenas agregadas al progreso del Plan de Vida, una ruta inexistente para la imagen de Pentecostes y una excepcion de `epub.js` al consultar `currentLocation` durante el desmontaje.
+- Corregir el origen de cada fallo, limpiar los IDs invalidos ya persistidos sin borrar aperturas legitimas de oraciones y probar tanto el lector del Nuevo Testamento como el de EPUB personales.
+
+**Ejecucion:**
+- Se elimino el fallback que, al no encontrar una raiz del Plan de Vida, usaba el ID de cualquier oracion abierta y la marcaba igualmente. Todo marcado pasa ahora por un mapa de practicas pertenecientes al Plan de Vida, convierte partes internas a su raiz visible y rechaza IDs ajenos.
+- Al cargar o importar el estado se normalizan `planDeVidaProgress`, `planDeVidaCalendar` y los acumulados exclusivos de cumplimiento: se conservan las practicas validas, se migran IDs internos a su raiz y se retiran los registros invalidos introducidos por el defecto. Las estadisticas normales de apertura de esas otras oraciones se mantienen.
+- `getRenditionLocation` ahora tolera que `epub.js` ya haya eliminado su administrador durante el ultimo guardado de posicion.
+- El desmontaje del lector espera a que terminen la apertura, el arranque y la carga encolada de `epub.js` antes de destruir libro y rendicion; tambien se detiene el flujo de carga al detectar que la vista ya fue cerrada. Esto evita las excepciones encadenadas de `currentLocation`, `replaceCss`, `package` y `Locations.length`, ademas del `404` secundario de `META-INF/container.xml`.
+- La imagen de Pentecostes ahora reutiliza el recurso local existente del tercer misterio glorioso en vez de solicitar `/images/pentecost.jpeg`, que no existia.
+
+**Validacion:**
+- `npm run build` OK: TypeScript y la exportacion de produccion de Next.js terminaron correctamente.
+- ESLint sobre los tres archivos TypeScript modificados: 0 errores; permanecen 9 advertencias preexistentes de dependencias de hooks.
+- Prueba automatizada en Chrome a 360 x 780: abrir San Agustin incremento su estadistica normal a 1, pero dejo `planDeVidaProgress` vacio y el calendario sin entradas; abrir Oracion de la Manana marco solamente `oracion-manana`.
+- Se inicio con un estado preparado con `sanagustindehipona` y `subcat-confesion` dentro del progreso, calendario e historial de cumplimiento: ambos IDs fueron retirados y se conservo el check legitimo de `oracion-manana` con total 1.
+- El Nuevo Testamento se abrio y cerro tres veces, incluyendo una salida a los 100 ms, sin errores de consola. Tambien se cargo y cerro el EPUB local como lectura personal sin errores.
+- La aplicacion local respondio 200 y `/images/rosario/glorioso-3.jpg` respondio 200 con 77.178 bytes.
+
+**Archivos Modificados:**
+- `src/context/SettingsContext.tsx`
+- `src/components/EpubReader.tsx`
+- `src/lib/epub-reader/helpers.ts`
+- `src/lib/placeholder-images.json`
+- `AGENTS.md`
+
 ### [2026-07-22] 316. Activar depuracion remota del WebView (android.webContentsDebuggingEnabled)
 
 **Planificacion:**

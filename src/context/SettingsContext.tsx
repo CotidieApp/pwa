@@ -128,6 +128,61 @@ const NOTIFICATION_SCHEDULE_BATCH_SIZE = 24;
 const ANDROID_NOTIFICATION_SCHEDULE_LIMIT = 32;
 const IOS_NOTIFICATION_SCHEDULE_LIMIT = 60;
 
+const PLAN_DE_VIDA_ROOT_BY_PRAYER_ID = (() => {
+  const roots = new Map<string, string>();
+  const register = (prayer: Prayer, rootId: string) => {
+    if (prayer.id) roots.set(prayer.id, rootId);
+    prayer.prayers?.forEach((child) => register(child, rootId));
+  };
+
+  initialPrayers.forEach((prayer) => {
+    if (prayer.categoryId === 'plan-de-vida' && prayer.id) {
+      register(prayer, prayer.id);
+    }
+  });
+  return roots;
+})();
+
+const getKnownPlanDeVidaRootId = (prayerId: string) =>
+  PLAN_DE_VIDA_ROOT_BY_PRAYER_ID.get(prayerId) ?? null;
+
+const normalizePlanDeVidaIds = (ids: string[]) =>
+  Array.from(new Set(ids.map(getKnownPlanDeVidaRootId).filter((id): id is string => Boolean(id))));
+
+const normalizePlanDeVidaCalendar = (calendar: Record<string, string[]>) => {
+  const normalized: Record<string, string[]> = {};
+  Object.entries(calendar).forEach(([dateKey, ids]) => {
+    const validIds = normalizePlanDeVidaIds(ids);
+    if (validIds.length > 0) normalized[dateKey] = validIds;
+  });
+  return normalized;
+};
+
+const normalizePlanDeVidaStats = (stats: UserStats): UserStats => {
+  const history = stats.planDeVidaCompletedHistory ?? {};
+  const normalizedHistory: Record<string, number> = {};
+  let removedTotal = 0;
+
+  Object.entries(history).forEach(([id, count]) => {
+    const rootId = getKnownPlanDeVidaRootId(id);
+    if (!rootId) {
+      removedTotal += count;
+      return;
+    }
+    normalizedHistory[rootId] = (normalizedHistory[rootId] ?? 0) + count;
+  });
+
+  if (removedTotal === 0 && Object.keys(history).every((id) => getKnownPlanDeVidaRootId(id) === id)) {
+    return stats;
+  }
+
+  return {
+    ...stats,
+    planDeVidaCompletedTotal: Math.max(0, (stats.planDeVidaCompletedTotal ?? 0) - removedTotal),
+    planDeVidaCompletedHistory: normalizedHistory,
+  };
+};
+
 const SettingsContext = createContext<Settings | undefined>(undefined);
 const SAVED_STATE_KEY = 'cotidie_app_state';
 const PENDING_IMPORT_STORAGE_KEY = 'cotidie_pending_import';
@@ -374,8 +429,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setOverlayPositions(snapshot.overlayPositions);
     setSimulatedDate(snapshot.simulatedDate);
     setPlanDeVidaTrackerEnabled(snapshot.planDeVidaTrackerEnabled);
-    setPlanDeVidaProgress(snapshot.planDeVidaProgress);
-    setPlanDeVidaCalendar(snapshot.planDeVidaCalendar);
+    setPlanDeVidaProgress(normalizePlanDeVidaIds(snapshot.planDeVidaProgress));
+    setPlanDeVidaCalendar(normalizePlanDeVidaCalendar(snapshot.planDeVidaCalendar));
     setLastResetTimestamp(snapshot.lastResetTimestamp);
     setIsDistractionFree(snapshot.isDistractionFree);
     setUserQuotes(snapshot.userQuotes);
@@ -411,8 +466,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setDevTestNotificationEnabledState(snapshot.devTestNotificationEnabled);
     setDevLiveTraceEnabledState(snapshot.devLiveTraceEnabled);
     setDevLiveTraceEvents(snapshot.devLiveTraceEvents);
-    setUserStats(snapshot.userStats);
-    setGlobalUserStats(snapshot.globalUserStats);
+    setUserStats(normalizePlanDeVidaStats(snapshot.userStats));
+    setGlobalUserStats(normalizePlanDeVidaStats(snapshot.globalUserStats));
     setStatsYear(snapshot.statsYear);
     setSimulatedStats(snapshot.simulatedStats);
     setForceAnnuumSeason(snapshot.forceAnnuumSeason);
@@ -1438,23 +1493,25 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const togglePlanDeVidaItem = (id: string, force?: boolean, skipStatIncrement?: boolean, eventDateKey?: string | null) => {
+     const planItemId = getKnownPlanDeVidaRootId(id);
+     if (!planItemId) return;
      const eventDate = parseEventDateFromDateKey(eventDateKey) ?? (simulatedDate ? new Date(simulatedDate) : new Date());
      const dateKey = eventDateKey ?? getPastoralDayKey(eventDate);
 
      setPlanDeVidaProgress(prev => {
-        const isChecked = prev.includes(id);
+        const isChecked = prev.includes(planItemId);
         const nextChecked = force !== undefined ? force : !isChecked;
         let addedToCalendar = false;
 
         setPlanDeVidaCalendar(prevCalendar => {
           const existing = Array.isArray(prevCalendar[dateKey]) ? prevCalendar[dateKey] : [];
           if (nextChecked) {
-            if (existing.includes(id)) return prevCalendar;
+            if (existing.includes(planItemId)) return prevCalendar;
             addedToCalendar = true;
-            return { ...prevCalendar, [dateKey]: [...existing, id] };
+            return { ...prevCalendar, [dateKey]: [...existing, planItemId] };
           }
-          if (!existing.includes(id)) return prevCalendar;
-          const nextList = existing.filter((item) => item !== id);
+          if (!existing.includes(planItemId)) return prevCalendar;
+          const nextList = existing.filter((item) => item !== planItemId);
           if (nextList.length === 0) {
             const { [dateKey]: _removed, ...rest } = prevCalendar;
             return rest;
@@ -1463,11 +1520,11 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         });
 
         if (addedToCalendar) {
-          incrementPlanDeVidaAggregate(id);
+          incrementPlanDeVidaAggregate(planItemId);
         }
 
         if (nextChecked && !isChecked && !isIncrementSyncingPlanRef.current && !skipStatIncrement) {
-          incrementStat('prayersOpenedHistory', id, { eventDate });
+          incrementStat('prayersOpenedHistory', planItemId, { eventDate });
         }
 
         if (nextChecked !== isChecked || addedToCalendar) {
@@ -1475,30 +1532,31 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
             level: 'info',
             source: 'plan-de-vida',
             message: nextChecked ? 'Check marcado.' : 'Check desmarcado.',
-            data: `id=${id}; date=${dateKey}`,
+            data: `id=${planItemId}; date=${dateKey}`,
           });
         }
 
         if (nextChecked) {
-          return isChecked ? prev : [...prev, id];
+          return isChecked ? prev : [...prev, planItemId];
         }
-        return prev.filter(p => p !== id);
+        return prev.filter(p => p !== planItemId);
      });
   };
 
   const togglePlanDeVidaCalendarEntry = (dateKey: string, id: string) => {
-    if (!dateKey || !id) return;
+    const planItemId = getKnownPlanDeVidaRootId(id);
+    if (!dateKey || !planItemId) return;
 
     const currentDateKey = getPastoralDayKey(simulatedDate ? new Date(simulatedDate) : new Date());
     const previousCalendar = planDeVidaCalendarRef.current;
     const existing = Array.isArray(previousCalendar[dateKey]) ? previousCalendar[dateKey] : [];
-    const nextChecked = !existing.includes(id);
+    const nextChecked = !existing.includes(planItemId);
 
     let nextCalendar: Record<string, string[]>;
     if (nextChecked) {
-      nextCalendar = { ...previousCalendar, [dateKey]: [...existing, id] };
+      nextCalendar = { ...previousCalendar, [dateKey]: [...existing, planItemId] };
     } else {
-      const nextList = existing.filter((item) => item !== id);
+      const nextList = existing.filter((item) => item !== planItemId);
       if (nextList.length === 0) {
         const { [dateKey]: _removed, ...rest } = previousCalendar;
         nextCalendar = rest;
@@ -1515,9 +1573,9 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     if (dateKey === currentDateKey) {
       setPlanDeVidaProgress((prev) => {
         if (nextChecked) {
-          return prev.includes(id) ? prev : [...prev, id];
+          return prev.includes(planItemId) ? prev : [...prev, planItemId];
         }
-        return prev.filter((item) => item !== id);
+        return prev.filter((item) => item !== planItemId);
       });
     }
 
@@ -1525,7 +1583,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       level: 'info',
       source: 'plan-de-vida',
       message: nextChecked ? 'Check de calendario marcado.' : 'Check de calendario desmarcado.',
-      data: `id=${id}; date=${dateKey}`,
+      data: `id=${planItemId}; date=${dateKey}`,
     });
   };
 
@@ -1953,10 +2011,9 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         if (now - lastIncrement < 3600000) { // 1 hour = 3600000 ms
             // Even when the counter is throttled, keep Plan de Vida check sync in UI.
             const rootId = getRootPlanDeVidaId(subKey);
-            const targetId = rootId || subKey;
-            if (targetId) {
+            if (rootId) {
               isIncrementSyncingPlanRef.current = true;
-              togglePlanDeVidaItem(targetId, true, true, forcedDateKey);
+              togglePlanDeVidaItem(rootId, true, true, forcedDateKey);
               isIncrementSyncingPlanRef.current = false;
             }
             pushDevLiveTrace({
@@ -1979,12 +2036,11 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     });
 
     if (key === 'prayersOpenedHistory' && subKey) {
-        // Side effect: Mark Plan de Vida item as checked (root or same item).
+        // Side effect: mark only the owning Plan de Vida root, when one exists.
         const rootId = getRootPlanDeVidaId(subKey);
-        const targetId = rootId || subKey;
-        if (targetId) {
+        if (rootId) {
             isIncrementSyncingPlanRef.current = true;
-            togglePlanDeVidaItem(targetId, true, true, options?.eventDate ? getPastoralDayKey(options.eventDate) : null);
+            togglePlanDeVidaItem(rootId, true, true, options?.eventDate ? getPastoralDayKey(options.eventDate) : null);
             isIncrementSyncingPlanRef.current = false;
         }
     }

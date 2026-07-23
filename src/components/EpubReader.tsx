@@ -347,18 +347,39 @@ export default function EpubReader({
     let cancelled = false;
     let activeBook: Book | null = null;
     let activeRendition: Rendition | null = null;
+    let activeLoadPromise: Promise<void> | null = null;
 
     const dispose = () => {
       if (renditionRef.current === activeRendition) renditionRef.current = null;
       if (bookRef.current === activeBook) bookRef.current = null;
-      try {
-        activeRendition?.destroy?.();
-      } catch {}
-      try {
-        activeBook?.destroy?.();
-      } catch {}
+      const bookToDispose = activeBook;
+      const renditionToDispose = activeRendition;
+      const opened = (bookToDispose as any)?.opened;
+      const started = (renditionToDispose as any)?.started;
+      const loading = activeLoadPromise;
       activeRendition = null;
       activeBook = null;
+
+      const destroyBook = () => {
+        try {
+          if (bookToDispose) {
+            bookToDispose.destroy?.();
+          } else {
+            renditionToDispose?.destroy?.();
+          }
+        } catch {}
+      };
+      const pendingLifecycle = [loading, opened, started].filter(
+        (task): task is Promise<unknown> => Boolean(task && typeof task.then === 'function')
+      );
+      if (pendingLifecycle.length > 0) {
+        // epub.js finishes internal CSS/resource replacement asynchronously.
+        // Its rendition also processes queued start/display work; wait for the
+        // complete load lifecycle before clearing objects during a quick exit.
+        void Promise.allSettled(pendingLifecycle).finally(destroyBook);
+      } else {
+        destroyBook();
+      }
     };
 
     const load = async () => {
@@ -522,6 +543,7 @@ export default function EpubReader({
         rendition.on('selected', onSelected);
 
         const nav = await book.loaded.navigation;
+        if (cancelled) return;
         if (!cancelled) {
           setTocEntries(flattenToc(nav?.toc || []));
         }
@@ -612,7 +634,7 @@ export default function EpubReader({
       }
     };
 
-    load();
+    activeLoadPromise = load();
 
     return () => {
       cancelled = true;

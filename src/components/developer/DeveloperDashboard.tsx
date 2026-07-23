@@ -32,7 +32,7 @@ const metricFields: { key: keyof UserStats; label: string }[] = [
   { key: 'examinationCount', label: 'Exámenes' },
   { key: 'lettersWritten', label: 'Cartas' },
   { key: 'saintQuotesOpened', label: 'Citas Santos' },
-  { key: 'totalPrayersOpened', label: 'Oraciones' },
+  { key: 'totalPrayersOpened', label: 'Aperturas totales' },
   { key: 'daysActive', label: 'Días Activo' },
   { key: 'planDeVidaCompletedTotal', label: 'Plan completo' },
 ];
@@ -127,7 +127,7 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
         <div className="mx-auto max-w-4xl space-y-5">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <StatCard title="Modo" value={simulatedStats ? 'Simulado' : 'Real'} icon={Icon.Zap} color={simulatedStats ? 'text-yellow-400' : 'text-green-400'} />
-            <StatCard title="Oraciones Hoy" value={realUserStats.totalPrayersOpened} icon={Icon.CheckCircle2} />
+            <StatCard title="Aperturas totales" value={realUserStats.totalPrayersOpened} icon={Icon.CheckCircle2} />
             <StatCard title="Días Activos" value={globalUserStats.daysActive} icon={Icon.CalendarDays} />
           </div>
 
