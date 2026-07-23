@@ -4,6 +4,9 @@ const config: CapacitorConfig = {
   appId: 'com.benjamin.studio',
   appName: 'Cotidie',
   webDir: 'out',
+  android: {
+    webContentsDebuggingEnabled: true,
+  },
   plugins: {
     LocalNotifications: {
       smallIcon: 'ic_stat_cotidie',

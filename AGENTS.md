@@ -8,6 +8,28 @@ Historial de intervenciones del asistente en el repo.
 - Esta obligacion aplica aunque el usuario pida tocar solo lo estrictamente necesario: el registro en `AGENTS.md` se considera parte estrictamente necesaria de cualquier edicion del repo.
 - Si una instruccion del usuario prohibe explicitamente editar `AGENTS.md`, el agente debe pedir aclaracion antes de modificar otros archivos.
 
+### [2026-07-22] 316. Activar depuracion remota del WebView (android.webContentsDebuggingEnabled)
+
+**Planificacion:**
+- El usuario no podia inspeccionar la consola del WebView de la app instalada en su telefono via `edge://inspect`/`chrome://inspect`. Se diagnostico con `adb devices` y `adb shell cat /proc/net/unix`: el telefono se conectaba y autorizaba correctamente, y el proceso `com.benjamin.studio` estaba corriendo, pero no existia ningun socket `*_devtools_remote` para ese proceso.
+- Causa raiz: Capacitor solo activa `WebView.setWebContentsDebuggingEnabled(...)` automaticamente cuando la build tiene el flag `FLAG_DEBUGGABLE` (compilaciones debug). La APK instalada es la de release, firmada con el keystore propio via `scripts/android-apk.mjs`, asi que ese flag queda apagado por defecto (comportamiento esperado de Android, no un bug).
+- Se le presento al usuario la opcion de activarlo de forma permanente en `capacitor.config.ts` (afecta tambien a las builds de release que usan los usuarios finales) frente a compilar una APK de debug aparte solo para depurar. Eligio la opcion permanente.
+
+**Ejecucion:**
+- Se agrego `android: { webContentsDebuggingEnabled: true }` a `capacitor.config.ts`.
+- Se corrio `npx cap sync android` para propagar el cambio a `android/app/src/main/assets/capacitor.config.json`.
+
+**Validacion:**
+- `npx tsc --noEmit` sin errores.
+- Se confirmo `"webContentsDebuggingEnabled": true` en el `capacitor.config.json` generado dentro del proyecto Android nativo.
+- Pendiente de accion del usuario: recompilar e instalar la APK (`npm run android:apk`) para que el cambio tome efecto en el dispositivo; solo entonces `edge://inspect`/`chrome://inspect` podra listar el WebView de Cotidie.
+- No aplica prueba en el navegador de escritorio: este cambio solo es observable en el WebView nativo de Android tras una recompilacion, no en el servidor de desarrollo web.
+
+**Archivos Modificados:**
+- `capacitor.config.ts`
+- `android/app/src/main/assets/capacitor.config.json` (generado por `cap sync`)
+- `AGENTS.md`
+
 ### [2026-07-22 20:44] 315. Limpieza integral de archivos muertos y dependencias sin consumidores
 **Planificacion:**
 - Auditar los archivos versionados mediante referencias textuales, convenciones de Next/Android y un grafo de importaciones de todo `src`.
