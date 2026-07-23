@@ -2,6 +2,23 @@ import type { Prayer } from '@/lib/types';
 
 const ORACION_DEL_DIA_ID = '__oracion_del_dia__';
 
+// Leaves whose content is just a menu that lists other openable items (the
+// personal EPUB library, the audio list). Reaching them is navigation, not
+// praying/reading, so opening them must not count toward stats or auto-mark
+// the Plan de Vida check — only opening an actual item inside them does.
+const NAVIGATION_ONLY_LEAF_IDS = new Set([
+  'lectura-espiritual-personales',
+  'lectura-espiritual-audios',
+]);
+
+// A node counts as "opened for prayer/reading" only if it is real content:
+// not a folder (has child prayers) and not one of the menu leaves above.
+export const isNavigationOnlyPrayerNode = (prayer: Prayer | null | undefined): boolean => {
+  if (!prayer) return false;
+  if (Array.isArray(prayer.prayers) && prayer.prayers.length > 0) return true;
+  return typeof prayer.id === 'string' && NAVIGATION_ONLY_LEAF_IDS.has(prayer.id);
+};
+
 export const resolveOracionDelDiaPrayerId = () => {
   const day = new Date().getDay();
   if (day === 2) return 'salmo-ii';

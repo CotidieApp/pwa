@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import ePub, { type Book, type Rendition } from 'epubjs';
+import ePub, { EpubCFI, type Book, type Rendition } from 'epubjs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
@@ -23,6 +23,7 @@ import {
   READER_FONT_FAMILIES,
   READER_RESIZE_DEBOUNCE_MS,
   READER_MAX_RESTORE_SUPPRESSION_MS,
+  READER_MAX_RESTORE_NUDGE_STEPS,
   NT_BOOKS,
 } from '@/lib/epub-reader/constants';
 import type {
@@ -566,13 +567,47 @@ export default function EpubReader({
             : '(sin ubicacion guardada)',
         });
         try {
-          if (savedLocation?.endCfi) {
-            await rendition.display(savedLocation.endCfi);
-          } else if (savedLocation?.cfi) {
-            await rendition.display(savedLocation.cfi);
-            await rendition.next();
-          } else if (savedLocation?.href) {
-            await rendition.display(savedLocation.href);
+          // Restore anchored to the page's START cfi, never the END. epub.js
+          // places the cfi passed to display() at the TOP of the viewport, so
+          // anchoring on the end cfi would push the last-read character to the
+          // top and reveal the NEXT page (the off-by-one forward drift seen in
+          // real device logs). The start cfi keeps the same first-visible
+          // character first-visible, i.e. the same page.
+          const primaryAnchor = savedLocation?.cfi ?? savedLocation?.endCfi ?? savedLocation?.href;
+          if (primaryAnchor) {
+            await rendition.display(primaryAnchor);
+            // The start cfi epub.js reports can be coarse: on a page showing
+            // the middle of a long paragraph it may point back to where that
+            // paragraph began (an earlier page), landing us before the real
+            // page. Correct that by stepping forward ONLY until the visible
+            // range reaches the last character actually read (endCfi). This
+            // cannot overshoot: the start anchor is never past endCfi, so the
+            // first page whose end meets endCfi is the page that contains it.
+            const targetEndCfi = savedLocation?.endCfi;
+            if (targetEndCfi && !cancelled) {
+              const cfiComparer = new EpubCFI();
+              let nudgeSteps = 0;
+              for (let step = 0; step < READER_MAX_RESTORE_NUDGE_STEPS; step += 1) {
+                if (cancelled) break;
+                const liveEndCfi = getRenditionLocation(rendition)?.endCfi;
+                if (!liveEndCfi) break;
+                let reachedTarget: boolean;
+                try {
+                  reachedTarget = cfiComparer.compare(liveEndCfi, targetEndCfi) >= 0;
+                } catch {
+                  reachedTarget = true;
+                }
+                if (reachedTarget) break;
+                await rendition.next();
+                nudgeSteps += 1;
+              }
+              pushDevLiveTrace({
+                level: 'info',
+                source: 'epub-reader',
+                message: 'Restauracion: anclada al inicio y ajustada.',
+                data: `pasos=${nudgeSteps}; objetivo=${targetEndCfi.slice(0, 24)}`,
+              });
+            }
           } else {
             await rendition.display(undefined);
           }
@@ -709,7 +744,10 @@ export default function EpubReader({
     // re-navigates the book to it. Anchoring to a stale position doesn't
     // just mis-save history, it silently drags the reader backward.
     const currentLocation = getRenditionLocation(rendition) ?? stableLocationRef.current;
-    const resizeAnchor = currentLocation?.endCfi ?? currentLocation?.cfi;
+    // Anchor on the START cfi (same reasoning as the initial restore): resize()
+    // re-displays the anchor at the TOP of the viewport, so anchoring on the
+    // end cfi would nudge the reader forward one page on every repagination.
+    const resizeAnchor = currentLocation?.cfi ?? currentLocation?.endCfi;
     lastLayoutSizeRef.current = { width, height };
     isRestoringLocationRef.current = true;
     pushDevLiveTrace({
@@ -748,7 +786,10 @@ export default function EpubReader({
     // stableLocationRef, since this value drives an active re-navigation
     // (rendition.display below), not just a record of where we've been.
     const liveLocation = getRenditionLocation(rendition) ?? stableLocationRef.current;
-    const fontResizeAnchor = liveLocation?.endCfi ?? liveLocation?.cfi;
+    // Anchor on the START cfi, like the initial restore and resize: display()
+    // puts the anchor at the top of the viewport, so the end cfi would drift
+    // the reader forward a page each time the font size changes.
+    const fontResizeAnchor = liveLocation?.cfi ?? liveLocation?.endCfi;
     rendition.themes.fontSize(`${readerFontSize}%`);
     if (!fontResizeAnchor) return;
 

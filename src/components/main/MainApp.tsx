@@ -39,7 +39,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useNavPersistence } from '@/components/main/useNavPersistence';
 import { initialState, loadPersistedNavState, persistNavState } from '@/components/main/navigation';
 import type { NavigationState } from '@/components/main/navigation';
-import { findPrayerIdByTitle, getPrayerPathIds, normalizeRouteSegment, resolvePlanPrayerId } from '@/components/main/prayer-navigation';
+import { findPrayerIdByTitle, getPrayerPathIds, isNavigationOnlyPrayerNode, normalizeRouteSegment, resolvePlanPrayerId } from '@/components/main/prayer-navigation';
 import { useAndroidBackButton, useNotificationActionBinding, useSharedImportBinding } from '@/components/main/useNativeAppBindings';
 import { normalizeLanguageKey, getPrayerLanguageModes, languageModeLabel } from '@/components/main/language-mode';
 import {
@@ -775,7 +775,12 @@ export default function MainApp() {
       prayerPathIds: [...prevState.prayerPathIds, prayer.id!],
     }));
 
-    incrementStat('prayersOpenedHistory', prayer.id);
+    // Navigating into a folder or a menu leaf isn't praying/reading; only real
+    // content counts. (Opening a specific personal EPUB is counted inside
+    // PersonalEpubLibrary, where the actual book — not the menu — is opened.)
+    if (!isNavigationOnlyPrayerNode(prayer)) {
+      incrementStat('prayersOpenedHistory', prayer.id);
+    }
   };
 
   const handleSavePrayer = (data: {
@@ -1174,10 +1179,10 @@ export default function MainApp() {
       ...buildPrayerNavState(pathIds),
       rosaryReturnMode: options?.rosaryReturnMode ?? null,
     });
-    if (options?.countOpen !== false) {
+    if (options?.countOpen !== false && !isNavigationOnlyPrayerNode(getPrayerById(id, allPrayers))) {
       incrementStat('prayersOpenedHistory', id);
     }
-  }, [allPrayers, buildPrayerNavState, incrementStat]);
+  }, [allPrayers, buildPrayerNavState, getPrayerById, incrementStat]);
 
 
   const handleRouteNavigation = useCallback((route: string) => {

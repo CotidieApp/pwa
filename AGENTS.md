@@ -8,6 +8,27 @@ Historial de intervenciones del asistente en el repo.
 - Esta obligacion aplica aunque el usuario pida tocar solo lo estrictamente necesario: el registro en `AGENTS.md` se considera parte estrictamente necesaria de cualquier edicion del repo.
 - Si una instruccion del usuario prohibe explicitamente editar `AGENTS.md`, el agente debe pedir aclaracion antes de modificar otros archivos.
 
+### [2026-07-23] 320. Crash React #185 al reabrir menus/dialogos de Radix (incompatibilidad con React 19 de Next 15)
+
+**Planificacion:**
+- El usuario reporto (con log de dispositivo) un crash React #185 ("Maximum update depth exceeded") al usar el menu de opciones (boton ⋮) de la pantalla de lectura. Se reprodujo de forma fiable en el servidor de desarrollo con el repro minimo: abrir el menu ⋮ → cerrarlo (Escape) → reabrirlo → la app cae al ErrorBoundary.
+- Con el error no minificado se identifico la causa exacta: `@radix-ui/react-focus-scope` (la trampa de foco de menus/dialogos) hace `setState` (setContainer) dentro de su callback de ref; con el React 19.2-canary que Next 15 empaqueta internamente, `safelyDetachRef` re-ejecuta ese callback al desmontar y entra en bucle infinito. El stack esta 100% dentro de Radix/React (no es codigo de la app: se verifico desactivando efectos sospechosos del Header sin que el crash desapareciera). Afecta a cualquier overlay de Radix con trampa de foco al reabrirse.
+- Se descarto que fuera un bug ya corregido en Radix: `focus-scope` y `compose-refs` en su ultima version traen el mismo patron. Actualizar solo Next o solo Radix no bastaba. La combinacion (Next + Radix a la vez) si lo resuelve.
+
+**Ejecucion:**
+- Se actualizo `next` de 15.3.8 a 15.5.21 (trae un React 19.2-canary mas nuevo) y todos los paquetes `@radix-ui/*` a su ultima version (alert-dialog, checkbox, dialog, dropdown-menu, label, popover, progress, select, slider, slot, switch, toast).
+- `next` quedo pineado exacto (`"15.5.21"`), respetando la convencion del proyecto.
+
+**Validacion:**
+- `npm run build` (`tsc --noEmit && next build`) OK: build de produccion/export estatico compilado sin errores de tipos ni de compilacion.
+- Prueba en el servidor de desarrollo del repro exacto: se abrio el menu ⋮ de una oracion, se cerro y se reabrio 4 veces seguidas; el menu reabre con sus items y la app NUNCA cae al ErrorBoundary (verificado por DOM, no por consola). Antes del arreglo, la segunda apertura caia siempre.
+- Pendiente de confirmacion del usuario en el dispositivo real tras recompilar la APK.
+
+**Archivos Modificados:**
+- `package.json`
+- `package-lock.json`
+- `AGENTS.md`
+
 ### [2026-07-22 23:09] 319. Modo forzado de Cotidie Annuum visible fuera de temporada
 
 **Planificacion:**
@@ -72,6 +93,53 @@ Historial de intervenciones del asistente en el repo.
 - `src/components/EpubReader.tsx`
 - `src/lib/epub-reader/helpers.ts`
 - `src/lib/placeholder-images.json`
+- `AGENTS.md`
+
+### [2026-07-23] 318. Plan de Vida: navegar carpetas/menus ya no cuenta como oracion ni auto-marca el check
+
+**Planificacion:**
+- El log real mostro que abrir "Lectura Espiritual" > "Personales" incrementaba `prayersOpenedHistory` para `lectura-espiritual-container` Y `lectura-espiritual-personales`, y ademas marcaba el check diario del Plan de Vida (`Check marcado id=lectura-espiritual-container`) — todo solo por navegar, sin haber leido nada.
+- Causa: `handleSelectPrayer`/`handleOpenPrayerById` en `MainApp.tsx` incrementaban la estadistica para CUALQUIER nodo tocado, y `getRootPlanDeVidaId` marca el item raiz del Plan de Vida como completado en cada incremento. Los nodos contenedores (carpetas con `prayers[]`) y las hojas-menu (`lectura-espiritual-personales`, `lectura-espiritual-audios`, que solo abren una lista) contaban como oracion/lectura.
+- Ademas, abrir un EPUB personal concreto NO contaba (el conteo estaba en el menu, no en el libro). Es decir: navegar contaba, leer no.
+- Modelo elegido por el usuario ("Solo abrir contenido real"): las carpetas y hojas-menu no cuentan; abrir contenido real (una lectura/oracion concreta, el lector NT, o un EPUB personal concreto) si cuenta.
+
+**Ejecucion:**
+- Nuevo helper puro `isNavigationOnlyPrayerNode(prayer)` en `src/components/main/prayer-navigation.ts`: devuelve true para carpetas (con `prayers[]`) y para las hojas-menu `lectura-espiritual-personales` / `lectura-espiritual-audios`.
+- `MainApp.tsx`: `handleSelectPrayer` y `handleOpenPrayerById` ahora solo llaman `incrementStat('prayersOpenedHistory', ...)` cuando el nodo NO es de solo navegacion.
+- `PersonalEpubLibrary.tsx`: al abrir un libro real (`onOpen`) o al subir uno (que lo abre de inmediato), se llama `incrementStat('prayersOpenedHistory', 'lectura-espiritual-personales')`. Asi el conteo y el marcado del Plan de Vida ocurren al leer de verdad, no al ver el menu. La ventana de 1 hora existente evita dobles conteos.
+
+**Validacion:**
+- `npx tsc --noEmit` sin errores.
+- Verificacion en dispositivo/navegador pendiente del usuario; el flujo es facil de confirmar por las trazas `stats`/`plan-de-vida` en logcat (ya no deben aparecer al navegar carpetas, si al abrir un libro).
+
+**Archivos Modificados:**
+- `src/components/main/prayer-navigation.ts`
+- `src/components/main/MainApp.tsx`
+- `src/components/PersonalEpubLibrary.tsx`
+- `AGENTS.md`
+
+### [2026-07-23] 317. EpubReader: causa raiz real del salto al reabrir (off-by-one de anclaje), confirmada por logcat
+
+**Planificacion:**
+- Con la depuracion remota del WebView ya activa, el usuario capturo por fin un log real (`edge://inspect` sobre la APK en su telefono). El log demostro dos hechos clave:
+  1. El guardado y la carga de la posicion ya round-trip-ean perfecto: cada "Ubicacion guardada al salir" coincide EXACTAMENTE con la "Ubicacion leida de localStorage al abrir" siguiente. Los fixes previos de persistencia (entradas #306, #311, #312, #314) resolvieron esa parte.
+  2. Lo que fallaba era el DISPLAY al reabrir. Se restauraba con `rendition.display(savedLocation.endCfi)`, pero epub.js coloca el CFI que recibe `display()` en el BORDE SUPERIOR del viewport. Como `endCfi` es el ULTIMO caracter visible de la pagina de salida, quedaba arriba y se mostraba la pagina SIGUIENTE (deriva de +1). El log lo prueba: salio en `/4/52/1:259` y reabrio mostrando `/4/52/1:259 -> :603`; salio en `/4/32/1:399` y reabrio en una pagina que termina en `/4/38/1:215`.
+- Historicamente el usuario habia visto lo contrario (retroceso) al anclar en el CFI de INICIO. Motivo: el `start.cfi` que reporta epub.js puede ser grueso — en una pagina que muestra el medio de un parrafo largo, apunta al comienzo del parrafo (una pagina anterior). Asi que ni el inicio (retrocede) ni el fin (avanza) por si solos aciertan.
+
+**Ejecucion:**
+- Nueva estrategia de restauracion en el efecto de carga: anclar SIEMPRE al `cfi` de inicio (`rendition.display(cfi)`), y luego avanzar de a una pagina SOLO hasta que el rango visible alcance el ultimo caracter leido (`endCfi`), comparando con `EpubCFI.compare(liveEndCfi, targetEndCfi) >= 0`. No puede pasarse: el ancla de inicio nunca esta por delante de `endCfi`, asi que la primera pagina cuyo fin alcanza `endCfi` es justo la que lo contiene. El avance esta acotado por `READER_MAX_RESTORE_NUDGE_STEPS` (6).
+- Por coherencia, los otros dos puntos que re-navegan colocando un ancla arriba tambien pasaron a preferir el `cfi` de inicio en vez del `endCfi`: el resize de la rendicion (`refreshRenditionLayout`) y el cambio de tamano de fuente. Si seguian usando `endCfi`, cada repaginacion habria empujado al lector una pagina hacia adelante.
+- Se agrego una traza nueva ("Restauracion: anclada al inicio y ajustada. pasos=N") para que el proximo log muestre cuantos pasos de ajuste se hicieron.
+- Se importo `EpubCFI` desde `epubjs` y se agrego la constante `READER_MAX_RESTORE_NUDGE_STEPS`.
+
+**Validacion:**
+- `npx tsc --noEmit` sin errores.
+- Se verifico en la fuente de epub.js que `EpubCFI.compare` existe y devuelve -1/0/1, y que `display()` ancla el CFI al inicio del viewport.
+- No es posible reproducir el lector EPUB completo en el navegador sandboxed de este entorno; la verificacion en dispositivo real queda pendiente de la proxima prueba del usuario (ahora con logcat funcional para confirmar `pasos=N`).
+
+**Archivos Modificados:**
+- `src/components/EpubReader.tsx`
+- `src/lib/epub-reader/constants.ts`
 - `AGENTS.md`
 
 ### [2026-07-22] 316. Activar depuracion remota del WebView (android.webContentsDebuggingEnabled)

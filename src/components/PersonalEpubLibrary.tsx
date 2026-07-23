@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import EpubReader from '@/components/EpubReader';
+import { useSettings } from '@/context/SettingsContext';
 import { Trash2, BookOpen, Pencil } from 'lucide-react';
 
 type StoredPersonalEpubMeta = {
@@ -52,6 +53,7 @@ const saveStoredEpubs = (items: StoredPersonalEpubMeta[]) => {
 };
 
 export default function PersonalEpubLibrary() {
+  const { incrementStat } = useSettings();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const renameInputRef = useRef<HTMLInputElement | null>(null);
   const [epubs, setEpubs] = useState<StoredPersonalEpubMeta[]>(() => loadStoredEpubs());
@@ -99,6 +101,8 @@ export default function PersonalEpubLibrary() {
       saveStoredEpubs(next);
       setSelectedId(entry.id);
       setSelectedSource(base64);
+      // Uploading opens the book straight into the reader, so it counts too.
+      incrementStat('prayersOpenedHistory', 'lectura-espiritual-personales');
     };
     reader.readAsDataURL(file);
   };
@@ -151,6 +155,9 @@ export default function PersonalEpubLibrary() {
     }
     setSelectedId(id);
     setSelectedSource(raw);
+    // Only opening an actual book counts as spiritual reading (and marks the
+    // Plan de Vida check); browsing the library menu itself does not.
+    incrementStat('prayersOpenedHistory', 'lectura-espiritual-personales');
   };
 
   const renameDialog = (
