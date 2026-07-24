@@ -8,6 +8,44 @@ Historial de intervenciones del asistente en el repo.
 - Esta obligacion aplica aunque el usuario pida tocar solo lo estrictamente necesario: el registro en `AGENTS.md` se considera parte estrictamente necesaria de cualquier edicion del repo.
 - Si una instruccion del usuario prohibe explicitamente editar `AGENTS.md`, el agente debe pedir aclaracion antes de modificar otros archivos.
 
+### [2026-07-24] 322. Al reiniciar el proceso se pierde el contexto de plan personalizado (el back cae al arbol manual)
+
+**Planificacion:**
+- El usuario reporto que, estando dentro de un plan personalizado sobre una oracion (ej. "Alma de Cristo"), al apagar el celular, esperar y reencender, la app arranca en frio (pantalla de bienvenida), lo deja en la oracion pero FUERA del plan: el boton atras, en vez de llevar a inicio (como corresponde dentro del plan), camina el arbol manual (Plan de Vida > Santa Misa > Despues), como si la oracion se hubiera abierto a mano.
+- Se rastreo la persistencia de navegacion: `navState` se guarda/restaura via `persistNavState`/`loadPersistedNavState`, y ambas pasan por `normalizeNavState` (`src/components/main/navigation.ts`). Esa funcion solo conservaba `activeView`, `selectedCategoryId`, `prayerPathIds` y `rosaryReturnMode`, DESCARTANDO `customPlanPrayerSlot` y `customPlanPrayerIndex`. Tras el reinicio se restaura `prayerPathIds` (la ruta en el arbol) pero se pierde el hecho de estar dentro de un plan, asi que `handleBack` (MainApp, el branch `customPlanPrayerSlot !== null` que va a `initialState`) nunca se activa y cae al recorrido del arbol; ademas el prev/next del plan deja de funcionar.
+- Se verifico en git que NO es una regresion de la v6.4.10: `normalizeNavState` descarta esos campos desde el primer commit del modulo; el arranque (`getInitialNavState`/`loadPersistedNavState`/`useNavPersistence`) y el back de planes no cambiaron entre v6.4.6 y HEAD (v6.4.7 = refactor de MainApp, v6.4.9 = fix de sobreconteo, v6.4.10 = solo dependencias Next/Radix). El bug es latente y viejo; solo se vuelve VISIBLE cuando en un reinicio en frio el `sessionStorage` sobrevive a la muerte del proceso Y se estaba dentro de un plan. Si no sobrevive, la restauracion cae a `initialState` y aterriza en inicio (que es lo correcto), ocultando el bug. Que sobreviva o no no es determinista (version de Android, presion de memoria, forma de morir el proceso), lo que explica que recien se detectara ahora.
+
+**Ejecucion:**
+- En `normalizeNavState` se preservan `customPlanPrayerSlot` (validado a 1|2|3|4, si no `null`) y `customPlanPrayerIndex` (numero solo si hay slot valido, si no `null`). Asi el contexto de plan viaja junto con `prayerPathIds` en cada guardado/restauracion.
+- Degradacion segura: si el plan fue borrado o cambio, el indice restaurado deja de ser valido (`customPlanValidIndices` en MainApp lo descarta), el prev/next se desactiva y el back vuelve a inicio.
+
+**Validacion:**
+- `npx tsc --noEmit` sin errores.
+- No verificable en el dev server de escritorio: el sintoma requiere un reinicio en frio del proceso con un plan real cargado. La prueba real es en el dispositivo (entrar a un plan que empiece con "Alma de Cristo", apagar, esperar, encender: el back debe ir a inicio y el prev/next del plan debe seguir funcionando).
+- Pendiente de confirmacion del usuario en el dispositivo tras recompilar la APK.
+
+**Archivos Modificados:**
+- `src/components/main/navigation.ts`
+- `AGENTS.md`
+
+### [2026-07-24] 321. Bloque de controles del lector EPUB tapado por el status bar
+
+**Planificacion:**
+- El usuario reporto que el bloque de navegacion superior dentro de un EPUB se corta con la barra superior del celular y no se ve completo.
+- Se ubico la causa en `src/components/EpubReader.tsx`: el bloque de controles es `absolute inset-x-0 top-0`. Para un elemento con posicion absoluta, `top-0` se ancla al padding-box del padre (el borde de la pantalla), ignorando el `paddingTop: env(safe-area-inset-top)` que ya tenia el contenedor. Ademas, la franja opaca del status bar (el "system-bar layer" con `z-[200]`) se dibuja encima del bloque (`z-20`), tapando su parte superior.
+
+**Ejecucion:**
+- Se agrego al bloque de controles `style={{ top: 'env(safe-area-inset-top, 0px)' }}`, empujandolo justo debajo del inset del status bar. El `p-3` interno se conserva, de modo que la tarjeta queda con su separacion habitual debajo de la barra. No se toco el resto del layout ni el manejo horizontal (en vertical el inset lateral es 0).
+
+**Validacion:**
+- `npx tsc --noEmit` sin errores.
+- No verificable en el dev server de escritorio: `env(safe-area-inset-top)` vale `0px` sin status bar/notch; el efecto solo se aprecia en el dispositivo.
+- Pendiente de confirmacion del usuario en el dispositivo tras recompilar la APK (el encabezado del lector debe verse completo, sin quedar bajo la barra superior).
+
+**Archivos Modificados:**
+- `src/components/EpubReader.tsx`
+- `AGENTS.md`
+
 ### [2026-07-23] 320. Crash React #185 al reabrir menus/dialogos de Radix (incompatibilidad con React 19 de Next 15)
 
 **Planificacion:**

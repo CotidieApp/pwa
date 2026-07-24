@@ -1213,7 +1213,14 @@ export default function EpubReader({
             document.body
           )
         : null}
-      <div className={cn('absolute inset-x-0 top-0 z-20 space-y-2 p-3', !showControls && 'hidden')}>
+      <div
+        className={cn('absolute inset-x-0 top-0 z-20 space-y-2 p-3', !showControls && 'hidden')}
+        // Absolute top-0 anchors to the parent's padding box (the screen edge),
+        // ignoring its paddingTop: env(safe-area-inset-top). Without this offset
+        // the controls slide under the status bar and get covered by the opaque
+        // system-bar layer (z-[200]) drawn over that inset.
+        style={{ top: 'env(safe-area-inset-top, 0px)' }}
+      >
         <div className="rounded-lg border border-border bg-card/95 p-3 shadow-sm backdrop-blur">
           <div className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2">

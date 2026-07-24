@@ -62,12 +62,31 @@ export const normalizeNavState = (raw: any): NavigationState => {
     : [];
   const rosaryReturnMode = raw?.rosaryReturnMode === 'selection' ? 'selection' : null;
 
+  // Preserve the custom-plan reading context across persist/restore. Without
+  // these, a cold restart (process killed on power-off) reloads prayerPathIds
+  // but loses the fact that the prayer was opened *inside* a plan, so "back"
+  // walks the manual tree path instead of returning home, and plan prev/next
+  // stops working.
+  const customPlanPrayerSlot =
+    raw?.customPlanPrayerSlot === 1 ||
+    raw?.customPlanPrayerSlot === 2 ||
+    raw?.customPlanPrayerSlot === 3 ||
+    raw?.customPlanPrayerSlot === 4
+      ? raw.customPlanPrayerSlot
+      : null;
+  const customPlanPrayerIndex =
+    customPlanPrayerSlot !== null && typeof raw?.customPlanPrayerIndex === 'number'
+      ? raw.customPlanPrayerIndex
+      : null;
+
   return {
     ...initialState,
     activeView,
     selectedCategoryId,
     prayerPathIds,
     rosaryReturnMode,
+    customPlanPrayerSlot,
+    customPlanPrayerIndex,
   };
 };
 
