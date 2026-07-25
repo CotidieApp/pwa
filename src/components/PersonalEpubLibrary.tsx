@@ -52,7 +52,11 @@ const saveStoredEpubs = (items: StoredPersonalEpubMeta[]) => {
   window.localStorage.setItem(INDEX_STORAGE_KEY, JSON.stringify(items));
 };
 
-export default function PersonalEpubLibrary() {
+type PersonalEpubLibraryProps = {
+  registerBackHandler?: (handler: (() => boolean) | null) => void;
+};
+
+export default function PersonalEpubLibrary({ registerBackHandler }: PersonalEpubLibraryProps) {
   const { incrementStat } = useSettings();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const renameInputRef = useRef<HTMLInputElement | null>(null);
@@ -77,6 +81,21 @@ export default function PersonalEpubLibrary() {
     }, 0);
     return () => window.clearTimeout(timeout);
   }, [renameTargetId]);
+
+  // Let the system back button close an open book first (same as the reader's
+  // own back button), instead of navigating away from the library. Returns
+  // true only when a book is actually open, so backing out of the list itself
+  // still falls through to the normal navigation.
+  useEffect(() => {
+    if (!registerBackHandler) return;
+    registerBackHandler(() => {
+      if (!selectedId || !selectedSource) return false;
+      setSelectedId(null);
+      setSelectedSource(null);
+      return true;
+    });
+    return () => registerBackHandler(null);
+  }, [registerBackHandler, selectedId, selectedSource]);
 
   const onUpload = (file: File) => {
     setErrorMessage(null);

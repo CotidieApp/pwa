@@ -8,6 +8,48 @@ Historial de intervenciones del asistente en el repo.
 - Esta obligacion aplica aunque el usuario pida tocar solo lo estrictamente necesario: el registro en `AGENTS.md` se considera parte estrictamente necesaria de cualquier edicion del repo.
 - Si una instruccion del usuario prohibe explicitamente editar `AGENTS.md`, el agente debe pedir aclaracion antes de modificar otros archivos.
 
+### [2026-07-24] 324. Doble-atras del sistema para saltar directo a inicio
+
+**Planificacion:**
+- El usuario pidio un atajo del boton atras para volver a inicio sin tener que apretarlo muchas veces en rutas profundas. Propuso "mantener presionado unos segundos".
+- Restriccion tecnica: el back de Android llega como el evento `backButton` de Capacitor, que es DISCRETO (un disparo por accion), no un keydown/keyup con duracion. Detectar un "mantener" confiable exigiria codigo nativo Java (`onKeyLongPress`) y ademas solo funcionaria en telefonos con boton fisico / barra de 3 botones (no con navegacion por gestos). Se le plantearon las dos opciones y eligio la alternativa mas simple y universal: doble-atras rapido.
+- Diseno: el PRIMER atras se comporta normal y de inmediato (sin agregar latencia al caso comun); si llega un SEGUNDO atras dentro de una ventana corta, salta a inicio. Solo se cablea al back del sistema, no a los botones "atras" internos de la app.
+
+**Ejecucion:**
+- MainApp: constante `DOUBLE_BACK_HOME_MS = 500`; ref `lastSystemBackAtRef`; nuevo `handleSystemBack` (useCallback) que compara el timestamp del back anterior: si esta dentro de la ventana, resetea el marcador, cierra el globo Annuum si estaba y hace `replaceNavState(initialState)` (solo si no se esta ya en home); si no, guarda el timestamp y delega en `handleBack` normal. `useAndroidBackButton` ahora recibe `handleSystemBack` en vez de `handleBack`.
+- Edge conocido y benigno: si el primer atras ya deja en home (se estaba a un nivel), el segundo toque rapido cae en la rama de `App.exitApp()` del hook (comportamiento estandar de Android en home). Solo ocurre estando a 1 nivel de inicio, donde el atajo no hace falta.
+
+**Validacion:**
+- `npx tsc --noEmit` sin errores.
+- No verificable en el dev server de escritorio: el back del sistema solo se enlaza en Android nativo (evento `backButton` de Capacitor en `useAndroidBackButton`). La prueba real es en el dispositivo (entrar a una ruta profunda; dos atras rapidos -> inicio; un atras aislado -> un nivel, como siempre).
+- Pendiente de confirmacion del usuario en el dispositivo tras recompilar la APK.
+
+**Archivos Modificados:**
+- `src/components/main/MainApp.tsx`
+- `AGENTS.md`
+
+### [2026-07-24] 323. Back del sistema vs boton en el lector EPUB de la biblioteca personal (destinos distintos)
+
+**Planificacion:**
+- El usuario reporto que, con un EPUB abierto dentro de "Lectura Espiritual > personales", el boton de atras del lector vuelve a la biblioteca de libros personales, pero el back del sistema (Android) salta directo al menu de Lectura Espiritual. Pidio que ambos lleven al mismo punto, a mi criterio.
+- Se rastreo la arquitectura: al abrir un libro, `PersonalEpubLibrary` guarda el archivo en ESTADO LOCAL (`selectedId`/`selectedSource`) y renderiza `<EpubReader>`. El boton del lector (`onClose`) limpia ese estado local -> vuelve a la lista de la biblioteca. El back del sistema, en cambio, pasa por `handleBack` (MainApp) que opera sobre `navState`; como el libro abierto es invisible para navState (sigue en `prayer / lectura-espiritual-personales`), `handleBack` sube un nivel en `prayerPathIds` -> menu Lectura Espiritual, salteando la lista.
+- Decision de diseno: el back del sistema debe PRIMERO cerrar el libro (igual que el boton). Asi ambos van a la biblioteca, y un segundo back lleva al menu. Es la jerarquia natural (menos sorpresa) y reusa el patron ya existente `registerBackHandler`/`rosaryMeditatedBackHandlerRef` usado por `RosaryMeditated`.
+
+**Ejecucion:**
+- MainApp: nuevo ref `personalEpubBackHandlerRef`; en `handleBack`, antes del recorrido generico del arbol de oraciones, si `activeView === 'prayer'` y el nodo es `lectura-espiritual-personales` y `personalEpubBackHandlerRef.current?.()` devuelve `true`, se corta el back. Se paso `registerBackHandler` a `<PersonalEpubLibrary>`.
+- `PersonalEpubLibrary`: nueva prop `registerBackHandler`; un `useEffect` (espejo de `RosaryMeditated`) registra un handler que, si hay un libro abierto, lo cierra con los mismos `setSelectedId(null)/setSelectedSource(null)` que usa el boton del lector y devuelve `true`; si no hay libro abierto devuelve `false`, de modo que salir de la lista en si sigue cayendo a la navegacion normal (menu Lectura Espiritual).
+- Cerrar por el back del sistema queda equivalente al boton: el `EpubReader` se desmonta y su cleanup persiste la posicion igual que siempre.
+
+**Validacion:**
+- `npx tsc --noEmit` sin errores.
+- No verificable en el dev server de escritorio: el back del sistema solo se enlaza en Android nativo (evento `backButton` de Capacitor en `useAndroidBackButton`), no esta atado al `popstate` del navegador. La prueba real es en el dispositivo (abrir un EPUB personal, back del sistema -> biblioteca; segundo back -> menu Lectura Espiritual; y el boton del lector se comporta igual).
+- Pendiente de confirmacion del usuario en el dispositivo tras recompilar la APK.
+
+**Archivos Modificados:**
+- `src/components/main/MainApp.tsx`
+- `src/components/PersonalEpubLibrary.tsx`
+- `AGENTS.md`
+
 ### [2026-07-24] 322. Al reiniciar el proceso se pierde el contexto de plan personalizado (el back cae al arbol manual)
 
 **Planificacion:**

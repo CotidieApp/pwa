@@ -87,6 +87,9 @@ const getInitialNavState = (): NavigationState => {
 const PENDING_IMPORT_STORAGE_KEY = 'cotidie_pending_import';
 const PENDING_NAVIGATION_STORAGE_KEY = 'cotidie_pending_navigation';
 const CUSTOM_PLAN_EXIT_CONFIRM_MS = 3000;
+// Two system-back presses within this window jump straight to home, so a deep
+// route doesn't need many taps to get out.
+const DOUBLE_BACK_HOME_MS = 500;
 const DEFAULT_CAMINO_SEARCH_STATE = {
   term: '',
   activeIndex: -1,
@@ -186,6 +189,8 @@ export default function MainApp() {
   const customPlanExitToastIdRef = useRef<string | null>(null);
   const customPlanExitTimeoutRef = useRef<number | null>(null);
   const rosaryMeditatedBackHandlerRef = useRef<(() => boolean) | null>(null);
+  const personalEpubBackHandlerRef = useRef<(() => boolean) | null>(null);
+  const lastSystemBackAtRef = useRef(0);
   const clearCustomPlanExitPrompt = useCallback(() => {
     customPlanExitAdvanceRef.current = null;
     if (customPlanExitTimeoutRef.current !== null) {
@@ -645,6 +650,18 @@ export default function MainApp() {
       return;
     }
 
+    // Inside the personal EPUB library, a book opened in the reader is local
+    // state (not navState). Let the library close the open book first, so the
+    // system back matches the reader's own back button (both return to the
+    // library list) instead of walking the prayer tree up to the menu.
+    if (
+      currentState.activeView === 'prayer' &&
+      currentPrayerId === 'lectura-espiritual-personales' &&
+      personalEpubBackHandlerRef.current?.()
+    ) {
+      return;
+    }
+
     if (currentState.activeView === 'rosaryMeditated' && rosaryMeditatedBackHandlerRef.current?.()) {
       return;
     }
@@ -703,7 +720,25 @@ export default function MainApp() {
     replaceNavState(initialState);
   }, [activeSettingsSection, buildCategoryNavState, buildPrayerNavState, getCategoryIdForPrayerPath, persistActiveSpiritualAudioProgress, replaceNavState, showAnnuum]);
 
-  useAndroidBackButton(navStateRef, handleBack, showAnnuum);
+  // Wraps the system back so a quick second press flings straight to home.
+  // The first press performs a normal back immediately (no latency added to
+  // the common case); only wired to the hardware/gesture system back, so the
+  // in-app back buttons keep their single-level behavior.
+  const handleSystemBack = useCallback(() => {
+    const now = Date.now();
+    if (now - lastSystemBackAtRef.current <= DOUBLE_BACK_HOME_MS) {
+      lastSystemBackAtRef.current = 0;
+      setShowAnnuum(false);
+      if (navStateRef.current.activeView !== 'home') {
+        replaceNavState(initialState);
+      }
+      return;
+    }
+    lastSystemBackAtRef.current = now;
+    handleBack();
+  }, [handleBack, replaceNavState]);
+
+  useAndroidBackButton(navStateRef, handleSystemBack, showAnnuum);
 
   const selectedCategory = useMemo(
     () => categories.find((c) => c.id === navState.selectedCategoryId) || null,
@@ -1149,7 +1184,13 @@ export default function MainApp() {
           return <EpubReader onClose={handleBack} />;
         }
         if (currentPrayer.id === 'lectura-espiritual-personales') {
-          return <PersonalEpubLibrary />;
+          return (
+            <PersonalEpubLibrary
+              registerBackHandler={(handler) => {
+                personalEpubBackHandlerRef.current = handler;
+              }}
+            />
+          );
         }
         if (currentPrayer.id === 'letanias') {
           return (
