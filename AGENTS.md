@@ -8,6 +8,51 @@ Historial de intervenciones del asistente en el repo.
 - Esta obligacion aplica aunque el usuario pida tocar solo lo estrictamente necesario: el registro en `AGENTS.md` se considera parte estrictamente necesaria de cualquier edicion del repo.
 - Si una instruccion del usuario prohibe explicitamente editar `AGENTS.md`, el agente debe pedir aclaracion antes de modificar otros archivos.
 
+### [2026-07-24] 326. PWA: descarga OPCIONAL del Nuevo Testamento para lectura sin conexion (sin tocar el APK)
+
+**Planificacion:**
+- El usuario pidio que, SOLO en la PWA, se ofrezca descargar el Nuevo Testamento para leerlo offline, de forma opcional, y sin tocar nada del build dirigido al APK.
+- Contexto: el NT (`public/epub/nuevo-testamento.epub`, 2.36 MB) se abre en MainApp cuando `currentPrayer.id === 'lectura-nuevo-testamento'`, yendo directo a `<EpubReader>` que carga por URL. En PWA esa URL falla sin conexion; en el APK el archivo ya viaja en el bundle y funciona offline. La entrada elegida por el usuario para el ofrecimiento fue "al abrir el NT" (antes de entrar al lector).
+- Estrategia sin riesgo para el APK: NO tocar service worker, `next.config` ni el build. Todo se resuelve en runtime con `!Capacitor.isNativePlatform()` (patron ya usado en el repo). En nativo el flujo se saltea por completo (passthrough identico al comportamiento previo).
+
+**Ejecucion:**
+- `src/lib/offline-epub.ts` (nuevo): store minimalista en IndexedDB (dependency-free) con `getOfflineEpub/saveOfflineEpub/deleteOfflineEpub` (valores en base64, para reusar el camino `<EpubReader sourceBase64>`) y `downloadEpubAsBase64(url)` (fetch + arrayBuffer -> base64 por chunks). Se eligio IndexedDB en vez de localStorage porque ~3.1 MB en base64 rozaria el limite de ~5 MB del origin.
+- `src/components/NuevoTestamentoReader.tsx` (nuevo): wrapper del NT. En nativo -> `<EpubReader onClose>` identico a antes. En web/PWA -> `PwaNuevoTestamentoReader`: al montar consulta IndexedDB; si hay copia, entra directo al lector con `sourceBase64`; si no, muestra una pantalla de entrada opcional con "Descargar y leer sin conexion" (descarga+guarda+entra) y "Leer sin descargar" (entra por URL). Se pasa `fileName="nuevo-testamento.epub"` en ambos modos para que las claves de posicion/marcadores/subrayados coincidan online y offline.
+- `src/components/main/MainApp.tsx`: se reemplazo `import EpubReader` por `import NuevoTestamentoReader` (EpubReader ya no se usaba directo en MainApp; lo sigue usando `PersonalEpubLibrary` y el propio wrapper) y la linea del NT ahora renderiza `<NuevoTestamentoReader onClose={handleBack} />`. EpubReader NO se modifico.
+
+**Validacion:**
+- `npx tsc --noEmit` sin errores.
+- Verificacion end-to-end en el dev server (por DOM/JS, ya que el panel del navegador no compositaba frames): (1) al abrir el NT en web aparece el gate con ambos botones; (2) "Leer sin descargar" entra al lector cargando por URL; (3) "Descargar y leer sin conexion" descarga, guarda en IndexedDB (~2.3 MB confirmado por lectura directa del store) y entra al lector; (4) tras recargar y reabrir, el gate se SALTEA y entra directo con la copia offline; (5) cero errores de consola.
+- No verificable visualmente el render final de epub.js en este entorno: con el panel oculto (`document.visibilityState === 'hidden'`) epub.js no completa el iframe (0 iframes, se queda en "Cargando"), tanto por URL como por base64 — es limitacion del entorno headless, no del codigo; es el mismo EpubReader ya probado en produccion.
+- Nativo/APK: sin cambios de comportamiento (el wrapper delega a `<EpubReader onClose>` con las mismas props que antes; nada de IndexedDB/fetch/gate corre en nativo). No se toco service worker ni build.
+
+**Archivos Modificados:**
+- `src/lib/offline-epub.ts` (nuevo)
+- `src/components/NuevoTestamentoReader.tsx` (nuevo)
+- `src/components/main/MainApp.tsx`
+- `AGENTS.md`
+
+### [2026-07-24] 325. PWA: el inicio no cargaba sin conexion (start URL servida NetworkFirst en vez de precacheada)
+
+**Planificacion:**
+- Reporte del usuario (via una hermana que usa la PWA instalada): sin conexion, el inicio se queda cargando mucho tiempo y a veces la PWA lo rechaza por no tener red.
+- Se reviso el setup PWA: `@ducanh2912/next-pwa` v10.2.9 con `output: export`, config minima (`dest/disable/register/skipWaiting`). El `public/sw.js` generado precachea los chunks JS/CSS pero NO el documento HTML del shell; el start URL "/" se servia con la cache dinamica `start-url` en estrategia NetworkFirst. Sin conexion (o con red ambigua tipo WiFi sin internet), NetworkFirst espera a la red antes de caer al cache -> el inicio "se queda cargando"; si ese cache no estaba, falla del todo -> "la rechaza".
+- Se descarto que el arranque de la app fuera el que cuelga: las fuentes son locales (`/fonts/fonts.css`), no hay Google Fonts ni fetch de red en el layout/providers/SplashScreen (el splash solo usa un timer de 2500 ms y `isLoaded` de localStorage). El cuelgue es a nivel service worker, ANTES de que corra el JS.
+- Solucion segun la API de next-pwa: `dynamicStartUrl` (default `true`) sirve el start URL NetworkFirst para apps cuyo "/" cambia por estado (login, etc.). Cotidie es un SPA de export estatico: "/" siempre devuelve el mismo `index.html`. Ponerlo en `false` hace que el start URL se PRECACHEE, sirviendo el shell desde cache al instante sin conexion.
+
+**Ejecucion:**
+- `next.config.mjs`: se agrego `dynamicStartUrl: false` a `withPWAInit(...)`.
+- Nota: `public/sw.js` y `public/workbox-*.js` estan en `.gitignore` (lineas 75-76); no se versionan, los regenera el build/deploy. El unico cambio de codigo versionado es `next.config.mjs`.
+
+**Validacion:**
+- `npm run build` OK (exit 0), "/" prerenderizado como estatico.
+- Verificacion objetiva sobre el `sw.js` regenerado: el manifiesto de precache ahora incluye `{url:"/", revision:"..."}` (el shell de inicio), y la cache dinamica `start-url` (NetworkFirst) desaparecio. Es decir, offline el inicio se sirve desde el precache (cache-first), sin espera de red ni rechazo.
+- No verificable en el dev server: la PWA esta deshabilitada en desarrollo (`disable: NODE_ENV === 'development'`); el SW solo se genera/activa en el build de produccion. La prueba end-to-end la hara el usuario tras desplegar (abrir la PWA online una vez para cachear, luego en modo avion: el inicio debe cargar de inmediato).
+
+**Archivos Modificados:**
+- `next.config.mjs`
+- `AGENTS.md`
+
 ### [2026-07-24] 324. Doble-atras del sistema para saltar directo a inicio
 
 **Planificacion:**

@@ -6,6 +6,13 @@ const withPWA = withPWAInit({
   disable: process.env.NODE_ENV === "development",
   register: true,
   skipWaiting: true,
+  // Cotidie is a static-export SPA: "/" always returns the same index.html.
+  // With the default (dynamicStartUrl: true) the start URL is served
+  // NetworkFirst, so offline the PWA waits on the network before falling back
+  // to cache (the "inicio se queda cargando" / "la rechaza por no tener
+  // conexion" symptom). Setting it false precaches the start URL, so the home
+  // shell loads instantly from cache with no connection.
+  dynamicStartUrl: false,
 });
 
 function hideFunctionProperties(value, seen = new WeakSet()) {

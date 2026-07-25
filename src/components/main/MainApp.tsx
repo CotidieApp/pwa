@@ -20,7 +20,7 @@ import RosaryMeditated from '../RosaryMeditated';
 import PlanDeVidaCalendar from '../plans/PlanDeVidaCalendar';
 import ViaCrucisImmersive from '../ViaCrucisImmersive';
 import ExpositionImmersive from '../ExpositionImmersive';
-import EpubReader from '@/components/EpubReader';
+import NuevoTestamentoReader from '@/components/NuevoTestamentoReader';
 import PersonalEpubLibrary from '@/components/PersonalEpubLibrary';
 import SearchCamino from '@/components/SearchCamino';
 import { AudioPlayer } from '@/components/AudioPlayer';
@@ -1181,7 +1181,7 @@ export default function MainApp() {
           );
         }
         if (currentPrayer.id === 'lectura-nuevo-testamento') {
-          return <EpubReader onClose={handleBack} />;
+          return <NuevoTestamentoReader onClose={handleBack} />;
         }
         if (currentPrayer.id === 'lectura-espiritual-personales') {
           return (
