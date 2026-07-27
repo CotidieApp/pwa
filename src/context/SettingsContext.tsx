@@ -642,7 +642,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
                      s = JSON.parse(rawLS);
                      // Guardar inmediatamente en IDB para completar la migración
                      await persistence.setItem(SAVED_STATE_KEY, s);
-                     console.log("Migración de datos: LocalStorage -> IndexedDB completada.");
                  } catch (e) {
                      console.error("Error migrando localStorage", e);
                  }

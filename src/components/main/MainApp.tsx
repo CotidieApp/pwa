@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import type { Prayer, Category } from '@/lib/types';
 import { useSettings, type PrayerLanguageMode } from '@/context/SettingsContext';
 
@@ -14,14 +15,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import PrayerAccordion from '@/components/PrayerAccordion';
 import HomePage from '../home/HomePage';
-import CustomPlanView from '../plans/CustomPlanView';
-import RosaryImmersive from '../RosaryImmersive';
-import RosaryMeditated from '../RosaryMeditated';
-import PlanDeVidaCalendar from '../plans/PlanDeVidaCalendar';
-import ViaCrucisImmersive from '../ViaCrucisImmersive';
-import ExpositionImmersive from '../ExpositionImmersive';
-import NuevoTestamentoReader from '@/components/NuevoTestamentoReader';
-import PersonalEpubLibrary from '@/components/PersonalEpubLibrary';
+// Navigation-gated heavy views are lazy-loaded so the initial bundle (and the
+// PWA's first paint / offline shell) stays light. None of these render on the
+// home screen; each is reached only by explicit navigation. epub.js in
+// particular (~pulled by the readers below) no longer ships in the main chunk.
+const CustomPlanView = dynamic(() => import('../plans/CustomPlanView'), { ssr: false, loading: LazyView });
+const RosaryImmersive = dynamic(() => import('../RosaryImmersive'), { ssr: false, loading: LazyView });
+const RosaryMeditated = dynamic(() => import('../RosaryMeditated'), { ssr: false, loading: LazyView });
+const PlanDeVidaCalendar = dynamic(() => import('../plans/PlanDeVidaCalendar'), { ssr: false, loading: LazyView });
+const ViaCrucisImmersive = dynamic(() => import('../ViaCrucisImmersive'), { ssr: false, loading: LazyView });
+const ExpositionImmersive = dynamic(() => import('../ExpositionImmersive'), { ssr: false, loading: LazyView });
+const NuevoTestamentoReader = dynamic(() => import('@/components/NuevoTestamentoReader'), { ssr: false, loading: LazyView });
+const PersonalEpubLibrary = dynamic(() => import('@/components/PersonalEpubLibrary'), { ssr: false, loading: LazyView });
 import SearchCamino from '@/components/SearchCamino';
 import { AudioPlayer } from '@/components/AudioPlayer';
 import { letanias as letaniasRosarioBase } from '@/lib/prayers/plan-de-vida/santo-rosario/letanias';
@@ -30,11 +35,11 @@ import { Switch } from '@/components/ui/switch';
 import { AnimatePresence } from 'framer-motion';
 import { getAnnuumAvailability, getLocalDateKey } from '@/lib/movable-feasts';
 import { getImageObjectPosition, getImageObjectScale } from '@/lib/image-display';
-import AnnuumStory from '../AnnuumStory';
+const AnnuumStory = dynamic(() => import('../AnnuumStory'), { ssr: false, loading: LazyView });
 import Image from 'next/image';
 import { Play } from 'lucide-react';
 import * as Icon from 'lucide-react';
-import DeveloperDashboard from '@/components/developer/DeveloperDashboard';
+const DeveloperDashboard = dynamic(() => import('@/components/developer/DeveloperDashboard'), { ssr: false, loading: LazyView });
 import { useToast } from '@/hooks/use-toast';
 import { useNavPersistence } from '@/components/main/useNavPersistence';
 import { initialState, loadPersistedNavState, persistNavState } from '@/components/main/navigation';
@@ -80,6 +85,18 @@ import {
 } from '@/components/ui/dialog';
 
 type AddFormMode = 'devotion' | 'entry' | 'letter' | 'predefined';
+
+// Fallback shown while a lazy view's chunk loads. Fills its container so it
+// works both for full-screen overlays and in-flow views. Hoisted so the
+// dynamic() imports above can reference it.
+function LazyView() {
+  return (
+    <div className="flex h-full w-full items-center justify-center p-6 text-sm text-muted-foreground">
+      Cargando…
+    </div>
+  );
+}
+
 const getInitialNavState = (): NavigationState => {
   return loadPersistedNavState();
 };

@@ -8,6 +8,51 @@ Historial de intervenciones del asistente en el repo.
 - Esta obligacion aplica aunque el usuario pida tocar solo lo estrictamente necesario: el registro en `AGENTS.md` se considera parte estrictamente necesaria de cualquier edicion del repo.
 - Si una instruccion del usuario prohibe explicitamente editar `AGENTS.md`, el agente debe pedir aclaracion antes de modificar otros archivos.
 
+### [2026-07-27] 328. Optimizacion de peso de assets (audio + imagenes) y limpieza de console.log
+
+**Planificacion:**
+- Continuacion de la revision: el usuario aprobo tres mejoras, "con mucho cuidado". Prioridad APK (el peso del instalable es lo mas relevante para su publico principal).
+- Diagnostico: `public/` pesaba 120 MB. Dominantes: dos MP3 de discurso hablado en estereo (`Discurso San Josemaria.mp3` 51 MB @192 kbps, `Discurso San Juan Pablo II.mp3` 43 MB @159 kbps, ~37 min c/u) y ~10 MB de imagenes JPEG (varias sobredimensionadas, ej. `creation.jpeg` 4835x2478). lucide-react se descarto: no hay acceso dinamico a iconos, ya se tree-shakea.
+- Herramientas sin tocar el sistema: `ffmpeg-static` instalado en el scratchpad (binario portatil) para el audio; `sharp` (ya en node_modules) para las imagenes.
+
+**Ejecucion:**
+- Audio: backup de los originales al scratchpad; reencodeo a **mono 96 kbps** (`libmp3lame -ac 1 -b:a 96k`), suficiente para voz hablada. 51 MB->26 MB y 43 MB->26 MB.
+- Imagenes: `sharp` recomprime en el mismo lugar (mismo nombre/formato, sin cambiar codigo) a `jpeg quality 82 mozjpeg`, con `.rotate()` para hornear orientacion EXIF, y cap conservador de dimension a 2048 px (solo afecta de forma notable a `creation.jpeg`). Solo se sobrescribe si ahorra >3%: 27 de 28 recomprimidas, 1 sin cambio. 8665 KB->3344 KB (-61%).
+- `src/context/SettingsContext.tsx`: removido el unico `console.log` colado (mensaje de exito de migracion en linea ~645); se conservo el `console.error` legitimo.
+
+**Validacion:**
+- Audio: verificacion de integridad con ffmpeg — duracion identica a los originales (36:58 y 37:32, no truncados) y decodificacion completa a null SIN errores. Smoke test en la app: ambos MP3 cargan via elemento Audio del navegador con duracion correcta (36.98 / 37.54 min) = decodificables/reproducibles.
+- Imagenes: las 28 validan con sharp (metadata OK); `creation.jpeg` quedo 2048x1050; smoke test en navegador (`<img>`) renderiza OK.
+- `tsc --noEmit` sin errores; cero errores de consola en el dev server.
+- Resultado total: `public/` 120 MB -> 73 MB (**-47 MB**), reflejado directamente en el tamano del APK. Nota: los originales tambien viven en el historial de git por si se quisiera revertir.
+
+**Archivos Modificados:**
+- `public/media/Discurso San Josemaria.mp3`
+- `public/media/Discurso San Juan Pablo II.mp3`
+- `public/images/*.jpe?g` (27 recomprimidas)
+- `src/context/SettingsContext.tsx`
+- `AGENTS.md`
+
+### [2026-07-27] 327. Revision general + optimizacion de bundle (carga diferida de vistas pesadas)
+
+**Planificacion:**
+- El usuario pidio revisar el proyecto, corregir lo necesario, perfeccionar y optimizar.
+- Diagnostico de salud (read-only primero): `next build` OK, `tsc --noEmit` OK, `next lint` = 67 warnings y CERO errores. Los warnings son casi todos `react-hooks/exhaustive-deps` sobre dep arrays deliberadamente curados (EpubReader, SettingsContext, notificaciones — afinados con cuidado en entradas previas), mas cosmeticos (`no-unescaped-entities`) e informativos del React Compiler. Se decidio NO tocarlos en masa: "arreglar" esos deps agregandolos es la via clasica de meter loops infinitos y regresiones. Sin TODO/FIXME; un solo `console.log` inofensivo (log de migracion). Conclusion: base sana, sin pila de bugs.
+- La oportunidad real y de alto impacto salio del build: `First Load JS` de `/` = 725 kB. Causa: `next/dynamic` no se usaba en NINGUN lado, y MainApp importaba estaticamente todas las vistas pesadas (Rosario inmersivo 1118 lineas, ViaCrucis 591, AnnuumStory 824, Meditado, Exposicion, el lector con epub.js ~grande, Dashboard dev), todas alcanzables SOLO por navegacion explicita, nunca en el primer render.
+
+**Ejecucion:**
+- `src/components/main/MainApp.tsx`: se convirtieron a `dynamic(() => import(...), { ssr: false, loading: LazyView })` las vistas pesadas navegables: `RosaryImmersive`, `RosaryMeditated`, `ViaCrucisImmersive`, `ExpositionImmersive`, `CustomPlanView`, `PlanDeVidaCalendar`, `NuevoTestamentoReader`, `PersonalEpubLibrary` (estas dos sacan epub.js del chunk inicial), `AnnuumStory` y `DeveloperDashboard`. Se agrego `import dynamic from 'next/dynamic'` y un fallback `LazyView` (declaracion de funcion hoisted) que llena su contenedor. NO se tocaron `HomePage` (primer render), `Settings`, `PrayerDetail`, `AudioPlayer` ni ninguna logica de navegacion/EPUB.
+
+**Validacion:**
+- `tsc --noEmit` sin errores; `next build` OK con `output: export`.
+- Bundle: `First Load JS` de `/` bajo de 725 kB a 556 kB (-169 kB, ~23%); tamano de ruta 360 kB -> 190 kB. epub.js y las vistas inmersivas ahora cargan bajo demanda (y el SW las cachea tras el primer uso).
+- Smoke test en dev (por DOM/JS, panel del navegador sin compositar): abrir el NT carga el chunk diferido y muestra el gate; "Leer sin descargar" carga el chunk de epub.js y muestra los controles del lector; volver regresa a la lista de Plan de Vida; cero errores de consola. El resto de vistas diferidas siguen el patron identico (default export + dynamic), verificado en el caso mas complejo.
+- Nota honesta: no se "corrigieron" los 67 warnings de lint por diseno (intencionales o cosmeticos); hacerlo a ciegas arriesgaba regresiones en codigo delicado. La base ya estaba sana; la mejora sustantiva fue el bundle.
+
+**Archivos Modificados:**
+- `src/components/main/MainApp.tsx`
+- `AGENTS.md`
+
 ### [2026-07-24] 326. PWA: descarga OPCIONAL del Nuevo Testamento para lectura sin conexion (sin tocar el APK)
 
 **Planificacion:**
