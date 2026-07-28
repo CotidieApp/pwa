@@ -573,7 +573,31 @@ export default function EpubReader({
           // top and reveal the NEXT page (the off-by-one forward drift seen in
           // real device logs). The start cfi keeps the same first-visible
           // character first-visible, i.e. the same page.
-          const primaryAnchor = savedLocation?.cfi ?? savedLocation?.endCfi ?? savedLocation?.href;
+          // Exception to the start-cfi rule: when the saved page spans a
+          // chapter boundary (it ends one chapter and begins the next in the
+          // same page), epub.js reports start and end in DIFFERENT spine
+          // items. Anchoring on the start cfi then re-displays the OLD
+          // chapter's document, and the forward-nudge below can't fix it —
+          // the live end cfi immediately compares >= to a target that lives in
+          // another document, so the loop breaks at 0 steps and the reader is
+          // left on the previous page. Anchoring on the end cfi lands on the
+          // new chapter, which is where the reading actually stopped.
+          const spineOf = (cfi?: string) => {
+            if (!cfi) return null;
+            try {
+              const pos = new EpubCFI().parse(cfi)?.spinePos;
+              return typeof pos === 'number' ? pos : null;
+            } catch {
+              return null;
+            }
+          };
+          const startSpine = spineOf(savedLocation?.cfi);
+          const endSpine = spineOf(savedLocation?.endCfi);
+          const spansChapterBoundary =
+            startSpine !== null && endSpine !== null && endSpine !== startSpine;
+          const primaryAnchor = spansChapterBoundary
+            ? savedLocation?.endCfi
+            : savedLocation?.cfi ?? savedLocation?.endCfi ?? savedLocation?.href;
           if (primaryAnchor) {
             await rendition.display(primaryAnchor);
             // The start cfi epub.js reports can be coarse: on a page showing
@@ -583,8 +607,11 @@ export default function EpubReader({
             // range reaches the last character actually read (endCfi). This
             // cannot overshoot: the start anchor is never past endCfi, so the
             // first page whose end meets endCfi is the page that contains it.
+            // Skipped when we anchored on the end cfi above: the target is
+            // already at the top of the viewport, so there is nothing to
+            // nudge forward to (and stepping would overshoot the page).
             const targetEndCfi = savedLocation?.endCfi;
-            if (targetEndCfi && !cancelled) {
+            if (targetEndCfi && !cancelled && !spansChapterBoundary) {
               const cfiComparer = new EpubCFI();
               let nudgeSteps = 0;
               for (let step = 0; step < READER_MAX_RESTORE_NUDGE_STEPS; step += 1) {
@@ -606,6 +633,13 @@ export default function EpubReader({
                 source: 'epub-reader',
                 message: 'Restauracion: anclada al inicio y ajustada.',
                 data: `pasos=${nudgeSteps}; objetivo=${targetEndCfi.slice(0, 24)}`,
+              });
+            } else if (spansChapterBoundary) {
+              pushDevLiveTrace({
+                level: 'info',
+                source: 'epub-reader',
+                message: 'Restauracion: pagina a caballo entre capitulos, anclada al final.',
+                data: `spineInicio=${startSpine}; spineFin=${endSpine}`,
               });
             }
           } else {

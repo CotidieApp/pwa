@@ -8,6 +8,53 @@ Historial de intervenciones del asistente en el repo.
 - Esta obligacion aplica aunque el usuario pida tocar solo lo estrictamente necesario: el registro en `AGENTS.md` se considera parte estrictamente necesaria de cualquier edicion del repo.
 - Si una instruccion del usuario prohibe explicitamente editar `AGENTS.md`, el agente debe pedir aclaracion antes de modificar otros archivos.
 
+### [2026-07-28] 330. Icono de la PWA: banda naranja de relleno en los bordes
+
+**Planificacion:**
+- El usuario reporto (con captura) que el icono instalado de la PWA muestra espacios naranjos de relleno en cada borde. Pidio que el fondo del icono se recorte en las esquinas abarcando todo, SIN esconder lo esencial (la C con la cruz).
+- IMPORTANTE (correccion de rumbo): un primer intento recompuso el icono desde cero (fondo plano + glifo aislado), lo que en la practica REDISENO el logo del usuario: se perdio el degradado y el cuadro interior. El usuario lo rechazo. Se revirtieron por completo `icon.png`, `icon-maskable.png` (restaurados bit a bit desde backup, verificado con `git status` sin diferencias contra HEAD), `manifest.json` y la entrada de registro. Leccion: ante un pedido de ajuste de encuadre/recorte, NO alterar la identidad visual; usar el arte existente del usuario.
+- Diagnostico correcto tras renderizar y MIRAR ambos archivos: `icon.png` ya estaba bien (degradado a sangre completa, glifo a radio real 206 px, justo en el limite de la safe zone de 205). El defecto vivia SOLO en `icon-maskable.png`, que contenia el mismo diseno ENCOGIDO (cuadro del degradado de 348 px, glifo a radio 140) centrado sobre naranja plano: ese margen es la banda reportada. Ademas, las esquinas de `icon.png` tenian alfa 196 (semitransparentes), por lo que el sistema pinta su propio relleno detras.
+
+**Ejecucion:**
+- Se tomo el arte propio del usuario (`icon.png`) y se aplico el zoom MINIMO que vuelve opacas las esquinas: escalado 512 -> 530 y recorte centrado a 512. Se midio por iteracion (512: alfa esquina 196; 530: alfa 255) para no ampliar mas de lo necesario. Resultado: mismo degradado, misma C+cruz, mismas proporciones; el diseno llega a todos los bordes y no queda transparencia que el sistema pueda rellenar.
+- Ese archivo se aplico a `icon-maskable.png` (el que tenia el defecto) y tambien a `icon.png`, para dejar las esquinas opacas y ambos consistentes. No se dibujo ningun elemento nuevo.
+- Propuesta validada con el usuario ANTES de aplicar: se le mostro una hoja comparativa (actual vs propuesta, bajo recorte circular y squircle) y dio el visto bueno explicito.
+
+**Validacion:**
+- Ambos iconos quedan 512x512 y `opaco=true` (sin alfa => el sistema no puede pintar relleno detras).
+- Simulacion de los recortes de Android (circulo y squircle): el degradado llega a todos los bordes sin bandas, y la C con la cruz se ve completa en ambas formas.
+- Nota honesta: el glifo queda a radio 213 px y la safe zone formal son 205 px (8 px de exceso teorico). En la simulacion de recorte circular —el mas agresivo— la C y la cruz se ven integras, por lo que se considera aceptable; ampliar menos reintroduciria transparencia en las esquinas.
+- Pendiente en el dispositivo: la PWA necesita reinstalarse (o al menos reabrirse con conexion) para que el sistema tome los iconos nuevos.
+- Queda SIN corregir a proposito (fuera del alcance aprobado): `manifest.json` declara `icon.png` como `192x192` cuando en realidad es 512x512.
+
+**Archivos Modificados:**
+- `public/icons/icon.png`
+- `public/icons/icon-maskable.png`
+- `AGENTS.md`
+
+### [2026-07-28] 329. EpubReader: pagina a caballo entre dos capitulos restauraba la pagina anterior
+
+**Planificacion:**
+- El usuario reporto que dejo la lectura al comienzo de un capitulo nuevo y, al reentrar, quedo en la pagina anterior; preciso el detalle clave: NO habia salto de pagina, es decir, en la MISMA pagina terminaba un capitulo y empezaba el siguiente.
+- Ese detalle identifica el detonante. En un EPUB cada capitulo es un spine item (documento) distinto. Cuando una pagina abarca el final del capitulo N y el inicio del N+1, `getRenditionLocation` toma `start` de `location[0].start` (capitulo N) y `end` de `location[len-1].end` (capitulo N+1): el `cfi` y el `endCfi` guardados quedan en DOCUMENTOS DISTINTOS.
+- Al restaurar, la logica anclaba siempre al `cfi` de inicio (regla correcta y necesaria en el caso normal, ver entradas #313/#317). Aqui eso re-muestra el documento del capitulo VIEJO. El bucle de ajuste hacia adelante, que normalmente corrige, queda inutilizado: `EpubCFI.compare(liveEndCfi, targetEndCfi)` da >= 0 de inmediato (se verifico en node: compare entre esos CFIs devuelve 0), asi que rompe con `pasos=0` y el lector se queda en la pagina anterior.
+- Se descarto una primera hipotesis (que `compare` fallara entre spine items distintos): se probo en node y compara correctamente. El problema no es la comparacion sino el ancla.
+
+**Ejecucion:**
+- `src/components/EpubReader.tsx`, en la restauracion inicial: se detecta si la pagina guardada cruza un limite de capitulo comparando `spinePos` de `cfi` y `endCfi` (via `new EpubCFI().parse(...)`, con try/catch y degradacion a `null`).
+- Si cruza (`spansChapterBoundary`), se ancla al `endCfi` — el capitulo NUEVO, que es donde realmente se quedo leyendo el usuario. Si no cruza, el comportamiento es exactamente el de antes (ancla al `cfi` de inicio): cero cambios en el caso normal.
+- El bucle de ajuste hacia adelante se saltea cuando se anclo al `endCfi` (el objetivo ya esta arriba del viewport; avanzar pasaria de largo). Se agrego una traza propia ("pagina a caballo entre capitulos, anclada al final") con los spine de inicio/fin.
+
+**Validacion:**
+- `npx tsc --noEmit` sin errores; `npm run build` OK.
+- Validacion de la logica de decision en node con CFIs representativos: caso normal (mismo capitulo, spine 6->6) sigue anclando al `cfi` de inicio (sin regresion); caso reportado (spine 6->7) ahora ancla al `endCfi`; casos limite (solo `endCfi`, solo `href`) degradan de forma segura.
+- Smoke test en el dev server: el lector monta y ejecuta la ruta de restauracion sin excepciones, cero errores de consola. El render final de epub.js no se puede observar en este entorno (panel sin compositar, limitacion ya documentada en #326).
+- Pendiente de confirmacion del usuario en el dispositivo: dejar la lectura justo donde termina un capitulo y empieza otro en la misma pagina, salir y reentrar.
+
+**Archivos Modificados:**
+- `src/components/EpubReader.tsx`
+- `AGENTS.md`
+
 ### [2026-07-27] 328. Optimizacion de peso de assets (audio + imagenes) y limpieza de console.log
 
 **Planificacion:**
