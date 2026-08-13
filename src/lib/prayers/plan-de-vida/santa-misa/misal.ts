@@ -4,7 +4,8 @@ const ritosIniciales: Prayer = {
   id: 'misal-ritos-iniciales',
   title: 'Ritos iniciales',
   categoryId: 'plan-de-vida',
-  content: `
+  content: {
+    espanol: `
 *Antífona de entrada*
 
 **V.** En el nombre del Padre, y del Hijo, y del Espíritu Santo.
@@ -44,13 +45,55 @@ Gloria a Dios en el Cielo, y en la tierra paz a los hombres que ama el Señor. P
 
 **R.** Amén.
 `.trim(),
+    latin: `
+*Antiphona ad introitum*
+
+**V.** In nómine Patris, et Fílii, et Spíritus Sancti.
+**R.** Amen.
+
+**V.** Dóminus vobíscum.
+**R.** Et cum spíritu tuo.
+
+_Vel:_
+
+**V.** Grátia Dómini nostri Iesu Christi, et cáritas Dei, et communicátio Sancti Spíritus sit cum ómnibus vobis.
+**R.** Et cum spíritu tuo.
+
+**V.** Fratres, agnoscámus peccáta nostra, ut apti simus ad sacra mystéria celebránda.
+
+Confíteor Deo omnipoténti et vobis, fratres, quia peccávi nimis cogitatióne, verbo, ópere et omissióne: mea culpa, mea culpa, mea máxima culpa. Ideo precor beátam Maríam semper Vírginem, omnes Angelos et Sanctos, et vos, fratres, oráre pro me ad Dóminum Deum nostrum.
+
+**V.** Misereátur nostri omnípotens Deus, et, dimíssis peccátis nostris, perdúcat nos ad vitam ætérnam.
+**R.** Amen.
+
+*Kyrie*
+
+**V.** Kýrie, eléison.
+**R.** Kýrie, eléison.
+
+**V.** Christe, eléison.
+**R.** Christe, eléison.
+
+**V.** Kýrie, eléison.
+**R.** Kýrie, eléison.
+
+*Gloria*
+
+Glória in excélsis Deo et in terra pax homínibus bonæ voluntátis. Laudámus te, benedícimus te, adorámus te, glorificámus te, grátias ágimus tibi propter magnam glóriam tuam, Dómine Deus, Rex cæléstis, Deus Pater omnípotens. Dómine Fili unigénite, Iesu Christe, Dómine Deus, Agnus Dei, Fílius Patris, qui tollis peccáta mundi, miserére nobis; qui tollis peccáta mundi, súscipe deprecatiónem nostram. Qui sedes ad déxteram Patris, miserére nobis. Quóniam tu solus Sanctus, tu solus Dóminus, tu solus Altíssimus, Iesu Christe, cum Sancto Spíritu: in glória Dei Patris. Amen.
+
+*Oratio collecta*
+
+**R.** Amen.
+`.trim(),
+  },
 };
 
 const liturgiaPalabra: Prayer = {
   id: 'misal-liturgia-palabra',
   title: 'Liturgia de la palabra',
   categoryId: 'plan-de-vida',
-  content: `
+  content: {
+    espanol: `
 *Primera lectura*
 
 **V.** Palabra de Dios.
@@ -86,13 +129,51 @@ Creo en el Espíritu Santo, Señor y dador de vida, que procede del Padre y del 
 
 *Oración de los fieles*
 `.trim(),
+    latin: `
+*Lectio prima*
+
+**V.** Verbum Dómini.
+**R.** Deo grátias.
+
+*Psalmus responsorius*
+
+*Lectio secunda*
+
+**V.** Verbum Dómini.
+**R.** Deo grátias.
+
+*Alleluia vel cantus – Evangelium*
+
+**V.** Dóminus vobíscum.
+**R.** Et cum spíritu tuo.
+
+**V.** ✠ Léctio sancti Evangélii secúndum N.
+**R.** Glória tibi, Dómine.
+
+_Expleto Evangelio:_
+
+**V.** Verbum Dómini.
+**R.** Laus tibi, Christe.
+
+*Professio fidei*
+
+Credo in unum Deum, Patrem omnipoténtem, factórem cæli et terræ, visibílium ómnium et invisibílium.
+
+Et in unum Dóminum Iesum Christum, Fílium Dei unigénitum, et ex Patre natum ante ómnia sǽcula. Deum de Deo, lumen de lúmine, Deum verum de Deo vero, génitum, non factum, consubstantiálem Patri: per quem ómnia facta sunt. Qui propter nos hómines et propter nostram salútem descéndit de cælis. _(Ad verba quæ sequuntur, usque ad factus est, omnes se inclinant.)_ Et incarnátus est de Spíritu Sancto ex María Vírgine, et homo factus est. Crucifíxus étiam pro nobis sub Póntio Piláto; passus et sepúltus est, et resurréxit tértia die, secúndum Scriptúras, et ascéndit in cælum, sedet ad déxteram Patris. Et íterum ventúrus est cum glória, iudicáre vivos et mórtuos, cuius regni non erit finis.
+
+Et in Spíritum Sanctum, Dóminum et vivificántem: qui ex Patre Filióque procédit. Qui cum Patre et Fílio simul adorátur et conglorificátur: qui locútus est per prophétas. Et unam, sanctam, cathólicam et apostólicam Ecclésiam. Confíteor unum baptísma in remissiónem peccatórum. Et exspécto resurrectiónem mortuórum, et vitam ventúri sǽculi. Amen.
+
+*Oratio fidelium*
+`.trim(),
+  },
 };
 
 const liturgiaEucaristica: Prayer = {
   id: 'misal-liturgia-eucaristica',
   title: 'Liturgia eucarística',
   categoryId: 'plan-de-vida',
-  content: `
+  content: {
+    espanol: `
 **V.** Bendito seas, Señor, Dios del universo, por este pan, fruto de la tierra y del trabajo del hombre, que recibimos de tu generosidad y ahora te presentamos; él será para nosotros pan de vida.
 **R.** Bendito seas por siempre, Señor.
 
@@ -106,13 +187,29 @@ const liturgiaEucaristica: Prayer = {
 
 **R.** Amén.
 `.trim(),
+    latin: `
+**V.** Benedíctus es, Dómine, Deus univérsi, quia de tua largitáte accépimus panem, quem tibi offérimus, fructum terræ et óperis mánuum hóminum: ex quo nobis fiet panis vitæ.
+**R.** Benedíctus Deus in sǽcula.
+
+**V.** Benedíctus es, Dómine, Deus univérsi, quia de tua largitáte accépimus vinum, quod tibi offérimus, fructum vitis et óperis mánuum hóminum, ex quo nobis fiet potus spiritális.
+**R.** Benedíctus Deus in sǽcula.
+
+**V.** Oráte, fratres: ut meum ac vestrum sacrifícium acceptábile fiat apud Deum Patrem omnipoténtem.
+**R.** Suscípiat Dóminus sacrifícium de mánibus tuis ad laudem et glóriam nóminis sui, ad utilitátem quoque nostram totiúsque Ecclésiæ suæ sanctæ.
+
+*Oratio super oblata*
+
+**R.** Amen.
+`.trim(),
+  },
 };
 
 const plegariaI: Prayer = {
   id: 'misal-plegaria-i',
   title: 'Plegaria eucarística I (Canon Romano)',
   categoryId: 'plan-de-vida',
-  content: `
+  content: {
+    espanol: `
 Padre misericordioso, te pedimos humildemente por Jesucristo, tu Hijo, nuestro Señor, que aceptes y bendigas estos ✠ dones, este sacrificio santo y puro que te ofrecemos, ante todo, por tu Iglesia santa y católica, para que le concedas la paz, la protejas, la congregues en la unidad y la gobiernes en el mundo entero, con tu servidor el Papa N., con nuestro Obispo (Prelado) N., y todos los demás Obispos que, fieles a la verdad, promueven la fe católica y apostólica.
 
 Acuérdate, Señor, de tus hijos N. y N. y de todos los aquí reunidos, cuya fe y entrega bien conoces; por ellos y todos los suyos, por el perdón de sus pecados y la salvación que esperan, te ofrecemos, y ellos mismos te ofrecen, este sacrificio de alabanza, a ti, eterno Dios, vivo y verdadero.
@@ -151,13 +248,54 @@ Por Cristo, Señor nuestro, por quien sigues creando todos los bienes, los santi
 **V.** Por Cristo, con él y en él, a ti, Dios Padre omnipotente, en la unidad del Espíritu Santo, todo honor y toda gloria por los siglos de los siglos.
 **R.** Amén.
 `.trim(),
+    latin: `
+Te ígitur, clementíssime Pater, per Iesum Christum, Fílium tuum, Dóminum nostrum, súpplices rogámus ac pétimus, uti accépta hábeas et benedícas ✠ hæc dona, hæc múnera, hæc sancta sacrifícia illibáta, in primis, quæ tibi offérimus pro Ecclésia tua sancta cathólica: quam pacificáre, custodíre, adunáre et régere dignéris toto orbe terrárum: una cum fámulo tuo Papa nostro N. et Epíscopo nostro N. et ómnibus orthodóxis atque cathólicæ et apostólicæ fídei cultóribus.
+
+Meménto, Dómine, famulórum famularúmque tuárum N. et N. et ómnium circumstántium, quorum tibi fides cógnita est et nota devótio, pro quibus tibi offérimus: vel qui tibi ófferunt hoc sacrifícium laudis, pro se suísque ómnibus: pro redemptióne animárum suárum, pro spe salútis et incolumitátis suæ: tibíque reddunt vota sua ætérno Deo, vivo et vero.
+
+Communicántes, et memóriam venerántes, in primis gloriósæ semper Vírginis Maríæ, Genetrícis Dei et Dómini nostri Iesu Christi: sed et beáti Ioseph, eiúsdem Vírginis Sponsi, et beatórum Apostolórum ac Mártyrum tuórum, Petri et Pauli, Andréæ, (Iacóbi, Ioánnis, Thomæ, Iacóbi, Philíppi, Bartholomǽi, Matthǽi, Simónis et Thaddǽi: Lini, Cleti, Cleméntis, Xysti, Cornélii, Cypriáni, Lauréntii, Chrysógoni, Ioánnis et Pauli, Cosmæ et Damiáni) et ómnium Sanctórum tuórum; quorum méritis precibúsque concédas, ut in ómnibus protectiónis tuæ muniámur auxílio. (Per Christum Dóminum nostrum. Amen.)
+
+Hanc ígitur oblatiónem servitútis nostræ, sed et cunctæ famíliæ tuæ, quǽsumus, Dómine, ut placátus accípias: diésque nostros in tua pace dispónas, atque ab ætérna damnatióne nos éripi et in electórum tuórum iúbeas grege numerári. (Per Christum Dóminum nostrum. Amen.)
+
+Quam oblatiónem tu, Deus, in ómnibus, quǽsumus, benedíctam, adscríptam, ratam, rationábilem, acceptabilémque fácere dignéris: ut nobis Corpus et Sanguis fiat dilectíssimi Fílii tui, Dómini nostri Iesu Christi.
+
+Qui, prídie quam paterétur, accépit panem in sanctas ac venerábiles manus suas, et elevátis óculis in cælum ad te Deum Patrem suum omnipoténtem, tibi grátias agens benedíxit, fregit, dedítque discípulis suis, dicens:
+
+ACCÍPITE ET MANDUCÁTE EX HOC OMNES: HOC EST ENIM CORPUS MEUM, QUOD PRO VOBIS TRADÉTUR.
+
+Símili modo, postquam cenátum est, accípiens et hunc præclárum cálicem in sanctas ac venerábiles manus suas, item tibi grátias agens benedíxit, dedítque discípulis suis, dicens:
+
+ACCÍPITE ET BÍBITE EX EO OMNES: HIC EST ENIM CALIX SÁNGUINIS MEI NOVI ET ÆTÉRNI TESTAMÉNTI, QUI PRO VOBIS ET PRO MULTIS EFFUNDÉTUR IN REMISSIÓNEM PECCATÓRUM. HOC FÁCITE IN MEAM COMMEMORATIÓNEM.
+
+**V.** Mystérium fídei.
+**R.** Mortem tuam annuntiámus, Dómine, et tuam resurrectiónem confitémur, donec vénias.
+
+Unde et mémores, Dómine, nos servi tui, sed et plebs tua sancta, eiúsdem Christi, Fílii tui, Dómini nostri, tam beátæ passiónis, nec non et ab ínferis resurrectiónis, sed et in cælos gloriósæ ascensiónis: offérimus præcláræ maiestáti tuæ de tuis donis ac datis hóstiam puram, hóstiam sanctam, hóstiam immaculátam, Panem sanctum vitæ ætérnæ et Cálicem salútis perpétuæ.
+
+Supra quæ propítio ac seréno vultu respícere dignéris: et accépta habére, sícuti accépta habére dignátus es múnera púeri tui iusti Abel, et sacrifícium Patriárchæ nostri Abrahæ, et quod tibi óbtulit summus sacérdos tuus Melchísedech, sanctum sacrifícium, immaculátam hóstiam.
+
+Súpplices te rogámus, omnípotens Deus: iube hæc perférri per manus sancti Angeli tui in sublíme altáre tuum, in conspéctu divínæ maiestátis tuæ; ut, quotquot ex hac altáris participatióne sacrosánctum Fílii tui Corpus et Sánguinem sumpsérimus, omni benedictióne cælésti et grátia repleámur. (Per Christum Dóminum nostrum. Amen.)
+
+Meménto étiam, Dómine, famulórum famularúmque tuárum N. et N., qui nos præcessérunt cum signo fídei, et dórmiunt in somno pacis.
+
+Ipsis, Dómine, et ómnibus in Christo quiescéntibus, locum refrigérii, lucis et pacis, ut indúlgeas, deprecámur. (Per Christum Dóminum nostrum. Amen.)
+
+Nobis quoque peccatóribus fámulis tuis, de multitúdine miseratiónum tuárum sperántibus, partem áliquam et societátem donáre dignéris cum tuis sanctis Apóstolis et Martýribus: cum Ioánne, Stéphano, Matthía, Bárnaba, (Ignátio, Alexándro, Marcellíno, Petro, Felicitáte, Perpétua, Agatha, Lúcia, Agnéte, Cæcília, Anastásia) et ómnibus Sanctis tuis: intra quorum nos consórtium, non æstimátor mériti, sed véniæ, quǽsumus, largítor admítte.
+
+Per Christum Dóminum nostrum. Per quem hæc ómnia, Dómine, semper bona creas, sanctíficas, vivíficas, benedícis, et præstas nobis.
+
+**V.** Per ipsum, et cum ipso, et in ipso, est tibi Deo Patri omnipoténti, in unitáte Spíritus Sancti, omnis honor et glória per ómnia sǽcula sæculórum.
+**R.** Amen.
+`.trim(),
+  },
 };
 
 const plegariaII: Prayer = {
   id: 'misal-plegaria-ii',
   title: 'Plegaria eucarística II',
   categoryId: 'plan-de-vida',
-  content: `
+  content: {
+    espanol: `
 **V.** El Señor esté con vosotros.
 **R.** Y con tu espíritu.
 
@@ -201,13 +339,59 @@ Ten misericordia de todos nosotros, y así, con María, la Virgen Madre de Dios,
 **V.** Por Cristo, con él y en él, a ti, Dios Padre omnipotente, en la unidad del Espíritu Santo, todo honor y toda gloria por los siglos de los siglos.
 **R.** Amén.
 `.trim(),
+    latin: `
+**V.** Dóminus vobíscum.
+**R.** Et cum spíritu tuo.
+
+**V.** Sursum corda.
+**R.** Habémus ad Dóminum.
+
+**V.** Grátias agámus Dómino Deo nostro.
+**R.** Dignum et iustum est.
+
+*Præfatio*
+
+Vere dignum et iustum est, æquum et salutáre, nos tibi, sancte Pater, semper et ubíque grátias ágere per Fílium dilectiónis tuæ Iesum Christum, Verbum tuum per quod cuncta fecísti: quem misísti nobis Salvatórem et Redemptórem, incarnátum de Spíritu Sancto et ex Vírgine natum. Qui voluntátem tuam adímplens et pópulum tibi sanctum acquírens exténdit manus cum paterétur, ut mortem sólveret et resurrectiónem manifestáret. Et ídeo cum Angelis et ómnibus Sanctis glóriam tuam prædicámus, una voce dicéntes:
+
+*Sanctus*
+
+Sanctus, Sanctus, Sanctus Dóminus Deus Sábaoth. Pleni sunt cæli et terra glória tua. Hosánna in excélsis. Benedíctus qui venit in nómine Dómini. Hosánna in excélsis.
+
+Vere Sanctus es, Dómine, fons omnis sanctitátis. Hæc ergo dona, quǽsumus, Spíritus tui rore sanctífica, ut nobis Corpus et ✠ Sanguis fiant Dómini nostri Iesu Christi.
+
+Qui cum Passióni voluntárie traderétur, accépit panem et grátias agens fregit, dedítque discípulis suis, dicens:
+
+ACCÍPITE ET MANDUCÁTE EX HOC OMNES: HOC EST ENIM CORPUS MEUM, QUOD PRO VOBIS TRADÉTUR.
+
+Símili modo, postquam cenátum est, accípiens et cálicem, íterum grátias agens dedit discípulis suis, dicens:
+
+ACCÍPITE ET BÍBITE EX EO OMNES: HIC EST ENIM CALIX SÁNGUINIS MEI NOVI ET ÆTÉRNI TESTAMÉNTI, QUI PRO VOBIS ET PRO MULTIS EFFUNDÉTUR IN REMISSIÓNEM PECCATÓRUM. HOC FÁCITE IN MEAM COMMEMORATIÓNEM.
+
+**V.** Mystérium fídei.
+**R.** Mortem tuam annuntiámus, Dómine, et tuam resurrectiónem confitémur, donec vénias.
+
+Mémores ígitur mortis et resurrectiónis eius, tibi, Dómine, panem vitæ et cálicem salútis offérimus, grátias agéntes quia nos dignos habuísti astáre coram te et tibi ministráre.
+
+Et súpplices deprecámur ut Córporis et Sánguinis Christi partícipes a Spíritu Sancto congregémur in unum.
+
+Recordáre, Dómine, Ecclésiæ tuæ toto orbe diffúsæ, ut eam in caritáte perfícias una cum Papa nostro N. et Epíscopo nostro N. et univérso clero.
+
+Meménto étiam fratrum nostrórum, qui in spe resurrectiónis dormiérunt, omniúmque in tua miseratióne defunctórum, et eos in lumen vultus tui admítte.
+
+Omnium nostrum, quǽsumus, miserére, ut cum beáta Dei Genetríce Vírgine María, beáto Ioseph, eius Sponso, cum beátis Apóstolis et ómnibus Sanctis, qui tibi a sǽculo placuérunt, ætérnæ vitæ mereámur esse consórtes, et te laudémus et glorificámus per Fílium tuum Iesum Christum.
+
+**V.** Per ipsum, et cum ipso, et in ipso, est tibi Deo Patri omnipoténti, in unitáte Spíritus Sancti, omnis honor et glória per omnia sǽcula sæculórum.
+**R.** Amen.
+`.trim(),
+  },
 };
 
 const plegariaIII: Prayer = {
   id: 'misal-plegaria-iii',
   title: 'Plegaria eucarística III',
   categoryId: 'plan-de-vida',
-  content: `
+  content: {
+    espanol: `
 Santo eres en verdad, Padre, y con razón te alaban todas tus criaturas, ya que por Jesucristo, tu Hijo, Señor nuestro, con la fuerza del Espíritu Santo, das vida y santificas todo, y congregas a tu pueblo sin cesar, para que ofrezca en tu honor un sacrificio sin mancha desde donde sale el sol hasta el ocaso.
 
 Por eso, Padre, te suplicamos que santifiques por el mismo Espíritu estos dones que hemos separado para ti, de manera que sean Cuerpo y ✠ Sangre de Jesucristo, Hijo tuyo y Señor nuestro, que nos mandó celebrar estos misterios.
@@ -238,13 +422,46 @@ A nuestros hermanos difuntos y a cuantos murieron en tu amistad recíbelos en tu
 **V.** Por Cristo, con él y en él, a ti, Dios Padre omnipotente, en la unidad del Espíritu Santo, todo honor y toda gloria por los siglos de los siglos.
 **R.** Amén.
 `.trim(),
+    latin: `
+Vere Sanctus es, Dómine, et mérito te laudat omnis a te cóndita creatúra, quia per Fílium tuum, Dóminum nostrum Iesum Christum, Spíritus Sancti operánte virtúte, vivíficas et sanctíficas univérsa, et pópulum tibi congregáre non désinis, ut a solis ortu usque ad occásum oblátio munda offerátur nómini tuo.
+
+Súpplices ergo te, Dómine, deprecámur, ut hæc múnera, quæ tibi sacránda detúlimus, eódem Spíritu sanctificáre dignéris, ut Corpus et ✠ Sanguis fiant Fílii tui Dómini nostri Iesu Christi, cuius mandáto hæc mystéria celebrámus.
+
+Ipse enim in qua nocte tradebátur accépit panem et tibi grátias agens benedíxit, fregit, dedítque discípulis suis, dicens:
+
+ACCÍPITE ET MANDUCÁTE EX HOC OMNES: HOC EST ENIM CORPUS MEUM, QUOD PRO VOBIS TRADÉTUR.
+
+Símili modo, postquam cenátum est, accípiens cálicem, et tibi grátias agens benedíxit, dedítque discípulis suis, dicens:
+
+ACCÍPITE ET BÍBITE EX EO OMNES: HIC EST ENIM CALIX SÁNGUINIS MEI NOVI ET ÆTÉRNI TESTAMÉNTI, QUI PRO VOBIS ET PRO MULTIS EFFUNDÉTUR IN REMISSIÓNEM PECCATÓRUM. HOC FÁCITE IN MEAM COMMEMORATIÓNEM.
+
+**V.** Mystérium fídei.
+**R.** Mortem tuam annuntiámus, Dómine, et tuam resurrectiónem confitémur, donec vénias.
+
+Mémores ígitur, Dómine, eiúsdem Fílii tui salutíferæ passiónis necnon mirábilis resurrectiónis et ascensiónis in cælum, sed et præstolántes álterum eius advéntum, offérimus tibi, grátias referéntes, hoc sacrifícium vivum et sanctum.
+
+Réspice, quǽsumus, in oblatiónem Ecclésiæ tuæ et, agnóscens Hóstiam, cuius voluísti immolatióne placári, concéde, ut qui Córpore et Sánguine Fílii tui refícimur, Spíritu eius Sancto repléti, unum corpus et unus spíritus inveniámur in Christo.
+
+Ipse nos tibi perfíciat munus ætérnum, ut cum eléctis tuis hereditátem cónsequi valeámus, in primis cum beatíssima Vírgine, Dei Genetríce, María, cum beáto Ioseph, eius Sponso, cum beátis Apóstolis tuis et gloriósis Martýribus (cum Sancto N.) et ómnibus Sanctis, quorum intercessióne perpétuo apud te confídimus adiuvári.
+
+Hæc Hóstia nostræ reconciliatiónis profíciat, quǽsumus, Dómine, ad totíus mundi pacem atque salútem. Ecclésiam tuam, peregrinántem in terra, in fide et caritáte firmáre dignéris cum fámulo tuo Papa nostro N. et Epíscopo nostro N., cum episcopáli órdine et univérso clero et omni pópulo acquisitiónis tuæ.
+
+Votis huius famíliæ, quam tibi astáre voluísti, adésto propítius. Omnes fílios tuos ubíque dispérsos tibi, clemens Pater, miserátus coniúnge.
+
+Fratres nostros defúnctos et omnes qui, tibi placéntes, ex hoc sǽculo transiérunt, in regnum tuum benígnus admítte, ubi fore sperámus, ut simul glória tua perénniter satiémur, per Christum Dóminum nostrum, per quem mundo bona cuncta largíris.
+
+**V.** Per ipsum, et cum ipso, et in ipso, est tibi Deo Patri omnipoténti, in unitáte Spíritus Sancti, omnis honor et glória per ómnia sǽcula sæculórum.
+**R.** Amen.
+`.trim(),
+  },
 };
 
 const plegariaIV: Prayer = {
   id: 'misal-plegaria-iv',
   title: 'Plegaria eucarística IV',
   categoryId: 'plan-de-vida',
-  content: `
+  content: {
+    espanol: `
 **V.** El Señor esté con vosotros.
 **R.** Y con tu espíritu.
 
@@ -270,7 +487,7 @@ Y porque no vivamos ya para nosotros mismos, sino para él, que por nosotros mur
 
 Por eso, Padre, te rogamos que este mismo Espíritu santifique estas ofrendas, para que sean Cuerpo y ✠ Sangre de Jesucristo, nuestro Señor, y así celebremos el gran misterio que nos dejó como alianza eterna.
 
-Porque él mismo, llegada la hora en que había de ser glorificado por ti, Padre Santo, habiendo amado a los suyos que estaban en el mundo, los amó hasta el extremo. Y, mientras cenaba con sus discípulos, tomó pan, te bendijo, lo partió y se lo dio, diciendo:
+Porque él mismo, llegada la hora en que había de ser glorificado por ti, Padre Santo, habiendo amado a los suyos que estaban en el mundo, los amó hasta el extremo. Y, mientras cenaba con sus discípulos, tomó pan, te bendijo, lo partió y lo se lo dio, diciendo:
 
 TOMAD Y COMED TODOS DE ÉL, PORQUE ESTO ES MI CUERPO, QUE SERÁ ENTREGADO POR VOSOTROS.
 
@@ -294,13 +511,65 @@ Padre de bondad, que todos tus hijos nos reunamos en la heredad de tu Reino, con
 **V.** Por Cristo, con él y en él, a ti, Dios Padre omnipotente, en la unidad del Espíritu Santo, todo honor y toda gloria por los siglos de los siglos.
 **R.** Amén.
 `.trim(),
+    latin: `
+**V.** Dóminus vobíscum.
+**R.** Et cum spíritu tuo.
+
+**V.** Sursum corda.
+**R.** Habémus ad Dóminum.
+
+**V.** Grátias agámus Dómino Deo nostro.
+**R.** Dignum et iustum est.
+
+*Præfatio*
+
+Vere dignum est tibi grátias ágere, vere iustum est te glorificáre, Pater sancte, quia unus es Deus vivus et verus, qui es ante sǽcula et pérmanes in ætérnum, inaccessíbilem lucem inhábitans; sed et qui unus bonus atque fons vitæ cuncta fecísti, ut creatúras tuas benedictiónibus adimpléres multásque lætificáres tui lúminis claritáte. Et ídeo coram te innúmeræ astant turbæ angelórum, qui die ac nocte sérviunt tibi et, vultus tui glóriam contemplántes, te incessánter gloríficant. Cum quibus et nos et, per nostram vocem, omnis quæ sub cælo est creatúra nomen tuum in exsultatióne confitémur, canéntes:
+
+*Sanctus*
+
+Sanctus, Sanctus, Sanctus Dóminus Deus Sábaoth. Pleni sunt cæli et terra glória tua. Hosánna in excélsis. Benedíctus qui venit in nómine Dómini. Hosánna in excélsis.
+
+Confitémur tibi, Pater sancte, quia magnus es et ómnia ópera tua in sapiéntia et caritáte fecísti. Hóminen ad tuam imáginem condidísti, eíque commisísti mundi curam univérsi, ut, tibi soli Creatóri sérviens, creatúris ómnibus imperáret. Et cum amicítiam tuam, non obœ ́diens, amisísset, non eum dereliquísti in mortis império. Omnibus enim misericórditer subvenísti, ut te quæréntes invenírent. Sed et fœ ́dera plúries homínibus obtulísti eósque per prophétas erudísti in exspectatióne salútis.
+
+Et sic, Pater sancte, mundum dilexísti, ut, compléta plenitúdine témporum, Unigénitum tuum nobis mítteres Salvatórem. Qui, incarnátus de Spíritu Sancto et natus ex María Vírgine, in nostra condiciónis forma est conversátus per ómnia absque peccáto; salútem evangelizávit paupéribus, redemptiónem captívis, mæstis corde lætítiam. Ut tuam vero dispensatiónem impléret, in mortem trádidit semetípsum ac, resúrgens a mórtuis, mortem destrúxit vitámque renovávit.
+
+Et, ut non ámplius nobismetípsis viverémus, sed sibi qui pro nobis mórtuus est atque surréxit, a te, Pater, misit Spíritum Sanctum primítias credéntibus, qui, opus suum in mundo perfíciens, omnem sanctificatiónem compléret.
+
+Quǽsumus ígitur, Dómine, ut idem Spíritus Sanctus hæc múnera sanctificáre dignétur, ut Corpus et ✠ Sanguis fiant Dómini nostri Iesu Christi ad hoc magnum mystérium celebrándum, quod ipse nobis relíquit in fœdus ætérnum.
+
+Ipse enim, cum hora venísset ut glorificarétur a te, Pater sancte, ac dilexísti suos qui erant in mundo, in finem diléxit eos: et cenántibus illis accépit panem, benedíxit ac fregit, dedítque discípulis suis, dicens:
+
+ACCÍPITE ET MANDUCÁTE EX HOC OMNES: HOC EST ENIM CORPUS MEUM, QUOD PRO VOBIS TRADÉTUR.
+
+Símili modo accípiens cálicem, ex genímine vitis replétum, grátias egit, dedítque discípulis suis, dicens:
+
+ACCÍPITE ET BÍBITE EX EO OMNES: HIC EST ENIM CALIX SÁNGUINIS MEI NOVI ET ÆTÉRNI TESTAMÉNTI, QUI PRO VOBIS ET PRO MULTIS EFFUNDÉTUR IN REMISSIÓNEM PECCATÓRUM. HOC FÁCITE IN MEAM COMMEMORATIÓNEM.
+
+**V.** Mystérium fídei.
+**R.** Mortem tuam annuntiámus, Dómine, et tuam resurrectiónem confitémur, donec vénias.
+
+Unde et nos, Dómine, redemptiónis nostræ memoriále nunc celebrántes, mortem Christi eiúsque descénsum ad ínferos recólimus, eius resurrectiónem et ascensiónis ad tuam déxteram profitémur et, exspectántes ipsíus advéntum in glória, offérimus tibi eius Corpus et Sánguinem, sacrifícium tibi acceptábile et toti mundo salutáre.
+
+Réspice, Dómine, in Hóstiam, quam Ecclésiæ tuæ ipse parásti, et concéde benígnus ómnibus qui ex hoc uno pane participábunt et cálice, ut, in unum corpus a Sancto Spíritu congregáti, in Christo hóstia viva perficiántur, ad laudem glóriæ tuæ.
+
+Nunc ergo, Dómine, ómnium recordáre, pro quibus tibi hanc oblatiónem offérimus: in primis fámuli tui, Papæ nostri N., Epíscopi nostri N., et Episcopórum órdinis univérsi, sed et totíus cleri, et offeréntium, et circumstántium, et cuncti pópuli tui, et ómnium, qui te quærunt corde sincéro.
+
+Meménto etiam illórum, qui obiérunt in pace Christi tui, et ómnium defunctórum, quorum fidem tu solus cognovísti.
+
+Nobis ómnibus, fíliis tuis, clemens Pater, concéde, ut cæléstem hereditátem cónsequi valeámus cum beáta Vírgine, Dei Genetríce, María, cum beáto Ioseph, eius Sponso, cum Apóstolis et Sanctis tuis in regno tuo, ubi cum univérsa creatúra, a corruptióne peccáti et mortis liberáta, te glorificémus per Christum Dóminum nostrum, per quem mundo bona cuncta largíris.
+
+**V.** Per ipsum, et cum ipso, et in ipso, est tibi Deo Patri omnipoténti, in unitáte Spíritus Sancti, omnis honor et glória per ómnia sǽcula sæculórum.
+**R.** Amen.
+`.trim(),
+  },
 };
 
 const ritoComunion: Prayer = {
   id: 'misal-rito-comunion',
   title: 'Rito de la Comunión',
   categoryId: 'plan-de-vida',
-  content: `
+  content: {
+    espanol: `
 **V.** Fieles a la recomendación del Salvador y siguiendo su divina enseñanza, nos atrevemos a decir:
 
 Padre nuestro, que estás en el cielo, santificado sea tu Nombre, venga a nosotros tu reino, hágase tu voluntad en la tierra como en el cielo. Danos hoy nuestro pan de cada día, perdona nuestras ofensas, como también nosotros perdonamos a los que nos ofenden; no nos dejes caer en la tentación, y líbranos del mal.
@@ -331,13 +600,46 @@ Cordero de Dios, que quitas el pecado del mundo, danos la paz.
 
 **R.** Amén.
 `.trim(),
+    latin: `
+**V.** Præcéptis salutáribus móniti, et divína institutióne formáti, audémus dícere:
+
+Pater noster, qui es in cælis: sanctificétur nomen tuum; advéniat regnum tuum; fiat volúntas tua, sicut in cælo, et in terra. Panem nostrum cotidiánum da nobis hódie; et dimítte nobis débita nostra, sicut et nos dimíttimus debitóribus nostris; et ne nos indúcas in tentatiónem; sed líbera nos a malo.
+
+**V.** Líberanos, quǽsumus, Dómine, ab ómnibus malis, da propítius pacem in diébus nostris, ut, ope misericórdiæ tuæ adiúti, et a peccáto simus semper líberi et ab omni perturbatióne secúri: exspectántes beátam spem et advéntum Salvatóris nostri Iesu Christi.
+**R.** Quia tuum est regnum, et potéstas, et glória in sǽcula.
+
+**V.** Dómine Iesu Christe, qui dixísti Apóstolis tuis: Pacem relínquo vobis, pacem meam do vobis: ne respícias peccáta nostra, sed fidem Ecclésiæ tuæ; eámque secúndum voluntátem tuam pacificáre et coadunáre dignéris. Qui vivis et regnas in sǽcula sæculórum.
+**R.** Amen.
+
+**V.** Pax Dómini sit semper vobíscum.
+**R.** Et cum spíritu tuo.
+
+_(V. Offérte vobis pacem.)_
+
+*Agnus Dei*
+
+Agnus Dei, qui tollis peccáta mundi: miserére nobis.
+Agnus Dei, qui tollis peccáta mundi: miserére nobis.
+Agnus Dei, qui tollis peccáta mundi: dona nobis pacem.
+
+**V.** Ecce Agnus Dei, ecce qui tollit peccáta mundi. Beáti qui ad cenam Agni vocáti sunt.
+**R.** Dómine, non sum dignus ut intres sub tectum meum: sed tantum dic verbo, et sanábitur ánima mea.
+
+*Antiphona ad communionem*
+
+*Oratio post communionem*
+
+**R.** Amen.
+`.trim(),
+  },
 };
 
 const ritoConclusion: Prayer = {
   id: 'misal-rito-conclusion',
   title: 'Rito de conclusión',
   categoryId: 'plan-de-vida',
-  content: `
+  content: {
+    espanol: `
 **V.** El Señor esté con vosotros.
 **R.** Y con tu espíritu.
 
@@ -347,6 +649,17 @@ const ritoConclusion: Prayer = {
 **V.** Podéis ir en paz.
 **R.** Demos gracias a Dios.
 `.trim(),
+    latin: `
+**V.** Dóminus vobíscum.
+**R.** Et cum spíritu tuo.
+
+**V.** Benedícat vos omnípotens Deus, Pater, et Fílius, ✠ et Spíritus Sanctus.
+**R.** Amen.
+
+**V.** Ite, missa est.
+**R.** Deo grátias.
+`.trim(),
+  },
 };
 
 export const misal: Prayer = {
