@@ -8,6 +8,34 @@ Historial de intervenciones del asistente en el repo.
 - Esta obligacion aplica aunque el usuario pida tocar solo lo estrictamente necesario: el registro en `AGENTS.md` se considera parte estrictamente necesaria de cualquier edicion del repo.
 - Si una instruccion del usuario prohibe explicitamente editar `AGENTS.md`, el agente debe pedir aclaracion antes de modificar otros archivos.
 
+### [2026-08-21] 331. EpubReader: robustecimiento del guardado de posición (listener Capacitor appStateChange, guardado inmediato y persistencia dual)
+
+**Planificacion:**
+- El usuario reportó problemas donde la posición de lectura o progreso en el lector EPUB se perdía al cerrar la app o cambiar de capítulo.
+- Diagnóstico con prioridad en el entorno APK (Android/Capacitor):
+  1. En Android/Capacitor, depender exclusivamente de `visibilitychange` y `pagehide` para persistir al pausar la app es frágil si el sistema mata la WebView en background. El evento nativo directo de Capacitor es `App.addListener('appStateChange')`.
+  2. `persistAfterNavigation` usaba un `window.setTimeout(..., 80)` innecesario que podía perderse si la app cerraba antes de que se cumpliera el temporizador.
+  3. El lector guardaba exclusivamente en `localStorage` (volátil ante limpieza de caché en PWA), a diferencia del resto de la app que ya usa IndexedDB (`persistence.ts`).
+  4. Bloques `try/catch` en storage silenciaban errores de cuota (`QuotaExceededError`) sin trazado.
+
+**Ejecucion:**
+- `src/lib/epub-reader/helpers.ts`:
+  - Se crearon `saveEpubPosition` (escritura síncrona en localStorage + copia fire-and-forget en IndexedDB vía `persistence.ts`) y `loadEpubPosition` (lectura asíncrona de IndexedDB con fallback y migración automática desde `localStorage`).
+- `src/components/EpubReader.tsx`:
+  - Se integró `App.addListener('appStateChange', ...)` de Capacitor condicionado a `Capacitor.isNativePlatform()` para persistir de forma inmediata y confiable en el ciclo de vida nativo de Android cuando la app pasa a background (`state.isActive === false`).
+  - Se convirtió `persistAfterNavigation` a `useCallback` sin temporizadores (guardado síncrono/inmediato tras resolver la navegación de página/capítulo).
+  - Se conectó `saveEpubPosition` en `persistReaderLocation` con trazado de advertencia en `pushDevLiveTrace` ante fallos de escritura.
+  - Se actualizó el hook de carga para recuperar la posición con `await loadEpubPosition(...)`.
+
+**Validacion:**
+- `npx tsc --noEmit` completado sin errores de tipado (exit code 0).
+- `npm run build` ejecutado exitosamente generando el export estático y bundles sin errores.
+
+**Archivos Modificados:**
+- `src/lib/epub-reader/helpers.ts`
+- `src/components/EpubReader.tsx`
+- `AGENTS.md`
+
 ### [2026-07-28] 330. Icono de la PWA: banda naranja de relleno en los bordes
 
 **Planificacion:**

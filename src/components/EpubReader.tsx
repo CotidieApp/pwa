@@ -1,8 +1,10 @@
-﻿'use client';
+'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import ePub, { EpubCFI, type Book, type Rendition } from 'epubjs';
+import { App } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
@@ -57,6 +59,8 @@ import {
   getElementCfi,
   getExcerptFromElement,
   detectNtBookId,
+  saveEpubPosition,
+  loadEpubPosition,
 } from '@/lib/epub-reader/helpers';
 import { ReaderTocPanel } from '@/components/epub-reader/ReaderTocPanel';
 import { ReaderSearchPanel } from '@/components/epub-reader/ReaderSearchPanel';
@@ -180,10 +184,15 @@ export default function EpubReader({
     stableLocationRef.current = location;
     const visibleCfi = location.cfi ?? location.endCfi;
     if (visibleCfi) setCurrentCfi(visibleCfi);
-    try {
-      window.localStorage.setItem(locationStorageKey, serializeStoredReaderLocation(location));
-    } catch {}
-  }, [locationStorageKey]);
+    saveEpubPosition(locationStorageKey, location, (err) => {
+      pushDevLiveTrace({
+        level: 'warn',
+        source: 'epub-reader',
+        message: 'Error al guardar posicion en storage.',
+        data: err instanceof Error ? err.message : String(err),
+      });
+    });
+  }, [locationStorageKey, pushDevLiveTrace]);
 
   const persistCurrentLocation = useCallback(() => {
     // Prefer the live query: stableLocationRef can be stale for up to
@@ -557,11 +566,11 @@ export default function EpubReader({
           .filter((item) => typeof item?.cfiRange === 'string');
         if (!cancelled) setHighlights(storedHighlights);
 
-        const savedLocation = parseStoredReaderLocation(window.localStorage.getItem(locationStorageKey));
+        const savedLocation = await loadEpubPosition(locationStorageKey);
         pushDevLiveTrace({
           level: 'info',
           source: 'epub-reader',
-          message: 'Ubicacion leida de localStorage al abrir.',
+          message: 'Ubicacion leida de storage al abrir.',
           data: savedLocation
             ? `cfi=${(savedLocation.endCfi ?? savedLocation.cfi ?? savedLocation.href ?? '').slice(0, 30)}...`
             : '(sin ubicacion guardada)',
@@ -865,20 +874,34 @@ export default function EpubReader({
     };
   }, [persistCurrentLocation]);
 
-  const persistAfterNavigation = () => {
-    window.setTimeout(() => {
-      const location = getRenditionLocation(renditionRef.current);
-      if (location) {
-        persistReaderLocation(location);
-        pushDevLiveTrace({
-          level: 'info',
-          source: 'epub-reader',
-          message: 'Posicion guardada tras navegacion explicita.',
-          data: `cfi=${(location.endCfi ?? location.cfi ?? '').slice(0, 30)}...`,
-        });
+  // APK: salvar posicion cuando Android pone la app en segundo plano
+  // (mas confiable que visibilitychange/pagehide en Capacitor).
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    let handle: { remove: () => void } | null = null;
+    void App.addListener('appStateChange', (state) => {
+      if (!state.isActive) {
+        persistCurrentLocation();
       }
-    }, 80);
-  };
+    }).then((h) => {
+      handle = h;
+    });
+    return () => {
+      handle?.remove();
+    };
+  }, [persistCurrentLocation]);
+
+  const persistAfterNavigation = useCallback(() => {
+    const location = getRenditionLocation(renditionRef.current) ?? stableLocationRef.current;
+    if (!location) return;
+    persistReaderLocation(location);
+    pushDevLiveTrace({
+      level: 'info',
+      source: 'epub-reader',
+      message: 'Posicion guardada tras navegacion explicita (sin timer).',
+      data: `cfi=${(location.endCfi ?? location.cfi ?? '').slice(0, 30)}...`,
+    });
+  }, [persistReaderLocation, pushDevLiveTrace]);
 
   const prepareForReaderNavigation = () => {
     if (resizeReleaseTimerRef.current !== null) {

@@ -1,4 +1,5 @@
 import type { Rendition } from 'epubjs';
+import { persistence } from '@/lib/persistence';
 import {
   READER_STYLE_TAG_ID,
   READER_FONT_STYLESHEET_ID,
@@ -159,6 +160,48 @@ export const parseStoredReaderLocation = (raw: string | null): StoredReaderLocat
 };
 
 export const serializeStoredReaderLocation = (location: StoredReaderLocation) => JSON.stringify(location);
+
+/** Escribe la posición en localStorage (síncrono) y en IndexedDB (fire-and-forget). */
+export const saveEpubPosition = (
+  key: string,
+  location: StoredReaderLocation,
+  onError?: (err: unknown) => void,
+): void => {
+  const serialized = serializeStoredReaderLocation(location);
+  try {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(key, serialized);
+    }
+  } catch (err) {
+    onError?.(err);
+  }
+  void persistence.setItem(key, serialized).catch((err) => onError?.(err));
+};
+
+/** Lee la posición: intenta IndexedDB, cae a localStorage y migra si encuentra
+ *  datos ahí. Retorna null si no hay nada guardado. */
+export const loadEpubPosition = async (key: string): Promise<StoredReaderLocation | null> => {
+  // 1. Intentar IndexedDB
+  try {
+    const idbRaw = await persistence.getItem<string>(key);
+    if (idbRaw) return parseStoredReaderLocation(idbRaw);
+  } catch {}
+  // 2. Fallback + migración desde localStorage
+  try {
+    if (typeof window !== 'undefined') {
+      const lsRaw = window.localStorage.getItem(key);
+      if (lsRaw) {
+        const parsed = parseStoredReaderLocation(lsRaw);
+        if (parsed) {
+          // Migrar a IndexedDB para las próximas veces
+          void persistence.setItem(key, lsRaw).catch(() => {});
+        }
+        return parsed;
+      }
+    }
+  } catch {}
+  return null;
+};
 
 export const getRenditionLocation = (
   rendition: Rendition | null,
