@@ -14,6 +14,14 @@ export const toStorageKey = (fileName: string) => `cotidie_epub_location_${fileN
 export const toBookmarksKey = (fileName: string) => `cotidie_epub_bookmarks_${fileName.trim().toLowerCase()}`;
 export const toHighlightsKey = (fileName: string) => `cotidie_epub_highlights_${fileName.trim().toLowerCase()}`;
 
+/**
+ * Redondea una dimensión de píxeles al múltiplo más cercano de `grid`.
+ * Se usa para las dimensiones del contenedor que se pasan a epub.js, de modo
+ * que variaciones de 1-2 px en los safe-area-insets del sistema no cambien
+ * la paginación entre sesiones.
+ */
+export const snapToGrid = (n: number, grid = 2): number => Math.floor(n / grid) * grid;
+
 export const getStoredReaderFontSize = (fallback: number) => {
   const normalizedFallback = Math.min(
     MAX_READER_FONT_SIZE,

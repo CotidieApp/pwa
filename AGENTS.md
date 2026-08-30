@@ -8,6 +8,35 @@ Historial de intervenciones del asistente en el repo.
 - Esta obligacion aplica aunque el usuario pida tocar solo lo estrictamente necesario: el registro en `AGENTS.md` se considera parte estrictamente necesaria de cualquier edicion del repo.
 - Si una instruccion del usuario prohibe explicitamente editar `AGENTS.md`, el agente debe pedir aclaracion antes de modificar otros archivos.
 
+### [2026-08-30] 332. EpubReader: eliminación del flash de repaginación visual, estabilización geométrica con snapToGrid y ampliación de ventana de asentamiento
+
+**Planificacion:**
+- El usuario reportó que el lector EPUB seguía presentando problemas de consistencia en el posicionamiento y que al entrar o cambiar de capítulo se apreciaba un rápido desplazamiento visual de palabras (flash de repaginación interno de epub.js).
+- Diagnóstico:
+  1. En epub.js, al cambiar de capítulo/spine item o al montar, el iframe renderiza columnas CSS y calcula dimensiones mientras el browser composita; ese layout interno era visible para el usuario y podía provocar lecturas o estados transitorios no asentados.
+  2. Variaciones sutiles de 1-2px en el tamaño del contenedor entre sesiones (por insets de sistema en Android) causaban ligeras diferencias de cálculo de columnas en epub.js.
+  3. La ventana de asentamiento (`scheduleRestoreRelease`) de 400ms era demasiado ajustada para WebView en dispositivos Android bajo carga.
+  4. Los saltos de capítulo (`displayAndPersist`) necesitaban esperar la confirmación del evento `relocated` de epub.js bajo un overlay opaco del color de fondo del lector.
+
+**Ejecucion:**
+- `src/lib/epub-reader/helpers.ts`:
+  - Se agregó `snapToGrid(n, grid = 2)` para redondear las dimensiones del viewport a múltiplos enteros pares, garantizando paginación consistente e insensible a fluctuaciones de 1px en insets.
+- `src/components/EpubReader.tsx`:
+  - Se implementó un overlay de transición opaco (`isTransitioning`, `beginTransition`, `endTransition`) con el mismo color de fondo del lector que cubre el contenedor durante la carga inicial, cambios de capítulo y operaciones de repaginado, ocultando el flash interno de epub.js (patrón estándar tipo Apple Books / Kindle).
+  - Se aplicó `snapToGrid` al tamaño inicial de `renderTo` y en `refreshRenditionLayout`.
+  - Se amplió la ventana de asentamiento de la restauración inicial de 400ms a 800ms (`scheduleRestoreRelease(800)`).
+  - En `displayAndPersist`, se integró la espera del evento `relocated` con timeout de seguridad de 800ms bajo el overlay de transición antes de persistir la posición final.
+  - Se aseguró la definición adecuada de `targetEndCfi` en el flujo de restauración inicial con nudging.
+
+**Validacion:**
+- `npx tsc --noEmit` completado exitosamente sin errores (exit code 0).
+- `npm run build` ejecutado con éxito, compilando todas las rutas y bundles estáticos.
+
+**Archivos Modificados:**
+- `src/lib/epub-reader/helpers.ts`
+- `src/components/EpubReader.tsx`
+- `AGENTS.md`
+
 ### [2026-08-21] 331. EpubReader: robustecimiento del guardado de posición (listener Capacitor appStateChange, guardado inmediato y persistencia dual)
 
 **Planificacion:**

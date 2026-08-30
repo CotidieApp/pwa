@@ -61,6 +61,7 @@ import {
   detectNtBookId,
   saveEpubPosition,
   loadEpubPosition,
+  snapToGrid,
 } from '@/lib/epub-reader/helpers';
 import { ReaderTocPanel } from '@/components/epub-reader/ReaderTocPanel';
 import { ReaderSearchPanel } from '@/components/epub-reader/ReaderSearchPanel';
@@ -92,6 +93,9 @@ export default function EpubReader({
   const resizeDebounceTimerRef = useRef<number | null>(null);
   const highlightNoteDraftRef = useRef('');
   const bookmarkLabelRef = useRef('');
+  // Controls the opaque overlay that hides epub.js internal rendering (pagination
+  // flash, column scroll) from the user during chapter loads and transitions.
+  const isTransitioningRef = useRef(true);
 
   const activeFile = typeof fileName === 'string' && fileName.trim().length > 0 ? fileName.trim() : DEFAULT_FILE_NAME;
   const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
@@ -118,6 +122,9 @@ export default function EpubReader({
     getStoredReaderFontSize(prayerTextZoom * 100)
   );
   const [navigationError, setNavigationError] = useState<string | null>(null);
+  // Starts true so the overlay is visible during the very first book load.
+  // Becomes false once the initial position is confirmed.
+  const [isTransitioning, setIsTransitioning] = useState(true);
 
   const epubUrl = `/epub/${activeFile}`;
   const locationStorageKey = useMemo(() => toStorageKey(activeFile), [activeFile]);
@@ -195,16 +202,31 @@ export default function EpubReader({
   }, [locationStorageKey, pushDevLiveTrace]);
 
   const persistCurrentLocation = useCallback(() => {
-    // Prefer the live query: stableLocationRef can be stale for up to
-    // READER_MAX_RESTORE_SUPPRESSION_MS after a resize (onRelocated skips
-    // updating it while isRestoringLocationRef is true), but this is called
-    // at moments where there's no next chance to correct it (pagehide,
-    // visibility change), so the true current position always wins when
-    // it's available.
-    const currentLocation = getRenditionLocation(renditionRef.current);
+    // Prefer the live query ONLY if we are not in a restoration/settling
+    // window. If isRestoringLocationRef is true, we have likely just
+    // anchored to a (possibly coarse) start cfi and haven't finished
+    // nudging forward yet. Preferring the live query then would
+    // silently overwrite the last known stable position with an
+    // intermediate coarse one (e.g. jumping from page 30 back to 27).
+    const currentLocation = !isRestoringLocationRef.current ? getRenditionLocation(renditionRef.current) : null;
     const stableLocation = stableLocationRef.current;
-    persistReaderLocation(currentLocation ?? stableLocation);
+    if (currentLocation || stableLocation) {
+      persistReaderLocation(currentLocation ?? stableLocation);
+    }
   }, [persistReaderLocation]);
+
+  /** Muestra el overlay opaco que oculta el rendering interno de epub.js. */
+  const beginTransition = useCallback(() => {
+    isTransitioningRef.current = true;
+    setIsTransitioning(true);
+  }, []);
+
+  /** Oculta el overlay; el usuario ve el contenido del lector. */
+  const endTransition = useCallback(() => {
+    if (!isTransitioningRef.current) return;
+    isTransitioningRef.current = false;
+    setIsTransitioning(false);
+  }, []);
 
   // (Re)schedules the release of the "restoring" suppression window, capped
   // at READER_MAX_RESTORE_SUPPRESSION_MS from when restoring first began, so
@@ -226,6 +248,30 @@ export default function EpubReader({
       resizeReleaseTimerRef.current = null;
     }, effectiveDelay);
   }, []);
+
+  const performNudgeCorrection = useCallback(
+    async (rendition: Rendition, targetEndCfi: string | undefined, spansChapterBoundary: boolean) => {
+      if (!targetEndCfi || spansChapterBoundary) return 0;
+      const cfiComparer = new EpubCFI();
+      let nudgeSteps = 0;
+      for (let step = 0; step < READER_MAX_RESTORE_NUDGE_STEPS; step += 1) {
+        if (!isMountedRef.current) break;
+        const liveEndCfi = getRenditionLocation(rendition)?.endCfi;
+        if (!liveEndCfi) break;
+        let reachedTarget: boolean;
+        try {
+          reachedTarget = cfiComparer.compare(liveEndCfi, targetEndCfi) >= 0;
+        } catch {
+          reachedTarget = true;
+        }
+        if (reachedTarget) break;
+        await rendition.next();
+        nudgeSteps += 1;
+      }
+      return nudgeSteps;
+    },
+    []
+  );
 
   const findNtReferenceInSection = useCallback(async (section: any, reference: NtReference): Promise<SearchResult | null> => {
     if (!bookRef.current) return null;
@@ -324,6 +370,8 @@ export default function EpubReader({
     isRestoringLocationRef.current = true;
     restoringSinceRef.current = null;
     lastLayoutSizeRef.current = null;
+    isTransitioningRef.current = true;
+    setIsTransitioning(true);
     if (resizeReleaseTimerRef.current !== null) {
       window.clearTimeout(resizeReleaseTimerRef.current);
       resizeReleaseTimerRef.current = null;
@@ -394,6 +442,7 @@ export default function EpubReader({
 
     const load = async () => {
       if (!containerRef.current) return;
+      beginTransition();
       setStatus('loading');
       setErrorMessage(null);
       setLocationLabel('');
@@ -417,8 +466,8 @@ export default function EpubReader({
 
         const source = sourceBase64 ? base64ToArrayBuffer(sourceBase64) : epubUrl;
         const book = ePub(source as any);
-        const initialWidth = containerRef.current.clientWidth;
-        const initialHeight = containerRef.current.clientHeight;
+        const initialWidth = snapToGrid(containerRef.current.clientWidth);
+        const initialHeight = snapToGrid(containerRef.current.clientHeight);
         const rendition = book.renderTo(containerRef.current, {
           width: initialWidth,
           height: initialHeight,
@@ -604,6 +653,7 @@ export default function EpubReader({
           const endSpine = spineOf(savedLocation?.endCfi);
           const spansChapterBoundary =
             startSpine !== null && endSpine !== null && endSpine !== startSpine;
+          const targetEndCfi = savedLocation?.endCfi;
           const primaryAnchor = spansChapterBoundary
             ? savedLocation?.endCfi
             : savedLocation?.cfi ?? savedLocation?.endCfi ?? savedLocation?.href;
@@ -619,24 +669,8 @@ export default function EpubReader({
             // Skipped when we anchored on the end cfi above: the target is
             // already at the top of the viewport, so there is nothing to
             // nudge forward to (and stepping would overshoot the page).
-            const targetEndCfi = savedLocation?.endCfi;
             if (targetEndCfi && !cancelled && !spansChapterBoundary) {
-              const cfiComparer = new EpubCFI();
-              let nudgeSteps = 0;
-              for (let step = 0; step < READER_MAX_RESTORE_NUDGE_STEPS; step += 1) {
-                if (cancelled) break;
-                const liveEndCfi = getRenditionLocation(rendition)?.endCfi;
-                if (!liveEndCfi) break;
-                let reachedTarget: boolean;
-                try {
-                  reachedTarget = cfiComparer.compare(liveEndCfi, targetEndCfi) >= 0;
-                } catch {
-                  reachedTarget = true;
-                }
-                if (reachedTarget) break;
-                await rendition.next();
-                nudgeSteps += 1;
-              }
+              const nudgeSteps = await performNudgeCorrection(rendition, targetEndCfi, spansChapterBoundary);
               pushDevLiveTrace({
                 level: 'info',
                 source: 'epub-reader',
@@ -665,8 +699,8 @@ export default function EpubReader({
         hasDisplayedOnceRef.current = true;
         if (containerRef.current) {
           lastLayoutSizeRef.current = {
-            width: containerRef.current.clientWidth,
-            height: containerRef.current.clientHeight,
+            width: snapToGrid(containerRef.current.clientWidth),
+            height: snapToGrid(containerRef.current.clientHeight),
           };
         }
         persistReaderLocation(getRenditionLocation(rendition) ?? savedLocation);
@@ -679,7 +713,7 @@ export default function EpubReader({
         // move the page (resize, font size) already gets this same window;
         // the initial restore was the one place that didn't.
         isRestoringLocationRef.current = true;
-        scheduleRestoreRelease(400);
+        scheduleRestoreRelease(800);
 
         const currentContents = (rendition as any).getContents?.() ?? [];
         currentContents.forEach((contents: any) =>
@@ -698,8 +732,10 @@ export default function EpubReader({
         (renditionRef.current as any).__cotidieOnRelocated = onRelocated;
         (renditionRef.current as any).__cotidieOnSelected = onSelected;
         setStatus('ready');
+        endTransition();
       } catch (err) {
         if (cancelled) return;
+        endTransition();
         const message = err instanceof Error ? err.message : 'No se pudo abrir el EPUB.';
         pushDevLiveTrace({
           level: 'error',
@@ -723,21 +759,19 @@ export default function EpubReader({
       } catch {}
       // Persist the live location before destroying the rendition, so leaving
       // the reader (unmount) never loses progress to a stale snapshot.
-      try {
-        // Same reasoning as persistCurrentLocation: prefer the live query at
-        // this final moment, since stableLocationRef may still be lagging
-        // behind a recent resize's suppression window.
-        const exitLocation = getRenditionLocation(activeRendition) ?? stableLocationRef.current;
-        if (exitLocation) {
-          persistReaderLocation(exitLocation);
-          pushDevLiveTrace({
-            level: 'info',
-            source: 'epub-reader',
-            message: 'Ubicacion guardada al salir.',
-            data: `cfi=${(exitLocation.endCfi ?? exitLocation.cfi ?? exitLocation.href ?? '').slice(0, 30)}...`,
-          });
-        }
-      } catch {}
+    const exitLocation = !isRestoringLocationRef.current ? getRenditionLocation(activeRendition) : null;
+    const finalExitLocation = exitLocation ?? stableLocationRef.current;
+    try {
+      if (finalExitLocation) {
+        persistReaderLocation(finalExitLocation);
+        pushDevLiveTrace({
+          level: 'info',
+          source: 'epub-reader',
+          message: 'Ubicacion guardada al salir.',
+          data: `cfi=${(finalExitLocation.endCfi ?? finalExitLocation.cfi ?? finalExitLocation.href ?? '').slice(0, 30)}...`,
+        });
+      }
+    } catch {}
       if (resizeReleaseTimerRef.current !== null) {
         window.clearTimeout(resizeReleaseTimerRef.current);
         resizeReleaseTimerRef.current = null;
@@ -748,7 +782,7 @@ export default function EpubReader({
       }
       dispose();
     };
-  }, [bookmarksStorageKey, epubUrl, highlightsStorageKey, locationStorageKey, persistReaderLocation, scheduleRestoreRelease, sourceBase64]);
+  }, [beginTransition, bookmarksStorageKey, endTransition, epubUrl, highlightsStorageKey, locationStorageKey, persistReaderLocation, scheduleRestoreRelease, sourceBase64]);
 
   useEffect(() => {
     const rendition = renditionRef.current;
@@ -768,29 +802,35 @@ export default function EpubReader({
     );
   }, [readerBackgroundColor, readerFontFamily, readerTextColor]);
 
-  const refreshRenditionLayout = useCallback(() => {
+  const refreshRenditionLayout = useCallback(async () => {
     const rendition = renditionRef.current as any;
     const container = containerRef.current;
-    // Ignore resizes until the initial saved location has been displayed at
-    // least once: 100dvh/safe-area-inset can settle a moment after mount, and
-    // a resize landing mid-restore was overriding the just-restored page.
     if (!rendition?.manager || !container || !hasDisplayedOnceRef.current) return;
-    const width = container.clientWidth;
-    const height = container.clientHeight;
+    const width = snapToGrid(container.clientWidth);
+    const height = snapToGrid(container.clientHeight);
     if (width <= 0 || height <= 0) return;
     const lastSize = lastLayoutSizeRef.current;
     if (lastSize?.width === width && lastSize.height === height) return;
-    // Prefer the live query, same reasoning as persistCurrentLocation/exit:
-    // stableLocationRef can lag behind (onRelocated skips updating it while
-    // isRestoringLocationRef is true), and unlike there, this value isn't
-    // just being *recorded* — rendition.resize(..., anchor) below actively
-    // re-navigates the book to it. Anchoring to a stale position doesn't
-    // just mis-save history, it silently drags the reader backward.
+
+    // Capture target BEFORE resize: anchored to start but aiming for endCfi.
     const currentLocation = getRenditionLocation(rendition) ?? stableLocationRef.current;
-    // Anchor on the START cfi (same reasoning as the initial restore): resize()
-    // re-displays the anchor at the TOP of the viewport, so anchoring on the
-    // end cfi would nudge the reader forward one page on every repagination.
     const resizeAnchor = currentLocation?.cfi ?? currentLocation?.endCfi;
+    const targetEndCfi = currentLocation?.endCfi;
+
+    const spineOf = (cfi?: string) => {
+      if (!cfi) return null;
+      try {
+        const pos = new EpubCFI().parse(cfi)?.spinePos;
+        return typeof pos === 'number' ? pos : null;
+      } catch {
+        return null;
+      }
+    };
+    const spansChapterBoundary =
+      spineOf(currentLocation?.cfi) !== null &&
+      spineOf(targetEndCfi) !== null &&
+      spineOf(currentLocation?.cfi) !== spineOf(targetEndCfi);
+
     lastLayoutSizeRef.current = { width, height };
     isRestoringLocationRef.current = true;
     pushDevLiveTrace({
@@ -800,14 +840,19 @@ export default function EpubReader({
       data: `${width}x${height}; anchor=${(resizeAnchor ?? '(ninguno)').slice(0, 30)}`,
     });
     try {
-      rendition.resize?.(
-        width,
-        height,
-        resizeAnchor
-      );
+      await rendition.resize?.(width, height, resizeAnchor);
+      if (targetEndCfi) {
+        const steps = await performNudgeCorrection(rendition, targetEndCfi, spansChapterBoundary);
+        if (steps > 0) pushDevLiveTrace({
+          level: 'info',
+          source: 'epub-reader',
+          message: 'Resize: posicion ajustada tras repaginacion.',
+          data: `pasos=${steps}`,
+        });
+      }
     } catch {}
-    scheduleRestoreRelease(1500);
-  }, [scheduleRestoreRelease]);
+    scheduleRestoreRelease(1200);
+  }, [performNudgeCorrection, scheduleRestoreRelease]);
 
   // Collapses bursts of resize events (window drag, rotation animation, an
   // on-screen keyboard opening/closing) into a single actual rendition
@@ -825,24 +870,47 @@ export default function EpubReader({
   useEffect(() => {
     const rendition = renditionRef.current;
     if (!rendition) return;
-    // Same reasoning as refreshRenditionLayout: prefer the live position over
-    // stableLocationRef, since this value drives an active re-navigation
-    // (rendition.display below), not just a record of where we've been.
+
     const liveLocation = getRenditionLocation(rendition) ?? stableLocationRef.current;
-    // Anchor on the START cfi, like the initial restore and resize: display()
-    // puts the anchor at the top of the viewport, so the end cfi would drift
-    // the reader forward a page each time the font size changes.
     const fontResizeAnchor = liveLocation?.cfi ?? liveLocation?.endCfi;
+    const targetEndCfi = liveLocation?.endCfi;
+
+    const spineOf = (cfi?: string) => {
+      if (!cfi) return null;
+      try {
+        const pos = new EpubCFI().parse(cfi)?.spinePos;
+        return typeof pos === 'number' ? pos : null;
+      } catch {
+        return null;
+      }
+    };
+    const spansChapterBoundary =
+      spineOf(liveLocation?.cfi) !== null &&
+      spineOf(targetEndCfi) !== null &&
+      spineOf(liveLocation?.cfi) !== spineOf(targetEndCfi);
+
     rendition.themes.fontSize(`${readerFontSize}%`);
     if (!fontResizeAnchor) return;
 
     isRestoringLocationRef.current = true;
     scheduleRestoreRelease(1500);
-    const tick = window.setTimeout(() => {
-      void rendition.display(fontResizeAnchor).catch(() => undefined);
+    const tick = window.setTimeout(async () => {
+      if (!isMountedRef.current) return;
+      try {
+        await rendition.display(fontResizeAnchor);
+        if (targetEndCfi) {
+          const steps = await performNudgeCorrection(rendition, targetEndCfi, spansChapterBoundary);
+          if (steps > 0) pushDevLiveTrace({
+            level: 'info',
+            source: 'epub-reader',
+            message: 'Font-size: posicion ajustada tras repaginacion.',
+            data: `pasos=${steps}`,
+          });
+        }
+      } catch {}
     }, 60);
     return () => window.clearTimeout(tick);
-  }, [readerFontSize, scheduleRestoreRelease]);
+  }, [performNudgeCorrection, readerFontSize, scheduleRestoreRelease]);
 
   useEffect(() => {
     const onResize = () => scheduleRenditionResize();
@@ -1063,7 +1131,29 @@ export default function EpubReader({
 
   const displayAndPersist = async (target: string) => {
     prepareForReaderNavigation();
-    await renditionRef.current?.display(target);
+    beginTransition();
+    try {
+      await renditionRef.current?.display(target);
+      await new Promise<void>((resolve) => {
+        let settled = false;
+        const cleanup = () => {
+          if (settled) return;
+          settled = true;
+          try {
+            (renditionRef.current as any)?.off?.('relocated', handler);
+          } catch {}
+          resolve();
+        };
+        const handler = () => cleanup();
+        try {
+          (renditionRef.current as any)?.once?.('relocated', handler);
+        } catch {
+          // Si once() no está disponible, el timer resolverá
+        }
+        window.setTimeout(cleanup, 800);
+      });
+    } catch {}
+    endTransition();
     persistAfterNavigation();
   };
 
@@ -1375,6 +1465,13 @@ export default function EpubReader({
         className="relative overflow-hidden flex-1 min-h-0"
         style={{ backgroundColor: readerBackgroundColor }}
       >
+        {isTransitioning ? (
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 z-10 transition-opacity"
+            style={{ backgroundColor: readerBackgroundColor }}
+          />
+        ) : null}
         <div
           ref={containerRef}
           className="h-full w-full min-h-0"

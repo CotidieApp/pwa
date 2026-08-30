@@ -9,7 +9,7 @@ export const MAX_READER_FONT_SIZE = 200;
 export const READER_FONT_SIZE_STEP = 10;
 export const READER_RESIZE_DEBOUNCE_MS = 120;
 export const READER_MAX_RESTORE_SUPPRESSION_MS = 5000;
-export const READER_MAX_RESTORE_NUDGE_STEPS = 6;
+export const READER_MAX_RESTORE_NUDGE_STEPS = 12;
 export const READER_FONT_FAMILIES: Record<string, string> = {
   literata: "'Literata', serif",
   lora: "'Lora', serif",
