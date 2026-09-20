@@ -1,24 +1,38 @@
 apply plugin: 'com.android.application'
 
+def releaseStorePath = System.getenv("COTIDIE_KEYSTORE_PATH")
+def releaseStorePassword = System.getenv("COTIDIE_KEYSTORE_PASSWORD")
+def releaseKeyAlias = System.getenv("COTIDIE_KEY_ALIAS")
+def releaseKeyPassword = System.getenv("COTIDIE_KEY_PASSWORD")
+def hasReleaseSigning = [
+    releaseStorePath,
+    releaseStorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword
+].every { value -> value != null && value.toString().trim() }
+
 android {
     namespace = "com.benjamin.studio"
     compileSdk = rootProject.ext.compileSdkVersion
     
-    signingConfigs {
-        release {
-            storeFile file("my-release-key.keystore")
-            storePassword "Qwog2bfoa3"
-            keyAlias "my-key-alias"
-            keyPassword "Qwog2bfoa3"
+    if (hasReleaseSigning) {
+        signingConfigs {
+            release {
+                storeFile file(releaseStorePath)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
         }
     }
+
 
     defaultConfig {
         applicationId "com.benjamin.studio"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 108
-        versionName "6.4.19"
+        versionCode 109
+        versionName "6.4.20"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -28,7 +42,9 @@ android {
     }
     buildTypes {
         release {
-            signingConfig signingConfigs.release
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
@@ -137,4 +153,17 @@ try {
     }
 } catch(ignored) {
     logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}
+
+tasks.configureEach { task ->
+    if (task.name == "assembleRelease" || task.name == "bundleRelease") {
+        task.doFirst {
+            // COTIDIE_RELEASE_SIGNING_REQUIRED
+            if (!hasReleaseSigning) {
+                throw new GradleException(
+                    "Release signing env missing. Set COTIDIE_KEYSTORE_PATH, COTIDIE_KEYSTORE_PASSWORD, COTIDIE_KEY_ALIAS, COTIDIE_KEY_PASSWORD (User env) and reopen the terminal."
+                )
+            }
+        }
+    }
 }

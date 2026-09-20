@@ -1,6 +1,7 @@
 export type EpubReaderProps = {
   fileName?: string;
   sourceBase64?: string | null;
+  sourceBuffer?: ArrayBuffer | null;
   context?: 'nt' | 'general';
   onClose?: () => void;
 };

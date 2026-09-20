@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import EpubReader from '@/components/EpubReader';
 import { useSettings } from '@/context/SettingsContext';
+import { listPersonalEpubs, openPersonalEpub, savePersonalEpub, renamePersonalEpub, deletePersonalEpub } from '@/lib/personal-epubs';
 import { Trash2, BookOpen, Pencil } from 'lucide-react';
 
 type StoredPersonalEpubMeta = {
@@ -22,10 +23,8 @@ type StoredPersonalEpubMeta = {
 };
 
 const INDEX_STORAGE_KEY = 'cotidie_personal_epubs_index';
-const FILE_KEY_PREFIX = 'cotidie_personal_epub_file_';
 const MAX_EPUB_SIZE_BYTES = 25 * 1024 * 1024;
 
-const toFileKey = (id: string) => `${FILE_KEY_PREFIX}${id}`;
 
 const loadStoredEpubs = (): StoredPersonalEpubMeta[] => {
   if (typeof window === 'undefined') return [];
@@ -57,15 +56,31 @@ type PersonalEpubLibraryProps = {
 };
 
 export default function PersonalEpubLibrary({ registerBackHandler }: PersonalEpubLibraryProps) {
-  const { incrementStat } = useSettings();
+  const { incrementStat, pushDevLiveTrace } = useSettings();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const renameInputRef = useRef<HTMLInputElement | null>(null);
   const [epubs, setEpubs] = useState<StoredPersonalEpubMeta[]>(() => loadStoredEpubs());
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [selectedSource, setSelectedSource] = useState<string | null>(null);
+  const [selectedSource, setSelectedSource] = useState<ArrayBuffer | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [renameTargetId, setRenameTargetId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
+
+  const trace = (message: string, data: string, error = false) => pushDevLiveTrace({
+    level: error ? 'warn' : 'info', source: 'personal-epubs', message, data,
+  });
+  useEffect(() => {
+    let cancelled = false;
+    void listPersonalEpubs().then(items => {
+      if (cancelled) return;
+      setEpubs(current => {
+        const merged = new Map(current.map(item => [item.id, item]));
+        items.forEach(item => { if ((merged.get(item.id)?.updatedAt ?? 0) <= item.updatedAt) merged.set(item.id, item); });
+        return [...merged.values()].sort((a, b) => b.updatedAt - a.updatedAt);
+      });
+    }).catch(error => { if (!cancelled) trace('library read', String(error), true); });
+    return () => { cancelled = true; };
+  }, []);
 
   const selected = useMemo(() => epubs.find((item) => item.id === selectedId) ?? null, [epubs, selectedId]);
   const renameTarget = useMemo(
@@ -97,44 +112,34 @@ export default function PersonalEpubLibrary({ registerBackHandler }: PersonalEpu
     return () => registerBackHandler(null);
   }, [registerBackHandler, selectedId, selectedSource]);
 
-  const onUpload = (file: File) => {
+  const onUpload = async (file: File) => {
     setErrorMessage(null);
     if (file.size > MAX_EPUB_SIZE_BYTES) {
-      setErrorMessage('El EPUB supera el límite recomendado de 25MB. Usa un archivo más ligero para evitar reinicios.');
+      setErrorMessage('El EPUB supera el límite de 25MB.');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const raw = typeof reader.result === 'string' ? reader.result : '';
-      if (!raw) return;
-      const base64 = raw.includes(',') ? raw.split(',')[1] : raw;
-      const entry: StoredPersonalEpubMeta = {
-        id: `epub-${Date.now()}`,
-        name: file.name.trim() || `EPUB ${epubs.length + 1}`,
-        sizeBytes: file.size,
-        updatedAt: Date.now(),
-      };
-      const next = [entry, ...epubs];
-      window.localStorage.setItem(toFileKey(entry.id), base64);
-      setEpubs(next);
-      saveStoredEpubs(next);
+    try {
+      const entry = { id: `epub-${crypto.randomUUID()}`, name: file.name.trim() || 'EPUB', sizeBytes: file.size, updatedAt: Date.now() };
+      await savePersonalEpub(entry, file);
+      const buffer = await file.arrayBuffer();
+      setEpubs(current => [entry, ...current]);
       setSelectedId(entry.id);
-      setSelectedSource(base64);
-      // Uploading opens the book straight into the reader, so it counts too.
+      setSelectedSource(buffer);
       incrementStat('prayersOpenedHistory', 'lectura-espiritual-personales');
-    };
-    reader.readAsDataURL(file);
+    } catch (error) {
+      trace('upload', String(error), true);
+      setErrorMessage('No se pudo guardar el EPUB. Comprueba el espacio disponible.');
+    }
   };
 
-  const onDelete = (id: string) => {
-    const next = epubs.filter((item) => item.id !== id);
-    window.localStorage.removeItem(toFileKey(id));
-    setEpubs(next);
-    saveStoredEpubs(next);
-    if (selectedId === id) {
-      setSelectedId(null);
-      setSelectedSource(null);
-    }
+  const onDelete = async (id: string) => {
+    try {
+      await deletePersonalEpub(id);
+      const next = epubs.filter(item => item.id !== id);
+      saveStoredEpubs(next);
+      setEpubs(next);
+      if (selectedId === id) { setSelectedId(null); setSelectedSource(null); }
+    } catch (error) { trace('delete', String(error), true); setErrorMessage('No se pudo eliminar el libro.'); }
   };
 
   const openRename = (id: string) => {
@@ -149,7 +154,7 @@ export default function PersonalEpubLibrary({ registerBackHandler }: PersonalEpu
     setRenameValue('');
   };
 
-  const submitRename = () => {
+  const submitRename = async () => {
     if (!renameTarget) return;
     const nextName = renameValue.trim();
     if (!nextName) return;
@@ -160,23 +165,24 @@ export default function PersonalEpubLibrary({ registerBackHandler }: PersonalEpu
     const next = epubs.map((epub) =>
       epub.id === renameTarget.id ? { ...epub, name: nextName, updatedAt: Date.now() } : epub
     );
-    setEpubs(next);
-    saveStoredEpubs(next);
-    closeRename();
+    try {
+      await renamePersonalEpub(next.find(item => item.id === renameTarget.id)!);
+      saveStoredEpubs(next);
+      setEpubs(next);
+      closeRename();
+    } catch (error) { trace('rename', String(error), true); setErrorMessage('No se pudo guardar el nombre.'); }
   };
 
-  const onOpen = (id: string) => {
+  const onOpen = async (id: string) => {
     setErrorMessage(null);
-    const raw = window.localStorage.getItem(toFileKey(id));
-    if (!raw || raw.trim().length === 0) {
-      setErrorMessage('No se pudo abrir el EPUB guardado. Vuelve a subir el archivo.');
-      return;
-    }
-    setSelectedId(id);
-    setSelectedSource(raw);
-    // Only opening an actual book counts as spiritual reading (and marks the
-    // Plan de Vida check); browsing the library menu itself does not.
-    incrementStat('prayersOpenedHistory', 'lectura-espiritual-personales');
+    const item = epubs.find(epub => epub.id === id);
+    if (!item) return;
+    try {
+      const buffer = await openPersonalEpub(item, trace);
+      setSelectedId(id);
+      setSelectedSource(buffer);
+      incrementStat('prayersOpenedHistory', 'lectura-espiritual-personales');
+    } catch (error) { trace('open', String(error), true); setErrorMessage('No se pudo abrir el EPUB guardado.'); }
   };
 
   const renameDialog = (
@@ -219,7 +225,7 @@ export default function PersonalEpubLibrary({ registerBackHandler }: PersonalEpu
       <>
         <EpubReader
           fileName={`personal-${selected.id}.epub`}
-          sourceBase64={selectedSource}
+          sourceBuffer={selectedSource}
           context="general"
           onClose={() => {
             setSelectedId(null);

@@ -8,6 +8,78 @@ Historial de intervenciones del asistente en el repo.
 - Esta obligacion aplica aunque el usuario pida tocar solo lo estrictamente necesario: el registro en `AGENTS.md` se considera parte estrictamente necesaria de cualquier edicion del repo.
 - Si una instruccion del usuario prohibe explicitamente editar `AGENTS.md`, el agente debe pedir aclaracion antes de modificar otros archivos.
 
+### [2026-09-20] 334. Flujo de APK compatible con Java 21, actualización de Browserslist y limpieza de advertencias propias
+
+**Planificacion:**
+- Corregir el fallo de Gradle `Unsupported class file major version 69` sin cambiar la versión ya preparada `6.4.20` ni modificar la lógica de la aplicación.
+- Verificar las credenciales utilizadas por la publicación y distinguir las advertencias propias de las emitidas por Capacitor/Cordova.
+
+**Ejecucion:**
+- Se instaló Eclipse Temurin JDK 21 LTS en el entorno local. `scripts/android-apk.mjs` ahora busca y selecciona exclusivamente Java 21, prioriza `COTIDIE_JAVA_HOME`, ignora el `JAVA_HOME` global incompatible y falla antes de alterar archivos de versión si no encuentra una JDK válida.
+- El script elimina de sus procesos hijos `npm_config_global_ignore_file`, variable heredada que npm 12 reportaba como configuración obsoleta en cada compilación anidada.
+- Se actualizaron `caniuse-lite` y `baseline-browser-mapping` mediante `update-browserslist-db`, eliminando la advertencia de Browserslist desactualizado.
+- Se retiró `android.overridePathCheck=true` y se modernizó la asignación de `signingConfig` para eliminar dos advertencias Gradle propias. Se conservaron los avisos producidos por el proyecto generado de Capacitor/Cordova y APIs de sus dependencias.
+- Se eliminó un respaldo local no versionado de `android/app/build.gradle` que todavía contenía valores de firma en texto plano y se excluyeron futuros respaldos equivalentes del control de versiones.
+- Se actualizó la documentación del requisito Java: Android Studio actual usa JBR 25 en esta instalación y el proyecto necesita una JDK 21 externa o indicada en `COTIDIE_JAVA_HOME`.
+- Se activó la cuenta local `CotidieApp` en GitHub CLI y se confirmó permiso ADMIN sobre `CotidieApp/cotidie-web`. Vercel CLI no participa en `android-apk.mjs`; el despliegue se produce por la integración tras `git push`.
+
+**Validacion:**
+- `node --check scripts/android-apk.mjs` y `git diff --check`: OK.
+- `npm run android:apk -- --no-bump --no-push --no-drive`: OK. Next, Capacitor, firma release y `assembleRelease` completaron correctamente con Java 21.
+- APK generado: `cotidie-installer-v6.4.20.apk`, 76.94 MB, SHA-256 `503da9805454cf38f019211f643a059c51422373acc41e0d8eaedc516030d7cf`.
+- La salida de PWA usa las rutas correctas `public/sw.js` y `/sw.js`; desaparecieron las advertencias de `global-ignore-file` y Browserslist.
+- Pendiente de la publicación final: se realizará con `--no-bump`, por lo que conservará íntegramente la versión `6.4.20`.
+
+**Archivos Modificados:**
+- scripts/android-apk.mjs
+- android/gradle.properties
+- android/app/build.gradle
+- package-lock.json
+- README.md
+- AGENTS.md
+
+### [2026-09-20] 333. Persistencia semantica y transaccional de EPUB, biblioteca personal y Camino
+
+**Planificacion:**
+- Implementar el diseño solicitado para NT, EPUB personales y Camino, conservando epub.js 0.3.93, identidades historicas, controles, busquedas, indice, anotaciones y ciclo de vida APK/PWA.
+- Investigar los archivos actuales y el codigo instalado de epub.js, sin usar el historial de AGENTS.md ni el historial conversacional. Confirmado que next/prev y reportLocation no esperan el RAF final de relocated; onResized invocaba display(start.cfi) por fuera de la coordinacion.
+- Aislar el progreso critico de persistence/Settings y sustituir temporizadores de supresion y nudges por operaciones serializadas y anclas semanticas.
+
+**Ejecucion:**
+- Nuevo repositorio tipado en cotidie-reading/progress: version, updatedAt, revision, resourceId, anchorCfi, startCfi, endCfi, href y clase de ancla. Espejo localStorage sincrono; lectura comparada y reparacion; migracion directa de cotidie-db/settings-store y CFI plano/JSON. Cuando ambas copias son heredadas se prefiere localStorage. Comparacion y put dentro de una unica transaccion readwrite; promesas resueltas al commit, cola serial y errores reales trazados.
+- Controlador EPUB unico para restauracion, display/enlaces, next/prev, indice, busqueda, marcadores, fuentes y resize. Listener registrado antes de operar, fuentes/CSS e imagenes esperadas, geometria asentada y relocated confirmado antes de guardar. Se retiro el escritor global de relocated y las heuristicas de nudges/ventanas de 800/1500ms. El watchdog de error no confirma ni guarda posiciones transitorias.
+- Ancla central obtenida mediante Range y Contents.cfiFromRange sobre texto visible recortado al viewport, considerando todos los documentos iframe. Se conservan inicio/final para diagnostico y fallback trazado. La primera restauracion convierte anclas heredadas a centrales; los cambios de layout conservan el punto semantico para evitar deriva acumulativa.
+- Cierre/background guardan sincronicamente el ultimo estado confirmado antes de destruir; se invalidan operaciones tardias y se limpia tambien el listener nativo que termine de registrarse despues del desmontaje. Montajes DOM independientes evitan interferencia de una carga cancelada con otra. El primer ResizeObserver no puede escribir antes de restaurar el historial.
+- Biblioteca personal: nuevos archivos Blob/ArrayBuffer y metadatos en IDB. Libros heredados se leen y migran sin cambiar ID/nombre; el base64 antiguo se elimina solo tras commit, y se conserva si falla. Se mantiene personal-${id}.epub y se agrega sourceBuffer al lector; NT por URL/base64 y su almacenamiento offline permanecen compatibles.
+- Camino: puntos numerados marcados en DOM; registro independiente de numero de punto, fraccion dentro del punto y posicion relativa en viewport. Restauracion tras fuentes/layout, reanclado por zoom/familia/resize, captura al scroll con escritura limitada y flush en cierre/pagehide/visibilitychange/appStateChange. El scroll heredado sirve solo para migrar; Camino ya no llama setScrollPosition por desplazamiento.
+- Se agregaron pruebas reproducibles con el runner nativo de Node y matriz manual en tests/READING-VALIDATION.md. fake-indexeddb se instalo unicamente en TEMP, sin cambiar package.json ni lockfile.
+
+**Validacion:**
+- npx tsc --noEmit: OK, sin errores.
+- npm run build (tsc --noEmit + Next export estatico): OK. Aviso informativo preexistente de antiguedad de Browserslist; sin errores de compilacion.
+- 16 pruebas automatizadas: migracion JSON/CFI, discrepancia local/IDB, reparacion inversa, revision, transaccion atomica/abortada, espejo inmediato, cuota, migracion personal exitosa/fallida, binario de 6 MiB y renombre, Camino con zoom, centro entre documentos, CSS antes de fuentes, relocated tardio, navegacion serializada, cierre, resize previo a restauracion, reflow repetido y fallback de CFI invalido.
+- git diff --check sin errores de whitespace en el alcance. Claves de NT/personales/marcadores/subrayados conservadas. No se editaron MainApp, notificaciones, configuracion del service worker, SettingsContext, persistence generico ni archivos Android; el build regenera sus assets PWA ignorados habituales.
+- No hay validacion visual del iframe ni prueba real APK/PWA/ADB. Los diez escenarios de la matriz estan explicitamente pendientes de dispositivo. Los tests usan IndexedDB simulado y una rendition de prueba; no sustituyen esa validacion.
+- Cambios ajenos preexistentes en android/ y docs/ conservados y fuera de esta intervencion.
+
+**Archivos Modificados:**
+- src/components/EpubReader.tsx
+- src/components/PersonalEpubLibrary.tsx
+- src/components/PrayerDetail.tsx
+- src/lib/epub-reader/helpers.ts
+- src/lib/epub-reader/constants.ts
+- src/lib/epub-reader/types.ts
+- src/lib/epub-reader/progress.ts (nuevo)
+- src/lib/epub-reader/controller.ts (nuevo)
+- src/lib/epub-reader/layout.ts (nuevo)
+- src/lib/reading-store.ts (nuevo)
+- src/lib/personal-epubs.ts (nuevo)
+- src/lib/camino-progress.ts (nuevo)
+- src/hooks/useCaminoProgress.ts (nuevo)
+- tests/reading-persistence.cjs (nuevo)
+- tests/READING-VALIDATION.md (nuevo)
+- AGENTS.md
+
 ### [2026-08-30] 332. EpubReader: eliminación del flash de repaginación visual, estabilización geométrica con snapToGrid y ampliación de ventana de asentamiento
 
 **Planificacion:**

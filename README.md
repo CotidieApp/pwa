@@ -35,7 +35,10 @@ Se requiere:
 
 - Node.js y npm.
 - Android Studio.
-- Java 21, preferentemente el JBR incluido con Android Studio.
+- JDK 21. El script de APK selecciona automáticamente una instalación compatible
+  (por ejemplo, Eclipse Temurin 21); no usa JDK 25 aunque Android Studio la
+  haya instalado como su JBR. Se puede fijar otra instalación de Java 21 con
+  la variable de entorno `COTIDIE_JAVA_HOME`.
 - Android SDK configurado.
 - PowerShell en Windows para los flujos locales existentes.
 

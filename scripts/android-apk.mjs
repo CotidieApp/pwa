@@ -101,6 +101,61 @@ const replaceOrThrow = (source, pattern, replacement) => {
 };
 
 let commandEnvCache = null;
+let androidJavaCache = null;
+
+const javaExecutableName = process.platform === "win32" ? "java.exe" : "java";
+
+const getJavaMajorVersion = (javaHome) => {
+  const executable = path.join(javaHome, "bin", javaExecutableName);
+  if (!fs.existsSync(executable)) return null;
+
+  const result = spawnSync(executable, ["-version"], {
+    encoding: "utf8",
+    shell: false,
+  });
+  const versionOutput = `${result.stdout || ""}\n${result.stderr || ""}`;
+  const match = versionOutput.match(/version\s+"(?:1\.)?(\d+)/u);
+  return result.status === 0 && match ? Number(match[1]) : null;
+};
+
+const listJavaHomes = (directory) => {
+  if (!directory || !fs.existsSync(directory)) return [];
+
+  return fs
+    .readdirSync(directory, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => path.join(directory, entry.name));
+};
+
+const resolveAndroidJava = () => {
+  if (androidJavaCache) return androidJavaCache;
+
+  const candidates = [
+    process.env.COTIDIE_JAVA_HOME,
+    process.env.JAVA_HOME,
+    ...listJavaHomes("C:\\Program Files\\Eclipse Adoptium"),
+    ...listJavaHomes("C:\\Program Files\\Java"),
+    "C:\\Program Files\\Android\\Android Studio\\jbr",
+    "C:\\Program Files (x86)\\Android\\Android Studio\\jbr",
+    path.join(process.env.LOCALAPPDATA || "", "Programs", "Android Studio", "jbr"),
+  ].filter((candidate, index, all) => candidate && all.indexOf(candidate) === index);
+
+  for (const candidate of candidates) {
+    const major = getJavaMajorVersion(candidate);
+    if (major === 21) {
+      androidJavaCache = { home: candidate, major };
+      return androidJavaCache;
+    }
+  }
+
+  const inspected = candidates.length > 0 ? candidates.join("; ") : "ninguna ruta de Java";
+  throw new Error(
+    "No se encontró una JDK 21 compatible para Android. " +
+      "Instala Eclipse Temurin JDK 21 o define COTIDIE_JAVA_HOME con su carpeta raíz. " +
+      `Rutas revisadas: ${inspected}`
+  );
+};
+
 const buildCommandEnv = () => {
   if (commandEnvCache) return commandEnvCache;
   const env = { ...process.env };
@@ -108,17 +163,16 @@ const buildCommandEnv = () => {
   fs.mkdirSync(gradleUserHome, { recursive: true });
   env.GRADLE_USER_HOME = gradleUserHome;
 
-  if (!env.JAVA_HOME) {
-    const candidate = resolveExistingPath(
-      process.env.JAVA_HOME,
-      "C:\\Program Files\\Android\\Android Studio\\jbr",
-      "C:\\Program Files (x86)\\Android\\Android Studio\\jbr",
-      path.join(process.env.LOCALAPPDATA || "", "Programs", "Android Studio", "jbr")
-    );
-    if (candidate) {
-      env.JAVA_HOME = candidate;
-      const pathKey = Object.keys(env).find((key) => key.toLowerCase() === "path") || "Path";
-      env[pathKey] = `${candidate}\\bin;${env[pathKey] || ""}`;
+  const androidJava = resolveAndroidJava();
+  env.JAVA_HOME = androidJava.home;
+  const pathKey = Object.keys(env).find((key) => key.toLowerCase() === "path") || "Path";
+  env[pathKey] = `${androidJava.home}\\bin;${env[pathKey] || ""}`;
+
+  // npm 12 turns this legacy config inherited from the parent npm process into
+  // a warning in every nested npm invocation. It is not used by this build.
+  for (const key of Object.keys(env)) {
+    if (key.toLowerCase() === "npm_config_global_ignore_file") {
+      delete env[key];
     }
   }
 
@@ -130,7 +184,7 @@ const buildCommandEnv = () => {
   }
 
   commandEnvCache = env;
-  console.log(`Entorno Java: ${env.JAVA_HOME || "no definido"}`);
+  console.log(`Entorno Java: ${env.JAVA_HOME} (Java ${androidJava.major})`);
   console.log(`Android SDK: ${env.ANDROID_HOME || env.ANDROID_SDK_ROOT || "no definido"}`);
   return commandEnvCache;
 };
@@ -422,6 +476,9 @@ console.log(`Versión objetivo: v${nextVersion}`);
 console.log(`Publicación Git: ${skipPush ? "omitida por --no-push" : "habilitada"}`);
 console.log(`Publicación APK GitHub: ${skipPush ? "omitida por --no-push" : "habilitada"}`);
 console.log(`Copia secundaria: ${skipDrive ? "omitida por --no-drive" : "habilitada"}`);
+
+const androidJava = resolveAndroidJava();
+console.log(`Java compatible para Android: ${androidJava.home} (Java ${androidJava.major})`);
 
 if (!skipPush) {
   ensureGitIndexUnlocked();

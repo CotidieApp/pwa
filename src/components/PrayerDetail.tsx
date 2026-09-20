@@ -12,6 +12,7 @@ import { Label } from './ui/label';
 import * as Icon from 'lucide-react';
 import { AudioPlayer } from './AudioPlayer';
 import { useScreenWakeLock } from '@/hooks/useScreenWakeLock';
+import { useCaminoProgress } from '@/hooks/useCaminoProgress';
 import { isCaminoLineMatch } from '@/lib/camino-search';
 
 // Encadre centralizado por id (si no tienes este archivo, coméntalo o ajusta):
@@ -86,7 +87,7 @@ const renderCaminoLines = (
     );
 
     rendered.push(
-      <p key={`camino-line-${i}`} id={id} className={i === 0 ? 'mt-0' : 'mt-2'}>
+      <p key={`camino-line-${i}`} data-camino-point={pointMatch?.[1]} id={id} className={i === 0 ? 'mt-0' : 'mt-2'}>
         {isMatch ? (
           <mark className={cn('rounded-sm px-1', highlightClass)}>{lineNode}</mark>
         ) : (
@@ -449,6 +450,9 @@ const PrayerContent = ({
   const {
     setScrollPosition,
     scrollPositions,
+    fontFamily,
+    pushDevLiveTrace,
+    isLoaded,
     theme,
     pinchToZoomEnabled,
     prayerTextZoom,
@@ -521,6 +525,8 @@ const PrayerContent = ({
   const themeMode: 'light' | 'dark' = theme === 'dark' ? 'dark' : 'light';
   const prayerId: string = prayer.id ?? '';
   const isCamino = prayerId === 'camino-libro';
+  useCaminoProgress(isCamino && isLoaded, scrollContainerRef, scrollPositions['camino-libro'], prayerTextZoom, fontFamily,
+    (message, data, error) => pushDevLiveTrace({ level: error ? 'warn' : 'info', source: 'camino-reader', message, data }));
 
   useEffect(() => {
     if (prayer.isLongText) return;
@@ -532,17 +538,17 @@ const PrayerContent = ({
   }, [prayerId, prayer.isLongText, scrollContainerRef]);
 
   const handleScroll = useCallback(() => {
-    if (!prayer.isLongText || !prayerId) return;
+    if (isCamino || !prayer.isLongText || !prayerId) return;
     const container = scrollContainerRef?.current;
     if (!container) return;
     if (throttleTimeout.current) clearTimeout(throttleTimeout.current);
     throttleTimeout.current = setTimeout(() => {
       setScrollPosition(prayerId, container.scrollTop);
     }, 200);
-  }, [prayerId, prayer.isLongText, setScrollPosition, scrollContainerRef]);
+  }, [isCamino, prayerId, prayer.isLongText, setScrollPosition, scrollContainerRef]);
 
   useLayoutEffect(() => {
-    if (!prayerId) return;
+    if (isCamino || !prayerId) return;
     const container = scrollContainerRef?.current;
     if (!container) return;
     const restoreKey = `${prayerId}:${prayer.isLongText ? 'long' : 'short'}`;
@@ -560,7 +566,7 @@ const PrayerContent = ({
     // Normal prayer or no saved position: always reset to top
     container.scrollTo({ top: 0 });
     restoredScrollKeyRef.current = restoreKey;
-  }, [prayerId, scrollPositions, prayer.isLongText, scrollContainerRef]);
+  }, [isCamino, prayerId, scrollPositions, prayer.isLongText, scrollContainerRef]);
 
   useEffect(() => {
     const container = scrollContainerRef?.current;
@@ -568,7 +574,7 @@ const PrayerContent = ({
     container.addEventListener('scroll', handleScroll, { passive: true });
 
     const flushScrollPosition = () => {
-      if (!prayer.isLongText || !prayerId) return;
+      if (isCamino || !prayer.isLongText || !prayerId) return;
       const currentContainer = scrollContainerRef?.current;
       if (!currentContainer) return;
       setScrollPosition(prayerId, currentContainer.scrollTop);
@@ -590,7 +596,7 @@ const PrayerContent = ({
       flushScrollPosition();
       if (throttleTimeout.current) clearTimeout(throttleTimeout.current);
     };
-  }, [handleScroll, prayer.isLongText, prayerId, setScrollPosition, scrollContainerRef]);
+  }, [isCamino, handleScroll, prayer.isLongText, prayerId, setScrollPosition, scrollContainerRef]);
 
   useEffect(() => {
     if (searchState?.term && searchState.activeIndex !== -1) {
@@ -623,6 +629,7 @@ const PrayerContent = ({
     const { term = '', activeIndex = -1 } = searchState || {};
     return (
       <div
+        data-camino-content={isCamino ? true : undefined}
         className="prayer-single-language-text text-foreground/90 leading-relaxed touch-pan-y"
         style={{ fontSize: `${prayerTextZoom}em` }}
       >
