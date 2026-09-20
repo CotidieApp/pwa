@@ -28,7 +28,7 @@ Historial de intervenciones del asistente en el repo.
 - `npm run android:apk -- --no-bump --no-push --no-drive`: OK. Next, Capacitor, firma release y `assembleRelease` completaron correctamente con Java 21.
 - APK generado: `cotidie-installer-v6.4.20.apk`, 76.94 MB, SHA-256 `503da9805454cf38f019211f643a059c51422373acc41e0d8eaedc516030d7cf`.
 - La salida de PWA usa las rutas correctas `public/sw.js` y `/sw.js`; desaparecieron las advertencias de `global-ignore-file` y Browserslist.
-- Pendiente de la publicación final: se realizará con `--no-bump`, por lo que conservará íntegramente la versión `6.4.20`.
+- Publicación final con `--no-bump`: `main` se sincronizó en `5f40dd550` y GitHub Release publicó `v6.4.20` con el APK verificado por SHA-256. Git inicialmente conservaba una credencial de `Benhaman9`; `gh auth setup-git` enlazó Git con la cuenta activa `CotidieApp` y resolvió el push.
 
 **Archivos Modificados:**
 - scripts/android-apk.mjs
