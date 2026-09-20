@@ -62,10 +62,17 @@ export class EpubProgressRepository {
     this.trace('read', `${this.resourceId} r${record.revision} ${migration ? 'migration/' : ''}${origin} ${record.anchorCfi.slice(0, 42)}`);
     return record;
   }
-  save(anchor: EpubAnchor, operation: string): EpubProgress {
+  saveQueued(anchor: EpubAnchor, operation: string): { record: EpubProgress; committed: Promise<void> } {
     const record = mirrorReading(this.key, { ...anchor, ...nextReadingStamp(this.key, this.resourceId) }, this.trace);
-    void queueReading(this.key, record, this.trace).catch(() => undefined);
+    const committed = queueReading(this.key, record, this.trace);
     this.trace(operation, `${this.resourceId} r${record.revision} ${record.anchorCfi.slice(0, 42)}`);
+    return { record, committed };
+  }
+  save(anchor: EpubAnchor, operation: string): EpubProgress {
+    const { record, committed } = this.saveQueued(anchor, operation);
+    // Lifecycle checkpoints cannot await. queueReading traces durable failures,
+    // and its transaction comparison prevents an older completion from winning.
+    void committed.catch(() => undefined);
     return record;
   }
 }

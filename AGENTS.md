@@ -8,6 +8,36 @@ Historial de intervenciones del asistente en el repo.
 - Esta obligacion aplica aunque el usuario pida tocar solo lo estrictamente necesario: el registro en `AGENTS.md` se considera parte estrictamente necesaria de cualquier edicion del repo.
 - Si una instruccion del usuario prohibe explicitamente editar `AGENTS.md`, el agente debe pedir aclaracion antes de modificar otros archivos.
 
+### [2026-09-20] 335. Navegación EPUB rápida por página y preparación aislada de nuevos spine items
+
+**Planificacion:**
+- Eliminar la transición negra de `next/prev` dentro del mismo spine sin sustituir epub.js 0.3.93 ni debilitar el repositorio semántico de progreso.
+- Separar confirmación visual, captura del CFI y persistencia durable; reservar fuentes, repaginación y overlay para restauración, reflow o documentos iframe nuevos.
+- Mantener compatibilidad de claves, NT URL/base64, EPUB personales ArrayBuffer/Blob, marcadores, subrayados, cola de escritura y ciclo de vida.
+
+**Ejecucion:**
+- El controlador clasifica cada operación como `fast-page`, `new-spine`, `restore` o `reflow`. Un `next/prev` que conserva documento espera el `relocated` ya emitido por epub.js, captura el centro visible y guarda sin llamar `display`, `fonts.ready`, `layout.format` ni `expand`.
+- Los cambios de spine se detectan por índices de vistas/evento y por identidad del `Document`. Cada iframe nuevo memoriza su readiness, espera únicamente su CSS/fuentes/imágenes, recibe una sola pasada explícita de format/expand y se recoloca por CFI dentro del documento ya creado.
+- Restauración y reflow conservan el ancla central, repaginan una vez y esperan un `relocated` posterior. El ResizeObserver compara dimensiones efectivas con `snapToGrid`; tamaño/familia disparan reflow y los colores de tema se aplican sin repaginar.
+- El overlay dejó de seguir toda operación o la escritura IDB: no se activa en páginas rápidas y se retira al confirmar la página visual estable. localStorage se actualiza sincrónicamente y el commit IDB continúa en la cola con protección de revisión/fecha.
+- Se añadieron trazas compactas con recurso, operación, modo, spine anterior/nuevo, CFI abreviado y tiempos hasta página visible, `relocated` y commit. El cierre cancela confirmaciones tardías, conserva el último estado estable y espera una acción epub.js ya iniciada antes de destruir el iframe.
+- Se ampliaron las pruebas del doble event-driven y la matriz manual USB, sin modificar Camino, MainApp, navegación general, notificaciones, service worker, Android ni configuración de build.
+
+**Validacion:**
+- `npx tsc --noEmit`: OK.
+- `npm run build`: OK; Next 15.5.21 generó el export estático y el service worker sin errores.
+- 19 pruebas con runner nativo y `fake-indexeddb` instalado solo en `%TEMP%`: OK. Cubren fast-page sin segundo display ni ruta costosa, relocated tardío, preparación única de spine nuevo, restore/reflow, cierre/carreras, migraciones e identidades NT/personal.
+- `git diff --check`: OK, sin errores de whitespace; solo avisos informativos LF/CRLF del checkout.
+- No hubo dispositivo real, ADB ni validación visual de iframes. La matriz APK/PWA de diez escenarios queda pendiente de prueba USB.
+
+**Archivos Modificados:**
+- src/components/EpubReader.tsx
+- src/lib/epub-reader/controller.ts
+- src/lib/epub-reader/progress.ts
+- tests/reading-persistence.cjs
+- tests/READING-VALIDATION.md
+- AGENTS.md
+
 ### [2026-09-20] 334. Flujo de APK compatible con Java 21, actualización de Browserslist y limpieza de advertencias propias
 
 **Planificacion:**

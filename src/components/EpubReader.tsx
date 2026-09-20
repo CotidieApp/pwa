@@ -75,6 +75,7 @@ export default function EpubReader({
   const readerTapHandlerRef = useRef<(event: MouseEvent) => void>(() => undefined);
   const controllerRef = useRef<EpubReadingController | null>(null);
   const lastLayoutSizeRef = useRef<{ width: number; height: number } | null>(null);
+  const lastReflowSignatureRef = useRef<string | null>(null);
   const resizeDebounceTimerRef = useRef<number | null>(null);
   const highlightNoteDraftRef = useRef('');
   const bookmarkLabelRef = useRef('');
@@ -283,6 +284,7 @@ export default function EpubReader({
   useEffect(() => {
     showControlsRef.current = true;
     lastLayoutSizeRef.current = null;
+    lastReflowSignatureRef.current = null;
     isTransitioningRef.current = true;
     setIsTransitioning(true);
     if (resizeDebounceTimerRef.current !== null) {
@@ -420,15 +422,15 @@ export default function EpubReader({
         rendition.themes.override('font-family', readerFontFamily);
         rendition.themes.fontSize(`${readerFontSize}%`);
         rendition.hooks.content.register((contents: any) => {
-          controller.observeContents(contents);
           applyReaderAppearanceToContents(
             contents,
             appearanceRef.current.text,
             appearanceRef.current.background,
             appearanceRef.current.family
           );
+          const readiness = controller.observeContents(contents);
           const doc = contents?.document as Document | undefined;
-          if (!doc || doc.documentElement.dataset.cotidieReaderTapBound === 'true') return;
+          if (!doc || doc.documentElement.dataset.cotidieReaderTapBound === 'true') return readiness;
           doc.documentElement.dataset.cotidieReaderTapBound = 'true';
           doc.addEventListener('click', (event) => readerTapHandlerRef.current(event));
           doc.addEventListener('selectionchange', () => {
@@ -442,6 +444,7 @@ export default function EpubReader({
             setPendingSelectionText('');
             setHighlightNoteDraft('');
           });
+          return readiness;
         });
 
         const applyHighlight = (item: HighlightItem) => {
@@ -504,6 +507,7 @@ export default function EpubReader({
         await controller.run('restore');
         if (cancelled) return;
         lastLayoutSizeRef.current = { width: initialWidth, height: initialHeight };
+        lastReflowSignatureRef.current = `${initialWidth}x${initialHeight}|${readerFontFamily}|${readerFontSize}`;
 
         storedHighlights.forEach(applyHighlight);
 
@@ -548,7 +552,7 @@ export default function EpubReader({
     };
   }, [activeFile, beginTransition, bookmarksStorageKey, endTransition, epubUrl, highlightsStorageKey, locationStorageKey, sourceBase64, sourceBuffer]);
 
-  const requestLayout = useCallback(() => {
+  const requestReflow = useCallback(() => {
     const controller = controllerRef.current;
     const rendition = renditionRef.current;
     const container = containerRef.current;
@@ -556,7 +560,11 @@ export default function EpubReader({
     const width = snapToGrid(container.clientWidth);
     const height = snapToGrid(container.clientHeight);
     if (!width || !height) return;
-    void controller.run('layout', undefined, () => {
+    const requestedAppearance = appearanceRef.current;
+    const signature = `${width}x${height}|${requestedAppearance.family}|${requestedAppearance.size}`;
+    if (lastReflowSignatureRef.current === signature) return;
+    lastReflowSignatureRef.current = signature;
+    void controller.run('reflow', undefined, () => {
       const appearance = appearanceRef.current;
       rendition.themes.override('color', appearance.text);
       rendition.themes.override('background', appearance.background);
@@ -571,12 +579,28 @@ export default function EpubReader({
         rendition.resize(width, height);
         lastLayoutSizeRef.current = { width, height };
       }
-    }).catch(error => setNavigationError(String(error)));
+    }).catch(error => {
+      lastReflowSignatureRef.current = null;
+      setNavigationError(String(error));
+    });
   }, []);
 
   useEffect(() => {
-    if (status === 'ready') requestLayout();
-  }, [readerBackgroundColor, readerFontFamily, readerTextColor, readerFontSize, status, requestLayout]);
+    if (status === 'ready') requestReflow();
+  }, [readerFontFamily, readerFontSize, status, requestReflow]);
+
+  useEffect(() => {
+    if (status !== 'ready' || !renditionRef.current) return;
+    const rendition = renditionRef.current;
+    const appearance = appearanceRef.current;
+    // Theme colors do not alter text metrics and must not repaginate the EPUB.
+    rendition.themes.override('color', appearance.text);
+    rendition.themes.override('background', appearance.background);
+    rendition.themes.override('background-color', appearance.background);
+    for (const contents of (rendition as any).getContents() ?? []) {
+      applyReaderAppearanceToContents(contents, appearance.text, appearance.background, appearance.family);
+    }
+  }, [readerBackgroundColor, readerTextColor, status]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -585,7 +609,7 @@ export default function EpubReader({
       if (resizeDebounceTimerRef.current !== null) clearTimeout(resizeDebounceTimerRef.current);
       resizeDebounceTimerRef.current = window.setTimeout(() => {
         const size = lastLayoutSizeRef.current;
-        if (size?.width !== snapToGrid(container.clientWidth) || size?.height !== snapToGrid(container.clientHeight)) requestLayout();
+        if (size?.width !== snapToGrid(container.clientWidth) || size?.height !== snapToGrid(container.clientHeight)) requestReflow();
       }, READER_RESIZE_DEBOUNCE_MS);
     };
     const observer = new ResizeObserver(schedule);
@@ -598,7 +622,7 @@ export default function EpubReader({
       window.visualViewport?.removeEventListener('resize', schedule);
       if (resizeDebounceTimerRef.current !== null) clearTimeout(resizeDebounceTimerRef.current);
     };
-  }, [requestLayout]);
+  }, [requestReflow]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {

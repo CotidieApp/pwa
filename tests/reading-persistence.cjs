@@ -147,6 +147,16 @@ test('personal binary over localStorage quota uses IDB, rename keeps bytes and p
   assert.equal(epubProgressKey(`personal-${meta.id}.epub`), 'cotidie_epub_location_personal-epub-large.epub');
 });
 
+test('NT URL/base64 and personal ArrayBuffer readers retain their historical progress identities', () => {
+  const ntReader = fs.readFileSync(path.join(root, 'src/components/NuevoTestamentoReader.tsx'), 'utf8');
+  const personalReader = fs.readFileSync(path.join(root, 'src/components/PersonalEpubLibrary.tsx'), 'utf8');
+  assert.match(ntReader, /fileName=\{NT_FILE\}/);
+  assert.match(ntReader, /sourceBase64=\{offlineSource \?\? undefined\}/);
+  assert.equal(epubProgressKey('nuevo-testamento.epub'), 'cotidie_epub_location_nuevo-testamento.epub');
+  assert.match(personalReader, /fileName=\{`personal-\$\{selected\.id\}\.epub`\}/);
+  assert.match(personalReader, /sourceBuffer=\{selectedSource\}/);
+});
+
 test('Camino anchor restores same point/fraction when paragraph dimensions change', () => {
   let scroll = 320, scale = 1;
   const tops = [0, 200, 400, 700];
@@ -208,29 +218,106 @@ test('font readiness waits for iframe stylesheet before loading effective faces'
 
 // The controller is tested against an event-driven rendition double; its geometry capture is isolated.
 const layoutPath = require.resolve('../src/lib/epub-reader/layout.ts');
+const controllerMetrics = { fontWaits: 0 };
 require.cache[layoutPath] = { id: layoutPath, filename: layoutPath, loaded: true, exports: {
-  nextFrame: tick, waitForReaderFonts: async () => undefined,
+  nextFrame: tick, waitForReaderFonts: async () => { controllerMetrics.fontWaits++; },
   captureEpubAnchor: rendition => anchor(rendition.page),
 } };
 const { EpubReadingController } = require('../src/lib/epub-reader/controller.ts');
 const { EventEmitter } = require('node:events');
 class RenditionDouble extends EventEmitter {
   page = 1;
+  total = 4;
+  spine = 0;
   reports = [];
   hold = false;
   calls = [];
+  formatCalls = 0;
+  expandCalls = 0;
+  useDocuments = false;
+  document = null;
   q = { enqueue: async fn => fn() };
-  manager = { views: { all: () => [] } };
-  getContents() { return []; }
-  async display(target) { this.calls.push('display'); if (target) this.page = Number(target.match(/\/6\/(\d+)/)[1]) / 2; }
-  async next() { this.calls.push('next'); this.page++; }
-  async prev() { this.calls.push('prev'); this.page--; }
+  manager = { views: { all: () => this.view ? [this.view] : [] } };
+  constructor() { super(); this.installDocument(); }
+  installDocument() {
+    if (!this.useDocuments) { this.document = null; this.view = null; return; }
+    this.document = { defaultView: { frameElement: { isConnected: true } } };
+    const contents = { document: this.document };
+    this.view = { section: { index: this.spine }, contents,
+      layout: { format: () => { this.formatCalls++; } }, expand: () => { this.expandCalls++; } };
+  }
+  enableDocuments() { this.useDocuments = true; this.installDocument(); }
+  getContents() { return this.view ? [this.view.contents] : []; }
+  location() { return { start: { cfi: cfi(this.page), index: this.spine,
+    displayed: { page: this.page, total: this.total } }, end: { cfi: cfi(this.page + 1), index: this.spine,
+    displayed: { page: this.page, total: this.total } } }; }
+  currentLocation() { return this.location(); }
+  async display(target) {
+    this.calls.push('display');
+    if (target) this.page = Number(target.match(/\/6\/(\d+)/)[1]) / 2;
+    void this.reportLocation();
+  }
+  async next() {
+    this.calls.push('next');
+    if (this.page >= this.total) { this.spine++; this.page = 1; this.installDocument(); } else this.page++;
+    void this.reportLocation();
+  }
+  async prev() {
+    this.calls.push('prev');
+    if (this.page <= 1) { this.spine--; this.page = this.total; this.installDocument(); } else this.page--;
+    void this.reportLocation();
+  }
   async reportLocation() {
-    const report = () => this.emit('relocated', { start: { cfi: cfi(this.page) } });
+    const report = () => this.emit('relocated', this.location());
     if (this.hold) this.reports.push(report); else setImmediate(report);
   }
 }
 async function until(predicate) { for (let i = 0; i < 1000; i++) { if (predicate()) return; await tick(); } throw new Error('test condition not reached'); }
+
+test('same-spine next/prev use only the original relocated: no display, fonts, layout or expand', async () => {
+  const r = new RenditionDouble();
+  r.enableDocuments();
+  const transitions = [];
+  const controller = new EpubReadingController(r, {}, 'fast-page.epub', trace, () => {}, value => transitions.push(value));
+  await controller.run('restore');
+  transitions.length = 0;
+  const baseline = { displays: r.calls.filter(call => call === 'display').length,
+    fonts: controllerMetrics.fontWaits, formats: r.formatCalls, expands: r.expandCalls };
+  await controller.run('next');
+  await controller.run('prev');
+  assert.equal(r.calls.filter(call => call === 'display').length, baseline.displays);
+  assert.equal(controllerMetrics.fontWaits, baseline.fonts);
+  assert.equal(r.formatCalls, baseline.formats);
+  assert.equal(r.expandCalls, baseline.expands);
+  assert.equal(r.calls.filter(call => call === 'next').length, 1);
+  assert.equal(r.calls.filter(call => call === 'prev').length, 1);
+  assert.deepEqual(transitions, [], 'fast page turns never activate the visual overlay');
+  assert.ok(traces.some(([message, data]) => message === 'operation' && data.includes('mode=fast-page')));
+  await controller.close();
+});
+
+test('crossing a spine prepares its new iframe exactly once and then confirms the settled CFI', async () => {
+  const r = new RenditionDouble();
+  r.enableDocuments();
+  r.page = r.total;
+  const transitions = [];
+  const controller = new EpubReadingController(r, {}, 'new-spine.epub', trace, () => {}, value => transitions.push(value));
+  await controller.run('restore');
+  transitions.length = 0;
+  r.page = r.total;
+  const baseline = { displays: r.calls.filter(call => call === 'display').length,
+    fonts: controllerMetrics.fontWaits, formats: r.formatCalls, expands: r.expandCalls };
+  await controller.run('next');
+  assert.equal(r.spine, 1);
+  assert.equal(controllerMetrics.fontWaits, baseline.fonts + 1);
+  assert.equal(r.formatCalls, baseline.formats + 1);
+  assert.equal(r.expandCalls, baseline.expands + 1);
+  assert.equal(r.calls.filter(call => call === 'display').length, baseline.displays + 1,
+    'one same-document display repositions after the only prepared pagination pass');
+  assert.deepEqual(transitions, [true, false]);
+  assert.ok(traces.some(([message, data]) => message === 'operation' && data.includes('mode=new-spine')));
+  await controller.close();
+});
 
 test('next promise is insufficient: controller waits for final relocated and serializes rapid navigation', async () => {
   const r = new RenditionDouble(), id = 'controller.epub', key = epubProgressKey(id);
@@ -269,12 +356,12 @@ test('closing cancels an unconfirmed operation; late relocated cannot write afte
   assert.equal(JSON.parse(saved).anchorCfi, cfi(1));
 });
 
-test('initial ResizeObserver/layout cannot write before historical restoration', async () => {
+test('initial ResizeObserver/reflow cannot write before historical restoration', async () => {
   const r = new RenditionDouble(), id = 'early-resize.epub', key = epubProgressKey(id);
   localStorage.setItem(key, JSON.stringify({ cfi: cfi(17) }));
   const controller = new EpubReadingController(r, {}, id, trace, () => {}, () => {});
   let changed = false;
-  await controller.run('layout', undefined, () => { changed = true; });
+  await controller.run('reflow', undefined, () => { changed = true; });
   assert.equal(changed, false);
   assert.equal(JSON.parse(localStorage.getItem(key)).cfi, cfi(17));
   await controller.run('restore');
@@ -283,13 +370,19 @@ test('initial ResizeObserver/layout cannot write before historical restoration',
   await controller.close();
 });
 
-test('font/resize reflow preserves original central anchor across repeated layout operations', async () => {
+test('font-size and resize reflows use the full route and preserve the original central anchor', async () => {
   const r = new RenditionDouble(), id = 'reflow.epub', key = epubProgressKey(id);
+  r.enableDocuments();
   localStorage.setItem(key, JSON.stringify(record(id, 12, 100)));
   const controller = new EpubReadingController(r, {}, id, trace, () => {}, () => {});
   await controller.run('restore');
-  await controller.run('layout', undefined, () => { r.page = 99; });
-  await controller.run('layout', undefined, () => { r.page = 88; });
+  const formats = r.formatCalls;
+  let fontSizeChanged = false, resized = false;
+  await controller.run('reflow', undefined, () => { fontSizeChanged = true; r.page = 99; });
+  await controller.run('reflow', undefined, () => { resized = true; r.page = 88; });
+  assert.equal(fontSizeChanged, true);
+  assert.equal(resized, true);
+  assert.equal(r.formatCalls, formats + 2);
   assert.equal(JSON.parse(localStorage.getItem(key)).anchorCfi, cfi(12));
   await controller.close();
 });
