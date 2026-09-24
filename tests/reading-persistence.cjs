@@ -30,6 +30,7 @@ const { EpubProgressRepository, epubProgressKey, parseEpubProgress } = require('
 const personal = require('../src/lib/personal-epubs.ts');
 const camino = require('../src/lib/camino-progress.ts');
 const realLayout = require('../src/lib/epub-reader/layout.ts');
+const pagination = require('../src/lib/epub-reader/pagination.ts');
 const traces = [];
 const trace = (...entry) => traces.push(entry);
 const cfi = page => `epubcfi(/6/${page * 2}!/4/2/1:10)`;
@@ -148,13 +149,55 @@ test('personal binary over localStorage quota uses IDB, rename keeps bytes and p
 });
 
 test('NT URL/base64 and personal ArrayBuffer readers retain their historical progress identities', () => {
+  const epubReader = fs.readFileSync(path.join(root, 'src/components/EpubReader.tsx'), 'utf8');
   const ntReader = fs.readFileSync(path.join(root, 'src/components/NuevoTestamentoReader.tsx'), 'utf8');
   const personalReader = fs.readFileSync(path.join(root, 'src/components/PersonalEpubLibrary.tsx'), 'utf8');
   assert.match(ntReader, /fileName=\{NT_FILE\}/);
+  assert.equal((ntReader.match(/displayName=\{NT_DISPLAY_NAME\}/g) || []).length, 2);
+  assert.match(ntReader, /const NT_DISPLAY_NAME = 'Nuevo Testamento'/);
   assert.match(ntReader, /sourceBase64=\{offlineSource \?\? undefined\}/);
   assert.equal(epubProgressKey('nuevo-testamento.epub'), 'cotidie_epub_location_nuevo-testamento.epub');
   assert.match(personalReader, /fileName=\{`personal-\$\{selected\.id\}\.epub`\}/);
+  assert.match(personalReader, /displayName=\{selected\.name\}/);
   assert.match(personalReader, /sourceBuffer=\{selectedSource\}/);
+  assert.doesNotMatch(epubReader, />Lector EPUB</);
+});
+
+test('reader header uses the visible file name and relative pagination covers the whole EPUB', async () => {
+  assert.equal(pagination.getReaderFileName('nuevo-testamento.epub'), 'nuevo-testamento.epub');
+  assert.equal(pagination.getReaderFileName('nuevo-testamento.epub', 'Nuevo Testamento'), 'Nuevo Testamento');
+  assert.equal(pagination.getReaderFileName('personal-id.epub', 'Magnifica Humanitas.epub'), 'Magnifica Humanitas.epub');
+  assert.equal(pagination.getReaderFileName('/books/Mi%20libro.epub'), 'Mi libro.epub');
+
+  const compact = pagination.estimateCharsPerPage({
+    width: 360, height: 720, fontSize: 100, fontFamily: "'Literata', serif",
+  });
+  const enlarged = pagination.estimateCharsPerPage({
+    width: 360, height: 720, fontSize: 150, fontFamily: "'Literata', serif",
+  });
+  assert.ok(enlarged < compact, 'larger type must produce more relative pages');
+
+  const labels = [];
+  const breaks = [];
+  const locations = {
+    total: 0,
+    pause: 100,
+    load() { this.total = -1; },
+    async generate(chars) { breaks.push(chars); this.total = 9; return Array.from({ length: 10 }, (_, i) => String(i)); },
+    locationFromCfi(cfiValue) { return Number(cfiValue); },
+  };
+  const paginator = new pagination.EpubRelativePaginator(
+    { locations },
+    label => labels.push(label)
+  );
+  paginator.relocate('4');
+  await paginator.rebuild({ width: 360, height: 720, fontSize: 100, fontFamily: "'Literata', serif" });
+  assert.deepEqual(labels, ['…/…', '5/10']);
+  assert.equal(locations.pause, 100, 'epub.js generation pause is restored');
+  paginator.relocate('8');
+  assert.equal(labels.at(-1), '9/10');
+  assert.deepEqual(breaks, [compact]);
+  paginator.close();
 });
 
 test('Camino anchor restores same point/fraction when paragraph dimensions change', () => {
@@ -367,6 +410,36 @@ test('initial ResizeObserver/reflow cannot write before historical restoration',
   await controller.run('restore');
   assert.equal(JSON.parse(localStorage.getItem(key)).anchorCfi, cfi(17));
   assert.equal(JSON.parse(localStorage.getItem(key)).anchorKind, 'center');
+  await controller.close();
+});
+
+test('a saved page spanning two spine items restores its semantic center in the newer item', async () => {
+  const r = new RenditionDouble(), id = 'two-spines.epub', key = epubProgressKey(id);
+  const previousStart = 'epubcfi(/6/10!/4/2/1:4)';
+  const newerCenter = 'epubcfi(/6/12!/4/4/1:18)';
+  const newerEnd = 'epubcfi(/6/12!/4/8/1:30)';
+  localStorage.setItem(key, JSON.stringify({
+    version: 1,
+    resourceId: id,
+    updatedAt: 100,
+    revision: 1,
+    anchorCfi: newerCenter,
+    anchorKind: 'center',
+    startCfi: previousStart,
+    endCfi: newerEnd,
+    href: 'newer.xhtml',
+  }));
+  const displayed = [];
+  r.display = async target => {
+    displayed.push(target);
+    r.calls.push('display');
+    r.page = 2;
+    void r.reportLocation();
+  };
+  const controller = new EpubReadingController(r, {}, id, trace, () => {}, () => {});
+  await controller.run('restore');
+  assert.equal(displayed[0], newerCenter, 'restore must not fall back to the preceding spine start');
+  assert.equal(JSON.parse(localStorage.getItem(key)).anchorCfi, newerCenter);
   await controller.close();
 });
 

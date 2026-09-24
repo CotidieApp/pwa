@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import ePub, { type Book, type Rendition } from 'epubjs';
 import { EpubReadingController } from '@/lib/epub-reader/controller';
+import { EpubRelativePaginator, getReaderFileName } from '@/lib/epub-reader/pagination';
 import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { Button } from '@/components/ui/button';
@@ -59,6 +60,7 @@ import { ReaderSelectionToolbar } from '@/components/epub-reader/ReaderSelection
 
 export default function EpubReader({
   fileName,
+  displayName,
   sourceBase64 = null,
   sourceBuffer = null,
   context = 'nt',
@@ -74,6 +76,7 @@ export default function EpubReader({
   const showControlsRef = useRef(true);
   const readerTapHandlerRef = useRef<(event: MouseEvent) => void>(() => undefined);
   const controllerRef = useRef<EpubReadingController | null>(null);
+  const paginatorRef = useRef<EpubRelativePaginator | null>(null);
   const lastLayoutSizeRef = useRef<{ width: number; height: number } | null>(null);
   const lastReflowSignatureRef = useRef<string | null>(null);
   const resizeDebounceTimerRef = useRef<number | null>(null);
@@ -84,6 +87,7 @@ export default function EpubReader({
   const isTransitioningRef = useRef(true);
 
   const activeFile = typeof fileName === 'string' && fileName.trim().length > 0 ? fileName.trim() : DEFAULT_FILE_NAME;
+  const readerFileName = useMemo(() => getReaderFileName(activeFile, displayName), [activeFile, displayName]);
   const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [locationLabel, setLocationLabel] = useState('');
@@ -317,19 +321,25 @@ export default function EpubReader({
     let activeBook: Book | null = null;
     let activeRendition: Rendition | null = null;
     let activeController: EpubReadingController | null = null;
+    let activePaginator: EpubRelativePaginator | null = null;
     let activeLoadPromise: Promise<void> | null = null;
     let mount: HTMLDivElement | null = null;
 
     const dispose = () => {
       if (renditionRef.current === activeRendition) renditionRef.current = null;
       if (bookRef.current === activeBook) bookRef.current = null;
+      if (paginatorRef.current === activePaginator) paginatorRef.current = null;
       const bookToDispose = activeBook;
       const renditionToDispose = activeRendition;
+      const paginatorToDispose = activePaginator;
       const opened = (bookToDispose as any)?.opened;
       const started = (renditionToDispose as any)?.started;
       const loading = activeLoadPromise;
+      paginatorToDispose?.close();
+      const paginating = paginatorToDispose?.waitForIdle();
       activeRendition = null;
       activeBook = null;
+      activePaginator = null;
 
       const destroyBook = () => {
         try {
@@ -341,7 +351,7 @@ export default function EpubReader({
         } catch {}
         mount?.remove();
       };
-      const pendingLifecycle = [loading, opened, started].filter(
+      const pendingLifecycle = [loading, opened, started, paginating].filter(
         (task): task is Promise<unknown> => Boolean(task && typeof task.then === 'function')
       );
       if (pendingLifecycle.length > 0) {
@@ -405,6 +415,18 @@ export default function EpubReader({
           (busy) => { if (!cancelled) { if (busy) beginTransition(); else endTransition(); } });
         activeController = controller;
         controllerRef.current = controller;
+        const paginator = new EpubRelativePaginator(
+          book as any,
+          (label) => { if (!cancelled) setLocationLabel(label); },
+          (message, data, error) => pushDevLiveTrace({
+            level: error ? 'warn' : 'info',
+            source: 'epub-reader',
+            message,
+            data,
+          })
+        );
+        activePaginator = paginator;
+        paginatorRef.current = paginator;
 
         rendition.themes.default({
           body: {
@@ -464,8 +486,7 @@ export default function EpubReader({
 
         const onRelocated = (location: any) => {
           if (cancelled) return;
-          const displayed = location?.start?.displayed;
-          if (displayed) setLocationLabel(`${displayed.page}/${displayed.total}`);
+          paginator.relocate(location?.start?.cfi);
         };
 
         const onSelected = (cfiRange: string, contents: any) => {
@@ -508,6 +529,15 @@ export default function EpubReader({
         if (cancelled) return;
         lastLayoutSizeRef.current = { width: initialWidth, height: initialHeight };
         lastReflowSignatureRef.current = `${initialWidth}x${initialHeight}|${readerFontFamily}|${readerFontSize}`;
+
+        const restoredLocation = (rendition as any).currentLocation?.();
+        paginator.relocate(restoredLocation?.start?.cfi);
+        void paginator.rebuild({
+          width: initialWidth,
+          height: initialHeight,
+          fontSize: readerFontSize,
+          fontFamily: readerFontFamily,
+        });
 
         storedHighlights.forEach(applyHighlight);
 
@@ -579,6 +609,13 @@ export default function EpubReader({
         rendition.resize(width, height);
         lastLayoutSizeRef.current = { width, height };
       }
+    }).then(() => {
+      void paginatorRef.current?.rebuild({
+        width,
+        height,
+        fontSize: requestedAppearance.size,
+        fontFamily: requestedAppearance.family,
+      });
     }).catch(error => {
       lastReflowSignatureRef.current = null;
       setNavigationError(String(error));
@@ -965,7 +1002,7 @@ export default function EpubReader({
                 <BookOpen className="h-4 w-4" />
               </div>
               <div className="min-w-0">
-                <div className="truncate text-sm font-semibold">{isNtContext ? 'Nuevo Testamento' : 'Lector EPUB'}</div>
+                <div className="truncate text-sm font-semibold">{readerFileName}</div>
                 <div className="truncate text-xs text-muted-foreground">
                   {locationLabel ? `Página ${locationLabel}` : status === 'ready' ? 'Lectura lista' : 'Preparando lectura'}
                 </div>

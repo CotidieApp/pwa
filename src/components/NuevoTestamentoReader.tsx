@@ -11,6 +11,7 @@ import { getOfflineEpub, saveOfflineEpub, downloadEpubAsBase64 } from '@/lib/off
 // saved reading position / bookmarks / highlights keys match whether the book
 // is read online (by URL) or offline (from the stored copy).
 const NT_FILE = 'nuevo-testamento.epub';
+const NT_DISPLAY_NAME = 'Nuevo Testamento';
 const NT_URL = '/epub/nuevo-testamento.epub';
 const NT_SIZE_LABEL = '2,4 MB';
 
@@ -24,7 +25,7 @@ type Props = { onClose: () => void };
 // by URL fails without a connection.
 export default function NuevoTestamentoReader({ onClose }: Props) {
   if (Capacitor.isNativePlatform()) {
-    return <EpubReader onClose={onClose} />;
+    return <EpubReader onClose={onClose} fileName={NT_FILE} displayName={NT_DISPLAY_NAME} />;
   }
   return <PwaNuevoTestamentoReader onClose={onClose} />;
 }
@@ -78,6 +79,7 @@ function PwaNuevoTestamentoReader({ onClose }: Props) {
       <EpubReader
         onClose={onClose}
         fileName={NT_FILE}
+        displayName={NT_DISPLAY_NAME}
         sourceBase64={offlineSource ?? undefined}
         context="nt"
       />

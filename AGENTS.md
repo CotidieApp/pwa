@@ -8,6 +8,92 @@ Historial de intervenciones del asistente en el repo.
 - Esta obligacion aplica aunque el usuario pida tocar solo lo estrictamente necesario: el registro en `AGENTS.md` se considera parte estrictamente necesaria de cualquier edicion del repo.
 - Si una instruccion del usuario prohibe explicitamente editar `AGENTS.md`, el agente debe pedir aclaracion antes de modificar otros archivos.
 
+### [2026-09-21] 338. Títulos sincronizados y cierre de validaciones EPUB complementarias
+
+**Planificacion:**
+- Mostrar `Nuevo Testamento` como etiqueta humana sin cambiar la identidad durable `nuevo-testamento.epub`, y comprobar que el nombre editable de cada EPUB personal sea la misma fuente del índice y del lector.
+- Completar los casos que habían quedado parciales: retroceso de spine, centro semántico entre dos spine items, cambio de familia y anotaciones del NT PWA sin origen disponible.
+- Repetir compilación, pruebas, APK exacto y controles USB sin publicar ni alterar datos históricos del usuario.
+
+**Ejecucion:**
+- `NuevoTestamentoReader` pasa explícitamente `displayName="Nuevo Testamento"` tanto en APK como en PWA, pero conserva `fileName={NT_FILE}` para progreso, marcadores y subrayados. La biblioteca personal continúa derivando `displayName` de `selected.name`; un renombrado actualiza el índice y el encabezado mediante el mismo estado, mientras la clave `personal-${id}.epub` no cambia.
+- Se añadió una regresión de restauración con `startCfi` en un spine anterior y ancla central/final en el siguiente. La prueba exige que la restauración use primero el centro semántico nuevo y nunca retroceda al inicio viejo.
+- En USB se cruzó el límite real `13c.xhtml` / `13c-1.xhtml` en ambos sentidos. Literata -> Lora repaginó 1824 -> 1895 páginas relativas y reabrió en el mismo pasaje de Judas; al terminar se restituyó Literata.
+- En Chrome se guardaron, sin servidor ni `adb reverse`, un subrayado con nota y un marcador sobre el NT almacenado en IndexedDB. Tras desmontar y volver a montar el lector offline persistieron los dos registros y se recreó `g.cotidie-highlight`; después se eliminaron solamente los datos de prueba.
+- Se corrigió la atribución de la prueba local PWA: `localhost` activa la limpieza deliberada de service workers del proyecto, por lo que la sesión certifica el lector/EPUB/anotaciones offline dentro del SPA, no una recarga dura offline del shell.
+- Se retiraron también las etiquetas literales usadas durante la prueba: no permanecen en localStorage, metadatos de libros, anotaciones ni documentación técnica.
+
+**Validacion:**
+- `npx tsc --noEmit`: OK.
+- 21 pruebas con runner nativo y `fake-indexeddb` instalado solo en `%TEMP%`: OK.
+- `npm run build`: OK; export estático y service worker generados sin errores.
+- APK 6.4.21 exacto generado con `--no-bump --no-push --no-drive`: 76.95 MB, SHA-256 `730d3fa73f183eef9c5cb8e13c71f5f31941e9000f818f5db5c888f1ed42ba4f`; `adb install -r` correcto.
+- Z2468N: encabezado `Nuevo Testamento`; un renombrado temporal de prueba quedó sincronizado entre índice y lector y luego se restauró el nombre original; cruce de spine atrás y cambio de familia sin pérdida semántica.
+- Chrome USB: marcador, subrayado y nota conservados tras remonte offline del lector; el EPUB volvió a abrir desde IndexedDB y la anotación se dibujó. No se probó ni modificó la WebAPK publicada.
+
+**Archivos Modificados:**
+- src/components/NuevoTestamentoReader.tsx
+- tests/reading-persistence.cjs
+- tests/READING-VALIDATION.md
+- AGENTS.md
+
+### [2026-09-21] 337. Nombre de archivo y paginación relativa global en el encabezado EPUB
+
+**Planificacion:**
+- Sustituir el título genérico `Lector EPUB` por el nombre del archivo visible, conservando separada la identidad histórica usada por progreso y anotaciones.
+- Reemplazar el contador local del spine item por un `N/T` relativo al EPUB completo y recalcularlo cuando cambien viewport, orientación, tamaño o familia tipográfica.
+- Mantener la ruta `fast-page` sin `display`, repaginación visible ni trabajo de fuentes/layout por cada giro.
+
+**Ejecucion:**
+- `EpubReader` muestra el basename de `fileName`; la biblioteca personal pasa además su nombre visible sin alterar `personal-${id}.epub`, por lo que las claves históricas permanecen idénticas.
+- Se añadió un paginador relativo basado en las locations CFI de epub.js. El intervalo semántico se escala con el área efectiva, porcentaje de fuente y métrica aproximada de la familia; el mapa se crea en segundo plano y la navegación solo hace una búsqueda CFI para actualizar `N/T`.
+- Los cambios de métricas regeneran el mapa después del reflow confirmado. Las solicitudes consecutivas se agrupan, los resultados obsoletos se descartan y el cierre espera cualquier generación en curso antes de destruir el libro.
+- No se persisten columnas, píxeles ni mapas físicos entre sesiones y no se llama `rendition.display()` para calcular páginas.
+
+**Validacion:**
+- `npx tsc --noEmit`: OK.
+- 20 pruebas con runner nativo y `fake-indexeddb` solo en `%TEMP%`: OK. La nueva prueba cubre basename, nombre personal, dependencia de tamaño tipográfico, total global y actualización por CFI.
+- `npm run build`: OK; export estático y service worker generados sin errores.
+- APK 6.4.21 generado con `--no-bump --no-push --no-drive`: 76.95 MB, SHA-256 `8a346fc503400951c1b0383c6041d94a3cc00714cb56557cb2cd276d5ef62490`; instalación `adb install -r` correcta.
+- Prueba real Z2468N: NT mostró `nuevo-testamento.epub`, 605/1824 a 110% y 727/2192 a 120%, conservando la ubicación semántica. El EPUB personal mostró `Magnifica Humanitas` y 65/394. Logcat sin excepciones relacionadas.
+- `git diff --check`: OK, sin errores de whitespace; solo avisos informativos LF/CRLF del checkout.
+
+**Archivos Modificados:**
+- src/components/EpubReader.tsx
+- src/components/PersonalEpubLibrary.tsx
+- src/lib/epub-reader/pagination.ts (nuevo)
+- src/lib/epub-reader/types.ts
+- tests/reading-persistence.cjs
+- tests/READING-VALIDATION.md
+- AGENTS.md
+
+### [2026-09-21] 336. Validación USB real de navegación EPUB en APK y PWA local offline
+
+**Planificacion:**
+- Compilar e instalar en el dispositivo la misma revisión con los cambios de navegación, conservando los datos existentes y sin publicar ni incrementar versión.
+- Verificar visualmente página rápida, cambio de spine, background, muerte del proceso, orientación, teclado, tamaño, búsqueda y EPUB personal histórico; medir los intervalos negros de las grabaciones.
+- Probar la salida PWA exacta sin confundirla con la WebAPK publicada: servir `out/` temporalmente por ADB, descargar el NT y retirar por completo el origen antes de recargar.
+
+**Ejecucion:**
+- Se generó el APK 6.4.21 con `--no-bump --no-push --no-drive`, se instaló mediante `adb install -r` y se preservaron los datos del paquete `com.benjamin.studio`.
+- Tres avances dentro del mismo spine del NT y un retroceso en el EPUB personal se grabaron en el Z2468N. La página anterior permaneció visible hasta la siguiente; `ffmpeg blackdetect` no encontró negro. Un cruce real de spine mostró solamente el overlay previsto durante 323 ms.
+- El avance seguido de HOME a unos 350 ms reabrió en 2/25; después de `force-stop` volvió a restaurar 2/25. La rotación vertical-horizontal-vertical y el cambio 110%-120%-110% conservaron «Testimonio de Juan Bautista». Abrir/cerrar el teclado de búsqueda no desplazó el ancla final.
+- La búsqueda `Juan 1:29` devolvió el pasaje correcto y saltó a 3/25. El EPUB personal histórico «Magnifica Humanitas» conservó su nombre, abrió en 14/23 y paginó sin error.
+- Para PWA se usó el `out/` recién construido en `http://localhost:4173`, origen independiente de producción. El NT se descargó a IndexedDB; después se detuvo el servidor, se eliminó `adb reverse` y una navegación nueva siguió cargando la app mediante el service worker y el EPUB desde su copia offline.
+- No apareció una regresión que justificara otro cambio de código. Se actualizó la matriz separando resultados completos, parciales y todavía pendientes.
+
+**Validacion:**
+- `npx tsc --noEmit`: OK; `npm run build`: OK; 19 pruebas con `fake-indexeddb` instalado solo en `%TEMP%`: OK, realizados antes de generar el APK exacto probado.
+- APK: `cotidie-installer-v6.4.21.apk`, 76.95 MB, SHA-256 `10e4eb08ef5e785868cdd18ed7067a49795aff7ba9799942912a34c7c15baf25`; instalación y ejecución reales en Z2468N 1080x2400.
+- APK visual: fast-page hacia delante y atrás sin intervalo negro; new-spine con cobertura de 323 ms; background, muerte de proceso, orientación, teclado, tamaño, búsqueda y EPUB personal sin fallo funcional observado.
+- PWA local: descarga offline y reapertura sin servidor ni túnel ADB, seguida de paginación correcta. La WebAPK de producción instalada no se modificó ni se usó para atribuir resultados al código local.
+- Logcat sin `FATAL EXCEPTION`, excepción JavaScript no controlada, `QuotaExceededError` ni error del controlador. Solo aparecieron avisos internos de métricas `first_paint/first_image_paint` de Chromium.
+- `git diff --check`: OK tras documentar la sesión. Quedan expresamente pendientes los casos parciales indicados en la matriz, entre ellos la página que contiene simultáneamente dos spine items, familia tipográfica y anotaciones offline.
+
+**Archivos Modificados:**
+- tests/READING-VALIDATION.md
+- AGENTS.md
+
 ### [2026-09-20] 335. Navegación EPUB rápida por página y preparación aislada de nuevos spine items
 
 **Planificacion:**

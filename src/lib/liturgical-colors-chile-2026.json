@@ -2710,12 +2710,12 @@
       "title": "Nuestra Señora de la Merced (ML)",
       "misa": "Misa: De la feria/ Verde o Blanco.",
       "sourceId": "2026-ordinario-ii",
-      "officialPrimaryColor": "Verde",
+      "officialPrimaryColor": "Blanco",
       "officialColorOptions": [
         "Verde",
         "Blanco"
       ],
-      "appColor": "Verde"
+      "appColor": "Blanco"
     },
     "2026-09-25": {
       "title": "(Sta. Aurelia)",

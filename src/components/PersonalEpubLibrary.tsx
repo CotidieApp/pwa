@@ -225,6 +225,7 @@ export default function PersonalEpubLibrary({ registerBackHandler }: PersonalEpu
       <>
         <EpubReader
           fileName={`personal-${selected.id}.epub`}
+          displayName={selected.name}
           sourceBuffer={selectedSource}
           context="general"
           onClose={() => {
