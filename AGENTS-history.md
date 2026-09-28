@@ -3451,6 +3451,22 @@ Historial de intervenciones del asistente en el repo.
 - `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetContentFactory.java`
 - `AGENTS.md`
 
+### [2026-09-28] Publicación de 6.4.22 en el repositorio oficial
+**Planificacion:**
+- Corregir la publicación inicial en `CotidieApp/pwa`, que no era el repositorio de distribución utilizado por Cotidie Novum.
+
+**Ejecucion:**
+- Se creó la release `v6.4.22` en `CotidieApp/cotidie-web`, conservando las releases históricas `v6.4.0`–`v6.4.21`.
+- Se publicó el APK como `cotidie-latest.apk`, nombre estable consumido por el actualizador.
+- Se eliminó el duplicado versionado cargado inicialmente en ese release; no se borró la release separada de `CotidieApp/pwa`.
+
+**Validacion:**
+- La API de GitHub devuelve `v6.4.22` como release Latest, pública y no preliminar.
+- El enlace `/releases/latest/download/cotidie-latest.apk` redirige al asset de `v6.4.22` y una descarga por rango respondió HTTP 206.
+
+**Archivos Modificados:**
+- `AGENTS-history.md`
+
 ### [2026-03-26 13:24] 205. Tabla oficial CECh 2026 para colores litúrgicos y blanco forzado en Difuntos
 **Planificación:**
 - Reemplazar la heurística de colores por una tabla día a día basada en la fuente oficial chilena disponible.
