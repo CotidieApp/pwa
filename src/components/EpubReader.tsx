@@ -100,8 +100,10 @@ export default function EpubReader({
   const [bookmarkLabel, setBookmarkLabel] = useState('');
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
   const [highlights, setHighlights] = useState<HighlightItem[]>([]);
+  const highlightsRef = useRef<HighlightItem[]>([]);
   const [pendingSelectionCfi, setPendingSelectionCfi] = useState('');
   const [pendingSelectionText, setPendingSelectionText] = useState('');
+  const [pendingSelectionHighlightIds, setPendingSelectionHighlightIds] = useState<string[]>([]);
   const [highlightNoteDraft, setHighlightNoteDraft] = useState('');
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [panelTab, setPanelTab] = useState<'toc' | 'search' | 'bookmarks' | 'highlights'>('toc');
@@ -464,6 +466,7 @@ export default function EpubReader({
             if (highlightNoteDraftRef.current.trim() || bookmarkLabelRef.current.trim()) return;
             setPendingSelectionCfi('');
             setPendingSelectionText('');
+            setPendingSelectionHighlightIds([]);
             setHighlightNoteDraft('');
           });
           return readiness;
@@ -495,6 +498,29 @@ export default function EpubReader({
             setPendingSelectionCfi(cfiRange);
             const selectedText = contents?.window?.getSelection?.()?.toString?.() ?? '';
             setPendingSelectionText(selectedText.trim());
+            const selectedRange = contents?.range?.(cfiRange) as Range | undefined;
+            const rangeConstants = contents?.window?.Range;
+            const overlappingIds = selectedRange && rangeConstants
+              ? highlightsRef.current
+                  .filter((item) => {
+                    try {
+                      const highlightedRange = contents?.range?.(item.cfiRange) as Range | undefined;
+                      if (!highlightedRange || highlightedRange.startContainer.ownerDocument !== selectedRange.startContainer.ownerDocument) {
+                        return false;
+                      }
+                      return (
+                        selectedRange.compareBoundaryPoints(rangeConstants.START_TO_END, highlightedRange) < 0 &&
+                        selectedRange.compareBoundaryPoints(rangeConstants.END_TO_START, highlightedRange) > 0
+                      );
+                    } catch {
+                      return item.cfiRange === cfiRange;
+                    }
+                  })
+                  .map((item) => item.id)
+              : highlightsRef.current
+                  .filter((item) => item.cfiRange === cfiRange)
+                  .map((item) => item.id);
+            setPendingSelectionHighlightIds(overlappingIds);
           } catch (err) {
             const message = err instanceof Error ? err.message : 'Fallo en callback selected.';
             pushDevLiveTrace({
@@ -521,9 +547,17 @@ export default function EpubReader({
           .filter((item) => typeof item?.cfi === 'string' && typeof item?.label === 'string');
         if (!cancelled) setBookmarks(storedBookmarks);
 
+        const seenHighlightRanges = new Set<string>();
         const storedHighlights = safeParseList<HighlightItem>(window.localStorage.getItem(highlightsStorageKey))
-          .filter((item) => typeof item?.cfiRange === 'string');
-        if (!cancelled) setHighlights(storedHighlights);
+          .filter((item) => {
+            if (typeof item?.cfiRange !== 'string' || seenHighlightRanges.has(item.cfiRange)) return false;
+            seenHighlightRanges.add(item.cfiRange);
+            return true;
+          });
+        if (!cancelled) {
+          highlightsRef.current = storedHighlights;
+          setHighlights(storedHighlights);
+        }
 
         await controller.run('restore');
         if (cancelled) return;
@@ -864,6 +898,7 @@ export default function EpubReader({
   };
 
   const persistHighlights = (next: HighlightItem[]) => {
+    highlightsRef.current = next;
     setHighlights(next);
     try {
       window.localStorage.setItem(highlightsStorageKey, JSON.stringify(next));
@@ -875,6 +910,7 @@ export default function EpubReader({
     contents.forEach((content: any) => content?.window?.getSelection?.()?.removeAllRanges?.());
     setPendingSelectionCfi('');
     setPendingSelectionText('');
+    setPendingSelectionHighlightIds([]);
     setHighlightNoteDraft('');
   };
 
@@ -911,6 +947,20 @@ export default function EpubReader({
       (renditionRef.current as any)?.annotations?.remove(item.cfiRange, 'highlight');
     } catch {}
     persistHighlights(highlights.filter((h) => h.id !== item.id));
+  };
+
+  const removeHighlightsFromSelection = () => {
+    if (pendingSelectionHighlightIds.length === 0) return;
+    const selectedIds = new Set(pendingSelectionHighlightIds);
+    const selectedHighlights = highlightsRef.current.filter((item) => selectedIds.has(item.id));
+    const cfiRanges = new Set(selectedHighlights.map((item) => item.cfiRange));
+    cfiRanges.forEach((cfiRange) => {
+      try {
+        (renditionRef.current as any)?.annotations?.remove(cfiRange, 'highlight');
+      } catch {}
+    });
+    persistHighlights(highlightsRef.current.filter((item) => !selectedIds.has(item.id)));
+    clearPendingSelection();
   };
 
   const updateHighlightNote = (id: string, note: string) => {
@@ -1106,6 +1156,8 @@ export default function EpubReader({
         highlightNoteDraft={highlightNoteDraft}
         setHighlightNoteDraft={setHighlightNoteDraft}
         addHighlightFromSelection={addHighlightFromSelection}
+        removeHighlightsFromSelection={removeHighlightsFromSelection}
+        selectionHasHighlight={pendingSelectionHighlightIds.length > 0}
         status={status}
         clearPendingSelection={clearPendingSelection}
         bookmarkLabel={bookmarkLabel}

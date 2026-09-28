@@ -64,23 +64,6 @@ Pide luz al Espíritu Santo y revisa tu vida con paz, sin escribir listas sensib
 Termina el examen eligiendo qué confesar con sencillez y qué propósito concreto quieres pedirle al Señor.`,
 };
 
-export const guiaConfesion: Prayer = {
-  id: 'confesion-guia',
-  title: 'Guía breve de cómo confesarse',
-  categoryId: 'oraciones',
-  content: `*Cómo confesarse*
-
-1. Saluda al sacerdote.
-2. Di cuánto tiempo ha pasado desde tu última confesión.
-3. Confiesa tus pecados con claridad y humildad.
-4. Escucha al sacerdote.
-5. Reza el acto de contrición.
-6. Recibe la absolución.
-7. Cumple la penitencia.
-
-No hace falta explicar de más. Basta hablar con verdad, arrepentimiento y confianza en la misericordia de Dios.`,
-};
-
 export const accionGraciasConfesion: Prayer = {
   id: 'confesion-accion-gracias',
   title: 'Acción de gracias después de la Confesión',
@@ -128,7 +111,6 @@ export const confesionPrayers: Prayer[] = [
   preparacionConfesion,
   examenConfesion,
   actoContricionConfesion,
-  guiaConfesion,
   accionGraciasConfesion,
   propositoConfesion,
 ];

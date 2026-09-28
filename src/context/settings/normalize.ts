@@ -158,7 +158,12 @@ export const normalizePredefinedPrayerOverrides = (raw: any): Record<string, Pre
   Object.entries(source).forEach(([key, value]) => {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return;
     const title = typeof (value as any).title === 'string' ? (value as any).title : '';
-    const content = typeof (value as any).content === 'string' ? (value as any).content : undefined;
+    const rawContent = (value as any).content;
+    const content = typeof rawContent === 'string'
+      ? rawContent
+      : rawContent && typeof rawContent === 'object' && !Array.isArray(rawContent)
+        ? normalizeStringRecord(rawContent)
+        : undefined;
     const imageUrl = typeof (value as any).imageUrl === 'string' ? (value as any).imageUrl : undefined;
     result[key] = {
       title,
@@ -412,6 +417,7 @@ export const normalizeBackupState = (raw: any) => {
     cartasReminderAnchorAt: Math.max(1, Math.floor(normalizeNumber(source.cartasReminderAnchorAt, Date.now()))),
     shakeToOpenEnabled: normalizeBoolean(source.shakeToOpenEnabled, true),
     devTestNotificationEnabled: normalizeBoolean(source.devTestNotificationEnabled),
+    devTestNotificationImageEnabled: normalizeBoolean(source.devTestNotificationImageEnabled),
     devLiveTraceEnabled: normalizeBoolean(source.devLiveTraceEnabled),
     devLiveTraceEvents: normalizeDevTraceEventsValue(source.devLiveTraceEvents),
     skipNotificationIfChecked: normalizeBoolean(source.skipNotificationIfChecked, true),

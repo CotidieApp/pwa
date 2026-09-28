@@ -11,8 +11,8 @@ import { useToast } from '@/hooks/use-toast';
 import type { DailyReminder, Theme } from './types';
 
 const NOTIFICATION_ACTION_TYPE_ID = 'cotidie-prayer-actions';
-const CARTAS_REMINDER_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000;
-const CARTAS_REMINDER_REACTIVATION_DELAY_MS = 60 * 1000;
+const CARTAS_REMINDER_DAYS = [30, 37, 44] as const;
+const DAY_MS = 24 * 60 * 60 * 1000;
 const MONTHLY_FIXED_NOTIFICATION_OCCURRENCES_ANDROID = 1;
 const MONTHLY_FIXED_NOTIFICATION_OCCURRENCES_IOS = 12;
 const NOTIFICATION_SCHEDULE_BATCH_SIZE = 24;
@@ -26,6 +26,7 @@ type UseNotificationSchedulingParams = {
   cartasReminderEnabled: boolean;
   cartasReminderAnchorAt: number;
   devTestNotificationEnabled: boolean;
+  devTestNotificationImageEnabled: boolean;
   isDeveloperMode: boolean;
   notificationSyncVersion: number;
   theme: Theme;
@@ -45,6 +46,7 @@ export const useNotificationScheduling = ({
   cartasReminderEnabled,
   cartasReminderAnchorAt,
   devTestNotificationEnabled,
+  devTestNotificationImageEnabled,
   isDeveloperMode,
   notificationSyncVersion,
   theme,
@@ -107,7 +109,7 @@ export const useNotificationScheduling = ({
         platform === 'ios'
           ? MONTHLY_FIXED_NOTIFICATION_OCCURRENCES_IOS
           : MONTHLY_FIXED_NOTIFICATION_OCCURRENCES_ANDROID;
-      const totalSources = active.length + fixedActive.length + (cartasReminderActive ? 1 : 0);
+      const totalSources = active.length + fixedActive.length + (cartasReminderActive ? CARTAS_REMINDER_DAYS.length : 0);
       const horizonDays = Math.min(30, Math.max(1, Math.floor(maxTotal / Math.max(1, totalSources))));
       const horizonEnd = new Date(now);
       horizonEnd.setDate(now.getDate() + horizonDays);
@@ -271,29 +273,32 @@ export const useNotificationScheduling = ({
           Number.isFinite(cartasReminderAnchorAt) && cartasReminderAnchorAt > 0
             ? cartasReminderAnchorAt
             : now.getTime();
-        const dueAt = anchorAt + CARTAS_REMINDER_INTERVAL_MS;
-        const fireAt = new Date(
-          dueAt > now.getTime()
-            ? dueAt
-            : now.getTime() + CARTAS_REMINDER_REACTIVATION_DELAY_MS
-        );
-        const id = toNotificationId(`cartas:inactive:${anchorAt}`);
-        notifications.push({
-          id,
-          title: 'Cartas',
-          body: 'Han pasado 30 días sin escribir una carta nueva. Háblale al Señor de hijo a Padre.',
-          channelId: 'cotidie-reminders',
-          smallIcon: icon,
-          schedule: {
-            at: fireAt,
-            allowWhileIdle: true,
-          },
-          extra: {
-            target: { type: 'prayer', id: 'cartas' },
-            cartasInactivityReminder: true,
-            anchorAt,
-            dueAt,
-          },
+        CARTAS_REMINDER_DAYS.forEach((daysSinceLastLetter, reminderIndex) => {
+          const dueAt = anchorAt + daysSinceLastLetter * DAY_MS;
+          if (dueAt <= now.getTime()) return;
+          const fireAt = new Date(dueAt);
+          const id = toNotificationId(`cartas:inactive:${anchorAt}:${daysSinceLastLetter}`);
+          notifications.push({
+            id,
+            title: 'Cartas',
+            body: reminderIndex === 0
+              ? 'Han pasado 30 días sin escribir una carta nueva. Háblale al Señor de hijo a Padre.'
+              : `Han pasado ${daysSinceLastLetter} días desde tu última carta. Quizá sea un buen momento para volver a escribirle al Señor.`,
+            channelId: 'cotidie-reminders',
+            smallIcon: icon,
+            schedule: {
+              at: fireAt,
+              allowWhileIdle: true,
+            },
+            extra: {
+              target: { type: 'prayer', id: 'cartas' },
+              cartasInactivityReminder: true,
+              reminderIndex,
+              daysSinceLastLetter,
+              anchorAt,
+              dueAt,
+            },
+          });
         });
       }
 
@@ -362,8 +367,8 @@ export const useNotificationScheduling = ({
       }
 
       if (notificationsEnabled && devTestNotificationEnabled && isDeveloperMode) {
-        const devImagePath = '/icons/icon.png';
-        const devImageDrawable = toAndroidDrawableResource(devImagePath);
+        const devImagePath = devTestNotificationImageEnabled ? '/images/nativity.jpeg' : null;
+        const devImageDrawable = devImagePath ? toAndroidDrawableResource(devImagePath) : null;
         // 12 recurring notifications per hour -> every 5 minutes (:00, :05, ... :55).
         for (let minute = 0; minute < 60; minute += 5) {
           const id = toNotificationId(`dev:test:5m:${minute}`);
@@ -560,6 +565,7 @@ export const useNotificationScheduling = ({
     cartasReminderEnabled,
     cartasReminderAnchorAt,
     devTestNotificationEnabled,
+    devTestNotificationImageEnabled,
     getReminderTitle,
     buildDefaultReminderMessage,
     ensureAndroidNotificationChannel,

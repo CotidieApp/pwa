@@ -156,6 +156,7 @@ export const useSaintOfTheDay = ({
     const marianNamePattern =
       /(Nuestra Señora|Virgen María|Inmaculada Concepción|Asunción de la Virgen|Presentación de la Virgen|Natividad de la Virgen|Visitación de la Virgen)/i;
     const marianImage = PlaceHolderImages.find((img) => img.id === 'saintoftheday-6') || dayImage;
+    const holyCrossImage = PlaceHolderImages.find((img) => img.id === 'home-immaculate-heart') || dayImage;
 
     const resolveSaintVisuals = (saint: SaintOfTheDay | null) => {
       const devotionMatch = resolveDevotionDayMatch(saint);
@@ -174,6 +175,8 @@ export const useSaintOfTheDay = ({
         image = PlaceHolderImages.find((img) => img.id === 'home-sacred-heart') || dayImage;
       } else if (saint?.name?.includes('Inmaculado Corazón')) {
         image = PlaceHolderImages.find((img) => img.id === 'home-immaculate-heart') || dayImage;
+      } else if (saint?.name && /(?:exaltaci[oó]n|invenci[oó]n|triunfo).*cruz|santa cruz/i.test(saint.name)) {
+        image = holyCrossImage;
       } else {
         const isMarian = Boolean(
           (saint as any)?.type === 'marian' || (saint?.name && marianNamePattern.test(saint.name))

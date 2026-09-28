@@ -53,6 +53,10 @@ public class MainActivity extends BridgeActivity {
     protected void onCreate(Bundle savedInstanceState) {
         registerPlugin(BackgroundActionsPlugin.class);
         super.onCreate(savedInstanceState);
+        if (bridge != null && bridge.getWebView() != null) {
+            bridge.getWebView().setNetworkAvailable(false);
+            bridge.getWebView().getSettings().setBlockNetworkLoads(true);
+        }
         SharedPreferences systemBarPrefs = getSharedPreferences(SYSTEM_BAR_PREFS, MODE_PRIVATE);
         useDarkStatusBarIcons = systemBarPrefs.getBoolean(STATUS_BAR_DARK_ICONS_KEY, true);
         useDarkNavigationBarIcons = systemBarPrefs.getBoolean(NAVIGATION_BAR_DARK_ICONS_KEY, true);
@@ -148,6 +152,7 @@ public class MainActivity extends BridgeActivity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
 
+
     private void handleImportIntent(Intent intent) {
         if (intent == null) return;
 
@@ -161,9 +166,10 @@ public class MainActivity extends BridgeActivity {
             if (stream instanceof Uri) {
                 uri = (Uri) stream;
             }
+
         }
 
-        if (uri == null) return;
+        if (uri == null || !isSupportedImportUri(uri)) return;
 
         String payload = readTextFromUri(uri);
         clearHandledImportIntent(intent);
@@ -173,12 +179,14 @@ public class MainActivity extends BridgeActivity {
         flushPendingImportToWebView();
     }
 
+
     private void handleNavigationIntent(Intent intent) {
         if (intent == null) return;
 
         String route = intent.getStringExtra(EXTRA_NAV_ROUTE);
         String targetType = intent.getStringExtra(EXTRA_NAV_TARGET_TYPE);
         String targetId = intent.getStringExtra(EXTRA_NAV_TARGET_ID);
+
 
         if ((route == null || route.trim().isEmpty())
                 && (targetType == null || targetType.trim().isEmpty() || targetId == null || targetId.trim().isEmpty())) {
@@ -204,12 +212,14 @@ public class MainActivity extends BridgeActivity {
         intent.removeExtra(EXTRA_NAV_TARGET_ID);
     }
 
+
     private boolean isSupportedImportUri(Uri uri) {
         String path = uri.getPath();
         if (path == null) return true;
         String lower = path.toLowerCase();
         return lower.endsWith(".ctd") || lower.endsWith(".json");
     }
+
 
     private String readTextFromUri(Uri uri) {
         try (InputStream inputStream = getContentResolver().openInputStream(uri)) {
@@ -240,6 +250,7 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
+
     private void flushPendingImportToWebView() {
         if (pendingImportPayload == null || pendingImportPayload.trim().isEmpty()) return;
         if (bridge == null || bridge.getWebView() == null) {
@@ -257,6 +268,7 @@ public class MainActivity extends BridgeActivity {
         pendingFlushRetries = 0;
         runOnUiThread(() -> bridge.getWebView().evaluateJavascript(js, null));
     }
+
 
     private void flushPendingNavigationToWebView() {
         if (pendingNavigationPayload == null || pendingNavigationPayload.trim().isEmpty()) return;
@@ -276,11 +288,13 @@ public class MainActivity extends BridgeActivity {
         runOnUiThread(() -> bridge.getWebView().evaluateJavascript(js, null));
     }
 
+
     private void scheduleFlushRetry() {
         if (pendingFlushRetries >= MAX_FLUSH_RETRIES) return;
         pendingFlushRetries += 1;
         new Handler(Looper.getMainLooper()).postDelayed(this::flushPendingImportToWebView, 350);
     }
+
 
     private void scheduleNavigationFlushRetry() {
         if (pendingNavigationFlushRetries >= MAX_FLUSH_RETRIES) return;
@@ -288,11 +302,19 @@ public class MainActivity extends BridgeActivity {
         new Handler(Looper.getMainLooper()).postDelayed(this::flushPendingNavigationToWebView, 350);
     }
 
+
+
     private void configureWebViewStability() {
         if (bridge == null || bridge.getWebView() == null) return;
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return;
 
         WebView webView = bridge.getWebView();
+        webView.setNetworkAvailable(false);
+        webView.getSettings().setBlockNetworkLoads(true);
+        webView.setRendererPriorityPolicy(
+            WebView.RENDERER_PRIORITY_IMPORTANT,
+            true
+        );
         webView.setWebViewClient(new BridgeWebViewClient(bridge) {
             @Override
             public void onPageFinished(WebView view, String url) {
@@ -332,37 +354,42 @@ public class MainActivity extends BridgeActivity {
         long now = System.currentTimeMillis();
         long lastCrashAt = prefs.getLong(WEBVIEW_LAST_CRASH_AT_KEY, 0L);
         int count = prefs.getInt(WEBVIEW_CRASH_COUNT_KEY, 0);
+
         if (now - lastCrashAt > RENDER_CRASH_WINDOW_MS) {
-            count = 0;
+            count = 1;
+        } else {
+            count += 1;
         }
-        count += 1;
+
         prefs.edit()
-            .putLong(WEBVIEW_LAST_CRASH_AT_KEY, now)
-            .putInt(WEBVIEW_CRASH_COUNT_KEY, count)
-            .apply();
+                .putLong(WEBVIEW_LAST_CRASH_AT_KEY, now)
+                .putInt(WEBVIEW_CRASH_COUNT_KEY, count)
+                .apply();
         return count;
     }
 
     private void clearRenderCrashState() {
         SharedPreferences prefs = getSharedPreferences(WEBVIEW_PREFS, MODE_PRIVATE);
         prefs.edit()
-            .remove(WEBVIEW_LAST_CRASH_AT_KEY)
-            .remove(WEBVIEW_CRASH_COUNT_KEY)
-            .apply();
+                .remove(WEBVIEW_LAST_CRASH_AT_KEY)
+                .remove(WEBVIEW_CRASH_COUNT_KEY)
+                .apply();
     }
 
     private void showRecoveryScreen() {
         if (bridge == null || bridge.getWebView() == null) return;
-        String baseUrl = "https://localhost/";
+
+        String baseUrl = "https://localhost";
         String html = "<!doctype html><html><head><meta charset='utf-8'>"
-            + "<meta name='viewport' content='width=device-width, initial-scale=1'>"
-            + "<title>Cotidie</title>"
-            + "<style>body{font-family:sans-serif;background:#0f172a;color:#e2e8f0;margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}"
-            + ".card{max-width:420px;background:#111827;border:1px solid #334155;border-radius:18px;padding:24px;box-shadow:0 20px 45px rgba(0,0,0,.35);}"
-            + "h1{margin:0 0 12px;font-size:22px;}p{line-height:1.5;color:#cbd5e1;}button{margin-top:16px;background:#f8fafc;color:#0f172a;border:0;border-radius:999px;padding:12px 18px;font-weight:700;width:100%;}</style>"
-            + "</head><body><div class='card'><h1>Cotidie se recupero de un fallo del WebView</h1>"
-            + "<p>La app detecto varios cierres seguidos al abrirse y detuvo el reinicio automatico para evitar un bucle. Puedes intentar una recarga limpia desde aqui.</p>"
-            + "<button onclick=\"window.location.replace('/')\">Reintentar</button></div></body></html>";
+                + "<meta name='viewport' content='width=device-width, initial-scale=1'>"
+                + "<title>Cotidie</title>"
+                + "<style>body{font-family:sans-serif;background:#0f172a;color:#e2e8f0;margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;}"
+                + ".card{max-width:420px;background:#111827;border:1px solid #334155;border-radius:18px;padding:24px;box-shadow:0 20px 45px rgba(0,0,0,.35);}"
+                + "h1{margin:0 0 12px;font-size:22px;}p{line-height:1.5;color:#cbd5e1;}button{margin-top:16px;background:#f8fafc;color:#0f172a;border:0;border-radius:999px;padding:12px 18px;font-weight:700;width:100%;}</style>"
+                + "</head><body><div class='card'><h1>Cotidie se recupero de un fallo del WebView</h1>"
+                + "<p>La app detecto varios cierres seguidos al abrirse y detuvo el reinicio automatico para evitar un bucle. Puedes intentar una recarga limpia desde aqui.</p>"
+                + "<button onclick=\"window.location.replace('/')\">Reintentar</button></div></body></html>";
+
         bridge.getWebView().loadDataWithBaseURL(baseUrl, html, "text/html", "utf-8", null);
     }
 }

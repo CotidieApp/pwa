@@ -86,7 +86,7 @@ export type CustomPlan = {
 
 export type PredefinedPrayerOverrideData = {
   title: string;
-  content?: string;
+  content?: Prayer['content'];
   imageUrl?: string;
 };
 
@@ -127,8 +127,8 @@ export type Settings = {
   addUserLetter: (p: Omit<Prayer, 'id' | 'isUserDefined'> & { imageUrl?: string }) => void;
   removeUserLetter: (id: string) => void;
 
-  updateUserPrayer: (id: string, data: { title: string; content: string; imageUrl?: string }) => void;
-  setPredefinedPrayerOverride: (id: string, data: { title: string; content: string; imageUrl?: string }) => void;
+  updateUserPrayer: (id: string, data: { title: string; content: Prayer['content']; imageUrl?: string }) => void;
+  setPredefinedPrayerOverride: (id: string, data: { title: string; content: Prayer['content']; imageUrl?: string }) => void;
 
   resetSettings: () => void;
   hardResetApp: () => void;
@@ -182,6 +182,8 @@ export type Settings = {
   setCartasReminderEnabled: (enabled: boolean) => void;
   devTestNotificationEnabled: boolean;
   setDevTestNotificationEnabled: (enabled: boolean) => void;
+  devTestNotificationImageEnabled: boolean;
+  setDevTestNotificationImageEnabled: (enabled: boolean) => void;
   devLiveTraceEnabled: boolean;
   setDevLiveTraceEnabled: (enabled: boolean) => void;
   devLiveTraceEvents: DevTraceEvent[];
@@ -196,6 +198,7 @@ export type Settings = {
   planDeVidaProgress: string[];
   togglePlanDeVidaItem: (id: string, force?: boolean, skipStatIncrement?: boolean, eventDateKey?: string | null) => void;
   togglePlanDeVidaCalendarEntry: (dateKey: string, id: string) => void;
+  clearPlanDeVidaChecksForToday: () => void;
   resetPlanDeVidaProgress: () => void;
   planDeVidaCalendar: Record<string, string[]>;
 

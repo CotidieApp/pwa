@@ -9,6 +9,8 @@ type ReaderSelectionToolbarProps = {
   highlightNoteDraft: string;
   setHighlightNoteDraft: (value: string) => void;
   addHighlightFromSelection: () => void;
+  removeHighlightsFromSelection: () => void;
+  selectionHasHighlight: boolean;
   status: 'idle' | 'loading' | 'ready' | 'error';
   clearPendingSelection: () => void;
   bookmarkLabel: string;
@@ -25,6 +27,8 @@ export function ReaderSelectionToolbar({
   highlightNoteDraft,
   setHighlightNoteDraft,
   addHighlightFromSelection,
+  removeHighlightsFromSelection,
+  selectionHasHighlight,
   status,
   clearPendingSelection,
   bookmarkLabel,
@@ -44,18 +48,20 @@ export function ReaderSelectionToolbar({
         Selección: {pendingSelectionText || '(sin texto)'}
       </div>
       <div className="flex flex-wrap gap-2">
-        <Input
-          className="min-w-0 flex-1"
-          value={highlightNoteDraft}
-          onChange={(e) => setHighlightNoteDraft(e.target.value)}
-          placeholder="Nota opcional"
-        />
+        {!selectionHasHighlight ? (
+          <Input
+            className="min-w-0 flex-1"
+            value={highlightNoteDraft}
+            onChange={(e) => setHighlightNoteDraft(e.target.value)}
+            placeholder="Nota opcional"
+          />
+        ) : null}
         <Button
           variant="outline"
-          onClick={addHighlightFromSelection}
+          onClick={selectionHasHighlight ? removeHighlightsFromSelection : addHighlightFromSelection}
           disabled={status !== 'ready'}
         >
-          Guardar subrayado
+          {selectionHasHighlight ? 'Quitar subrayado' : 'Guardar subrayado'}
         </Button>
         <Button variant="ghost" onClick={clearPendingSelection}>
           Cancelar

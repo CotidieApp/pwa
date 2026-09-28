@@ -54,6 +54,8 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
     setMovableFeastsEnabled,
     devTestNotificationEnabled,
     setDevTestNotificationEnabled,
+    devTestNotificationImageEnabled,
+    setDevTestNotificationImageEnabled,
     devLiveTraceEnabled,
     setDevLiveTraceEnabled,
     allPrayers,
@@ -151,6 +153,13 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
               <SwitchRow title="Mostrar estadísticas en cero" checked={showZeroStats} onCheckedChange={setShowZeroStats} />
               <SwitchRow title="Fiestas móviles" checked={movableFeastsEnabled} onCheckedChange={setMovableFeastsEnabled} />
               <SwitchRow title="Notificación de prueba" checked={devTestNotificationEnabled} onCheckedChange={setDevTestNotificationEnabled} />
+              {devTestNotificationEnabled ? (
+                <SwitchRow
+                  title="Adjuntar imagen grande (Navidad)"
+                  checked={devTestNotificationImageEnabled}
+                  onCheckedChange={setDevTestNotificationImageEnabled}
+                />
+              ) : null}
               <SwitchRow title="Rastro en vivo (consola/logcat)" checked={devLiveTraceEnabled} onCheckedChange={setDevLiveTraceEnabled} />
               <Button variant="outline" className="w-full border-slate-700 bg-slate-950 text-slate-200 hover:bg-slate-800" onClick={handleLogout}>
                 <Icon.LogOut className="mr-2 size-4" />

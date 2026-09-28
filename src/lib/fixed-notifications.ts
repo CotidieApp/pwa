@@ -13,7 +13,7 @@ export const fixedNotifications: FixedNotificationEntry[] = [
     date: '3/10 9:00', // Aniversario Cotidie
     title: '#{year-2025} aniversario de Cotidie',
     text: 'Conmemoramos el día en el que nació como un mero proyecto esta aplicación. ¡Gracias por formar parte de esta comunidad!',
-    image: './icons/icon.png'
+    image: './images/cotidie-aniversario-banner.png'
   },
   {
     date: 'j1 9:00', // Recuerdo a las vocaciones
@@ -27,6 +27,7 @@ export const fixedNotifications: FixedNotificationEntry[] = [
     title: 'Oración por el Papa',
     text: 'Dediquemos los rezos de este primer domingo de mes por el Papa, cabeza de la Iglesia, y por todos los obispos, pastores de esta comunidad.',
     route: 'inicio/oracion/oracion-por-el-papa',
+    image: './images/papa-leon.jpeg',
     requiresNotificationsEnabled: true
   },
   {
@@ -75,6 +76,12 @@ export const fixedNotifications: FixedNotificationEntry[] = [
     date: '25/03 09:00', // Anunciación del Señor
     title: 'Anunciación del Señor',
     text: 'Di tu «hágase» al Señor y renueva tu confianza en su plan.'
+  },
+  {
+    date: '04/08 09:00', // Día del sacerdote
+    title: 'Día del sacerdote',
+    text: 'Da gracias hoy por los sacerdotes y ofrece una oración por su fidelidad. Pide también al Señor nuevas vocaciones santas y generosas.',
+    route: 'inicio/oraciones/oracion-por-las-vocaciones'
   },
   {
     date: '06/08 09:00', // Transfiguración del Señor

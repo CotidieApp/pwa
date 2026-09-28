@@ -155,14 +155,25 @@ final class SaintWidgetContentFactory {
             }
         }
 
+        String saintName = saint != null ? saint.name : "";
+        String saintType = saint != null ? saint.type : "";
+        String imageId = dayImageId;
+
+        String normalizedSaintName = normalizeLiturgicalText(saintName);
+        boolean isHolyCrossFeast = normalizedSaintName.matches(
+                ".*(exaltacion|invencion|triunfo).*cruz.*"
+        ) || normalizedSaintName.contains("santa cruz");
+        if (isHolyCrossFeast) {
+            String crossPath = resolvePlaceholderAssetPath("home-immaculate-heart");
+            if (crossPath != null) {
+                return new SelectedImage("home-immaculate-heart", crossPath);
+            }
+        }
+
         SelectedImage devotionImage = resolveDevotionImage(saint);
         if (devotionImage != null) {
             return devotionImage;
         }
-
-        String saintName = saint != null ? saint.name : "";
-        String saintType = saint != null ? saint.type : "";
-        String imageId = dayImageId;
 
         boolean isMarian = saintType != null && saintType.equalsIgnoreCase("marian");
         if (!isMarian && saintName != null && !saintName.isEmpty()) {
@@ -252,6 +263,7 @@ final class SaintWidgetContentFactory {
         map.put("sanjose-image", "public/images/san-jose.jpg");
         map.put("nativity-image", "public/images/nativity.jpeg");
         map.put("christmas-image", "public/images/christmas-image.jpg");
+        map.put("home-immaculate-heart", "public/images/immaculate-heart.jpeg");
         cachedPlaceholderAssetPaths = map;
         return cachedPlaceholderAssetPaths;
     }

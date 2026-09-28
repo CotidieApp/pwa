@@ -125,7 +125,6 @@ const oracionesSubcategories: Prayer[] = [
     id: 'subcat-comunes',
     title: 'Oraciones Comunes',
     categoryId: 'oraciones',
-    imageUrl: '/images/resurrection.jpeg',
     prayers: [
       ...estructurales.prayers!,
       actoContricion,
@@ -139,7 +138,6 @@ const oracionesSubcategories: Prayer[] = [
     id: 'subcat-marianas',
     title: 'Devoción Mariana',
     categoryId: 'oraciones',
-    imageUrl: '/images/immaculate-conception.jpeg',
     prayers: [
       acordaos,
       magnificat,
@@ -152,7 +150,6 @@ const oracionesSubcategories: Prayer[] = [
     id: 'subcat-espiritu',
     title: 'Al Espíritu Santo',
     categoryId: 'oraciones',
-    imageUrl: '/images/holy-family.jpeg', // Fallback image
     prayers: [
       oracionAlEspirituSanto,
       venicreator,
@@ -162,7 +159,6 @@ const oracionesSubcategories: Prayer[] = [
     id: 'subcat-momentos',
     title: 'Momentos del Día',
     categoryId: 'oraciones',
-    imageUrl: '/images/eucharist.jpeg',
     prayers: [
       oracionTrabajo,
       oracionJuventudInquieta,
@@ -174,14 +170,12 @@ const oracionesSubcategories: Prayer[] = [
     id: 'subcat-confesion',
     title: 'Para la Confesión',
     categoryId: 'oraciones',
-    imageUrl: '/images/crucifixion.jpeg',
     prayers: confesionPrayers,
   },
   {
     id: 'subcat-santos',
     title: 'Intercesión y Santos',
     categoryId: 'oraciones',
-    imageUrl: '/images/holy-family.jpeg',
     prayers: [
       oracionporelPapa,
       oracionPorLasVocaciones,
@@ -197,6 +191,7 @@ const oracionesSubcategories: Prayer[] = [
     title: 'Himnos y Letanías',
     categoryId: 'oraciones',
     prayers: [
+      adoroTeDevote,
       oracionAlSagradoCorazonDeJesus,
       letaniasHumildad,
       pangelingua,

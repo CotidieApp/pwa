@@ -105,6 +105,7 @@ export const FULL_BACKUP_KEYS = [
   'cartasReminderAnchorAt',
   'shakeToOpenEnabled',
   'devTestNotificationEnabled',
+  'devTestNotificationImageEnabled',
   'devLiveTraceEnabled',
   'devLiveTraceEvents',
   'userStats',

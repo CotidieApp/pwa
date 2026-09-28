@@ -18,10 +18,10 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import type { Prayer } from '@/lib/types';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSettings } from '@/context/SettingsContext';
-import { Eye, Trash2 } from 'lucide-react';
+import { Eye, Images, Trash2 } from 'lucide-react';
 import { renderText } from '@/lib/textFormatter';
 import ImageCropper from '@/components/ui/ImageCropper';
-import * as Icon from 'lucide-react';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const formSchema = z.object({
   title: z.string().min(1, { message: 'El título es requerido.' }),
@@ -36,10 +36,11 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
+type PrayerFormData = Omit<FormValues, 'content'> & { content: Prayer['content'] };
 type FormType = 'devotion' | 'entry' | 'letter' | 'predefined';
 
 type AddPrayerFormProps = {
-  onSave: (data: FormValues) => void;
+  onSave: (data: PrayerFormData) => void;
   onCancel: () => void;
   formType: FormType;
   existingPrayer?: Prayer | null;
@@ -51,17 +52,27 @@ export default function AddPrayerForm({
   formType,
   existingPrayer,
 }: AddPrayerFormProps) {
-  const { isDeveloperMode } = useSettings();
+  const { isDeveloperMode, allHomeBackgrounds } = useSettings();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [selectedImageFileName, setSelectedImageFileName] = useState<string | null>(null);
   const [isCropperOpen, setIsCropperOpen] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const [finalCroppedImage, setFinalCroppedImage] = useState<string | null>(null);
+  const [contentVariants, setContentVariants] = useState<Record<string, string> | null>(null);
+  const [activeContentVariant, setActiveContentVariant] = useState<string | null>(null);
+  const [showAppImages, setShowAppImages] = useState(false);
   const unmountedRef = useRef(false);
 
   const draftStorageKey = useMemo(() => `cotidie_draft_${formType}`, [formType]);
   const isPrayerGroup = Boolean(existingPrayer?.prayers?.length);
+  const appImages = useMemo(() => {
+    const byUrl = new Map<string, { id: string; description: string; imageUrl: string }>();
+    [...PlaceHolderImages, ...allHomeBackgrounds].forEach((image) => {
+      if (image.imageUrl && !byUrl.has(image.imageUrl)) byUrl.set(image.imageUrl, image);
+    });
+    return [...byUrl.values()];
+  }, [allHomeBackgrounds]);
 
   const isContentEditable = useMemo(() => {
     if (!existingPrayer) return true;
@@ -116,15 +127,28 @@ export default function AddPrayerForm({
   // === Relleno / limpieza al cambiar modo o elemento
   useEffect(() => {
     if (existingPrayer) {
+      const variants = existingPrayer.content && typeof existingPrayer.content === 'object'
+        ? { ...existingPrayer.content }
+        : null;
+      const preferredVariant = variants
+        ? Object.keys(variants).find((key) => key.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes('espan'))
+          ?? Object.keys(variants)[0]
+          ?? null
+        : null;
+      setContentVariants(variants);
+      setActiveContentVariant(preferredVariant);
       form.reset({
         title: existingPrayer.title || '',
-        content:
-          typeof existingPrayer.content === 'string'
-            ? existingPrayer.content
+        content: typeof existingPrayer.content === 'string'
+          ? existingPrayer.content
+          : preferredVariant
+            ? variants?.[preferredVariant] ?? ''
             : '',
         imageUrl: existingPrayer.imageUrl || '',
       });
     } else {
+      setContentVariants(null);
+      setActiveContentVariant(null);
       form.reset({
         title: '',
         content: '',
@@ -135,6 +159,7 @@ export default function AddPrayerForm({
     setFinalCroppedImage(null);
     setImageToCrop(null);
     setIsCropperOpen(false);
+    setShowAppImages(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [existingPrayer?.id, formType]);
 
@@ -164,7 +189,10 @@ export default function AddPrayerForm({
     }
     setIsSubmitting(true);
     try {
-      await Promise.resolve(onSave(data));
+      const content = contentVariants && activeContentVariant
+        ? { ...contentVariants, [activeContentVariant]: data.content }
+        : data.content;
+      await Promise.resolve(onSave({ ...data, content }));
       window.localStorage.removeItem(draftStorageKey);
       form.reset({ title: '', content: '', imageUrl: '' });
       if (!unmountedRef.current) {
@@ -232,11 +260,43 @@ export default function AddPrayerForm({
                     </Button>
                   </div>
 
+                  {contentVariants && activeContentVariant ? (
+                    <div className="flex flex-wrap gap-2">
+                      {Object.keys(contentVariants).map((variant) => (
+                        <Button
+                          key={variant}
+                          type="button"
+                          size="sm"
+                          variant={variant === activeContentVariant ? 'default' : 'outline'}
+                          onClick={() => {
+                            const currentValue = form.getValues('content');
+                            setContentVariants((current) => current
+                              ? { ...current, [activeContentVariant]: currentValue }
+                              : current);
+                            setActiveContentVariant(variant);
+                            form.setValue('content', contentVariants[variant] ?? '', { shouldDirty: false });
+                          }}
+                        >
+                          {variant}
+                        </Button>
+                      ))}
+                    </div>
+                  ) : null}
+
                   <FormControl>
                     <Textarea
                       placeholder={contentPlaceholder}
                       className="min-h-[200px]"
                       {...field}
+                      onChange={(event) => {
+                        field.onChange(event);
+                        if (activeContentVariant) {
+                          const value = event.target.value;
+                          setContentVariants((current) => current
+                            ? { ...current, [activeContentVariant]: value }
+                            : current);
+                        }
+                      }}
                       disabled={!isContentEditable}
                     />
                   </FormControl>
@@ -294,11 +354,47 @@ export default function AddPrayerForm({
                           reader.readAsDataURL(file);
                         }}
                       />
-                      <Button asChild variant="outline" size="sm">
-                        <label htmlFor="prayer-image-file" className="cursor-pointer">
-                          Seleccionar imagen
-                        </label>
-                      </Button>
+                      <div className="flex flex-wrap gap-2">
+                        <Button asChild variant="outline" size="sm">
+                          <label htmlFor="prayer-image-file" className="cursor-pointer">
+                            Elegir de la galería
+                          </label>
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowAppImages((current) => !current)}
+                        >
+                          <Images className="mr-2 size-4" />
+                          Elegir de la app
+                        </Button>
+                      </div>
+                      {showAppImages ? (
+                        <div className="grid max-h-72 grid-cols-2 gap-2 overflow-y-auto rounded-md border border-border p-2 sm:grid-cols-3">
+                          {appImages.map((image) => (
+                            <button
+                              key={`${image.id}-${image.imageUrl}`}
+                              type="button"
+                              className="overflow-hidden rounded-md border border-border bg-card text-left transition-colors hover:border-primary"
+                              onClick={() => {
+                                field.onChange(image.imageUrl);
+                                setSelectedImageFileName(image.description || 'Imagen de la app');
+                                setFinalCroppedImage(null);
+                                setShowAppImages(false);
+                              }}
+                            >
+                              <span
+                                role="img"
+                                aria-label={image.description || 'Imagen de la app'}
+                                className="block aspect-video w-full bg-cover bg-center"
+                                style={{ backgroundImage: `url(${JSON.stringify(image.imageUrl)})` }}
+                              />
+                              <span className="block truncate px-2 py-1.5 text-xs">{image.description}</span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
                       {field.value || selectedImageFileName ? (
                         <div className="flex items-center gap-2">
                           <p className="text-xs text-muted-foreground font-body break-all flex-1">

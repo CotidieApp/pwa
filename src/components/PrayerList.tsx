@@ -7,7 +7,6 @@ import { useMemo, useState } from 'react';
 import SaintOfTheDayCard from '@/components/saints/SaintOfTheDayCard';
 import { useSettings } from '@/context/SettingsContext';
 import { Button } from './ui/button';
-import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import {
   AlertDialog,
@@ -62,8 +61,10 @@ export default function PrayerList({
     planDeVidaTrackerEnabled,
     planDeVidaProgress,
     togglePlanDeVidaItem,
+    clearPlanDeVidaChecksForToday,
   } = useSettings();
   const [pendingDeletePrayer, setPendingDeletePrayer] = useState<Prayer | null>(null);
+  const [isClearChecksOpen, setIsClearChecksOpen] = useState(false);
 
   // Filtrar oraciones según categoría (Plan de Vida, etc.)
   const filteredPrayers = useMemo(() => {
@@ -179,30 +180,28 @@ export default function PrayerList({
           {subcategories.map((sub, idx) => (
             <Card
               key={sub.id || idx}
-              className="relative aspect-square overflow-hidden flex flex-col items-center justify-center text-center cursor-pointer hover:opacity-90 transition-opacity bg-black border-0 shadow-lg"
+              className="relative aspect-square overflow-hidden flex flex-col items-center justify-center text-center cursor-pointer bg-transparent border border-border/60 shadow-none hover:bg-accent/10 transition-colors"
               onClick={() => onSelectPrayer(sub)}
             >
               <div className="absolute right-2 top-2 z-20" onClick={(event) => event.stopPropagation()}>
-                {renderActionMenu(sub, true)}
+                {renderActionMenu(sub)}
               </div>
-              {sub.imageUrl && (
-                <div className="absolute inset-0 opacity-40">
-                  <Image
-                    src={sub.imageUrl}
-                    alt={sub.title}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-              <CardTitle className="relative z-10 px-2 font-headline text-lg text-white leading-tight">
+              <CardTitle className="relative z-10 px-2 font-headline text-lg text-foreground leading-tight">
                 {sub.title}
               </CardTitle>
             </Card>
           ))}
         </div>
       )}
+
+      {showTracker && planDeVidaProgress.length > 0 ? (
+        <div className="flex justify-end">
+          <Button type="button" variant="outline" size="sm" onClick={() => setIsClearChecksOpen(true)}>
+            <Trash2 className="mr-2 size-4" />
+            Limpiar checks de hoy
+          </Button>
+        </div>
+      ) : null}
 
       {/* Lista de oraciones (normal o después del grid) */}
       {otherPrayers.length > 0 ? (
@@ -258,6 +257,32 @@ export default function PrayerList({
           </Button>
         </div>
       )}
+
+      <AlertDialog
+        open={isClearChecksOpen}
+        onOpenChange={setIsClearChecksOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Limpiar los checks de hoy?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se borrarán solamente los checks del día actual, como si nunca se hubieran marcado. Esta acción no dejará registro en el calendario.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                clearPlanDeVidaChecksForToday();
+                setIsClearChecksOpen(false);
+              }}
+            >
+              Limpiar checks
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog
         open={Boolean(pendingDeletePrayer)}

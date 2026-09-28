@@ -794,6 +794,10 @@ export default function MainApp() {
   const handleSelectPrayer = (prayer: Prayer) => {
     if (!prayer.id) return;
 
+    if (prayer.id === 'cartas') {
+      incrementStat('prayersOpenedHistory', prayer.id);
+    }
+
     if (prayer.id === 'exposicion-bendicion') {
       setNavState((prevState) => ({
         ...prevState,
@@ -837,7 +841,7 @@ export default function MainApp() {
 
   const handleSavePrayer = (data: {
     title: string;
-    content: string;
+    content: Prayer['content'];
     imageUrl?: string;
   }) => {
     if (editingPrayer?.id) {

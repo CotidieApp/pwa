@@ -120,14 +120,6 @@ import { useSaintOfTheDay } from '@/context/settings/useSaintOfTheDay';
 import { useHomeBackgroundRotation } from '@/context/settings/useHomeBackgroundRotation';
 
 const NOTIFICATION_ACTION_TYPE_ID = 'cotidie-prayer-actions';
-const CARTAS_REMINDER_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000;
-const CARTAS_REMINDER_REACTIVATION_DELAY_MS = 60 * 1000;
-const MONTHLY_FIXED_NOTIFICATION_OCCURRENCES_ANDROID = 1;
-const MONTHLY_FIXED_NOTIFICATION_OCCURRENCES_IOS = 12;
-const NOTIFICATION_SCHEDULE_BATCH_SIZE = 24;
-const ANDROID_NOTIFICATION_SCHEDULE_LIMIT = 32;
-const IOS_NOTIFICATION_SCHEDULE_LIMIT = 60;
-
 const PLAN_DE_VIDA_ROOT_BY_PRAYER_ID = (() => {
   const roots = new Map<string, string>();
   const register = (prayer: Prayer, rootId: string) => {
@@ -291,6 +283,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [cartasReminderEnabled, setCartasReminderEnabledState] = useState(true);
   const [cartasReminderAnchorAt, setCartasReminderAnchorAt] = useState<number>(() => Date.now());
   const [devTestNotificationEnabled, setDevTestNotificationEnabledState] = useState(false);
+  const [devTestNotificationImageEnabled, setDevTestNotificationImageEnabledState] = useState(false);
   const [notificationSyncVersion, setNotificationSyncVersion] = useState(0);
   const exactAlarmSettingsRequestedRef = useRef(false);
   const [devLiveTraceEnabled, setDevLiveTraceEnabledState] = useState(false);
@@ -464,6 +457,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setCartasReminderEnabledState(snapshot.cartasReminderEnabled);
     setCartasReminderAnchorAt(snapshot.cartasReminderAnchorAt);
     setDevTestNotificationEnabledState(snapshot.devTestNotificationEnabled);
+    setDevTestNotificationImageEnabledState(snapshot.devTestNotificationImageEnabled);
     setDevLiveTraceEnabledState(snapshot.devLiveTraceEnabled);
     setDevLiveTraceEvents(snapshot.devLiveTraceEvents);
     setUserStats(normalizePlanDeVidaStats(snapshot.userStats));
@@ -537,6 +531,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         cartasReminderEnabled,
         cartasReminderAnchorAt,
         devTestNotificationEnabled,
+        devTestNotificationImageEnabled,
         devLiveTraceEnabled,
         devLiveTraceEvents,
         skipNotificationIfChecked,
@@ -608,6 +603,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     cartasReminderEnabled,
     cartasReminderAnchorAt,
     devTestNotificationEnabled,
+    devTestNotificationImageEnabled,
     devLiveTraceEnabled,
     devLiveTraceEvents,
     skipNotificationIfChecked,
@@ -903,6 +899,17 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  const setDevTestNotificationImageEnabled = (enabled: boolean) => {
+    setDevTestNotificationImageEnabledState(enabled);
+    pushDevLiveTrace({
+      level: 'info',
+      source: 'notifications',
+      message: enabled
+        ? 'Banner de la notificación de prueba activado.'
+        : 'Banner de la notificación de prueba desactivado.',
+    });
+  };
+
   const setDevLiveTraceEnabled = (enabled: boolean) => {
     if (!isDeveloperMode && enabled) return;
     setDevLiveTraceEnabledState(enabled);
@@ -1085,6 +1092,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setUserLetters(prev => [...prev, newP]);
     setCartasReminderAnchorAt(Date.now());
     incrementStat('lettersWritten');
+    incrementStat('prayersOpenedHistory', 'cartas');
     toast({ title: 'Carta añadida correctamente.' });
   };
 
@@ -1093,7 +1101,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     toast({ title: 'Carta eliminada.' });
   };
 
-  const updateUserPrayer = (id: string, data: { title: string; content: string; imageUrl?: string }) => {
+  const updateUserPrayer = (id: string, data: { title: string; content: Prayer['content']; imageUrl?: string }) => {
     // Check all lists
     setUserDevotions(prev => prev.map(p => p.id === id ? { ...p, ...data } : p));
     setUserPrayers(prev => prev.map(p => p.id === id ? { ...p, ...data } : p));
@@ -1101,12 +1109,16 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     toast({ title: 'Actualizado correctamente.' });
   };
 
-  const setPredefinedPrayerOverride = (id: string, data: { title: string; content: string; imageUrl?: string }) => {
+  const setPredefinedPrayerOverride = (id: string, data: { title: string; content: Prayer['content']; imageUrl?: string }) => {
     if (!id) return;
 
     const nextOverride: PredefinedPrayerOverrideData = {
       title: data.title,
-      ...(data.content.trim() ? { content: data.content } : {}),
+      ...(typeof data.content === 'string'
+        ? (data.content.trim() ? { content: data.content } : {})
+        : data.content && Object.keys(data.content).length > 0
+          ? { content: data.content }
+          : {}),
       ...(data.imageUrl ? { imageUrl: data.imageUrl } : {}),
     };
 
@@ -1583,6 +1595,25 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       source: 'plan-de-vida',
       message: nextChecked ? 'Check de calendario marcado.' : 'Check de calendario desmarcado.',
       data: `id=${planItemId}; date=${dateKey}`,
+    });
+  };
+
+  const clearPlanDeVidaChecksForToday = () => {
+    const eventDate = simulatedDate ? new Date(simulatedDate) : new Date();
+    const dateKey = getPastoralDayKey(eventDate);
+    const previousCalendar = planDeVidaCalendarRef.current;
+    const { [dateKey]: removedChecks, ...nextCalendar } = previousCalendar;
+
+    planDeVidaCalendarRef.current = nextCalendar;
+    setPlanDeVidaCalendar(nextCalendar);
+    setPlanDeVidaProgress([]);
+    setUserStats((prev) => applyPlanDeVidaCalendarStatsSync(prev, previousCalendar, nextCalendar));
+    setGlobalUserStats((prev) => applyPlanDeVidaCalendarStatsSync(prev, previousCalendar, nextCalendar));
+    pushDevLiveTrace({
+      level: 'info',
+      source: 'plan-de-vida',
+      message: 'Checks del día eliminados sin conservar registro.',
+      data: `date=${dateKey}; count=${removedChecks?.length ?? 0}`,
     });
   };
 
@@ -2077,6 +2108,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     cartasReminderEnabled,
     cartasReminderAnchorAt,
     devTestNotificationEnabled,
+    devTestNotificationImageEnabled,
     isDeveloperMode,
     notificationSyncVersion,
     theme,
@@ -2167,6 +2199,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         setCartasReminderEnabled,
         devTestNotificationEnabled,
         setDevTestNotificationEnabled,
+        devTestNotificationImageEnabled,
+        setDevTestNotificationImageEnabled,
         devLiveTraceEnabled,
         setDevLiveTraceEnabled,
         devLiveTraceEvents,
@@ -2179,6 +2213,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         planDeVidaProgress,
         togglePlanDeVidaItem,
         togglePlanDeVidaCalendarEntry,
+        clearPlanDeVidaChecksForToday,
         resetPlanDeVidaProgress,
         planDeVidaCalendar,
         isDistractionFree,

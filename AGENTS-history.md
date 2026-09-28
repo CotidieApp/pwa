@@ -7581,3 +7581,47 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `src/lib/movable-feasts.ts`
 - `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetContentFactory.java`
 - `android/app/src/main/java/com/benjamin/studio/widgets/LiturgicalColorRules.java`
+
+### [2026-09-28] Correcciones integrales de lectura, oraciones, Plan de Vida y notificaciones
+
+**Planificacion:**
+- Corregir de forma acotada la eliminación visual de subrayados EPUB, los fondos y la edición de Oraciones, los checks de Cartas y Plan de Vida, y el calendario de avisos.
+- Blindar el cliente Android como aplicación sin red y comprobar en el manifiesto empaquetado que ninguna dependencia reintroduzca permisos de conectividad.
+- Revisar Cotidie Novum y Play Protect contra las condiciones oficiales de Android, sin intentar eludir confirmaciones o controles de seguridad del sistema.
+
+**Ejecucion:**
+- El lector EPUB detecta todos los subrayados que se solapan con la selección, ofrece «Quitar subrayado» y elimina tanto la anotación visible como su persistencia; además descarta rangos duplicados al cargar.
+- Oraciones quedó sin fondos propios en sus subsecciones; se incorporó Adoro Te Devote, se retiró la guía breve de confesión y el editor conserva el contenido preexistente, incluidas sus variantes idiomáticas, y permite elegir imágenes internas o de la galería.
+- Cartas marca el Plan de Vida al entrar o crear una carta. Se añadió limpieza explícita de los checks del día, eliminándolos también del calendario y reconciliando estadísticas.
+- Los avisos de Cartas se limitan a los días 30, 37 y 44; se añadió el aviso del 4 de agosto y la imagen del Papa al aviso mensual. Se conservan los estilos Android de texto grande e imagen grande.
+- Se verificó que todas las notificaciones fijas con `image` llegan a `BigPictureStyle` y que sus seis recursos están empaquetados. La notificación periódica de prueba ahora ofrece un interruptor independiente para adjuntar o retirar la imagen grande de Navidad.
+- Se creó un banner 16:9 específico de 512 × 288 px para el aniversario de Cotidie, conservando el símbolo original dentro de una zona central segura, y se sustituyó el icono cuadrado como imagen de esa notificación.
+- La Santa Cruz fuerza la segunda imagen de fondos tanto en la aplicación como en el widget. Se confirmó que el 13 de agosto ya usa «Santos Ponciano e Hipólito» y que Camino desplaza la vista al resultado activo.
+- El manifiesto elimina `INTERNET` y `ACCESS_NETWORK_STATE` incluso si una dependencia los declara, y el WebView bloquea cargas de red. Cotidie Novum no se modificó: su política ya cumple los requisitos de instalación sin acción; la primera actualización sigue requiriendo confirmación cuando Novum no es el instalador de registro.
+
+**Validacion:**
+- `npx.cmd tsc --noEmit --pretty false`, `npm.cmd run build` y `npm.cmd run lint`: correctos; lint conserva 68 advertencias preexistentes y no presenta errores.
+- `tests/reading-persistence.cjs`: 21/21 pruebas correctas.
+- `:app:assembleDebug` con JDK 21: correcto. El APK de depuración final no declara `INTERNET` ni `ACCESS_NETWORK_STATE`; contiene el recurso `images_papa_leon_jpeg`.
+- `Cotidie Novum: gradlew testDebugUnitTest`: correcto. El APK publicado 6.4.22 verifica con firma v2, un firmante y el SHA-256 esperado por Novum.
+
+**Archivos Modificados:**
+- `android/app/src/main/AndroidManifest.xml`
+- `android/app/src/main/java/com/benjamin/studio/MainActivity.java`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetContentFactory.java`
+- `src/components/AddPrayerForm.tsx`
+- `src/components/EpubReader.tsx`
+- `src/components/PrayerList.tsx`
+- `src/components/developer/DeveloperDashboard.tsx`
+- `src/components/epub-reader/ReaderSelectionToolbar.tsx`
+- `src/components/main/MainApp.tsx`
+- `src/context/SettingsContext.tsx`
+- `src/context/settings/normalize.ts`
+- `src/context/settings/defaults.ts`
+- `src/context/settings/types.ts`
+- `src/context/settings/useNotificationScheduling.ts`
+- `src/context/settings/useSaintOfTheDay.ts`
+- `src/lib/data.tsx`
+- `src/lib/fixed-notifications.ts`
+- `public/images/cotidie-aniversario-banner.png`
+- `src/lib/prayers/oraciones/confesion.ts`
