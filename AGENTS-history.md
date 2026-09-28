@@ -15,6 +15,24 @@ Historial de intervenciones del asistente en el repo.
 - No leer este historial completo; consultar únicamente las reglas permanentes y la entrada relevante.
 - No usar subagentes ni búsquedas amplias salvo que la tarea realmente lo necesite.
 
+### [2026-09-27] 341. Guía local de contratos para el lector EPUB
+
+**Planificacion:**
+- Concentrar junto al núcleo EPUB los contratos de navegación, reflow, persistencia, identidad y validación que hasta ahora estaban repartidos entre código, pruebas y entradas históricas.
+- Dar a futuras intervenciones un punto de entrada acotado sin sustituir las pruebas ni el historial técnico existente.
+
+**Ejecucion:**
+- Se añadió `src/lib/epub-reader/AGENTS.md` con el mapa de módulos e integraciones, las reglas de serialización de `epub.js`, el ancla central semántica, los formatos y claves de persistencia compatibles, las identidades separadas del NT y de EPUB personales, la paginación relativa, el ciclo de vida de iframes/anotaciones y el procedimiento seguro de cambio.
+- La guía enlaza los comandos de validación existentes y la matriz manual APK/PWA, incluidos sus límites de certificación.
+
+**Validacion:**
+- Se revisaron los contratos documentados contra `controller.ts`, `progress.ts`, `layout.ts`, `pagination.ts`, `EpubReader.tsx`, wrappers del NT/personales y `tests/READING-VALIDATION.md`.
+- Se verificaron el formato del diff y las rutas relativas; no se ejecutan builds ni pruebas de producto porque esta intervención solo agrega documentación.
+
+**Archivos Modificados:**
+- src/lib/epub-reader/AGENTS.md
+- AGENTS-history.md
+
 ### [2026-09-25] 340. Separación de reglas operativas e historial de intervenciones
 
 **Planificacion:**
@@ -3408,6 +3426,28 @@ Historial de intervenciones del asistente en el repo.
 - `src/lib/liturgical-colors-chile-2027.json`
 - `android/app/build.gradle`
 - `android/app/src/main/java/com/benjamin/studio/widgets/LiturgicalColorRules.java`
+
+### [2026-09-27] Corrección del wrapper Gradle y build 6.4.22
+**Planificacion:**
+- Resolver el bloqueo de Android causado por Gradle 8.9 frente al requisito mínimo 8.13 de Android Gradle Plugin 8.13.0 y compilar la siguiente versión patch.
+
+**Ejecucion:**
+- Se actualizó `distributionUrl` a Gradle 8.13.
+- Se incrementó la versión de `6.4.21` a `6.4.22` y el `versionCode` de 110 a 111.
+- Se sincronizó Capacitor con Android y se generó el APK release sin publicación ni copia externa.
+
+**Validacion:**
+- Gradle 8.13 descargado y aceptado por el plugin.
+- `assembleRelease` terminó con `BUILD SUCCESSFUL` (290 tareas; 19 ejecutadas, 271 up-to-date).
+- APK verificado: `cotidie-installer-v6.4.22.apk`, 80.672.919 bytes, SHA-256 `C75702F5F5843623170ED4DAF249CF2E683B9DFC27908BF8000F464A81C760E5`, versionCode 111.
+
+**Archivos Modificados:**
+- `android/gradle/wrapper/gradle-wrapper.properties`
+- `android/app/build.gradle`
+- `package.json`
+- `package-lock.json`
+- `src/lib/version.ts`
+- `cotidie-installer-v6.4.22.apk`
 - `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetContentFactory.java`
 - `AGENTS.md`
 
@@ -7505,3 +7545,23 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `src/components/Settings.tsx`
 - `src/components/settings/AppearanceSettings.tsx`
 - `package.json` / `package-lock.json` (por `npm install`)
+
+### [2026-09-27] Colores litúrgicos romanos calculados sin límite anual
+**Planificacion:**
+- Sustituir la prioridad de calendarios anuales por reglas permanentes de fechas fijas, cálculo pascual y precedencias litúrgicas, manteniendo la preferencia por las memorias marianas elegibles.
+
+**Ejecucion:**
+- Se eliminó el uso de los JSON 2026–2027 como motor de color tanto en web como en el widget Android; quedan solo como referencias históricas.
+- Las reglas ahora seleccionan una memoria libre mariana cuando puede celebrarse, pero la suprimen correctamente en Cuaresma, las ferias privilegiadas de Adviento y los domingos no desplazables.
+- Se corrigió Todos los Fieles Difuntos a morado; el negro continúa siendo una alternativa lícita. También se trasladó la Ascensión al domingo conforme al calendario chileno.
+
+**Validacion:**
+- `npm.cmd run build` y `npm.cmd run lint` finalizaron correctamente.
+- La compilación Java de Android no pudo iniciarse porque el wrapper local usa Gradle 8.9 y el plugin exige 8.13; no se modificó esa dependencia ajena al alcance.
+
+**Archivos Modificados:**
+- `src/lib/getLiturgicalColor.ts`
+- `src/lib/liturgical-color-rules.ts`
+- `src/lib/movable-feasts.ts`
+- `android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetContentFactory.java`
+- `android/app/src/main/java/com/benjamin/studio/widgets/LiturgicalColorRules.java`

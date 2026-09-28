@@ -21,9 +21,7 @@ const SPECIAL_FIXED_DATE_COLORS: Record<string, LiturgicalColorName> = {
   '01-01': 'Blanco',
   '01-03': 'Blanco',
   '01-06': 'Blanco',
-  '01-25': 'Blanco',
   '02-02': 'Blanco',
-  '02-22': 'Blanco',
   '03-19': 'Blanco',
   '03-25': 'Blanco',
   '06-24': 'Blanco',
@@ -32,12 +30,8 @@ const SPECIAL_FIXED_DATE_COLORS: Record<string, LiturgicalColorName> = {
   '08-06': 'Blanco',
   '08-15': 'Blanco',
   '09-14': 'Rojo',
-  '09-29': 'Blanco',
-  '10-02': 'Blanco',
   '11-01': 'Blanco',
-  '11-02': 'Blanco',
-  '11-09': 'Blanco',
-  '11-21': 'Blanco',
+  '11-02': 'Morado',
   '12-08': 'Blanco',
   '12-25': 'Blanco',
   '12-26': 'Rojo',
@@ -325,7 +319,7 @@ const getSaintCelebrationColorName = (
   }
 
   const shouldSuppressInPenitentialSeason =
-    (rank === 'memorial' || rank === 'commemoration') &&
+    (rank === 'memorial' || rank === 'optional_memorial' || rank === 'commemoration') &&
     (isLentSeason(date) || isPrivilegedAdventWeekday(date)) &&
     !keepsOwnColorInPenitentialSeason(title, name);
 
@@ -333,11 +327,15 @@ const getSaintCelebrationColorName = (
     return getSeasonDefaultColorName(date);
   }
 
+  // Las solemnidades pueden reemplazar al domingo del Tiempo Ordinario;
+  // las fiestas y memorias fijas no.
+  if (isSunday(date) && rank !== 'solemnity') return null;
+
   if (
     name.includes('conmemoracion de los fieles difuntos') ||
     name.includes('fieles difuntos')
   ) {
-    return 'Blanco';
+    return 'Morado';
   }
 
   const isMartyr = type.includes('martyr') || type.includes('martir') || name.includes('martir');
@@ -371,6 +369,10 @@ export const getGeneralLiturgicalColorName = (
     const specialDateColor = getSpecialDateLiturgicalColorName(date);
     if (specialDateColor) return specialDateColor;
   }
+
+  // En Navidad las ferias conservan el blanco; las excepciones de la octava
+  // (San Esteban y Santos Inocentes) ya fueron resueltas como fechas especiales.
+  if (isChristmasSeason(date)) return 'Blanco';
 
   const saintColor = getSaintCelebrationColorName(saint, date);
   if (saintColor) return saintColor;

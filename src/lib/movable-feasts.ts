@@ -107,7 +107,7 @@ const movableFeastsDefinitions: Record<string, MovableFeastDefinition> = {
     type: "celebration",
   },
   ascension: {
-    offset: 39, // 40th day, but often celebrated on the next Sunday
+    offset: 42, // En Chile se traslada al domingo siguiente.
     name: "Ascensión del Señor",
     bio: "Cuarenta días después de su Resurrección, Jesús asciende al cielo en presencia de sus discípulos, prometiendo el envío del Espíritu Santo.",
     title: "Solemnidad",

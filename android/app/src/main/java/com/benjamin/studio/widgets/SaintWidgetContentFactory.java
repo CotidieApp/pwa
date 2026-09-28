@@ -325,9 +325,6 @@ final class SaintWidgetContentFactory {
         Integer protectedColor = LiturgicalColorRules.getSpecialDateLiturgicalColor(current, easter);
         if (protectedColor != null) return protectedColor;
 
-        Integer officialColor = mapOfficialLiturgicalColor(getOfficialLiturgicalColorName(context, current));
-        if (officialColor != null) return officialColor;
-
         return LiturgicalColorRules.getGeneralLiturgicalColor(
                 saint != null ? saint.title : "",
                 saint != null ? saint.type : "",

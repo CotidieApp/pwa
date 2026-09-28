@@ -72,6 +72,8 @@ final class LiturgicalColorRules {
             return specialColor;
         }
 
+        if (isChristmasSeason(day)) return WHITE;
+
         Integer saintColor = getSaintCelebrationColor(title, type, name, day, easter);
         if (saintColor != null) {
             return saintColor;
@@ -92,18 +94,20 @@ final class LiturgicalColorRules {
         String name = normalizeLiturgicalText(rawName);
         int rank = parseCelebrationRank(title);
 
-        if (rank == 0 || rank == 3) return null;
+        if (rank == 0) return null;
 
         boolean suppressInPenitentialSeason =
-                (rank == 2 || rank == 4)
+                (rank == 2 || rank == 3 || rank == 4)
                         && (isLentSeason(current, easter) || isPrivilegedAdventWeekday(current))
                         && !keepsOwnColorInPenitentialSeason(title, name);
         if (suppressInPenitentialSeason) {
             return getSeasonDefaultColor(current, easter);
         }
 
+        if (isSunday(current) && rank != 1) return null;
+
         if (name.contains("conmemoracion de los fieles difuntos") || name.contains("fieles difuntos")) {
-            return WHITE;
+            return PURPLE;
         }
 
         boolean martyr = type.contains("martyr") || type.contains("martir") || name.contains("martir");
@@ -136,16 +140,15 @@ final class LiturgicalColorRules {
         int month = date.get(Calendar.MONTH) + 1;
         int day = date.get(Calendar.DAY_OF_MONTH);
 
-        if (month == 1 && (day == 1 || day == 3 || day == 6 || day == 25)) return WHITE;
-        if (month == 2 && (day == 2 || day == 22)) return WHITE;
+        if (month == 1 && (day == 1 || day == 3 || day == 6)) return WHITE;
+        if (month == 2 && day == 2) return WHITE;
         if (month == 3 && (day == 19 || day == 25)) return WHITE;
         if (month == 6 && day == 24) return WHITE;
         if (month == 6 && day == 29) return RED;
         if (month == 8 && (day == 6 || day == 15)) return WHITE;
         if (month == 9 && day == 14) return RED;
-        if (month == 9 && day == 29) return WHITE;
-        if (month == 10 && day == 2) return WHITE;
-        if (month == 11 && (day == 1 || day == 2 || day == 9 || day == 21)) return WHITE;
+        if (month == 11 && day == 1) return WHITE;
+        if (month == 11 && day == 2) return PURPLE;
         if (month == 12 && (day == 8 || day == 25 || day == 27)) return WHITE;
         if (month == 12 && (day == 26 || day == 28)) return RED;
 
