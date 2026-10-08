@@ -1,7 +1,12 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { App } from '@capacitor/app';
 import type { MutableRefObject } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import CotidieNotificationScheduler, {
+  type CotidieDailyRule,
+  type CotidieScheduledEvent,
+} from '@/plugins/CotidieNotificationScheduler';
 import { categories } from '@/lib/data';
 import type { Prayer } from '@/lib/types';
 import { fixedNotifications, type FixedNotificationEntry } from '@/lib/fixed-notifications';
@@ -18,6 +23,7 @@ const MONTHLY_FIXED_NOTIFICATION_OCCURRENCES_IOS = 12;
 const NOTIFICATION_SCHEDULE_BATCH_SIZE = 24;
 const ANDROID_NOTIFICATION_SCHEDULE_LIMIT = 32;
 const IOS_NOTIFICATION_SCHEDULE_LIMIT = 60;
+const ANDROID_NOTIFICATION_CALENDAR_YEARS = 10;
 
 type UseNotificationSchedulingParams = {
   isLoaded: boolean;
@@ -58,6 +64,16 @@ export const useNotificationScheduling = ({
   exactAlarmSettingsRequestedRef,
   toast,
 }: UseNotificationSchedulingParams) => {
+  const [foregroundVersion, setForegroundVersion] = useState(0);
+  const syncQueue = useRef<Promise<void>>(Promise.resolve());
+  const lastBlockedReason = useRef<string | null>(null);
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    const listener = App.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) setForegroundVersion(version => version + 1);
+    });
+    return () => { void listener.then(handle => handle.remove()); };
+  }, []);
   const getReminderTitle = useCallback((target: DailyReminder['target']) => {
     if (target.type === 'category') {
       return categories.find((c) => c.id === target.id)?.name ?? 'Recordatorio';
@@ -102,6 +118,7 @@ export const useNotificationScheduling = ({
     const cartasReminderActive = notificationsEnabled && cartasReminderEnabled;
 
     const sync = async () => {
+      if (cancelled) return;
       const now = new Date();
       const platform = Capacitor.getPlatform();
       const maxTotal = platform === 'ios' ? IOS_NOTIFICATION_SCHEDULE_LIMIT : ANDROID_NOTIFICATION_SCHEDULE_LIMIT;
@@ -113,6 +130,8 @@ export const useNotificationScheduling = ({
       const horizonDays = Math.min(30, Math.max(1, Math.floor(maxTotal / Math.max(1, totalSources))));
       const horizonEnd = new Date(now);
       horizonEnd.setDate(now.getDate() + horizonDays);
+      const androidCalendarEnd = new Date(now);
+      androidCalendarEnd.setFullYear(now.getFullYear() + ANDROID_NOTIFICATION_CALENDAR_YEARS);
 
       const cancelPendingNotifications = async () => {
         const pending = await LocalNotifications.getPending().catch(() => null);
@@ -128,9 +147,24 @@ export const useNotificationScheduling = ({
 
       if (active.length === 0 && fixedActive.length === 0 && !cartasReminderActive) {
         await cancelPendingNotifications();
+        if (platform === 'android') {
+          await CotidieNotificationScheduler.clearSchedule().catch((error) => {
+            console.warn('Failed to clear Cotidie native notification scheduler', error);
+          });
+        }
         return;
       }
 
+      if (platform === 'android') {
+        const status = await CotidieNotificationScheduler.getScheduleStatus();
+        if (status.status === 'blocked' && status.reason !== lastBlockedReason.current &&
+            (status.reason === 'notification_permission' || status.reason === 'notification_channel_disabled')) {
+          toast({ title: status.reason === 'notification_permission' ? 'Revisa el permiso de notificaciones' : 'Canal de recordatorios desactivado',
+            description: 'Actívalo en los ajustes de notificaciones de Android.' });
+        }
+        lastBlockedReason.current = status.status === 'blocked' ? status.reason : null;
+        if (status.reason === 'notification_channel_disabled') return;
+      }
       const currentPerms = await LocalNotifications.checkPermissions().catch((error) => {
         console.warn('Failed to check notification permissions', error);
         return null;
@@ -165,6 +199,7 @@ export const useNotificationScheduling = ({
       }
 
       await cancelPendingNotifications();
+      if (cancelled) return;
 
       try {
         await LocalNotifications.registerActionTypes({
@@ -231,9 +266,33 @@ export const useNotificationScheduling = ({
       };
 
       const notifications: Array<any> = [];
+      const nativeDailyRules: CotidieDailyRule[] = [];
       for (const r of active) {
         const message =
           r.message.trim().length > 0 ? r.message : buildDefaultReminderMessage(r.target);
+        if (platform === 'android') {
+          const rootId = r.target.type === 'prayer' ? getRootPlanDeVidaId(r.target.id) : null;
+          const targetId = rootId || r.target.id;
+          const skipDateKeys =
+            skipNotificationIfChecked && r.target.type === 'prayer'
+              ? Object.entries(planDeVidaCalendar)
+                  .filter(([, checked]) => checked.includes(targetId))
+                  .map(([dateKey]) => dateKey)
+              : [];
+          nativeDailyRules.push({
+            sourceId: `daily:${r.id}`,
+            hour: r.time.hours,
+            minute: r.time.minutes,
+            title: getReminderTitle(r.target),
+            body: message,
+            channelId: 'cotidie-reminders',
+            smallIcon: icon,
+            actionTypeId: getNotificationActionTypeId(r.target),
+            extra: { target: r.target, reminderId: r.id },
+            skipDateKeys,
+          });
+          continue;
+        }
         const base = new Date(now);
         base.setHours(r.time.hours, r.time.minutes, 0, 0);
         if (base.getTime() <= now.getTime()) {
@@ -322,7 +381,8 @@ export const useNotificationScheduling = ({
                 ? 1
                 : null;
           let fixedOccurrences = 0;
-          while (fixedOccurrenceLimit !== null ? fixedOccurrences < fixedOccurrenceLimit : next.getTime() <= horizonEnd.getTime()) {
+          const calendarEnd = platform === 'android' ? androidCalendarEnd : horizonEnd;
+          while (fixedOccurrenceLimit !== null ? fixedOccurrences < fixedOccurrenceLimit : next.getTime() <= calendarEnd.getTime()) {
             const dateKey = toDateKey(next);
             const id = toNotificationId(`fixed:${index}:${entry.date}:${dateKey}`);
             let imagePath: string | null = null;
@@ -372,6 +432,24 @@ export const useNotificationScheduling = ({
         // 12 recurring notifications per hour -> every 5 minutes (:00, :05, ... :55).
         for (let minute = 0; minute < 60; minute += 5) {
           const id = toNotificationId(`dev:test:5m:${minute}`);
+          if (platform === 'android') {
+            nativeDailyRules.push({
+              sourceId: `dev:test:5m:${minute}`,
+              minute,
+              title: 'Notificación de prueba (Dev)',
+              body: 'Recordatorio automático cada 5 minutos.',
+              channelId: 'cotidie-reminders',
+              smallIcon: icon,
+              extra: {
+                devTest: true,
+                everyMinutes: 5,
+                minute,
+                image: devImagePath,
+                imageDrawable: devImageDrawable,
+              },
+            });
+            continue;
+          }
           notifications.push({
             id,
             title: 'Notificación de prueba (Dev)',
@@ -524,18 +602,78 @@ export const useNotificationScheduling = ({
       scheduleMovable(now.getFullYear(), 69, 'Inmaculado Corazón de María', 'Memoria. Pon tu confianza en el Corazón de María y pídele su intercesión maternal.', 'immaculate-heart-feast', 9, 0);
       scheduleMovable(now.getFullYear() + 1, 69, 'Inmaculado Corazón de María', 'Memoria. Pon tu confianza en el Corazón de María y pídele su intercesión maternal.', 'immaculate-heart-feast', 9, 0);
 
+      if (platform === 'android') {
+        const futureMovableFeasts: Array<[number, string, string, string]> = [
+          [7, 'Domingo de la Divina Misericordia', 'Segundo Domingo de Pascua. Confía en la misericordia del Señor y acércate a su perdón.', 'divine-mercy'],
+          [39, 'Ascensión del Señor', 'Solemnidad. Jesucristo sube al cielo y nos invita a elevar el corazón y la esperanza.', 'ascension'],
+          [49, 'Pentecostés', 'Solemnidad. Invoca al Espíritu Santo y deja que renueve tu vida.', 'pentecost'],
+          [50, 'María, Madre de la Iglesia', 'Memoria litúrgica: honra a María como Madre de la Iglesia y confía en su maternal intercesión.', 'mary-mother-of-church'],
+          [53, 'Jesucristo, Sumo y Eterno Sacerdote', 'Solemnidad que reconoce a Jesús como Sumo y Eterno Sacerdote. Ofrece tu agradecimiento y oración.', 'christ-high-priest'],
+          [56, 'Santísima Trinidad', 'Solemnidad. Alaba al Padre, al Hijo y al Espíritu Santo con fe y gratitud.', 'trinity'],
+          [63, 'Corpus Christi', 'Solemnidad del Cuerpo y la Sangre de Cristo. Adora la Eucaristía y renueva tu amor por ella.', 'corpus-christi'],
+          [68, 'Sagrado Corazón de Jesús', 'Solemnidad. Consagra tu corazón al Corazón de Jesús y confía en su amor.', 'sacred-heart'],
+          [69, 'Inmaculado Corazón de María', 'Memoria. Pon tu confianza en el Corazón de María y pídele su intercesión maternal.', 'immaculate-heart-feast'],
+        ];
+        for (let offset = 2; offset <= ANDROID_NOTIFICATION_CALENDAR_YEARS; offset++) {
+          const year = now.getFullYear() + offset;
+          scheduleEaster(year);
+          futureMovableFeasts.forEach(([days, title, body, key]) => scheduleMovable(year, days, title, body, key, 9, 0));
+        }
+      }
+
       const annuumYearsAhead = 10;
       for (let i = 0; i <= annuumYearsAhead; i++) {
         scheduleCotidieAnnuumStart(now.getFullYear() + i);
       }
 
-      const scheduleLimit = platform === 'ios' ? IOS_NOTIFICATION_SCHEDULE_LIMIT : ANDROID_NOTIFICATION_SCHEDULE_LIMIT;
+      if (platform === 'android') {
+        const nativeEvents: CotidieScheduledEvent[] = [];
+        notifications.forEach((notification) => {
+          const at = getNotificationFireTime(notification);
+          if (!Number.isFinite(at) || at === Number.MAX_SAFE_INTEGER) return;
+          const event: CotidieScheduledEvent = {
+            id: notification.id,
+            at,
+            title: notification.title,
+            body: notification.body,
+            channelId: notification.channelId,
+            smallIcon: notification.smallIcon,
+            extra: notification.extra,
+          };
+          if (notification.actionTypeId) event.actionTypeId = notification.actionTypeId;
+          nativeEvents.push(event);
+        });
+        try {
+          if (cancelled) return;
+          const status = await CotidieNotificationScheduler.replaceSchedule({ events: nativeEvents, dailyRules: nativeDailyRules });
+          if (status.status === 'blocked') throw new Error(status.reason);
+        } catch (error) {
+          console.warn('Failed to configure Cotidie native notification scheduler', error);
+          toast({
+            variant: 'destructive',
+            title: 'Error al programar recordatorios',
+            description: 'Intenta desactivar y activar notificaciones nuevamente.',
+          });
+        }
+        return;
+      }
+
+      const scheduleLimit = IOS_NOTIFICATION_SCHEDULE_LIMIT;
       const scheduledNotifications = [...notifications]
-        .sort((a, b) => getNotificationFireTime(a) - getNotificationFireTime(b))
+        // Las pruebas dev usan `schedule.on`, no `schedule.at`; si se ordenan
+        // solamente por `at`, quedan al final como si no tuvieran fecha y el
+        // límite Android las descarta antes de llegar al plugin nativo.
+        .sort((a, b) => {
+          const aIsDevTest = a.extra?.devTest === true;
+          const bIsDevTest = b.extra?.devTest === true;
+          if (aIsDevTest !== bIsDevTest) return aIsDevTest ? -1 : 1;
+          return getNotificationFireTime(a) - getNotificationFireTime(b);
+        })
         .slice(0, scheduleLimit);
 
       try {
         for (let index = 0; index < scheduledNotifications.length; index += NOTIFICATION_SCHEDULE_BATCH_SIZE) {
+          if (cancelled) return;
           const batch = scheduledNotifications.slice(index, index + NOTIFICATION_SCHEDULE_BATCH_SIZE);
           if (batch.length === 0) continue;
           await LocalNotifications.schedule({ notifications: batch });
@@ -550,11 +688,13 @@ export const useNotificationScheduling = ({
       }
     };
 
+    let cancelled = false;
     const timeoutId = setTimeout(() => {
-      sync().catch((e) => console.error('Failed to sync notifications', e));
+      syncQueue.current = syncQueue.current.catch(() => undefined).then(sync);
+      void syncQueue.current.catch(() => toast({ title: 'No se confirmó la programación de recordatorios', variant: 'destructive' }));
     }, 500);
 
-    return () => clearTimeout(timeoutId);
+    return () => { cancelled = true; clearTimeout(timeoutId); };
     // `theme` is intentionally excluded: it only affects the notification icon color,
     // and re-syncing (cancel + reschedule everything) on every dark/light toggle was
     // unnecessary churn. The next genuine resync picks up the current theme.
@@ -571,5 +711,6 @@ export const useNotificationScheduling = ({
     ensureAndroidNotificationChannel,
     isDeveloperMode,
     notificationSyncVersion,
+    foregroundVersion,
   ]);
 };

@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { useToast } from '@/hooks/use-toast';
 import { Pause, Pencil, Play, RotateCcw, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { normalizeTimerMinutes } from '@/lib/prayer-timer';
 
 export default function Timer() {
   const {
@@ -42,11 +43,11 @@ export default function Timer() {
   };
 
   const handleSaveDuration = () => {
-    const parsed = Number.parseInt(draftMinutes, 10);
-    const nextDuration = Number.isFinite(parsed) ? Math.max(1, parsed) : timerDuration;
+    const parsed = Number(draftMinutes);
+    const nextDuration = Number.isFinite(parsed) ? normalizeTimerMinutes(parsed) : timerDuration;
     setTimerDuration(nextDuration);
     setIsEditOpen(false);
-    toast({ title: 'Duración del temporizador guardada.' });
+    toast({ title: `Temporizador listo: ${nextDuration} minutos.`, description: 'Pulsa iniciar cuando quieras comenzar.' });
   };
 
   return (
@@ -111,6 +112,7 @@ export default function Timer() {
               type="number"
               inputMode="numeric"
               min={1}
+              max={1440}
               value={draftMinutes}
               onChange={(e) => setDraftMinutes(e.target.value)}
               onKeyDown={(e) => {

@@ -1,4 +1,5 @@
 import type { Prayer } from '@/lib/types';
+import { normalizeTimerMinutes } from '@/lib/prayer-timer';
 import {
   defaultThemeColors,
   defaultOverlayPositions,
@@ -341,8 +342,8 @@ export const stableSerialize = (value: any) => JSON.stringify(stableSortValue(va
 
 export const normalizeBackupState = (raw: any) => {
   const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
-  const timerDuration = Math.max(1, Math.floor(normalizeNumber(source.timerDuration, 15)));
-  const timerTime = Math.max(0, Math.floor(normalizeNumber(source.timerTime, timerDuration * 60)));
+  const timerDuration = normalizeTimerMinutes(normalizeNumber(source.timerDuration, 15));
+  const timerTime = Math.min(timerDuration * 60, Math.max(0, Math.floor(normalizeNumber(source.timerTime, timerDuration * 60))));
   const theme: Theme = source.theme === 'dark' ? 'dark' : 'light';
   const fontSize = isFiniteNumber(source.fontSize)
     ? Math.round(source.fontSize)

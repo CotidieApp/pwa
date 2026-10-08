@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { handleTouchNavigation, TOUCH_NAV_INTERACTIVE_SELECTORS } from '@/utils/touchNavigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronLeft, ChevronRight, X, Plus, Trash2, Settings2, Image as ImageIcon, Calendar, Pencil, BookOpen, Crown, Cross, Sparkles } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, X, Plus, Trash2, Settings2, Calendar, Pencil, BookOpen, Crown, Cross, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useSettings } from '@/context/SettingsContext';
@@ -18,9 +18,6 @@ import {
   DEFAULT_JACULATORIAS,
   SALVE_TEXT,
   PRE_ROSARY_STEPS,
-  MYSTERY_COLORS,
-  MYSTERY_IMAGES,
-  MYSTERY_SPECIFIC_IMAGES,
   MYSTERY_NAMES,
   FULL_MYSTERY_TITLES,
   JACULATORIAS_STORAGE_KEY,
@@ -84,7 +81,6 @@ export default function RosaryImmersive({
   const [newJaculatoria, setNewJaculatoria] = useState<Jaculatoria>({ v: '', r: '' });
   const [showPrayerIndex, setShowPrayerIndex] = useState(false);
 
-  const [showBackground, setShowBackground] = useState(true);
   const [navPos, setNavPos] = useState<{ x: number; y: number } | null>(null);
   const [isDraggingNav, setIsDraggingNav] = useState(false);
   const navRef = useRef<HTMLDivElement | null>(null);
@@ -458,15 +454,6 @@ export default function RosaryImmersive({
   const isPreRosaryActive = isPreRosary && preSteps.length > 0;
   const isPostRosaryActive = (isPostRosary && postSteps.length > 0) || isSalveActive;
 
-  const getMysteryImage = useCallback((type: MysteryType, index: number) => {
-    // Imagenes específicas para Pre y Post Rosario
-    if (isPreRosaryActive) return '/images/sacred-heart.jpeg';
-    if (isPostRosaryActive) return '/images/immaculate-conception.jpeg';
-
-    const typeShort = type.endsWith('s') ? type.slice(0, -1) : type; // gozosos -> gozoso
-    const specificKey = `${typeShort}-${index + 1}`;
-    return MYSTERY_SPECIFIC_IMAGES[specificKey] || MYSTERY_IMAGES[type];
-  }, [isPreRosaryActive, isPostRosaryActive]);
   const totalMysteries = initialTitle ? 1 : 5;
   const totalSteps = preSteps.length + sequence.length * totalMysteries + postSteps.length;
   const progressIndex = isPreRosaryActive
@@ -488,61 +475,6 @@ export default function RosaryImmersive({
     (isPostRosaryActive && currentPostStep.type === 'letanias');
 
   const showEditJaculatorias = isPostRosaryActive && currentPostStep.type === 'jaculatorias' && !isSalveActive;
-
-  // --- CONFIGURACIí“N DE VISIBILIDAD ---
-  // Porcentaje de la imagen que se mostrará durante el recorrido (default 80%)
-  // Se puede especificar un valor diferente por cada misterio usando su clave (ej: 'gozoso-1')
-  const DEFAULT_VISIBILITY_PERCENTAGE = 80;
-
-  const MYSTERY_VISIBILITY_CONFIG: Record<string, number> = {
-    // Misterios Gozosos
-    'gozoso-1': 40,
-    'gozoso-2': 50,
-    'gozoso-3': 40,
-    'gozoso-4': 40,
-    'gozoso-5': 50,
-    // Misterios Luminosos
-    'luminoso-1': 60,
-    'luminoso-2': 60,
-    'luminoso-3': 70,
-    'luminoso-4': 60,
-    'luminoso-5': 60,
-    // Misterios Dolorosos
-    'doloroso-1': 40,
-    'doloroso-2': 50,
-    'doloroso-3': 50,
-    'doloroso-4': 60,
-    'doloroso-5': 35,
-    // Misterios Gloriosos
-    'glorioso-1': 40,
-    'glorioso-2': 50,
-    'glorioso-3': 60,
-    'glorioso-4': 60,
-    'glorioso-5': 50,
-  };
-
-  const mysteryProgress = useMemo(() => {
-    // Si estamos en Pre o Post Rosario, devolvemos 50% fijo (centro)
-    if (isPreRosaryActive || isPostRosaryActive) {
-      return 50;
-    }
-
-    const total = sequence.length - 1;
-    const current = currentStepIndex;
-    const ratio = total > 0 ? Math.min(Math.max(current / total, 0), 1) : 0;
-
-    // Determinar visibilidad específica
-    const typeShort = selectedMysteryType.endsWith('s') ? selectedMysteryType.slice(0, -1) : selectedMysteryType;
-    const specificKey = `${typeShort}-${currentMysteryIndex + 1}`;
-    const visibility = MYSTERY_VISIBILITY_CONFIG[specificKey] ?? DEFAULT_VISIBILITY_PERCENTAGE;
-
-    const margin = (100 - visibility) / 2;
-    const start = margin;
-    const end = 100 - margin;
-    const range = end - start;
-
-    return start + (ratio * range);
-  }, [currentStepIndex, sequence.length, selectedMysteryType, currentMysteryIndex, isPreRosaryActive, isPostRosaryActive]);
 
   useEffect(() => {
     if (!isDraggingNav) return;
@@ -783,35 +715,6 @@ export default function RosaryImmersive({
         "fixed inset-0 z-50 flex flex-col items-center justify-between pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] overflow-hidden",
         isDark ? "bg-black text-white" : "bg-zinc-50 text-zinc-900"
       )}>
-      {/* Background Layer */}
-      {showBackground && (
-        <>
-          {/* Image Background */}
-          <motion.div
-            className="absolute inset-0 z-0 bg-cover"
-            initial={false}
-            animate={{
-              backgroundPosition: `${mysteryProgress}% top`
-            }}
-            transition={{
-              duration: 1.5,
-              ease: "easeInOut"
-            }}
-            style={{
-              backgroundImage: `url(${getMysteryImage(selectedMysteryType, currentMysteryIndex)})`,
-              opacity: isDark ? 0.4 : 0.3
-            }}
-          />
-          {/* Gradient Overlay (fallback & tint) */}
-          <div className={cn(
-            "absolute inset-0 z-0 transition-colors duration-1000",
-            "bg-gradient-to-b",
-            MYSTERY_COLORS[selectedMysteryType],
-            isDark ? "opacity-30" : "opacity-40"
-          )} />
-        </>
-      )}
-
       {/* Top Bar */}
       <div className="w-full flex justify-between items-start p-4 relative z-20">
         <div className="flex items-center gap-2">
@@ -912,9 +815,6 @@ export default function RosaryImmersive({
             </Button>
           )}
 
-          <Button variant="ghost" size="icon" onClick={() => setShowBackground(!showBackground)} title="Alternar fondo">
-            <ImageIcon className={cn("size-5", !showBackground && "opacity-30")} />
-          </Button>
           <Button variant="ghost" size="icon" onClick={() => onClose()}>
             <X className="size-6" />
           </Button>
@@ -1113,6 +1013,4 @@ export default function RosaryImmersive({
     </div>
   );
 }
-
-
 

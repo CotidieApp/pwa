@@ -1,5 +1,15 @@
 # Persistencia de lectura: validación
 
+## Ronda de funciones sensibles — 8/10/2026
+
+- 36 regresiones Node correctas. Además de los contratos del lector: commit/aborto/apertura recuperable, migración cifrada y retención ante fallos, integridad/caducidad/revisiones, exclusión de privilegios, presupuesto real de expansión ZIP, borrado EPUB con checkpoints tardíos y fechas civiles en Santiago/DST/Auckland. Los fixtures de binarios son EPUB válidos; el NT empaquetado pasa el mismo validador.
+- `npm.cmd run build` coordinado correcto: TypeScript previo y export Next completos. Java de MainActivity, BackgroundActions, planificador, almacenamiento privado y receptores compila contra API 35/Capacitor/AndroidX locales bajo el coordinador. XML de exclusión bien formado. Esto no certifica un APK instalado.
+- Navegador local con datos ficticios: migración conservó tema/7 minutos en pausa/examen; retiró plaintext y dejó claves no extraíbles/ciphertext. Edición y opción 24 h sobrevivieron a recarga. Listo retiró examen y clave; no reapareció. Import con privilegios/actividad del timer en true: sin panel ni inicio, 3 minutos en pausa. Export sin privilegios/trazas/examen. Reinicio completo retiró nota/opción y restableció el timer desactivado.
+- EPUB eliminado conserva un marcador durable de retirada para impedir resurrección; no cambia el ID de libros conservados ni sus CFIs. Un fallo de limpieza heredada se reintenta. ZIP se valida antes de guardar y también al abrir fuentes antiguas.
+- Pendientes físicos: entrega/permiso exacto/canal bloqueado/reinicio/muerte del proceso, Keystore/copia/transferencia y Android 7; APK completo y PWA instalada/offline. ADB sin dispositivos en esta ronda. Las validaciones USB de versiones anteriores siguen siendo históricas.
+
+## Contratos del lector
+
 Implementación para epub.js **0.3.93**, sin reemplazo de dependencia. El controlador adapta
 `onResized` antes de que `start` lo enlace y encauza `display` interno (enlaces) por la misma cola.
 En esta versión `reportLocation()` encola un requestAnimationFrame cuyo final no está incluido
@@ -11,13 +21,12 @@ Al cambiar epub.js hay que revisar estos contratos y ejecutar de nuevo la matriz
 
 ## Validación automatizada
 
-- `npx tsc --noEmit`
-- `npm run build`
-- 21 pruebas con el runner incorporado de Node. No se agregó un framework ni dependencias al proyecto.
+- `npm run build` incluye TypeScript y usa el coordinador; no ejecutar una segunda comprobación pesada en paralelo.
+- 36 pruebas con el runner incorporado de Node. No se agregó un framework de pruebas al proyecto.
   `fake-indexeddb` se instala solamente en un directorio temporal:
 
 ```powershell
-$testDeps = Join-Path $env:TEMP 'cotidie-reading-test-deps'
+$testDeps = Join-Path $env:USERPROFILE '.codex/projects/Cotidie/reading-test-deps'
 npm install --prefix $testDeps --no-save --no-package-lock --ignore-scripts fake-indexeddb
 $preload = Join-Path $testDeps 'node_modules/fake-indexeddb/auto'
 node --require $preload --test tests/reading-persistence.cjs
@@ -55,6 +64,14 @@ volver, índice, búsqueda NT/general, marcadores, subrayados, temas y safe area
 | 8. Fuente/tamaño | Cambiar familia y tamaño repetidamente, cerrar/reabrir. Mantener la frase anclada tras cargar las fuentes efectivas. | OK: 110% -> 120% -> 110% conservó «Testimonio de Juan Bautista»; Literata -> Lora conservó el pasaje de Judas al reabrir y recalculó el total 1824 -> 1895. Se restituyó Literata al terminar. | Pendiente de dispositivo. |
 | 9. NT PWA offline | Descargar NT, activar modo avión y continuar. Mantener progreso, marcadores y subrayados con identidad `nuevo-testamento.epub`; comprobar también el NT empaquetado del APK. | OK para NT empaquetado, navegación y persistencia. | OK en Chrome USB con el build exacto: tras detener el servidor y retirar `adb reverse`, se creó un subrayado con nota y un marcador, se desmontó/reabrió el lector desde el SPA y el EPUB de IDB reapareció con ambos registros y un `g.cotidie-highlight`. Los datos de prueba se retiraron. El host de desarrollo `localhost` desregistra deliberadamente el service worker, por lo que no se atribuye a esta prueba una recarga dura offline del shell. |
 | 10. Personal heredado | Abrir un libro histórico desde localStorage. Conservar nombre, ID `personal-${id}.epub`, binario, progreso y anotaciones tras migrarlo a IDB. | Parcial: «Magnifica Humanitas» (registro 9/7/2026) abrió, restauró 14/23 y avanzó sin error. El origen localStorage previo a su migración no puede demostrarse después del hecho; lo cubre la prueba automatizada. | Pendiente de dispositivo. |
+
+## Corrección de contador del 8/10/2026
+
+- El ordinal usa `start.displayed.page` de la ubicación confirmada, más los tamaños de spine anteriores. El índice de caracteres no representa un avance visual.
+- `displayed.total` mide capítulos visitados; los demás conservan estimaciones y la UI indica `total estimado`. El total puede ajustarse al visitar capítulos o cambiar tipografía/viewport; no se persiste ni restaura lectura.
+- Regresión: bloques semánticos 4 -> 6 con páginas visibles 5 -> 6, cruce en ambos sentidos y descarte de medidas al repaginar. Se conservan pruebas de restauración, navegación rápida y cierre.
+- Recertificar APK/PWA: avanzar 5/8 -> 6/8, retroceder, cruzar capítulos, cambiar fuente/orientación conservando el pasaje, en NT y libro personal. La tabla USB de septiembre describe la versión anterior y no certifica este cambio.
+- Web local verificada con el export actual servido en `127.0.0.1:8767` y Codex In-app Browser: NT 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 5, incluyendo cambios de spine y un avance dentro del prólogo; la biblioteca personal abrió el mismo archivo público con identidad independiente desde página 1 y confirmó 5 -> 6 -> 5. Total mostrado en ese viewport: 487, señalado como estimación. Las verificaciones esperan la ubicación confirmada antes de leer el ordinal. Esto no certifica APK ni PWA instalada/offline.
 
 ## Datos y límites
 

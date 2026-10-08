@@ -1,5 +1,5 @@
 import { compareReading, mirrorReading, nextReadingStamp, queueReading, readLegacyEpub,
-  readReading, rememberReading, type ReadingStamp, type ReadingTrace } from '../reading-store';
+  readReading, rememberReading, isReadingDeleted, type ReadingStamp, type ReadingTrace } from '../reading-store';
 
 export type EpubProgress = ReadingStamp & {
   anchorCfi: string; startCfi: string; endCfi: string; href?: string;
@@ -41,6 +41,7 @@ export class EpubProgressRepository {
     this.key = epubProgressKey(this.resourceId);
   }
   async load(): Promise<EpubProgress | null> {
+    if (await isReadingDeleted(this.key)) return null;
     let local: EpubAnchor | EpubProgress | null = null;
     let durable: EpubAnchor | EpubProgress | null = null;
     try { local = parseEpubProgress(localStorage.getItem(this.key), this.resourceId); }

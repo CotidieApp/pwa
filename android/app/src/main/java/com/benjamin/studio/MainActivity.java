@@ -52,7 +52,10 @@ public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         registerPlugin(BackgroundActionsPlugin.class);
+        registerPlugin(CotidieNotificationSchedulerPlugin.class);
+        registerPlugin(PrivateStoragePlugin.class);
         super.onCreate(savedInstanceState);
+        WebView.setWebContentsDebuggingEnabled((getApplicationInfo().flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0);
         if (bridge != null && bridge.getWebView() != null) {
             bridge.getWebView().setNetworkAvailable(false);
             bridge.getWebView().getSettings().setBlockNetworkLoads(true);

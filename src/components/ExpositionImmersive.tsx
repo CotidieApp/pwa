@@ -162,12 +162,6 @@ export default function ExpositionImmersive({ onClose }: ExpositionImmersiveProp
       )}
       onClick={(event) => handleTouchNavigation(event, goPrev, goNext)}
     >
-      <div
-        className="absolute inset-0 bg-cover bg-top"
-        style={{ backgroundImage: `url(${exposicionBendicion.imageUrl})` }}
-      />
-      <div className={cn('absolute inset-0', isDark ? 'bg-black/80' : 'bg-white/75')} />
-
       <div className="relative z-10 flex min-h-0 w-full flex-col">
         <div className="flex items-start justify-between gap-2 px-4 py-3">
           <div className="w-11" />

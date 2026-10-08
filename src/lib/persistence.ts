@@ -1,9 +1,3 @@
-/**
- * Capa de persistencia basada en IndexedDB para CotidieApp.
- * Reemplaza a localStorage para asegurar que los datos del usuario sobrevivan
- * a actualizaciones de la PWA y limpiezas de caché agresivas.
- */
-
 const DB_NAME = 'cotidie-db';
 const STORE_NAME = 'settings-store';
 const DB_VERSION = 1;
@@ -14,19 +8,24 @@ function getDB(): Promise<IDBDatabase> {
   if (dbPromise) return dbPromise;
 
   dbPromise = new Promise((resolve, reject) => {
-    if (typeof window === 'undefined' || !window.indexedDB) {
+    if (typeof indexedDB === 'undefined') {
       reject(new Error('IndexedDB not supported'));
       return;
     }
 
-    const request = window.indexedDB.open(DB_NAME, DB_VERSION);
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    let abandoned = false;
+    request.onblocked = () => { abandoned = true; dbPromise = null; reject(new Error('Almacenamiento ocupado por otra ventana.')); };
 
     request.onerror = () => {
-      console.error('IndexedDB open error:', request.error);
+      dbPromise = null;
       reject(request.error);
     };
 
     request.onsuccess = () => {
+      if (abandoned) { request.result.close(); return; }
+      request.result.onversionchange = () => { request.result.close(); dbPromise = null; };
+      request.result.onclose = () => { dbPromise = null; };
       resolve(request.result);
     };
 
@@ -38,10 +37,13 @@ function getDB(): Promise<IDBDatabase> {
     };
   });
 
-  return dbPromise;
+  const opening = dbPromise;
+  void opening.catch(() => { if (dbPromise === opening) dbPromise = null; });
+  return opening;
 }
 
 export const persistence = {
+  async close(): Promise<void> { if (dbPromise) (await dbPromise).close(); dbPromise = null; },
   async getItem<T>(key: string): Promise<T | null> {
     try {
       const db = await getDB();
@@ -50,12 +52,13 @@ export const persistence = {
         const store = transaction.objectStore(STORE_NAME);
         const request = store.get(key);
 
-        request.onsuccess = () => resolve(request.result ?? null);
-        request.onerror = () => reject(request.error);
+        let value: T | null = null;
+        request.onsuccess = () => { value = request.result ?? null; };
+        transaction.oncomplete = () => resolve(value);
+        transaction.onabort = transaction.onerror = () => reject(transaction.error ?? request.error ?? new Error('Lectura no confirmada.'));
       });
     } catch (e) {
-      console.warn(`Persistence read failed for ${key}`, e);
-      return null;
+      throw e;
     }
   },
 
@@ -63,15 +66,15 @@ export const persistence = {
     try {
       const db = await getDB();
       return new Promise((resolve, reject) => {
-        const transaction = db.transaction(STORE_NAME, 'readwrite');
+        const transaction = db.transaction(STORE_NAME, 'readwrite', { durability: 'strict' });
         const store = transaction.objectStore(STORE_NAME);
         const request = store.put(value, key);
 
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error);
+        transaction.oncomplete = () => resolve();
+        transaction.onabort = transaction.onerror = () => reject(transaction.error ?? request.error ?? new Error('Guardado no confirmado.'));
       });
     } catch (e) {
-      console.error(`Persistence write failed for ${key}`, e);
+      throw e;
     }
   },
 
@@ -79,15 +82,43 @@ export const persistence = {
     try {
       const db = await getDB();
       return new Promise((resolve, reject) => {
-        const transaction = db.transaction(STORE_NAME, 'readwrite');
+        const transaction = db.transaction(STORE_NAME, 'readwrite', { durability: 'strict' });
         const store = transaction.objectStore(STORE_NAME);
         const request = store.delete(key);
 
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error);
+        transaction.oncomplete = () => resolve();
+        transaction.onabort = transaction.onerror = () => reject(transaction.error ?? request.error ?? new Error('Borrado no confirmado.'));
       });
     } catch (e) {
-      console.error(`Persistence delete failed for ${key}`, e);
+      throw e;
     }
+  },
+  async update(entries: { key: string; value?: unknown }[], expected?: { key: string; revision: number }): Promise<void> {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, 'readwrite', { durability: 'strict' });
+      transaction.oncomplete = () => resolve();
+      transaction.onabort = transaction.onerror = () => reject(transaction.error ?? new Error('Guardado no confirmado.'));
+      try {
+        const store = transaction.objectStore(STORE_NAME);
+        const write = () => {
+          for (const entry of entries) {
+            if ('value' in entry) store.put(entry.value, entry.key); else store.delete(entry.key);
+          }
+        };
+        if (!expected) write();
+        else {
+          const current = store.get(expected.key);
+          current.onsuccess = () => {
+            if ((current.result?.revision ?? 0) !== expected.revision) {
+              const error = new Error('Los datos cambiaron en otra ventana. Vuelve a abrir la aplicación.');
+              error.name = 'StorageConflictError';
+              reject(error);
+              transaction.abort();
+            } else write();
+          };
+        }
+      } catch (error) { transaction.abort(); reject(error); }
+    });
   }
 };

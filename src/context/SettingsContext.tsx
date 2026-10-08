@@ -14,6 +14,9 @@ import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import BackgroundActions from '@/plugins/BackgroundActions';
+import CotidieNotificationScheduler from '@/plugins/CotidieNotificationScheduler';
+import { usePrayerTimer } from '@/hooks/usePrayerTimer';
+import { useConfessionNotebook } from '@/hooks/useConfessionNotebook';
 import { initialPrayers, categories } from '@/lib/data';
 import type {
   Prayer,
@@ -25,11 +28,14 @@ import type {
 import { useToast } from '@/hooks/use-toast';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { catholicQuotes } from '@/lib/quotes';
-import { allowedDevCredentials } from '@/lib/dev-credentials';
+import { verifyDeveloperCredentials } from '@/lib/dev-credentials';
+import { migratePrivate, privateOperation, removePrivate, writePrivate } from '@/lib/private-storage';
+import { LOCAL_PRIVILEGE_KEYS, parseImportText, validateImportPayload, withoutLocalPrivileges } from '@/lib/import-safety';
 import { resolveDevotionDayMatch } from '@/lib/devotion-day-images';
 import { getLiturgicalColor } from '@/lib/getLiturgicalColor';
 import { getMovableFeast, getEasterDate } from '@/lib/movable-feasts';
 import { persistence } from '@/lib/persistence';
+import { getLocalDateKey } from '@/lib/calendar-date';
 import { fixedNotifications, type FixedNotificationEntry } from '@/lib/fixed-notifications';
 import type { SmallWidgetDisplayMode } from '@/plugins/BackgroundActions';
 import { addByKind, addDays, formatTemplate, getNextOccurrence, parseFixedNotificationDate } from '@/context/settings/notification-date-utils';
@@ -184,6 +190,9 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const lastProcessedPendingImportRef = useRef<string | null>(null);
 
   const [isLoaded, setIsLoaded] = useState(false);
+  const [storageReady, setStorageReady] = useState(false);
+  const importInFlightRef = useRef(false);
+  const resettingRef = useRef(false);
 
   const [theme, setTheme] = useState<Theme>('light');
   const [fontSize, setFontSize] = useState<FontSize>(15);
@@ -210,10 +219,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   const [skipNotificationIfChecked, setSkipNotificationIfChecked] = useState(true);
 
-  const [timerEnabled, setTimerEnabled] = useState(false);
-  const [timerDuration, setTimerDuration] = useState(15);
-  const [timerTime, setTimerTime] = useState(15 * 60);
-  const [timerActive, setTimerActive] = useState(false);
   const [overlayPositions, setOverlayPositions] =
     useState<OverlayPositions>(defaultOverlayPositions);
 
@@ -228,6 +233,13 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   const [userQuotes, setUserQuotes] = useState<Quote[]>([]);
   const [showTimerFinishedAlert, setShowTimerFinishedAlert] = useState(false);
+  const confessionNotebook = useConfessionNotebook();
+  const { timerEnabled, setTimerEnabled, timerDuration, setTimerDuration, timerTime,
+    setTimerTime, timerActive, toggleTimer, resetTimer, startTimer } = usePrayerTimer(
+    () => setShowTimerFinishedAlert(true),
+    () => toast({ title: 'Temporizador en pantalla', description: 'No se pudo mostrar la notificación. Revisa el permiso de notificaciones de Cotidie.' }),
+    isLoaded && storageReady
+  );
 
   const [movableFeastsEnabled, setMovableFeastsEnabledState] = useState(true);
   const setMovableFeastsEnabled = useCallback((enabled: boolean) => {
@@ -306,23 +318,12 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
      LOCAL STORAGE (BLINDADO) & INDEXEDDB
      ======================= */
 
-  const saveState = useCallback((state: any) => {
+  const saveState = useCallback(async (state: any) => {
     if (typeof window === 'undefined') return;
-    
-    // 1. Guardado principal en IndexedDB (Asíncrono y seguro)
-    persistence.setItem(SAVED_STATE_KEY, state).catch(e => 
-      console.error("Failed to save to IndexedDB", e)
-    );
-
-    // 2. Backup en LocalStorage (por compatibilidad y redundancia)
-    try {
-        if (window.localStorage && typeof window.localStorage.setItem === 'function') {
-            window.localStorage.setItem(SAVED_STATE_KEY, JSON.stringify(state));
-        }
-    } catch (e) {
-        // Ignoramos errores de cuota en localStorage ya que confiamos en IDB
-        console.warn("LocalStorage write failed (quota exceeded?), relying on IDB");
-    }
+    await privateOperation(SAVED_STATE_KEY, async () => {
+      if (resettingRef.current) return;
+      await writePrivate(SAVED_STATE_KEY, state);
+    });
   }, []);
 
   const normalizeDailyReminders = useCallback((raw: any): DailyReminder[] => {
@@ -417,8 +418,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setIsEditModeEnabled(snapshot.isEditModeEnabled);
     setTimerEnabled(snapshot.timerEnabled);
     setTimerDuration(snapshot.timerDuration);
-    setTimerTime(snapshot.timerTime);
-    setTimerActive(snapshot.timerActive);
+    setTimerTime(snapshot.timerActive ? snapshot.timerDuration * 60 : snapshot.timerTime);
     setOverlayPositions(snapshot.overlayPositions);
     setSimulatedDate(snapshot.simulatedDate);
     setPlanDeVidaTrackerEnabled(snapshot.planDeVidaTrackerEnabled);
@@ -617,7 +617,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     annuumFirstOpenedDate,
   ]);
 
-  const getBackupSnapshot = useCallback(() => backupSnapshot, [backupSnapshot]);
+  const getBackupSnapshot = useCallback(() => withoutLocalPrivileges(backupSnapshot), [backupSnapshot]);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -627,22 +627,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         }
 
         try {
-          // A) Intentar cargar desde IndexedDB
-          let s: any = await persistence.getItem(SAVED_STATE_KEY);
-
-          // B) Migración: Si no hay nada en IDB, buscar en localStorage
-          if (!s && window.localStorage) {
-             const rawLS = window.localStorage.getItem(SAVED_STATE_KEY);
-             if (rawLS) {
-                 try {
-                     s = JSON.parse(rawLS);
-                     // Guardar inmediatamente en IDB para completar la migración
-                     await persistence.setItem(SAVED_STATE_KEY, s);
-                 } catch (e) {
-                     console.error("Error migrando localStorage", e);
-                 }
-             }
-          }
+          const s: any = await privateOperation(SAVED_STATE_KEY, () => migratePrivate(SAVED_STATE_KEY));
+          setStorageReady(true);
 
           if (!s) {
             setAlwaysShowPrayers(defaultAlwaysShowPrayers);
@@ -670,11 +656,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
           applyBackupSnapshot(snapshot);
         } catch (e) {
-          console.error("Error cargando configuración", e);
-          // Fallback to clear LS if corrupted, but careful with IDB
-          if (typeof window !== 'undefined' && window.localStorage && typeof window.localStorage.removeItem === 'function') {
-            // window.localStorage.removeItem(SAVED_STATE_KEY); // Maybe too aggressive?
-          }
+          toast({ title: 'No se pudo leer la configuración guardada',
+            description: 'Tus datos se han conservado. Vuelve a abrir la aplicación para reintentarlo.', variant: 'destructive' });
         } finally {
           setIsLoaded(true);
         }
@@ -688,9 +671,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
      ======================= */
 
   useEffect(() => {
-    if (!isLoaded) return;
-    saveState(backupSnapshot);
-  }, [backupSnapshot, isLoaded, saveState]);
+    if (!isLoaded || !storageReady || importInFlightRef.current || resettingRef.current) return;
+    void saveState(backupSnapshot).catch(() => toast({ title: 'No se confirmó el guardado',
+      description: 'Conserva la aplicación abierta y vuelve a intentarlo.', variant: 'destructive' }));
+  }, [backupSnapshot, isLoaded, storageReady, saveState, toast]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -720,7 +704,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (!isLoaded) return;
     const now = simulatedDate ? new Date(simulatedDate) : new Date();
-    const dateKey = now.toISOString().slice(0, 10);
+    const dateKey = getLocalDateKey(now);
     const hour = now.getHours();
 
     // Expanded ranges for "App Usage"
@@ -1150,10 +1134,34 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     toast({ title: 'Configuración restablecida.' });
   };
 
-  const hardResetApp = () => {
-    if (typeof window !== 'undefined' && window.localStorage && typeof window.localStorage.clear === 'function') {
-        window.localStorage.clear();
-        window.location.reload();
+  const hardResetApp = async () => {
+    resettingRef.current = true;
+    setStorageReady(false);
+    try {
+      await privateOperation(SAVED_STATE_KEY, () => removePrivate(SAVED_STATE_KEY));
+      await privateOperation('cotidie_confession_note_v1', () => removePrivate('cotidie_confession_note_v1'));
+      await privateOperation('cotidie_confession_note_v1', () => removePrivate('cotidie_confession_auto_delete_v1'));
+      await persistence.removeItem(SAVED_STATE_KEY);
+      if (Capacitor.isNativePlatform()) {
+        if (Capacitor.getPlatform() === 'android') {
+          await CotidieNotificationScheduler.clearSchedule();
+          await BackgroundActions.setTimerNotification({ active: false, remainingMs: 0 });
+        }
+        await LocalNotifications.cancel({ notifications: (await LocalNotifications.getPending()).notifications.map(({ id }) => ({ id })) });
+        await LocalNotifications.removeAllDeliveredNotifications();
+        if (Capacitor.getPlatform() === 'android') await BackgroundActions.getPendingMarkPrayed();
+      }
+      await persistence.close();
+      await new Promise<void>((resolve, reject) => {
+        const request = indexedDB.deleteDatabase('cotidie-reading');
+        request.onsuccess = () => resolve();
+        request.onerror = request.onblocked = () => reject(new Error('Almacenamiento de lectura ocupado.'));
+      });
+      localStorage.clear();
+      window.location.reload();
+    } catch {
+      resettingRef.current = false;
+      toast({ title: 'No se completó el reinicio', description: 'Cierra otros lectores de Cotidie y vuelve a intentarlo.', variant: 'destructive' });
     }
   };
 
@@ -1163,8 +1171,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     );
   };
 
-  const loginAsDeveloper = (user: string, pass: string) => {
-    const ok = allowedDevCredentials.some(c => c.user === user && c.pass === pass);
+  const loginAsDeveloper = async (user: string, pass: string) => {
+    const ok = await verifyDeveloperCredentials(user, pass);
     if (ok) {
       setIsDeveloperMode(true);
       pushDevLiveTrace({
@@ -1207,10 +1215,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const importUserData = useCallback(
-    (
+    async (
       data: any,
       options?: { silent?: boolean; preferredCustomPlanSlot?: 1 | 2 | 3 | 4 | null }
-    ): ImportResult => {
+    ): Promise<ImportResult> => {
       const silent = options?.silent === true;
       const preferredCustomPlanSlot = options?.preferredCustomPlanSlot ?? null;
 
@@ -1230,6 +1238,20 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           });
         }
         return result;
+      };
+
+      if (importInFlightRef.current) return notifyIfNeeded({ ...invalidResult, description: 'Hay otra importación en curso.' });
+      importInFlightRef.current = true;
+      try {
+      validateImportPayload(data);
+      data = withoutLocalPrivileges(data);
+      const privileges = Object.fromEntries(LOCAL_PRIVILEGE_KEYS.map(key => [key, backupSnapshot[key]]));
+      const commitImport = async (snapshot: ReturnType<typeof normalizeBackupState>) => {
+        const localSnapshot = normalizeBackupState({ ...snapshot, ...privileges });
+        await saveState(localSnapshot);
+        if (resettingRef.current) throw new Error('Reinicio en curso.');
+        applyBackupSnapshot(localSnapshot);
+        setStorageReady(true);
       };
 
       if (!data || typeof data !== 'object') {
@@ -1289,7 +1311,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           ...backupSnapshot,
           customPlans: nextPlans,
         });
-        applyBackupSnapshot(nextSnapshot);
+        await commitImport(nextSnapshot);
 
         const appliedResult: ImportResult = {
           status: 'applied',
@@ -1308,7 +1330,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
       if (isFullAppStatePayload(data)) {
         const nextSnapshot = normalizeBackupState(data);
-        applyBackupSnapshot(nextSnapshot);
+        await commitImport(nextSnapshot);
         const appliedResult: ImportResult = {
           status: 'applied',
           kind: 'full',
@@ -1346,7 +1368,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         ...backupSnapshot,
         ...partialPayload,
       });
-      applyBackupSnapshot(nextSnapshot);
+      await commitImport(nextSnapshot);
       const appliedResult: ImportResult = {
         status: 'applied',
         kind: 'partial',
@@ -1359,14 +1381,17 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         message: 'Importacion parcial aplicada.',
       });
       return notifyIfNeeded(appliedResult);
+      } catch {
+        return notifyIfNeeded({ ...invalidResult, description: 'El archivo no es válido o no se pudo confirmar su guardado. El estado anterior se conserva.' });
+      } finally { importInFlightRef.current = false; }
     },
-    [applyBackupSnapshot, backupSnapshot, pushDevLiveTrace, toast]
+    [applyBackupSnapshot, backupSnapshot, pushDevLiveTrace, saveState, toast]
   );
 
   useEffect(() => {
     if (!isLoaded || typeof window === 'undefined') return;
 
-    const consumePendingImport = () => {
+    const consumePendingImport = async () => {
       try {
         // We now check window object directly to avoid LocalStorage quota limits with large backup files
         const raw = (window as any)[PENDING_IMPORT_STORAGE_KEY] || window.localStorage.getItem(PENDING_IMPORT_STORAGE_KEY);
@@ -1381,10 +1406,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           data: `length=${raw.length}`,
         });
 
-        // Clean up both possible locations
-        delete (window as any)[PENDING_IMPORT_STORAGE_KEY];
-        window.localStorage.removeItem(PENDING_IMPORT_STORAGE_KEY);
-
         pushDevLiveTrace({
           level: 'info',
           source: 'import',
@@ -1396,12 +1417,14 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           level: 'info',
           source: 'import',
           message: 'Intentando parsear JSON...',
-          data: sanitized.substring(0, 50) + '...'
+          data: `length=${sanitized.length}`
         });
-        const parsed = JSON.parse(sanitized);
-        const result = importUserData(parsed, { silent: true });
+        const parsed = parseImportText(sanitized);
+        const result = await importUserData(parsed, { silent: true });
 
         if (result.status === 'applied' || result.status === 'duplicate') {
+          if ((window as any)[PENDING_IMPORT_STORAGE_KEY] === raw) delete (window as any)[PENDING_IMPORT_STORAGE_KEY];
+          if (window.localStorage.getItem(PENDING_IMPORT_STORAGE_KEY) === raw) window.localStorage.removeItem(PENDING_IMPORT_STORAGE_KEY);
           toast({
             title: result.status === 'duplicate' ? 'Datos ya actualizados' : '¡Carga completa con éxito!',
             description: result.status === 'duplicate'
@@ -1421,7 +1444,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           level: 'error',
           source: 'import',
           message: 'Fallo al procesar archivo compartido.',
-          data: err instanceof Error ? err.message : String(err)
+          data: 'Archivo inválido o almacenamiento no disponible.'
         });
         toast({
           variant: 'destructive',
@@ -1447,45 +1470,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       },
     }));
   };
-
-  const toggleTimer = () => {
-    setTimerActive(prev => !prev);
-  };
-
-  const resetTimer = () => {
-    setTimerActive(false);
-    setTimerTime(timerDuration * 60);
-  };
-
-  const startTimer = () => {
-    setTimerEnabled(true);
-    setTimerTime(timerDuration * 60);
-    setTimerActive(true);
-  };
-
-  // Timer effect
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (timerActive && timerTime > 0) {
-      interval = setInterval(() => {
-        setTimerTime(prev => {
-           if (prev <= 1) {
-             setTimerActive(false);
-             setShowTimerFinishedAlert(true);
-             return 0;
-           }
-           return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [timerActive, timerTime]);
-
-  useEffect(() => {
-    if (!timerActive) {
-        setTimerTime(timerDuration * 60);
-    }
-  }, [timerDuration]);
 
   const parseEventDateFromDateKey = (dateKey?: string | null) => {
     if (!dateKey) return null;
@@ -1666,7 +1650,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const now = simulatedDate ? new Date(simulatedDate) : new Date();
-    const dateKey = now.toISOString().slice(0, 10);
+    const dateKey = getLocalDateKey(now);
     const forcedQuote = getForcedDailyQuote(now);
     if (forcedQuote) {
       if (lastQuoteDate === dateKey && quoteOfTheDay?.id === forcedQuote.id) return;
@@ -1816,13 +1800,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     
     return null;
   }, [allPrayers]);
-
-  const getLocalDateKey = (date: Date) => {
-    const yyyy = date.getFullYear();
-    const mm = String(date.getMonth() + 1).padStart(2, '0');
-    const dd = String(date.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
-  };
 
   // Día pastoral para stats/checks: 05:00 -> 04:59
   const getPastoralDayDate = (date: Date) => {
@@ -2102,7 +2079,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useNotificationScheduling({
-    isLoaded,
+    isLoaded: isLoaded && storageReady,
     notificationsEnabled,
     dailyReminders,
     cartasReminderEnabled,
@@ -2182,6 +2159,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         setTimerEnabled,
         timerDuration,
         setTimerDuration,
+        ...confessionNotebook,
         timerTime,
         timerActive,
         toggleTimer,

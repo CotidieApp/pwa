@@ -42,6 +42,9 @@ export function readReading<T>(key: string): Promise<T | null> {
 // The get + compare + put share ONE readwrite transaction (also safe across tabs).
 export function putReading<T extends ReadingStamp>(key: string, value: T): Promise<T> {
   return readingTransaction('progress', 'readwrite', (store, done) => {
+    const deleted = store.get('deleted:' + key);
+    deleted.onsuccess = () => {
+    if (deleted.result) { done(value); return; }
     const request = store.get(key);
     request.onsuccess = () => {
       const current = request.result as T | undefined;
@@ -49,11 +52,40 @@ export function putReading<T extends ReadingStamp>(key: string, value: T): Promi
       store.put(value, key);
       done(value);
     };
+    };
   });
 }
 
 const queues = new Map<string, Promise<unknown>>();
 const latest = new Map<string, ReadingStamp>();
+const deleting = new Set<string>();
+const deletionMarker = (key: string) => 'cotidie_deleted:' + key;
+export async function isReadingDeleted(key: string): Promise<boolean> {
+  if (deleting.has(key) || localStorage.getItem(deletionMarker(key)) === 'true') return true;
+  try { return !!await readReading('deleted:' + key); }
+  catch { return false; } // Existing legacy reads remain available when IDB itself is unavailable.
+}
+
+export async function deleteReadingBook(id: string, key: string): Promise<void> {
+  deleting.add(key);
+  try {
+    await (queues.get(key) ?? Promise.resolve()).catch(() => undefined);
+    const db = await openReadingDB();
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction(['books', 'progress'], 'readwrite');
+        tx.oncomplete = () => resolve();
+        tx.onabort = tx.onerror = () => reject(tx.error ?? new Error('Borrado no confirmado.'));
+        tx.objectStore('books').delete(id);
+        const progress = tx.objectStore('progress');
+        progress.delete(key);
+        progress.put(true, 'deleted:' + key);
+      });
+    } finally { db.close(); }
+    try { localStorage.setItem(deletionMarker(key), 'true'); } catch { /* Durable marker already committed. */ }
+    latest.delete(key); queues.delete(key);
+  } catch (error) { deleting.delete(key); throw error; }
+}
 export function rememberReading<T extends ReadingStamp>(key: string, record: T): T {
   const current = latest.get(key) as T | undefined;
   if (current && compareReading(current, record) > 0) return current;
@@ -68,6 +100,7 @@ export function nextReadingStamp(key: string, resourceId: string): ReadingStamp 
 }
 
 export function mirrorReading<T extends ReadingStamp>(key: string, record: T, trace: ReadingTrace) {
+  if (deleting.has(key) || localStorage.getItem(deletionMarker(key)) === 'true') return record;
   const newest = rememberReading(key, record);
   try {
     const raw = localStorage.getItem(key);
@@ -83,7 +116,9 @@ export function mirrorReading<T extends ReadingStamp>(key: string, record: T, tr
 
 export function queueReading<T extends ReadingStamp>(key: string, record: T, trace: ReadingTrace): Promise<void> {
   const next = (queues.get(key) ?? Promise.resolve()).catch(() => undefined).then(async () => {
+    if (await isReadingDeleted(key)) return;
     const durable = await putReading(key, record);
+    if (await isReadingDeleted(key)) return;
     mirrorReading(key, durable, trace);
   });
   queues.set(key, next);

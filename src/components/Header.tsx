@@ -6,6 +6,8 @@ import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
 import { useSettings } from '@/context/SettingsContext';
 import Timer from '@/components/Timer';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,6 +38,7 @@ type HeaderProps = {
   onReset?: () => void;
   showCalendarButton?: boolean;
   onOpenCalendar?: () => void;
+  showClearChecksButton?: boolean;
   showDistractionFreeButton?: boolean;
   isDistractionFree?: boolean;
   onToggleDistractionFree?: () => void;
@@ -83,6 +86,7 @@ export default function Header({
   onReset,
   showCalendarButton = false,
   onOpenCalendar,
+  showClearChecksButton = false,
   showDistractionFreeButton = false,
   isDistractionFree = false,
   onToggleDistractionFree,
@@ -101,7 +105,9 @@ export default function Header({
   onCycleLanguage,
 }: HeaderProps) {
 
-  const { isDistractionFree: isGlobalDistractionFree, timerEnabled, overlayPositions, setOverlayPosition, arrowBubbleSize } =
+  const [isClearChecksOpen, setIsClearChecksOpen] = useState(false);
+  const { isDistractionFree: isGlobalDistractionFree, timerEnabled, overlayPositions, setOverlayPosition, arrowBubbleSize,
+    planDeVidaProgress, clearPlanDeVidaChecksForToday } =
     useSettings();
 
   const shouldFloatTimer = timerEnabled;
@@ -427,6 +433,14 @@ export default function Header({
               </Button>
             )}
 
+            {showClearChecksButton && (
+              <Button variant="ghost" size="icon" className="text-primary-foreground"
+                onClick={() => setIsClearChecksOpen(true)} disabled={planDeVidaProgress.length === 0}
+                title="Limpiar checks de hoy" aria-label="Limpiar checks de hoy">
+                <Trash2 className="size-5" />
+              </Button>
+            )}
+
             {showCalendarButton && (
               <Button
                 variant="ghost"
@@ -471,6 +485,19 @@ export default function Header({
         </div>
       </div>
     </header>
+    <AlertDialog open={isClearChecksOpen} onOpenChange={setIsClearChecksOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>¿Limpiar los checks de hoy?</AlertDialogTitle>
+          <AlertDialogDescription>Se borrarán solamente los checks del día actual y su registro en el calendario.</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={clearPlanDeVidaChecksForToday}>Limpiar checks</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     </>
   );
 }

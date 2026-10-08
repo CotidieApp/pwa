@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { appVersion } from '@/lib/version';
+import { MAX_IMPORT_BYTES, parseImportText } from '@/lib/import-safety';
 
 interface DeveloperSettingsProps {
   onOpenDashboard?: () => void;
@@ -137,9 +138,14 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
   const handleFileImport = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    if (file.size > MAX_IMPORT_BYTES) {
+      toast({ title: 'El respaldo supera los 15 MB', variant: 'destructive' });
+      event.target.value = '';
+      return;
+    }
 
     const reader = new FileReader();
-    reader.onload = (loadEvent) => {
+    reader.onload = async (loadEvent) => {
       try {
         const text = (loadEvent.target?.result as string).replace(/^\uFEFF/, '');
         if (!text.trim().startsWith('{') && !text.trim().startsWith('[')) {
@@ -151,8 +157,8 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
           return;
         }
 
-        const data = JSON.parse(text);
-        const result = importUserData(data, { silent: true });
+        const data = parseImportText(text);
+        const result = await importUserData(data, { silent: true });
 
         if (result.status === 'invalid') {
           toast({ variant: 'destructive', title: result.title, description: result.description });
@@ -189,8 +195,8 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
     }
   };
 
-  const handleDevLogin = () => {
-    if (loginAsDeveloper(username, password)) {
+  const handleDevLogin = async () => {
+    if (await loginAsDeveloper(username, password)) {
       toast({ title: 'Modo desarrollador activado' });
       setShowDevLogin(false);
       setUsername('');

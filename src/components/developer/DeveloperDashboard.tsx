@@ -110,7 +110,7 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-slate-950 text-sm text-slate-100">
-      <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900/70 p-4 pt-[calc(1rem+env(safe-area-inset-top))]">
+      <div className="flex items-center justify-between border-b border-slate-800 bg-slate-950 p-4 pt-[calc(1rem+env(safe-area-inset-top))]">
         <div className="flex min-w-0 items-center gap-3">
           <div className="rounded-md border border-green-500/20 bg-green-500/10 p-2">
             <Icon.Terminal className="size-5 text-green-500" />

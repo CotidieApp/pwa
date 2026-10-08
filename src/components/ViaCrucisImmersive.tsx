@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { handleTouchNavigation, TOUCH_NAV_INTERACTIVE_SELECTORS } from '@/utils/touchNavigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, X, Image as ImageIcon, Cross, Sparkles, Heart } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Cross, Sparkles, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useSettings } from '@/context/SettingsContext';
@@ -26,10 +26,6 @@ const STATION_SEQUENCE = [
   { type: 'padre_nuestro', label: 'Padre Nuestro' },
   { type: 'ave_maria', label: 'Ave María' },
   { type: 'peque', label: 'Acto de Contrición' },
-];
-
-const VIA_CRUCIS_BACKGROUND_IMAGES = [
-  '/images/immaculate-heart.jpeg',
 ];
 
 type ImmersiveViaCrucisProps = {
@@ -74,7 +70,6 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
   const viaCrucisExitAdvanceRef = useRef<{ expiresAt: number } | null>(null);
   const { toast } = useToast();
 
-  const [showBackground, setShowBackground] = useState(true);
   const [navPos, setNavPos] = useState<{ x: number; y: number } | null>(null);
   const [isDraggingNav, setIsDraggingNav] = useState(false);
   const navRef = useRef<HTMLDivElement | null>(null);
@@ -171,15 +166,6 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
   // Derived State
   const currentStation = stationsData[currentStationIndex];
   const currentStep = STATION_SEQUENCE[currentStepIndex];
-  const currentBackgroundUrl = useMemo(() => {
-    if (phase === 'stations') {
-      return VIA_CRUCIS_BACKGROUND_IMAGES[currentStationIndex] || VIA_CRUCIS_BACKGROUND_IMAGES[0];
-    }
-    if (phase === 'outro') {
-      return VIA_CRUCIS_BACKGROUND_IMAGES[VIA_CRUCIS_BACKGROUND_IMAGES.length - 1];
-    }
-    return VIA_CRUCIS_BACKGROUND_IMAGES[0];
-  }, [phase, currentStationIndex]);
 
   const isDark = theme === 'dark' || isDistractionFree;
   const stationDisplayTitle = useCallback((title?: string) => title?.split('. ')[1] || title || 'Estación', []);
@@ -455,24 +441,6 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
         "fixed inset-0 z-50 flex flex-col items-center justify-between pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] overflow-hidden",
         isDark ? "bg-black text-white" : "bg-zinc-50 text-zinc-900"
       )}>
-      {/* Background */}
-      {showBackground && (
-        <>
-          <div
-            className="absolute inset-0 z-0 transition-opacity duration-700 bg-cover bg-center"
-            style={{ backgroundImage: `url(${currentBackgroundUrl})` }}
-          />
-          <div
-            className={cn(
-              "absolute inset-0 z-0 transition-all duration-700",
-              isDark
-                ? "bg-black/65"          // negro medio-fuerte en dark
-                : "bg-white/55"          // blanco medio en light
-            )}
-          />
-        </>
-      )}
-
       {/* Top Bar */}
       <div className="w-full flex justify-between items-start p-4 relative z-20">
         <div className="w-10" /> {/* Spacer */}
@@ -489,9 +457,6 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
           <h1 className="text-sm font-bold leading-tight line-clamp-2">{currentHeaderTitle}</h1>
         </button>
         <div className="flex gap-1">
-          <Button variant="ghost" size="icon" onClick={() => setShowBackground(!showBackground)}>
-            <ImageIcon className={cn("size-5", !showBackground && "opacity-30")} />
-          </Button>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="size-6" />
           </Button>

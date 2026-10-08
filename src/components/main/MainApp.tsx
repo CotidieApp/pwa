@@ -9,6 +9,7 @@ import Header from '@/components/Header';
 import CartasIntro from '@/components/main/CartasIntro';
 import PrayerList from '@/components/PrayerList';
 import PrayerDetail from '@/components/PrayerDetail';
+import ConfessionNotebook from '@/components/ConfessionNotebook';
 import Settings, { getSettingsSectionLabel, type SettingsSection } from '@/components/Settings';
 import AddPrayerForm from '@/components/AddPrayerForm';
 import { Button } from '@/components/ui/button';
@@ -34,7 +35,6 @@ import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
 import { AnimatePresence } from 'framer-motion';
 import { getAnnuumAvailability, getLocalDateKey } from '@/lib/movable-feasts';
-import { getImageObjectPosition, getImageObjectScale } from '@/lib/image-display';
 const AnnuumStory = dynamic(() => import('../AnnuumStory'), { ssr: false, loading: LazyView });
 import Image from 'next/image';
 import { Play } from 'lucide-react';
@@ -172,6 +172,7 @@ export default function MainApp() {
     setShowTimerFinishedAlert,
     categories,
     togglePlanDeVidaItem,
+    planDeVidaTrackerEnabled,
     userLetters,
     addUserLetter,
     removeUserLetter,
@@ -1169,24 +1170,8 @@ export default function MainApp() {
         }
         if (currentPrayer.prayers && currentPrayer.prayers.length > 0) {
           return (
-            <div
-              className="mobile-landscape-section-layout p-4"
-              data-has-image={Boolean(currentPrayer.imageUrl)}
-            >
-              {currentPrayer.imageUrl ? (
-                <div className="mobile-landscape-section-image">
-                  <Image
-                    src={currentPrayer.imageUrl}
-                    alt={currentPrayer.title}
-                    fill
-                    className="object-cover"
-                    style={{
-                      objectPosition: getImageObjectPosition(currentPrayer.id),
-                      transform: `scale(${getImageObjectScale(currentPrayer.id)})`,
-                    }}
-                  />
-                </div>
-              ) : null}
+            <div className="p-4 space-y-4">
+              {currentPrayer.id === 'subcat-confesion' ? <ConfessionNotebook /> : null}
               <div className="mobile-landscape-section-list">
                 <PrayerList
                   prayers={currentPrayer.prayers}
@@ -1590,7 +1575,7 @@ export default function MainApp() {
             data-system-bar-layer="top"
             className={cn(
               "fixed top-0 inset-x-0 h-[env(safe-area-inset-top)] z-[100] pointer-events-none transition-colors duration-200",
-              hasTransparentSystemBars ? "bg-transparent" : "bg-primary"
+              navState.activeView === 'developer' ? "bg-slate-950" : hasTransparentSystemBars ? "bg-transparent" : "bg-primary"
             )}
           />
           <div
@@ -1664,6 +1649,7 @@ export default function MainApp() {
             onToggleDistractionFree={toggleDistractionFree}
             showDistractionFreeButton={false}
             showCalendarButton={showPlanCalendarButton}
+            showClearChecksButton={showPlanCalendarButton && planDeVidaTrackerEnabled}
             onOpenCalendar={showPlanCalendarButton ? handleOpenPlanCalendar : undefined}
             showEditButton={canEditCurrentPrayer}
             onEdit={

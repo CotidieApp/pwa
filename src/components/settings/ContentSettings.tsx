@@ -200,6 +200,7 @@ export default function ContentSettings() {
                 id="timer-duration"
                 type="number"
                 min={1}
+                max={1440}
                 value={timerDuration}
                 onChange={(event) => updateTimerDuration(event.target.value)}
                 className="w-24"

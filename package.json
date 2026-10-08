@@ -1,16 +1,16 @@
 {
   "name": "cotidie",
-  "version": "6.4.23",
+  "version": "6.4.24",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "lint": "eslint src --ext .js,.jsx,.ts,.tsx",
-    "build": "tsc --noEmit && next build",
+    "build": "node scripts/build-controlled.mjs",
     "backup": "node scripts/create-backup.mjs",
     "backup:documents": "node scripts/create-backup.mjs --documents",
     "backup:drive": "node scripts/create-backup.mjs --drive",
     "backup:disk": "node scripts/create-backup.mjs --disk",
-    "android:apk": "node scripts/android-apk.mjs",
+    "android:apk": "node scripts/android-apk-controlled.mjs",
     "postinstall": "node scripts/patch-local-notifications.js && node scripts/patch-next-export-workers.js",
     "start": "node server.js"
   },
@@ -44,6 +44,7 @@
     "framer-motion": "^12.23.26",
     "lucide-react": "^0.475.0",
     "next": "15.5.21",
+    "pako": "1.0.11",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-easy-crop": "^5.5.6",

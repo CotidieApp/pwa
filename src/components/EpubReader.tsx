@@ -91,6 +91,7 @@ export default function EpubReader({
   const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [locationLabel, setLocationLabel] = useState('');
+  const [isPageTotalEstimated, setIsPageTotalEstimated] = useState(true);
   const [currentCfi, setCurrentCfi] = useState('');
   const [tocEntries, setTocEntries] = useState<TocEntry[]>([]);
   const [selectedToc, setSelectedToc] = useState('');
@@ -413,13 +414,22 @@ export default function EpubReader({
 
         const controller = new EpubReadingController(rendition, containerRef.current, activeFile,
           (message, data, error) => pushDevLiveTrace({ level: error ? 'warn' : 'info', source: 'epub-reader', message, data }),
-          (anchor) => { if (!cancelled) setCurrentCfi(anchor.anchorCfi); },
+          (anchor) => {
+            if (cancelled) return;
+            setCurrentCfi(anchor.anchorCfi);
+            paginatorRef.current?.relocate((rendition as any).currentLocation?.());
+          },
           (busy) => { if (!cancelled) { if (busy) beginTransition(); else endTransition(); } });
         activeController = controller;
         controllerRef.current = controller;
         const paginator = new EpubRelativePaginator(
           book as any,
-          (label) => { if (!cancelled) setLocationLabel(label); },
+          (label, estimated) => {
+            if (!cancelled) {
+              setLocationLabel(label);
+              setIsPageTotalEstimated(Boolean(estimated));
+            }
+          },
           (message, data, error) => pushDevLiveTrace({
             level: error ? 'warn' : 'info',
             source: 'epub-reader',
@@ -487,11 +497,6 @@ export default function EpubReader({
           );
         };
 
-        const onRelocated = (location: any) => {
-          if (cancelled) return;
-          paginator.relocate(location?.start?.cfi);
-        };
-
         const onSelected = (cfiRange: string, contents: any) => {
           try {
             if (cancelled || !isMountedRef.current) return;
@@ -532,9 +537,7 @@ export default function EpubReader({
           }
         };
 
-        rendition.on('relocated', onRelocated);
         rendition.on('selected', onSelected);
-        (rendition as any).__cotidieOnRelocated = onRelocated;
         (rendition as any).__cotidieOnSelected = onSelected;
 
         const nav = await book.loaded.navigation;
@@ -565,7 +568,7 @@ export default function EpubReader({
         lastReflowSignatureRef.current = `${initialWidth}x${initialHeight}|${readerFontFamily}|${readerFontSize}`;
 
         const restoredLocation = (rendition as any).currentLocation?.();
-        paginator.relocate(restoredLocation?.start?.cfi);
+        paginator.relocate(restoredLocation);
         void paginator.rebuild({
           width: initialWidth,
           height: initialHeight,
@@ -577,7 +580,6 @@ export default function EpubReader({
 
         bookRef.current = book;
         renditionRef.current = rendition;
-        (renditionRef.current as any).__cotidieOnRelocated = onRelocated;
         (renditionRef.current as any).__cotidieOnSelected = onSelected;
         setStatus('ready');
         endTransition();
@@ -602,7 +604,6 @@ export default function EpubReader({
       cancelled = true;
       const r: any = activeRendition as any;
       try {
-        r?.off?.('relocated', r?.__cotidieOnRelocated);
         r?.off?.('selected', r?.__cotidieOnSelected);
       } catch {}
       const closing = activeController?.close();
@@ -1054,7 +1055,7 @@ export default function EpubReader({
               <div className="min-w-0">
                 <div className="truncate text-sm font-semibold">{readerFileName}</div>
                 <div className="truncate text-xs text-muted-foreground">
-                  {locationLabel ? `Página ${locationLabel}` : status === 'ready' ? 'Lectura lista' : 'Preparando lectura'}
+                  {locationLabel ? `Página ${locationLabel}${isPageTotalEstimated ? ' · total estimado' : ''}` : status === 'ready' ? 'Lectura lista' : 'Preparando lectura'}
                 </div>
               </div>
             </div>

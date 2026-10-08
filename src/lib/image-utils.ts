@@ -35,6 +35,9 @@ export async function getCroppedImg(
   flip = { horizontal: false, vertical: false }
 ): Promise<string | null> {
   const image = await createImage(imageSrc)
+  if (![pixelCrop.x, pixelCrop.y, pixelCrop.width, pixelCrop.height, rotation].every(Number.isFinite) ||
+      pixelCrop.width <= 0 || pixelCrop.height <= 0 || pixelCrop.x < 0 || pixelCrop.y < 0 ||
+      image.width * image.height > 80000000) throw new Error('La imagen o el recorte son demasiado grandes.');
   const canvas = document.createElement('canvas')
   const ctx = canvas.getContext('2d')
 
@@ -51,9 +54,12 @@ export async function getCroppedImg(
     rotation
   )
 
-  // set canvas size to match the bounding box
-  canvas.width = bBoxWidth
-  canvas.height = bBoxHeight
+  // Draw directly into a bounded crop; never allocate a full rotated canvas.
+  const scale = Math.min(1, 2048 / Math.max(pixelCrop.width, pixelCrop.height));
+  canvas.width = Math.max(1, Math.round(pixelCrop.width * scale))
+  canvas.height = Math.max(1, Math.round(pixelCrop.height * scale))
+  ctx.scale(scale, scale)
+  ctx.translate(-pixelCrop.x, -pixelCrop.y)
 
   // translate canvas context to a central location to allow rotating and flipping around the center
   ctx.translate(bBoxWidth / 2, bBoxHeight / 2)
@@ -63,22 +69,6 @@ export async function getCroppedImg(
 
   // draw rotated image
   ctx.drawImage(image, 0, 0)
-
-  // croppedAreaPixels values are bounding box relative
-  // extract the cropped image using these values
-  const data = ctx.getImageData(
-    pixelCrop.x,
-    pixelCrop.y,
-    pixelCrop.width,
-    pixelCrop.height
-  )
-
-  // set canvas width to final desired crop size - this will clear existing context
-  canvas.width = pixelCrop.width
-  canvas.height = pixelCrop.height
-
-  // paste generated rotate image at the top left corner
-  ctx.putImageData(data, 0, 0)
 
   // As Base64 string
   return canvas.toDataURL('image/jpeg');

@@ -111,14 +111,13 @@ const parseAndHighlight = (
 ): React.ReactNode[] => {
   if (!searchTerm.trim()) return renderText(content);
 
-  const regex = new RegExp(`^${searchTerm}\\.?`, 'gm');
   const lines = content.split('\n');
   const rendered: React.ReactNode[] = [];
 
   let matchCounter = 0;
 
   lines.forEach((line, i) => {
-    const match = line.match(regex);
+    const match = line.startsWith(searchTerm);
     if (match) {
       const isActive = matchCounter === activeIndex;
       const highlightClass =
@@ -743,8 +742,9 @@ export default function PrayerDetail({
   const showAudioPlayer = (prayer.audio || prayer.id === 'lectura-audio') && !isDistractionFree;
   const audioSrc = localAudioSrc || prayer.audio || '';
 
-  const objectPosition = getImageObjectPosition(prayer.id);
-  const objectScale = getImageObjectScale(prayer.id);
+  const isCroppedImage = prayer.imageUrl?.startsWith('data:image/');
+  const objectPosition = isCroppedImage ? '50% 50%' : getImageObjectPosition(prayer.id);
+  const objectScale = isCroppedImage ? 1 : getImageObjectScale(prayer.id);
 
   return (
     <div

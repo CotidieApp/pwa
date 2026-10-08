@@ -7625,3 +7625,126 @@ Este archivo documenta todas las intervenciones realizadas por el asistente (Tra
 - `src/lib/fixed-notifications.ts`
 - `public/images/cotidie-aniversario-banner.png`
 - `src/lib/prayers/oraciones/confesion.ts`
+
+### [2026-09-29] Corrección de programación de notificaciones de prueba
+
+**Planificacion:**
+- Diagnosticar por qué el interruptor de prueba no producía avisos, separando la configuración de permisos Android de la selección de alarmas que la aplicación entrega al plugin nativo.
+
+**Ejecucion:**
+- Se detectó que las 12 pruebas periódicas usan `schedule.on` y el orden previo solo consideraba `schedule.at`; bajo el límite de 32 alarmas de Android quedaban siempre detrás de los avisos fijos y litúrgicos, y se descartaban antes de programarse.
+- Las pruebas activas se priorizan ahora durante la selección acotada, por lo que sus alarmas llegan al plugin nativo sin aumentar el límite global.
+
+**Validacion:**
+- `npx.cmd tsc --noEmit --pretty false`: correcto.
+- El lint específico no presenta errores; conserva una advertencia preexistente de dependencias del efecto.
+- El build de Next compiló correctamente, pero su exportación final falló al renombrar `.next\\export\\500.html` tras ejecuciones de build simultáneas anteriores; no es atribuible al programador modificado. La prueba en dispositivo sigue pendiente: no había un dispositivo ADB conectado durante el diagnóstico.
+
+**Archivos Modificados:**
+- `src/context/settings/useNotificationScheduling.ts`
+- `AGENTS-history.md`
+
+### [2026-09-29] Planificador nativo persistente de notificaciones Android
+
+**Planificacion:**
+- Sustituir el límite fijo de alarmas por un despachador cronológico que soporte todas las reglas diarias configuradas por el usuario y los avisos fijos, sin requerir que el WebView permanezca abierto.
+
+**Ejecucion:**
+- Se añadió `CotidieNotificationScheduler`: el cliente entrega eventos fechados y reglas diarias; Android persiste ambos y mantiene únicamente una alarma exacta, la próxima del calendario.
+- Al vencer una alarma, el receptor publica todos los avisos correspondientes, retira los eventos consumidos y calcula inmediatamente el siguiente. Una modificación de Ajustes reemplaza la agenda de forma atómica, por lo que una inserción entre dos avisos cambia solo la próxima alarma.
+- Las reglas diarias no se expanden a treinta copias: se calculan de forma nativa e indefinida. El despachador se rearma al iniciar el teléfono, actualizar Cotidie, cambiar hora o zona horaria.
+
+**Validacion:**
+- `npx.cmd tsc --noEmit --pretty false`: correcto.
+- `android\\gradlew.bat :app:compileDebugJavaWithJavac` con JDK 21: correcto.
+- `:app:assembleDebug` mediante el coordinador compartido de builds y JDK 21: correcto; APK de depuración empaquetado.
+- `git diff --check`: correcto. No había dispositivo ADB conectado para comprobar una entrega física.
+
+**Archivos Modificados:**
+- `src/context/settings/useNotificationScheduling.ts`
+- `src/plugins/CotidieNotificationScheduler.ts`
+- `src/plugins/CotidieNotificationSchedulerWeb.ts`
+- `android/app/src/main/java/com/benjamin/studio/CotidieNotificationSchedulerPlugin.java`
+- `android/app/src/main/java/com/benjamin/studio/CotidieNotificationSchedulerReceiver.java`
+- `android/app/src/main/java/com/benjamin/studio/CotidieNotificationSchedulerBootReceiver.java`
+- `android/app/src/main/java/com/benjamin/studio/MainActivity.java`
+- `android/app/src/main/AndroidManifest.xml`
+
+## 2026-09-29 — Coordinacion de compilaciones y presion de memoria
+
+### Planificacion
+Evitar colisiones de .next y ejecuciones pesadas simultaneas observadas en la auditoria del equipo; conservar los pasos originales de compilacion y los cambios existentes.
+
+### Ejecucion
+Entradas npm build/android:apk pasan por adaptadores scripts/*-controlled.mjs y run-controlled.mjs. En este Windows usan el coordinador del usuario en .codex/projects/mejoras-operativas/tools/Invoke-ControlledBuild.ps1: mutex compartido, precomprobacion de memoria y procesos, ejecucion secuencial y codigos de aplazamiento. Otros equipos conservan la tuberia secuencial original. Gradle limita trabajadores a dos y daemon inactivo a cinco minutos. AGENTS.md impide eludir el control o repetir tsc ya incluido en build sin cambios relevantes. El coordinador no autoriza las publicaciones que pudiera efectuar el script original de APK.
+
+### Validacion
+Nueve comprobaciones funcionales ligeras pasaron, incluidas las dos entradas npm con bloqueo mantenido para no compilar ni iniciar efectos de distribucion. Sintaxis Node y PowerShell, JSON y diff correctos. No se recompilo una APK ni se publico; no se modificaron las correcciones de notificaciones existentes.
+
+### Archivos Modificados
+AGENTS.md; package.json; android/gradle.properties; scripts/build-controlled.mjs; scripts/android-apk-controlled.mjs; scripts/run-controlled.mjs. Coordinador y evidencia local en .codex/projects/mejoras-operativas.
+
+## 2026-10-08 — Confesión, temporizador, recorte, fondos, checks y contador EPUB
+
+### Planificacion
+
+Atender las nueve correcciones solicitadas y entregar una revisión de funciones sensibles para solucionar después. Inspección dirigida de renderizado, almacenamiento, navegación y ciclo de vida Android; consulta de memoria mínima, proyecto, caché y contratos EPUB. Se conservaron los cambios preexistentes del planificador nativo, manifiesto, MainActivity, adaptadores de builds e instrucciones. No se publicó ni se aumentó la versión.
+
+### Ejecucion
+
+- Examen personal en Oraciones / Para la Confesión, con almacenamiento separado de ajustes, exports, historial y trazas. Caducidad opcional a las 24 horas desde la creación, sin prórroga al editar, inicialmente desactivada; limpieza en ejecución y al abrir/volver a primer plano. Listo elimina la clave sin escrituras pendientes que la restauren; errores visibles. El reporte distingue borrado lógico de borrado forense y respaldo Android del sistema.
+- Selección de imágenes de la app pasa al recortador tanto al crear como editar. Cancelar conserva la imagen anterior; los data URI recortados no heredan ampliaciones específicas del recurso original.
+- Retirada de la imagen `fill` de secciones con suboraciones: su contenedor sin posición/tamaño en vertical permitía cubrir la pantalla. Retirada de fondos particulares y sus controles en Rosario inmersivo, Vía Crucis y Exposición. Se conservan ilustraciones de contenido y fondo global configurado.
+- Temporizador separado en un hook. Habilitarlo, abrirlo desde una oración, recargar e importar ajustes no inicia una cuenta. Guardar minutos aplica el valor y reinicia en pausa; rango 1–1440. Inicio explícito, pausa y reinicio usan un plazo; Android aporta tiempo monotónico tras suspensión.
+- Notificación de cuenta regresiva en el plugin BackgroundActions existente: canal silencioso, visibilidad privada y cronómetro actualizado por el sistema. Se muestra al salir con una cuenta activa y se cancela al volver, pausar, cerrar o finalizar. API 26+ aporta vencimiento mediante el sistema; límites de API 24/25 y muerte del proceso documentados. Sin nuevo servicio de primer plano.
+- Limpieza de checks trasladada de la lista al símbolo junto al calendario, conservando confirmación y deshabilitado si no hay checks.
+- EPUB: ordinal basado en columnas visibles confirmadas, acumulando tamaños por spine; los capítulos visitados sustituyen estimaciones por medidas reales. El total no visitado se etiqueta estimado. Reflow descarta medidas del layout previo; se conservan CFI central, identidades y cola durable. El contador no se persiste ni restaura lectura.
+- Panel de desarrollador: encabezado y capa superior de sistema usan el mismo fondo del panel con precedencia sobre el acento del tema.
+- Reporte: `docs/REPORTE-FUNCIONES-SENSIBLES-2026-10-08.md`, nueve hallazgos P1/P2 con evidencia, propuesta y aceptación. Se reprodujo el modo desarrollador importable con datos ficticios en el origen local.
+
+### Validacion
+
+- 26 regresiones Node correctas: contratos EPUB, navegación/reflow, ordinal sin saltos, cruce de spine, caducidad opcional y edición sin prórroga, borrado/errores del examen y tiempo restante tras suspensión. Dependencias auxiliares fuera del repositorio.
+- `npm.cmd run build` correcto bajo el coordinador: TypeScript previo y export Next.js completos. Primera pasada detectó una referencia retirada de listener; se corrigió antes de la pasada exitosa. No se ejecutó lint completo; Next lo omite por configuración existente.
+- `BackgroundActionsPlugin.java` compiló aisladamente con JDK 21, API 35 y classpath local Capacitor/AndroidX, bajo el coordinador. La primera comprobación carecía de Lifecycle; se incorporó la dependencia cacheada y pasó. Esto valida Java, no un APK completo ni ciclo de vida físico.
+- Build exportado en navegador: nota ficticia conservada tras recarga y borrada sin reaparecer con Listo; temporizador detenido al habilitar, cambio 15 -> 7 y edición activa -> 2 minutos en pausa; recarga/importación con `timerActive: true` sin autoarranque; checks limpiados mediante un botón comprobado dentro del encabezado; recorte en creación/edición y cancelación con imagen idéntica a la anterior.
+- NT real: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 5. Biblioteca personal: progreso independiente y 5 -> 6 -> 5. Lecturas después de confirmar navegación; total 487 explícitamente estimado. San José verificado visualmente sin fondo. Encabezado, panel y barra superior de desarrollador: color efectivo coincidente `rgb(2, 6, 23)`.
+- `git diff --check` correcto. SHA-256 de `out/index.html` validado: `DA6EAC63159317B56564604F1804E99B8E595D557CCB1E08387C3C021B38B7AA`.
+- ADB sin dispositivos. Pendientes: notificación con HOME/bloqueo/permisos/muerte del proceso, APK completo, PWA instalada/offline, orientación/fuentes en dispositivo y privacidad de respaldos. Sin publicación, instalación en teléfono ni envío de datos a servicios externos.
+
+### Archivos Modificados
+
+`src/components/ConfessionNotebook.tsx`; `src/hooks/useConfessionNotebook.ts`; `src/lib/confession-notebook.ts`; `src/hooks/usePrayerTimer.ts`; `src/lib/prayer-timer.ts`; `src/context/SettingsContext.tsx`; `src/context/settings/types.ts`; `src/context/settings/normalize.ts`; `src/components/AddPrayerForm.tsx`; `src/components/PrayerDetail.tsx`; `src/components/PrayerList.tsx`; `src/components/Header.tsx`; `src/components/main/MainApp.tsx`; `src/components/Timer.tsx`; `src/components/settings/ContentSettings.tsx`; `src/components/RosaryImmersive.tsx`; `src/components/ViaCrucisImmersive.tsx`; `src/components/ExpositionImmersive.tsx`; `src/components/developer/DeveloperDashboard.tsx`; `src/plugins/BackgroundActions.ts`; `android/app/src/main/java/com/benjamin/studio/BackgroundActionsPlugin.java`; `src/components/EpubReader.tsx`; `src/lib/epub-reader/pagination.ts`; `tests/reading-persistence.cjs`; `tests/READING-VALIDATION.md`; `docs/REPORTE-FUNCIONES-SENSIBLES-2026-10-08.md`; `AGENTS-history.md`.
+
+Estado: implementación y validación local terminadas; pruebas físicas Android/PWA pendientes. Caché de continuidad: `WC-006-correcciones-confesion-temporizador-epub-2026-10-08`, fuera del repositorio.
+
+## 2026-10-08 — Correcciones de funciones sensibles
+
+### Planificacion
+
+Aplicar FS-01 a FS-09 del reporte manteniendo acceso local, credenciales y flujos normales, sin publicar. Priorizar privilegios/privacidad/durabilidad, luego archivos/borrado/fechas y ciclo de vida nativo. Conservar cambios ajenos y contratos de lectura. Registrar también defectos adicionales corregidos dentro de esas rutas.
+
+### Ejecucion
+
+- Privilegios: import/export excluyen indicadores de desarrollador/edición, pruebas y trazas. Los importadores esperan guardado antes de aplicar y dar éxito, conservando la sesión local. Las credenciales existentes se verifican con PBKDF2/sal sin distribuir contraseñas legibles; sigue siendo una herramienta local, no autorización remota. WebView solo permite depuración si la aplicación está marcada depurable.
+- Privacidad: almacenamiento AES-GCM con integridad de revisión/caducidad. Android usa claves por registro en Keystore, archivos atómicos verificados en noBackupFilesDir y exclusiones de cloud/transferencia. PWA usa claves no extraíbles en IndexedDB. La migración confirma la copia nueva antes de retirar plaintext. El examen se excluye de export y Listo elimina registro/clave. Caducidad comprobada antes de lectura y retirada nativa mediante alarma, con fallback sujeto a retrasos del sistema.
+- Durabilidad: commit real, apertura reintentable, errores propagados, colas y comparación atómica de revisiones. Una carga fallida no sobreescribe datos con valores por defecto. El import pendiente se retira solo tras éxito. No se registra contenido del JSON en trazas.
+- Archivos: límites de 15 MiB y profundidad/estructura en respaldos; EPUB de 25 MiB con límites de entradas/expansión real y rutas/rangos validados. Se declara directamente pako 1.0.11, ya presente por JSZip, sin actualizar epub.js. Recorte en canvas limitado a 2048 px, sin canvas de imagen completa ni getImageData masivo. Restante importado del timer acotado a su duración.
+- Borrado EPUB: binario/progreso en una transacción, marcador durable frente a migraciones/checkpoints tardíos y retirada de anotaciones/espejos/índice heredado. Fechas civiles locales para actividad/cita; corte pastoral de 05:00 e historia conservados.
+- Notificaciones: estado efectivo/motivo/próxima alarma, revisión al regresar, agenda serializada, entregas diarias conservadas y eventos no consumidos ante permiso/canal bloqueado o publicación fallida. Sesión de timer separada de importaciones, plazo monotónico/arranque persistido y recuperación en pausa; retirada nativa independiente del proceso incluso API 24/25.
+- Adicionales: reinicio completo espera limpieza de datos privados/lectura/recordatorios/acciones antes de recargar y comunica errores; búsqueda de prefijo literal evita excepciones/expresiones del texto introducido. Reporte actualizado con soluciones y límites FS-10/11/12.
+
+### Validacion
+
+- 36 regresiones Node correctas sobre commit/aborto/reintento, cifrado/integridad/caducidad, migración fallida sin pérdida, revisión obsoleta, compatibilidad de credenciales, límites de import/ZIP, borrado sin resurrección, fechas/timezone/DST y contratos EPUB. Se adaptaron los fixtures a EPUB válidos y la resolución de aliases del runner a la fuente TypeScript.
+- `npm.cmd run build` final correcto bajo el coordinador: TypeScript previo y export completo. Se corrigió el tipo genérico detectado en la primera comprobación. Next omite su segunda validación de tipos y lint por configuración vigente; el TypeScript anterior sí pasó. No se repitió lint pesado.
+- Siete fuentes Java afectadas compiladas juntas bajo el coordinador con JDK 21/API 35 y jars locales. XML del manifiesto/exclusiones bien formado. No se ejecutó ensamblado completo de APK ni instalación/publicación.
+- Browser del export con datos ficticios: migración sin pérdida, plaintext retirado, claves no extraíbles, nota/opción conservadas tras recarga, Listo elimina ciphertext/clave y no reaparece. Importación con privilegios y timerActive en true no habilita panel ni inicia cuenta; 3 minutos en pausa. Export sin privilegios/trazas/examen. Reinicio web completo funciona y retira nota/opción, dejando el temporizador desactivado.
+- ADB sin dispositivos. Pendientes: Keystore/copia/transferencia, entrega física con revocación/canal/reinicio, bloqueo/muerte del proceso/API 24/25, APK completo y PWA instalada/offline. No se promete borrado forense ni entrega exactamente una vez si se interrumpe publicación/commit.
+- Evidencia y auxiliares en `.codex/projects/Cotidie/validation-2026-10-08`; caché de continuidad WC-007. No se usaron datos personales del usuario para los recorridos ni se publicaron cambios.
+
+### Archivos Modificados
+
+`src/lib/persistence.ts`; `src/lib/private-storage.ts`; `src/lib/import-safety.ts`; `src/lib/epub-import-safety.ts`; `src/lib/calendar-date.ts`; `src/lib/dev-credentials.ts`; `src/lib/image-utils.ts`; `src/lib/personal-epubs.ts`; `src/lib/reading-store.ts`; `src/lib/epub-reader/progress.ts`; `src/context/SettingsContext.tsx`; `src/context/settings/normalize.ts`; `src/context/settings/types.ts`; `src/context/settings/useNotificationScheduling.ts`; `src/hooks/useConfessionNotebook.ts`; `src/hooks/usePrayerTimer.ts`; `src/components/PersonalEpubLibrary.tsx`; `src/components/PrayerDetail.tsx`; `src/components/settings/DeveloperSettings.tsx`; `src/components/plans/CustomPlanView.tsx`; `src/plugins/BackgroundActions.ts`; `src/plugins/CotidieNotificationScheduler.ts`; `src/plugins/CotidieNotificationSchedulerWeb.ts`; `capacitor.config.ts`; `android/app/src/main/AndroidManifest.xml`; `android/app/src/main/java/com/benjamin/studio/MainActivity.java`; `BackgroundActionsPlugin.java`; `CotidieNotificationSchedulerPlugin.java`; `CotidieNotificationSchedulerBootReceiver.java`; `PrivateStoragePlugin.java`; `PrivateStorageExpiryReceiver.java`; `TimerExpiryReceiver.java`; `android/app/src/main/res/xml/private_backup_rules.xml`; `private_data_extraction_rules.xml`; `package.json`; `package-lock.json`; `tests/reading-persistence.cjs`; `tests/READING-VALIDATION.md`; `docs/REPORTE-FUNCIONES-SENSIBLES-2026-10-08.md`; `AGENTS-history.md`.
+
+Estado: soluciones implementadas y validación local terminada; certificación física y APK/PWA instalada pendientes, sin publicación.

@@ -61,10 +61,8 @@ export default function PrayerList({
     planDeVidaTrackerEnabled,
     planDeVidaProgress,
     togglePlanDeVidaItem,
-    clearPlanDeVidaChecksForToday,
   } = useSettings();
   const [pendingDeletePrayer, setPendingDeletePrayer] = useState<Prayer | null>(null);
-  const [isClearChecksOpen, setIsClearChecksOpen] = useState(false);
 
   // Filtrar oraciones según categoría (Plan de Vida, etc.)
   const filteredPrayers = useMemo(() => {
@@ -194,15 +192,6 @@ export default function PrayerList({
         </div>
       )}
 
-      {showTracker && planDeVidaProgress.length > 0 ? (
-        <div className="flex justify-end">
-          <Button type="button" variant="outline" size="sm" onClick={() => setIsClearChecksOpen(true)}>
-            <Trash2 className="mr-2 size-4" />
-            Limpiar checks de hoy
-          </Button>
-        </div>
-      ) : null}
-
       {/* Lista de oraciones (normal o después del grid) */}
       {otherPrayers.length > 0 ? (
         <div className="prayer-list-items space-y-3">
@@ -257,32 +246,6 @@ export default function PrayerList({
           </Button>
         </div>
       )}
-
-      <AlertDialog
-        open={isClearChecksOpen}
-        onOpenChange={setIsClearChecksOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Limpiar los checks de hoy?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Se borrarán solamente los checks del día actual, como si nunca se hubieran marcado. Esta acción no dejará registro en el calendario.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => {
-                clearPlanDeVidaChecksForToday();
-                setIsClearChecksOpen(false);
-              }}
-            >
-              Limpiar checks
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       <AlertDialog
         open={Boolean(pendingDeletePrayer)}

@@ -8,7 +8,14 @@ type RelativeLocations = {
 
 type RelativeBook = {
   locations: RelativeLocations;
+  spine?: {
+    spineItems: Array<{ index: number; linear: boolean }>;
+    get: (cfi: string) => { index: number } | undefined;
+  };
 };
+
+type VisiblePage = { index: number; cfi?: string; displayed: { page: number; total: number } };
+type VisibleLocation = { start?: VisiblePage };
 
 export type RelativePaginationConfig = {
   width: number;
@@ -75,8 +82,8 @@ export const formatRelativePage = (locations: RelativeLocations, cfi: string) =>
 };
 
 /**
- * Coalesces layout changes and generates locations away from the visible
- * rendition. Relocations only perform a binary CFI lookup once the map exists.
+ * Generates estimates for unvisited spine items away from the visible rendition.
+ * Confirmed displayed columns supply the ordinal and measured chapter lengths.
  */
 export class EpubRelativePaginator {
   private latestCfi = '';
@@ -85,22 +92,36 @@ export class EpubRelativePaginator {
   private pending: (RelativePaginationConfig & { version: number }) | null = null;
   private runner: Promise<void> | null = null;
   private closed = false;
+  private latestPage: VisiblePage | null = null;
+  private estimatedPages = new Map<number, number>();
+  private measuredPages = new Map<number, number>();
 
   constructor(
     private readonly book: RelativeBook,
-    private readonly onLabel: (label: string) => void,
+    private readonly onLabel: (label: string, estimated?: boolean) => void,
     private readonly trace: Trace = () => undefined
   ) {}
 
-  relocate(cfi?: string) {
-    if (!cfi || this.closed) return;
-    this.latestCfi = cfi;
+  relocate(location?: string | VisibleLocation) {
+    if (!location || this.closed) return;
+    if (typeof location === 'string') {
+      this.latestCfi = location;
+      this.latestPage = null;
+    } else {
+      this.latestCfi = location.start?.cfi ?? this.latestCfi;
+      const start = location.start;
+      this.latestPage = start && Number.isFinite(start.index) &&
+        Number.isFinite(start.displayed?.page) && start.displayed.page >= 1 &&
+        Number.isFinite(start.displayed?.total) && start.displayed.total >= start.displayed.page
+        ? start : null;
+    }
     if (this.readyVersion === this.version) this.publish();
   }
 
   rebuild(config: RelativePaginationConfig) {
     if (this.closed) return Promise.resolve();
     const version = ++this.version;
+    this.measuredPages.clear();
     this.pending = { ...config, version };
     this.onLabel('…/…');
     if (!this.runner) {
@@ -122,8 +143,27 @@ export class EpubRelativePaginator {
   }
 
   private publish() {
+    // The visible ordinal comes from actual columns, never character buckets.
+    // Only unvisited spine lengths remain estimates; observed lengths replace
+    // them for this layout. A next/prev turn therefore advances one page even
+    // if it crosses several semantic locations or a spine boundary.
+    const visible = this.latestPage;
+    if (visible && this.estimatedPages.size) {
+      this.measuredPages.set(visible.index, Math.floor(visible.displayed.total));
+      let offset = 0;
+      let total = 0;
+      const sections = new Set([...this.estimatedPages.keys(), ...this.measuredPages.keys()]);
+      for (const index of sections) {
+        const count = this.measuredPages.get(index) ?? this.estimatedPages.get(index) ?? 1;
+        total += count;
+        if (index < visible.index) offset += count;
+      }
+      this.onLabel(`${offset + Math.floor(visible.displayed.page)}/${total}`,
+        [...sections].some((index) => !this.measuredPages.has(index)));
+      return;
+    }
     const label = formatRelativePage(this.book.locations, this.latestCfi);
-    if (label) this.onLabel(label);
+    if (label) this.onLabel(label, true);
   }
 
   private async run() {
@@ -141,6 +181,16 @@ export class EpubRelativePaginator {
         locations.pause = 0;
         const generated = await locations.generate(chars);
         if (this.closed || request.version !== this.version) continue;
+        this.estimatedPages.clear();
+        for (const section of this.book.spine?.spineItems ?? []) {
+          if (section.linear) this.estimatedPages.set(section.index, 1);
+        }
+        const counts = new Map<number, number>();
+        for (const cfi of generated) {
+          const index = this.book.spine?.get(cfi)?.index;
+          if (index !== undefined && this.estimatedPages.has(index)) counts.set(index, (counts.get(index) ?? 0) + 1);
+        }
+        for (const [index, count] of counts) this.estimatedPages.set(index, count);
         this.readyVersion = request.version;
         this.publish();
         this.trace(

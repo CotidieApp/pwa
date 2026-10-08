@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'Cotidie',
   webDir: 'out',
   android: {
-    webContentsDebuggingEnabled: true,
+    webContentsDebuggingEnabled: false,
   },
   plugins: {
     LocalNotifications: {

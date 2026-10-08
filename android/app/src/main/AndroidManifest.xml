@@ -2,7 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
     <application
-        android:allowBackup="true"
+        android:allowBackup="false"
+        android:fullBackupContent="@xml/private_backup_rules"
+        android:dataExtractionRules="@xml/private_data_extraction_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -94,6 +96,19 @@
         </receiver>
 
         <receiver android:name=".widgets.SaintWidgetAlarmReceiver" android:exported="false" />
+
+        <receiver android:name=".CotidieNotificationSchedulerReceiver" android:exported="false" />
+        <receiver android:name=".PrivateStorageExpiryReceiver" android:exported="false" />
+        <receiver android:name=".TimerExpiryReceiver" android:exported="false" />
+
+        <receiver android:name=".CotidieNotificationSchedulerBootReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
 
         <receiver
             android:name=".MarkPrayedActionReceiver"

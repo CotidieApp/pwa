@@ -10,6 +10,8 @@ export type PendingMarkPrayedResult = {
 export type SmallWidgetDisplayMode = 'full' | 'saint_priority';
 
 export type BackgroundActionsPlugin = {
+  setTimerNotification: (options: { remainingMs: number; active: boolean }) => Promise<void>;
+  getTimerNotification: () => Promise<{ remainingMs: number; hasSession: boolean }>;
   getPendingMarkPrayed: () => Promise<PendingMarkPrayedResult>;
   setSmallWidgetMode: (options: { mode: SmallWidgetDisplayMode }) => Promise<{ mode: SmallWidgetDisplayMode }>;
   setMovableFeastsEnabled: (options: { enabled: boolean }) => Promise<void>;
@@ -29,6 +31,8 @@ export type BackgroundActionsPlugin = {
 
 const BackgroundActions = registerPlugin<BackgroundActionsPlugin>('BackgroundActions', {
   web: () => ({
+    setTimerNotification: async () => {},
+    getTimerNotification: async () => ({ remainingMs: 0, hasSession: false }),
     getPendingMarkPrayed: async () => ({ items: [] }),
     setSmallWidgetMode: async (options: { mode: SmallWidgetDisplayMode }) => ({ mode: options.mode }),
     setMovableFeastsEnabled: async () => {},

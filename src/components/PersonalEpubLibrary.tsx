@@ -10,7 +10,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import EpubReader from '@/components/EpubReader';
+  import EpubReader from '@/components/EpubReader';
+  import { validateEpubArchive } from '@/lib/epub-import-safety';
+  import { isReadingDeleted } from '@/lib/reading-store';
 import { useSettings } from '@/context/SettingsContext';
 import { listPersonalEpubs, openPersonalEpub, savePersonalEpub, renamePersonalEpub, deletePersonalEpub } from '@/lib/personal-epubs';
 import { Trash2, BookOpen, Pencil } from 'lucide-react';
@@ -71,11 +73,16 @@ export default function PersonalEpubLibrary({ registerBackHandler }: PersonalEpu
   });
   useEffect(() => {
     let cancelled = false;
-    void listPersonalEpubs().then(items => {
+    void listPersonalEpubs().then(async items => {
+      const legacy = loadStoredEpubs();
+      const deleted = new Set<string>();
+      for (const entry of [...legacy, ...items]) {
+        if (await isReadingDeleted('cotidie_epub_location_personal-' + entry.id + '.epub')) deleted.add(entry.id);
+      }
       if (cancelled) return;
       setEpubs(current => {
-        const merged = new Map(current.map(item => [item.id, item]));
-        items.forEach(item => { if ((merged.get(item.id)?.updatedAt ?? 0) <= item.updatedAt) merged.set(item.id, item); });
+        const merged = new Map(current.filter(item => !deleted.has(item.id)).map(item => [item.id, item]));
+        items.filter(item => !deleted.has(item.id)).forEach(item => { if ((merged.get(item.id)?.updatedAt ?? 0) <= item.updatedAt) merged.set(item.id, item); });
         return [...merged.values()].sort((a, b) => b.updatedAt - a.updatedAt);
       });
     }).catch(error => { if (!cancelled) trace('library read', String(error), true); });
@@ -120,15 +127,16 @@ export default function PersonalEpubLibrary({ registerBackHandler }: PersonalEpu
     }
     try {
       const entry = { id: `epub-${crypto.randomUUID()}`, name: file.name.trim() || 'EPUB', sizeBytes: file.size, updatedAt: Date.now() };
-      await savePersonalEpub(entry, file);
       const buffer = await file.arrayBuffer();
+      validateEpubArchive(buffer);
+      await savePersonalEpub(entry, file);
       setEpubs(current => [entry, ...current]);
       setSelectedId(entry.id);
       setSelectedSource(buffer);
       incrementStat('prayersOpenedHistory', 'lectura-espiritual-personales');
     } catch (error) {
       trace('upload', String(error), true);
-      setErrorMessage('No se pudo guardar el EPUB. Comprueba el espacio disponible.');
+        setErrorMessage(error instanceof Error ? error.message : 'No se pudo guardar el EPUB. Comprueba el espacio disponible.');
     }
   };
 
@@ -136,7 +144,6 @@ export default function PersonalEpubLibrary({ registerBackHandler }: PersonalEpu
     try {
       await deletePersonalEpub(id);
       const next = epubs.filter(item => item.id !== id);
-      saveStoredEpubs(next);
       setEpubs(next);
       if (selectedId === id) { setSelectedId(null); setSelectedSource(null); }
     } catch (error) { trace('delete', String(error), true); setErrorMessage('No se pudo eliminar el libro.'); }

@@ -34,6 +34,8 @@ Este archivo contiene únicamente las reglas vigentes para trabajar en este repo
 
 ## Verificación
 
+- `npm run build` y `npm run android:apk` usan adaptadores `scripts/*-controlled.mjs`: en este Windows aplican el coordinador compartido de `.codex/projects/mejoras-operativas/tools/Invoke-ControlledBuild.ps1`. No lanzar otro build, lint o TypeScript pesado en paralelo. No ejecutar `next build` o `scripts/android-apk.mjs` directamente para eludirlo. El build ya incluye `tsc --noEmit`; no repetir TypeScript separado sobre los mismos cambios sin una razon concreta. La coordinacion no autoriza publicaciones; `android:apk` conserva las opciones y efectos del script original, que deben revisarse antes de ejecutarlo.
+- Para Gradle o una comprobacion pesada separada, usar el mismo coordinador y esperar la sesion original. Codigos 75/76/77 significan aplazamiento, no fallo del codigo. Tras una interrupcion comprobar procesos previos antes de relanzar; no borrar `.next` mientras haya procesos activos.
 - Validar de forma proporcional al riesgo y empezar por la prueba más cercana al cambio.
 - En código, comprobar errores de tipos, compilación, pruebas o lint cuando sean pertinentes.
 - No declarar una acción como realizada sin evidencia de su resultado.

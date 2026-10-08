@@ -137,7 +137,7 @@ export type Settings = {
   toggleAlwaysShowPrayer: (id: string) => void;
 
   isDeveloperMode: boolean;
-  loginAsDeveloper: (user: string, pass: string) => boolean;
+  loginAsDeveloper: (user: string, pass: string) => Promise<boolean>;
   logoutDeveloper: () => void;
 
   isEditModeEnabled: boolean;
@@ -154,7 +154,7 @@ export type Settings = {
   importUserData: (
     data: any,
     options?: { silent?: boolean; preferredCustomPlanSlot?: 1 | 2 | 3 | 4 | null }
-  ) => ImportResult;
+  ) => Promise<ImportResult>;
 
   skipNotificationIfChecked: boolean;
   setSkipNotificationIfChecked: (enabled: boolean) => void;
@@ -168,6 +168,12 @@ export type Settings = {
   toggleTimer: () => void;
   resetTimer: () => void;
   startTimer: () => void;
+  confessionNote: { text: string; createdAt: number } | null;
+  confessionAutoDelete: boolean;
+  confessionLoaded: boolean;
+  confessionStorageError: boolean;
+  setConfessionText: (text: string) => void;
+  setConfessionAutoDelete: (enabled: boolean) => void;
 
   overlayPositions: OverlayPositions;
   setOverlayPosition: (key: keyof OverlayPositions, pos: OverlayPosition) => void;

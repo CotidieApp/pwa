@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { Prayer } from '@/lib/types';
+import { MAX_IMPORT_BYTES, parseImportText } from '@/lib/import-safety';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -151,13 +152,18 @@ export default function CustomPlanView({ slot, onOpenPrayerId, onOpenPlanPrayerA
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > MAX_IMPORT_BYTES) {
+      toast({ title: 'El respaldo supera los 15 MB', variant: 'destructive' });
+      e.target.value = '';
+      return;
+    }
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
         const text = (event.target?.result as string).replace(/^\uFEFF/, '');
-        const imported = JSON.parse(text) as CustomPlan;
-        const result = importUserData(imported, { silent: true, preferredCustomPlanSlot: slot });
+        const imported = parseImportText(text) as CustomPlan;
+        const result = await importUserData(imported, { silent: true, preferredCustomPlanSlot: slot });
 
         if (result.status === 'invalid') {
           toast({ variant: 'destructive', title: result.title, description: result.description });
@@ -412,4 +418,3 @@ export default function CustomPlanView({ slot, onOpenPrayerId, onOpenPlanPrayerA
     </div>
   );
 }
-

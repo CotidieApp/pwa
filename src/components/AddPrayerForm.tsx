@@ -59,6 +59,7 @@ export default function AddPrayerForm({
   const [isCropperOpen, setIsCropperOpen] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const [finalCroppedImage, setFinalCroppedImage] = useState<string | null>(null);
+  const previousImageRef = useRef<{ url: string; name: string | null; cropped: string | null } | null>(null);
   const [contentVariants, setContentVariants] = useState<Record<string, string> | null>(null);
   const [activeContentVariant, setActiveContentVariant] = useState<string | null>(null);
   const [showAppImages, setShowAppImages] = useState(false);
@@ -342,9 +343,8 @@ export default function AddPrayerForm({
                             setFinalCroppedImage(null);
                             return;
                           }
-                          field.onChange('');
+                          previousImageRef.current = { url: field.value || '', name: selectedImageFileName, cropped: finalCroppedImage };
                           setSelectedImageFileName(file.name);
-                          setFinalCroppedImage(null);
                           const reader = new FileReader();
                           reader.onload = () => {
                             const result = reader.result as string;
@@ -378,10 +378,11 @@ export default function AddPrayerForm({
                               type="button"
                               className="overflow-hidden rounded-md border border-border bg-card text-left transition-colors hover:border-primary"
                               onClick={() => {
-                                field.onChange(image.imageUrl);
+                                previousImageRef.current = { url: field.value || '', name: selectedImageFileName, cropped: finalCroppedImage };
                                 setSelectedImageFileName(image.description || 'Imagen de la app');
-                                setFinalCroppedImage(null);
                                 setShowAppImages(false);
+                                setImageToCrop(image.imageUrl);
+                                setIsCropperOpen(true);
                               }}
                             >
                               <span
@@ -448,6 +449,7 @@ export default function AddPrayerForm({
       <ImageCropper
         imageSrc={imageToCrop}
         onCropComplete={(croppedImage) => {
+          previousImageRef.current = null;
           setFinalCroppedImage(croppedImage);
           setIsCropperOpen(false);
           setImageToCrop(null);
@@ -455,9 +457,13 @@ export default function AddPrayerForm({
         onCancel={() => {
           setIsCropperOpen(false);
           setImageToCrop(null);
-          setFinalCroppedImage(null);
-          form.setValue('imageUrl', '');
-          setSelectedImageFileName(null);
+          const previous = previousImageRef.current;
+          if (previous) {
+            form.setValue('imageUrl', previous.url);
+            setSelectedImageFileName(previous.name);
+            setFinalCroppedImage(previous.cropped);
+          }
+          previousImageRef.current = null;
         }}
         isOpen={isCropperOpen}
         aspect={16 / 9}
