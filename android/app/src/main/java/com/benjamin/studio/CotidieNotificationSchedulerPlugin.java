@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.app.NotificationManager;
+import android.app.Notification;
 import androidx.core.app.NotificationManagerCompat;
 import com.capacitorjs.plugins.localnotifications.LocalNotification;
 import com.capacitorjs.plugins.localnotifications.LocalNotificationManager;
@@ -22,9 +23,10 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.LinkedHashMap;
 import java.util.Set;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -43,6 +45,9 @@ public class CotidieNotificationSchedulerPlugin extends Plugin {
     private static final String ACTION_DISPATCH = "com.benjamin.studio.NOTIFICATION_DISPATCH";
     private static final int DISPATCH_REQUEST_CODE = 0x434F54;
     private static final Object LOCK = new Object();
+    private static final String RULE_NEXT = "rule_next_at";
+    private static final String RETRY_AFTER = "retry_after";
+    private static final int DEV_NOTIFICATION_ID = 820002;
 
     @PluginMethod
     public void replaceSchedule(PluginCall call) {
@@ -51,17 +56,64 @@ public class CotidieNotificationSchedulerPlugin extends Plugin {
         JSArray dailyRules = call.getArray("dailyRules");
         if (events == null) events = new JSArray();
         if (dailyRules == null) dailyRules = new JSArray();
+        long now = System.currentTimeMillis();
+        Set<String> activeSources = new HashSet<>();
+        JSArray sourceIds = call.getArray("activeEventSources");
+        if (sourceIds != null) for (int i = 0; i < sourceIds.length(); i++) {
+            String source = sourceIds.optString(i);
+            if (!source.isEmpty()) activeSources.add(source);
+        }
+        Set<Integer> eventIds = new HashSet<>();
+        for (int i = 0; i < events.length(); i++) {
+            JSONObject event = events.optJSONObject(i);
+            if (event != null) {
+                eventIds.add(event.optInt("id"));
+                String source = eventSource(event);
+                if (!source.isEmpty()) activeSources.add(source);
+            }
+        }
+        JSONArray previousEvents = readArray(getContext(), EVENTS);
+        for (int i = 0; i < previousEvents.length(); i++) {
+            JSONObject event = previousEvents.optJSONObject(i);
+            if (event != null && CotidieNotificationTimeline.preserveDated(event.optLong("at"), now,
+                activeSources.contains(eventSource(event)), eventIds.contains(event.optInt("id")))) {
+                events.put(event); eventIds.add(event.optInt("id"));
+            }
+        }
+        JSONArray previousRules = readArray(getContext(), DAILY_RULES);
+        Map<String, Long> previousPlan = plannedRules(getContext(), previousRules, now);
+        JSONObject nextPlan = new JSONObject();
+        for (int i = 0; i < dailyRules.length(); i++) {
+            JSONObject raw = dailyRules.optJSONObject(i);
+            if (raw == null) continue;
+            CotidieNotificationTimeline.Rule rule = timelineRule(raw);
+            JSONObject previous = findRule(previousRules, rule.id);
+            boolean unchanged = previous != null && previous.optInt("hour", -1) == rule.hour &&
+                previous.optInt("minute", 0) == rule.minute &&
+                ((previous.optJSONArray("skipDateKeys") == null) == (raw.optJSONArray("skipDateKeys") == null));
+            if (unchanged) unchanged = String.valueOf(previous.optJSONArray("skipDateKeys")).equals(String.valueOf(raw.optJSONArray("skipDateKeys")));
+            try { nextPlan.put(rule.id, unchanged ? previousPlan.getOrDefault(rule.id, CotidieNotificationTimeline.nextAfter(rule, now))
+                : CotidieNotificationTimeline.nextAfter(rule, now)); }
+            catch (Exception error) { call.reject("Regla de recordatorio inválida."); return; }
+        }
         SharedPreferences.Editor editor = prefs(getContext()).edit();
         editor.putString(EVENTS, events.toString());
         editor.putString(DAILY_RULES, dailyRules.toString());
+        editor.putString(RULE_NEXT, nextPlan.toString());
+        editor.remove(RETRY_AFTER);
         // Reconfiguring/foreground checks must not redeliver today's daily rule.
         if (!editor.commit()) { call.reject("No se confirmó el calendario de recordatorios."); return; }
+        cleanLegacyDevNotifications(getContext(), previousRules, dailyRules);
         scheduleNext(getContext());
         call.resolve(scheduleStatus(getContext()));
         }
     }
 
     @PluginMethod public void getScheduleStatus(PluginCall call) {
+        synchronized (LOCK) { call.resolve(scheduleStatus(getContext())); }
+    }
+
+    @PluginMethod public void resumeSchedule(PluginCall call) {
         synchronized (LOCK) { scheduleNext(getContext()); call.resolve(scheduleStatus(getContext())); }
     }
 
@@ -69,10 +121,14 @@ public class CotidieNotificationSchedulerPlugin extends Plugin {
         JSObject result = new JSObject();
         SharedPreferences state = prefs(context);
         String reason = state.getString("schedule_reason", "empty");
+        String blocked = notificationsBlocked(context);
+        AlarmManager alarms = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        if (blocked != null) reason = blocked;
+        else if (alarms != null && Build.VERSION.SDK_INT >= 31 && !alarms.canScheduleExactAlarms()) reason = "exact_alarm_permission";
         result.put("status", "scheduled".equals(reason) ? "scheduled" : "empty".equals(reason) ? "empty" : "blocked");
         result.put("reason", reason);
         long at = state.getLong("next_alarm_at", 0);
-        result.put("nextAlarmAt", at > 0 ? at : JSONObject.NULL);
+        result.put("nextAlarmAt", "scheduled".equals(reason) && at > 0 ? at : JSONObject.NULL);
         return result;
     }
 
@@ -114,12 +170,13 @@ public class CotidieNotificationSchedulerPlugin extends Plugin {
         long next = nextEventAt(context, now);
         AlarmManager manager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         if (manager == null) { status(context, "alarm_service_unavailable", 0); return; }
-        PendingIntent pendingIntent = dispatchIntent(context, PendingIntent.FLAG_CANCEL_CURRENT);
-        manager.cancel(pendingIntent);
-        if (next == Long.MAX_VALUE) { status(context, "empty", 0); return; }
+        // Keep the token of any broadcast already queued by Android; cancelling it can lose delivery.
+        PendingIntent pendingIntent = dispatchIntent(context, PendingIntent.FLAG_UPDATE_CURRENT);
+        if (next == Long.MAX_VALUE) { manager.cancel(pendingIntent); status(context, "empty", 0); return; }
         String blocked = notificationsBlocked(context);
-        if (blocked != null) { status(context, blocked, 0); return; }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !manager.canScheduleExactAlarms()) { status(context, "exact_alarm_permission", 0); return; }
+        if (blocked != null) { manager.cancel(pendingIntent); status(context, blocked, 0); return; }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !manager.canScheduleExactAlarms()) { manager.cancel(pendingIntent); status(context, "exact_alarm_permission", 0); return; }
+        next = Math.max(Math.max(next, now + 1000), prefs(context).getLong(RETRY_AFTER, 0));
         Intent showIntent = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
         PendingIntent showPendingIntent = PendingIntent.getActivity(
             context,
@@ -138,6 +195,24 @@ public class CotidieNotificationSchedulerPlugin extends Plugin {
         }
     }
 
+    static void rebaseRulesAfterClockChange(Context context) {
+        synchronized (LOCK) {
+            long now = System.currentTimeMillis();
+            JSONArray rules = readArray(context, DAILY_RULES);
+            Map<String, Long> plan = new LinkedHashMap<>();
+            for (int i = 0; i < rules.length(); i++) {
+                JSONObject raw = rules.optJSONObject(i);
+                if (raw == null) continue;
+                CotidieNotificationTimeline.Rule rule = timelineRule(raw);
+                plan.put(rule.id, CotidieNotificationTimeline.nextAfter(rule, now));
+            }
+            if (!prefs(context).edit().putString(RULE_NEXT, new JSONObject(plan).toString()).remove(RETRY_AFTER).commit()) {
+                status(context, "storage_error", 0); return;
+            }
+            scheduleNext(context);
+        }
+    }
+
     static void dispatch(Context context) {
         if (context == null) return;
         synchronized (LOCK) {
@@ -150,40 +225,59 @@ public class CotidieNotificationSchedulerPlugin extends Plugin {
         for (int i = 0; i < events.length(); i++) {
             JSONObject event = events.optJSONObject(i);
             if (event == null) continue;
-            if (event.optLong("at", Long.MAX_VALUE) <= now) due.add(event);
+            long at = event.optLong("at", Long.MAX_VALUE);
+            if (CotidieNotificationTimeline.datedDue(at, now)) due.add(event);
+            else if (at <= now) continue; // Do not replay obsolete dated notices after a clock jump/reboot.
             else remaining.put(event);
         }
 
-        JSONObject delivered = readObject(context, DELIVERED);
         JSONArray rules = readArray(context, DAILY_RULES);
-        String todayKey = dateKey(now);
+        List<CotidieNotificationTimeline.Rule> timelineRules = new ArrayList<>();
         for (int i = 0; i < rules.length(); i++) {
             JSONObject rule = rules.optJSONObject(i);
-            if (rule == null) continue;
-            String sourceId = rule.optString("sourceId", "");
-            String occurrenceKey = occurrenceKey(rule, now, todayKey);
-            if (sourceId.isEmpty() || occurrenceKey.equals(delivered.optString(sourceId, ""))) continue;
-            long dueAt = todayAt(rule, now);
-            if (dueAt <= now && !isSkipped(rule, todayKey)) {
+            if (rule != null) timelineRules.add(timelineRule(rule));
+        }
+        CotidieNotificationTimeline.Decision decision = CotidieNotificationTimeline.dispatch(timelineRules, plannedRules(context, rules, now), now);
+        JSONObject delivered = readObject(context, DELIVERED);
+        for (CotidieNotificationTimeline.Delivery delivery : decision.due.values()) {
+            JSONObject rule = findRule(rules, delivery.rule.id);
+            if (rule != null) {
                 try {
                     JSONObject notification = new JSONObject(rule.toString());
                     notification.remove("sourceId");
                     notification.remove("hour");
                     notification.remove("minute");
                     notification.remove("skipDateKeys");
-                    notification.put("id", stableId(sourceId + ":" + todayKey));
+                    notification.put("id", delivery.rule.devTest ? DEV_NOTIFICATION_ID : stableId(delivery.rule.id + ":" + delivery.at));
+                    notification.put("at", delivery.at);
                     due.add(notification);
-                    delivered.put(sourceId, occurrenceKey);
+                    delivered.put(delivery.rule.id, String.valueOf(delivery.at));
                 } catch (Exception ignored) {}
             }
         }
 
-        if (!publish(context, due)) { status(context, "delivery_failed", 0); return; }
+        if (!publish(context, due)) {
+            prefs(context).edit().putLong(RETRY_AFTER, now + 60000).commit();
+            scheduleNext(context);
+            status(context, "delivery_failed", prefs(context).getLong("next_alarm_at", 0));
+            return;
+        }
+        JSONObject nextPlan = new JSONObject(decision.next);
         boolean committed = prefs(context).edit()
             .putString(EVENTS, remaining.toString())
             .putString(DELIVERED, delivered.toString())
+            .putString(RULE_NEXT, nextPlan.toString())
+            .remove(RETRY_AFTER)
             .commit();
         if (!committed) { status(context, "storage_error", 0); return; }
+        // Diagnostic timestamps only, for the explicitly enabled developer test.
+        // No prayer text, title, source identifier or private content is logged.
+        for (CotidieNotificationTimeline.Delivery delivery : decision.due.values()) {
+            if (delivery.rule.devTest) {
+                android.util.Log.i("CotidieNotifications", "dev_test_delivery at=" + now);
+                break;
+            }
+        }
         scheduleNext(context);
         }
     }
@@ -218,47 +312,80 @@ public class CotidieNotificationSchedulerPlugin extends Plugin {
         for (int i = 0; i < events.length(); i++) {
             JSONObject event = events.optJSONObject(i);
             long at = event == null ? Long.MAX_VALUE : event.optLong("at", Long.MAX_VALUE);
-            if (at > now && at < next) next = at;
+            if (at > 0 && at < next) next = at;
         }
         JSONArray rules = readArray(context, DAILY_RULES);
-        for (int i = 0; i < rules.length(); i++) {
-            JSONObject rule = rules.optJSONObject(i);
-            if (rule == null) continue;
-            long at = nextDailyAt(rule, now);
-            if (at < next) next = at;
-        }
+        for (long at : plannedRules(context, rules, now).values()) if (at < next) next = at;
         return next;
     }
 
-    private static long nextDailyAt(JSONObject rule, long now) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTimeInMillis(now);
-        boolean hourly = !rule.has("hour");
-        if (!hourly) calendar.set(Calendar.HOUR_OF_DAY, bounded(rule.optInt("hour", 9), 0, 23));
-        calendar.set(Calendar.MINUTE, bounded(rule.optInt("minute", 0), 0, 59));
-        calendar.set(Calendar.SECOND, 0);
-        calendar.set(Calendar.MILLISECOND, 0);
-        if (calendar.getTimeInMillis() <= now) calendar.add(hourly ? Calendar.HOUR_OF_DAY : Calendar.DAY_OF_YEAR, 1);
-        return calendar.getTimeInMillis();
+    private static CotidieNotificationTimeline.Rule timelineRule(JSONObject raw) {
+        Set<String> skipped = new HashSet<>();
+        JSONArray dates = raw.optJSONArray("skipDateKeys");
+        if (dates != null) for (int i = 0; i < dates.length(); i++) skipped.add(dates.optString(i));
+        JSONObject extra = raw.optJSONObject("extra");
+        return new CotidieNotificationTimeline.Rule(raw.optString("sourceId"), raw.has("hour") ? bounded(raw.optInt("hour"), 0, 23) : -1,
+            bounded(raw.optInt("minute"), 0, 59), extra != null && extra.optBoolean("devTest"), skipped);
     }
-
-    private static long todayAt(JSONObject rule, long now) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTimeInMillis(now);
-        if (rule.has("hour")) calendar.set(Calendar.HOUR_OF_DAY, bounded(rule.optInt("hour", 9), 0, 23));
-        calendar.set(Calendar.MINUTE, bounded(rule.optInt("minute", 0), 0, 59));
-        calendar.set(Calendar.SECOND, 0);
-        calendar.set(Calendar.MILLISECOND, 0);
-        return calendar.getTimeInMillis();
+    private static String eventSource(JSONObject event) {
+        String source = event.optString("sourceId");
+        if (!source.isEmpty()) return source;
+        JSONObject extra = event.optJSONObject("extra");
+        if (extra == null) return "";
+        if (extra.has("fixedKey")) return extra.optString("fixedKey");
+        if (extra.has("feast")) return "feast:" + extra.optString("feast");
+        if (extra.has("season")) return "season:" + extra.optString("season");
+        if (extra.optBoolean("cartasInactivityReminder") && extra.has("anchorAt")) return "cartas:" + extra.optLong("anchorAt");
+        return "";
     }
-
-    private static boolean isSkipped(JSONObject rule, String dateKey) {
-        JSONArray skipped = rule.optJSONArray("skipDateKeys");
-        if (skipped == null) return false;
-        for (int i = 0; i < skipped.length(); i++) {
-            if (dateKey.equals(skipped.optString(i))) return true;
+    private static JSONObject findRule(JSONArray rules, String id) {
+        for (int i = 0; i < rules.length(); i++) {
+            JSONObject rule = rules.optJSONObject(i);
+            if (rule != null && id.equals(rule.optString("sourceId"))) return rule;
         }
-        return false;
+        return null;
+    }
+    private static Map<String, Long> plannedRules(Context context, JSONArray rules, long now) {
+        JSONObject stored = readObject(context, RULE_NEXT);
+        Map<String, Long> planned = new LinkedHashMap<>();
+        long previousAlarm = prefs(context).getLong("next_alarm_at", 0);
+        JSONObject delivered = readObject(context, DELIVERED);
+        for (int i = 0; i < rules.length(); i++) {
+            JSONObject raw = rules.optJSONObject(i);
+            if (raw == null) continue;
+            CotidieNotificationTimeline.Rule rule = timelineRule(raw);
+            long at = stored.optLong(rule.id, 0);
+            if (at <= 0) {
+                // Migrate the already registered alarm, never infer a backlog from all earlier minutes.
+                at = CotidieNotificationTimeline.nextAfter(rule, previousAlarm > 0 ? previousAlarm - 1 : now);
+                String legacyKey = rule.hour >= 0 ? CotidieNotificationTimeline.dateKey(at) : occurrenceKey(raw, at, CotidieNotificationTimeline.dateKey(at));
+                if (legacyKey.equals(delivered.optString(rule.id))) at = CotidieNotificationTimeline.nextAfter(rule, Math.max(now, at));
+            }
+            planned.put(rule.id, at);
+        }
+        if (!prefs(context).contains(RULE_NEXT)) prefs(context).edit().putString(RULE_NEXT, new JSONObject(planned).toString()).commit();
+        return planned;
+    }
+    private static void cleanLegacyDevNotifications(Context context, JSONArray previous, JSONArray current) {
+        NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (manager == null) return;
+        Set<Integer> oldIds = new HashSet<>();
+        boolean enabled = false;
+        for (int i = 0; i < current.length(); i++) {
+            JSONObject rule = current.optJSONObject(i);
+            if (rule != null && rule.optJSONObject("extra") != null && rule.optJSONObject("extra").optBoolean("devTest")) enabled = true;
+        }
+        Calendar day = Calendar.getInstance();
+        for (int d = 0; d < 2; d++, day.add(Calendar.DAY_OF_YEAR, -1)) {
+            for (int i = 0; i < previous.length(); i++) {
+                JSONObject rule = previous.optJSONObject(i);
+                if (rule != null && rule.optJSONObject("extra") != null && rule.optJSONObject("extra").optBoolean("devTest"))
+                    oldIds.add(stableId(rule.optString("sourceId") + ":" + CotidieNotificationTimeline.dateKey(day.getTimeInMillis())));
+            }
+        }
+        for (android.service.notification.StatusBarNotification active : manager.getActiveNotifications())
+            if (oldIds.contains(active.getId()) && "Notificación de prueba (Dev)".equals(active.getNotification().extras.getString(Notification.EXTRA_TITLE))) manager.cancel(active.getId());
+        if (!enabled) manager.cancel(DEV_NOTIFICATION_ID);
     }
 
     private static String occurrenceKey(JSONObject rule, long now, String dateKey) {
@@ -271,12 +398,6 @@ public class CotidieNotificationSchedulerPlugin extends Plugin {
     private static int stableId(String value) {
         int id = value.hashCode() & 0x7fffffff;
         return id == 0 ? 1 : id;
-    }
-
-    private static String dateKey(long timestamp) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTimeInMillis(timestamp);
-        return String.format(java.util.Locale.US, "%04d-%02d-%02d", calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH) + 1, calendar.get(Calendar.DAY_OF_MONTH));
     }
 
     private static int bounded(int value, int min, int max) {

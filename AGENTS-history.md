@@ -7748,3 +7748,105 @@ Aplicar FS-01 a FS-09 del reporte manteniendo acceso local, credenciales y flujo
 `src/lib/persistence.ts`; `src/lib/private-storage.ts`; `src/lib/import-safety.ts`; `src/lib/epub-import-safety.ts`; `src/lib/calendar-date.ts`; `src/lib/dev-credentials.ts`; `src/lib/image-utils.ts`; `src/lib/personal-epubs.ts`; `src/lib/reading-store.ts`; `src/lib/epub-reader/progress.ts`; `src/context/SettingsContext.tsx`; `src/context/settings/normalize.ts`; `src/context/settings/types.ts`; `src/context/settings/useNotificationScheduling.ts`; `src/hooks/useConfessionNotebook.ts`; `src/hooks/usePrayerTimer.ts`; `src/components/PersonalEpubLibrary.tsx`; `src/components/PrayerDetail.tsx`; `src/components/settings/DeveloperSettings.tsx`; `src/components/plans/CustomPlanView.tsx`; `src/plugins/BackgroundActions.ts`; `src/plugins/CotidieNotificationScheduler.ts`; `src/plugins/CotidieNotificationSchedulerWeb.ts`; `capacitor.config.ts`; `android/app/src/main/AndroidManifest.xml`; `android/app/src/main/java/com/benjamin/studio/MainActivity.java`; `BackgroundActionsPlugin.java`; `CotidieNotificationSchedulerPlugin.java`; `CotidieNotificationSchedulerBootReceiver.java`; `PrivateStoragePlugin.java`; `PrivateStorageExpiryReceiver.java`; `TimerExpiryReceiver.java`; `android/app/src/main/res/xml/private_backup_rules.xml`; `private_data_extraction_rules.xml`; `package.json`; `package-lock.json`; `tests/reading-persistence.cjs`; `tests/READING-VALIDATION.md`; `docs/REPORTE-FUNCIONES-SENSIBLES-2026-10-08.md`; `AGENTS-history.md`.
 
 Estado: soluciones implementadas y validación local terminada; certificación física y APK/PWA instalada pendientes, sin publicación.
+
+## 2026-10-08 — Regresiones de imagen, ráfagas y entrega de notificaciones Android
+
+### Planificacion
+
+Corregir los problemas reportados tras las actualizaciones anteriores, empezando por los cambios recientes en FS-08 y el parche autoritativo de Local Notifications. Límite: código y artefacto web locales, sin un dispositivo ADB conectado; usuario informa Nubia Air con Android 15. Buscar evidencia de selección de imagen, ocurrencias realmente programadas, cancelación de alarmas y efecto sobre avisos normales. Sin publicación ni instalación, con lecturas dirigidas de memoria/caché y archivos afectados.
+
+### Ejecucion
+
+- La ruta inmediata usada por el planificador buscaba `largeIcon` en vez de `extra.imageDrawable`. Corregida en `scripts/patch-local-notifications.js`, con bitmap de 512 px/RGB565 y parche idempotente; dependencia instalada regenerada mecánicamente, sin usarla como fuente autoritativa.
+- Extraído el cálculo nativo a `CotidieNotificationTimeline`, empleado por producción y test JVM. Persistencia por regla de próxima ocurrencia, migración desde alarma/historial previos, una sola prueba dev tras retrasos y avance de intervalos sin replay. Un ID dev visible, con alerta en cada intervalo, y limpieza de tarjetas dev heredadas de hoy/ayer. Los recordatorios normales siguen siendo independientes.
+- Consulta de estado sin mutaciones y programación sin cancelar el token de broadcasts pendientes. Primer plano rearma y renueva el calendario conservando eventos fechados vencidos de fuentes aún activas, acotados a 24 h; fuentes desconocidas/desactivadas y anclas anteriores de Cartas no se restauran. Bloqueos no consumen pendientes; publicación fallida reintenta tras 60 s.
+- Receptor con `goAsync`, ejecutor serial y bloqueo parcial de CPU acotado a 30 s, liberado al finalizar. Se conserva la alarma `setAlarmClock` existente, sin fallback inexacto silencioso. La causa OEM de retraso con pantalla apagada no queda probada ni descartada con código.
+- Revisión general: la extensión mensual/anual del receptor antiguo no se ejecutaba en esta ruta. Android ahora almacena el calendario fijo hasta el horizonte existente de diez años. Reglas diarias recalculadas ante cambios de hora/zona; checks/opción de omisión incluidos en la sincronización. Presupuesto iOS conservado.
+- Test de credenciales fijado al blob histórico de la fuente anterior: `HEAD` ya contiene verificadores y rompía la prueba tras el commit de migración. Sin cambios de acceso ni impresión de secretos. Reporte FS-08 y matriz física actualizados.
+
+### Validacion
+
+- 41 pruebas Node correctas: las 36 regresiones anteriores más cinco de parche/imagen/identidad de fuentes/recurrencia. Fixtures del parche externos y retirados en finally; actualización y aplicación repetida idempotentes.
+- 1219 aserciones JVM sobre la clase real de producción: despertar tardío produce una prueba actual, mantiene recordatorio normal y próxima cadencia; repetición sin duplicados, 400 intervalos, medianoche, DST diario, checks y eventos fechados.
+- Compilación Java coordinada correcta con JDK 21/API 35/Capacitor/AndroidX: nueve fuentes de producción (cuatro de agenda, administrador parcheado y cuatro dependencias de privacidad/timer) y test. La primera ampliación falló por clases de APK cacheadas anteriores; se compilaron las dependencias actuales y pasó. Solo advertencia de API deprecada preexistente.
+- `npm.cmd run build` final correcto bajo el coordinador: TypeScript previo y export Next.js completos. Las repeticiones respondieron a cambios adicionales de horizonte y renovación de calendario/zona. Lint completo omitido por configuración existente; no se declara comprobado.
+- ADB sin dispositivos: falta verificar imagen expandida, entregas reales con pantalla apagada/Doze, revocación de permisos/canal, reinicio y muerte de proceso en el Nubia. Java/JVM/export no certifican un APK ni el reposo del fabricante. Matriz en `tests/NOTIFICATION-VALIDATION.md`.
+- Sin publicación, commit, modificación de ajustes del celular ni datos externos. Auxiliares en `.codex/projects/Cotidie/validation-notifications-2026-10-08`.
+
+### Archivos Modificados
+
+`android/app/src/main/java/com/benjamin/studio/CotidieNotificationSchedulerPlugin.java`; `CotidieNotificationSchedulerReceiver.java`; `CotidieNotificationSchedulerBootReceiver.java`; nuevo `CotidieNotificationTimeline.java` en la misma ruta; `scripts/patch-local-notifications.js`; `src/context/settings/useNotificationScheduling.ts`; `src/lib/notification-events.ts`; `src/plugins/CotidieNotificationScheduler.ts`; `src/plugins/CotidieNotificationSchedulerWeb.ts`; `tests/notification-patches.cjs`; `tests/notifications/CotidieNotificationTimelineTest.java`; `tests/reading-persistence.cjs`; `tests/NOTIFICATION-VALIDATION.md`; `docs/REPORTE-FUNCIONES-SENSIBLES-2026-10-08.md`; `AGENTS-history.md`.
+
+Estado: correcciones y verificación local terminadas; APK completo y certificación física Nubia Air/Android 15 pendientes. Continuidad: WC-008; no publicado.
+
+## 2026-10-08 — Prueba física parcial de notificaciones; pausa solicitada
+
+### Planificacion
+
+Validar las correcciones en el Nubia Air conectado (Android 15), conservando datos, firma y agenda; separar evidencia de entrega real de limitaciones del ejecutor.
+
+### Ejecucion
+
+Compilados APK release y pruebas firmadas bajo el coordinador; instalada actualización 6.4.24/113 con la misma firma. Instrumentación y auxiliares externos. Añadido registro de instante de publicación únicamente para pruebas dev habilitadas, sin texto ni contenido privado. Agenda sintética temporal con respaldo privado y recuperación en finally.
+
+### Validacion
+
+Aviso fechado con pantalla apagada y proceso cerrado mediante `am kill`: entrega registrada 160 ms después del horario previsto, con BigPictureStyle y bitmap 400 × 300. Último build release completo correcto en 42 s. El observador residente se congeló; el ensayo diario no encontró aviso al horario esperado y paró antes del primer intervalo dev. Pendiente contrastar zona horaria de instrumentación y app; no atribuir una causa OEM ni certificar cadencia, ráfagas o reposo profundo con esos intentos.
+
+Agenda restaurada, respaldo y fixtures retirados, paquete de pruebas desinstalado; USB cargando y force-idle desactivado verificados. Sin publicación. Usuario pidió continuar después: pruebas detenidas, sin sesiones activas, teléfono libre para uso/desconexión. APK corregido permanece instalado.
+
+### Archivos Modificados
+
+`android/app/src/main/java/com/benjamin/studio/CotidieNotificationSchedulerPlugin.java`; `tests/NOTIFICATION-VALIDATION.md`; `docs/REPORTE-FUNCIONES-SENSIBLES-2026-10-08.md`; `AGENTS-history.md`. Caché/auxiliares externos en `.codex/projects/Cotidie`.
+
+Estado: APK completo y entrega fechada con imagen verificados; certificación física restante pausada a petición del usuario. Continuidad: WC-009.
+
+## 2026-10-08 — Observación retomada; recuperación bloqueada por desconexión USB
+
+### Planificacion
+
+Retomar por autorización del usuario, contrastar zona horaria y observar diario/cadencia dev con pantalla apagada; restaurar agenda privada y retirar fixtures al terminar.
+
+### Ejecucion
+
+Fixture externo confirma America/Santiago en Java y Android. El primer observador usaba logcat vacío pese a tener avisos presentes; cambiado a tiempos de actualización Android. Añadida captura acotada de alarma/proceso y snapshot firmado de agenda exclusivamente sintética. Entrada forzada en reposo profundo no confirmada, sin certificación de Doze. Sin cambios nuevos de producción ni ajustes permanentes.
+
+### Validacion
+
+APK test compilado bajo coordinador en 27 s y 28 s. Última fechada con imagen 400 × 300 entregada 191 ms después del horario previsto. Diario y siguientes dev no completaron la secuencia. Estado persistido conserva 13 reglas y próxima alarma aceptada, pero esa alarma no figura en AlarmManager ni como broadcast pendiente; PendingIntent no cancelado, ejecución en fondo permitida y sin alarmas bloqueadas de usuario. No atribuir una causa OEM solo por el proceso congelado.
+
+USB desapareció antes de terminar y la recuperación en finally falló por dispositivo ausente. Respaldo privado preservado, paquete de pruebas aún necesario, agenda/energía pendientes de restauración. Usuario avisado y reconexión solicitada. No hay sesiones activas ni nueva prueba; recuperación preparada en script externo con verificación de backup eliminado, paquete ausente y simulaciones desactivadas.
+
+### Archivos Modificados
+
+`tests/NOTIFICATION-VALIDATION.md`; `docs/REPORTE-FUNCIONES-SENSIBLES-2026-10-08.md`; `AGENTS-history.md`. Fixture, controlador, recuperación y evidencia en `.codex/projects/Cotidie/device-notifications-2026-10-08`; continuidad WC-010.
+
+Estado: validación física fallida/parcial; recuperación bloqueada hasta reconectar 324753583664. No declarar agenda restaurada ni celular limpio para este último ensayo.
+
+## 2026-10-08 — Política Nubia y verificación física de notificaciones completada
+
+### Planificacion
+
+Recuperar la observación interrumpida y aislar la pérdida de entregas con el mismo APK, conservando agenda y datos. Contrastar la política de batería real del dispositivo y validar cadencia, imagen y agrupación de atrasos con pantalla apagada.
+
+### Ejecucion
+
+Recuperación USB anterior completada y verificada. Ensayos acotados de prioridad del receptor, identidad por ocurrencia y exención Android temporal no resolvieron el control: cambios experimentales revertidos, alarmas retiradas y APK original restaurado, SHA256 F39969E5B234A8C106F52E51F1497FE7F411012401128C53B4C701FC4374C4F2. No quedan cambios experimentales de producción.
+
+Panel propio de Nubia identificado: Autoinicio, Inicio relacionado y Ejecución en segundo plano estaban en Automático. Usuario autorizó «Probar y mantener si resuelve el fallo». Solo ejecución en segundo plano cambió a Permitir; el mismo control de dos fechados pasó (+188/+37ms). Se conserva ese ajuste y las otras dos opciones Automático. La exención shell temporal fue eliminada antes; al cierre se observa exención Android con la política Nubia autorizada, sin añadirla nuevamente por shell. No se aisló el mecanismo interno del fabricante.
+
+Auxiliares e instrumentación fuera del repositorio, con temporales únicos y respaldo privado tipado; restauración en finally. El observador usa tiempos Android y no requiere un proceso residente. La recuperación artificial se separó en fases después del fallo del ejecutor residente, sin repetir los quince minutos de observación.
+
+### Validacion
+
+Build release autoritativo correcto en41s y último testAPK en20s bajo coordinador. APK instalado conserva versión6.4.24/113, firma y datos. Observación904s: pantalla apagada sin nuevo despertar, proceso inicialmente cerrado; fechado +170ms, diario +36ms y tres dev a21:55/22:00/22:05 Chile (+38/+50/+40ms). BigPictureStyle400×300 real de dev y fechado; diario sin imagen según configuración. Fase de entrega/imagen aprobada; ejecutor combinado no aprobado por su espera de recuperación residente.
+
+Prueba separada aprobada: doce intervalos dev atrasados producen una sola tarjeta/registro y avanzan las reglas; diez reanudaciones conservan próxima alarma y timestamp de publicación. Imagen desactivada entrega una tarjeta real sin bitmap ni BigPictureStyle. Evidencia cold-20261008-215248 y recovery-20261008-221605 en caché externa.
+
+Agenda/expiraciones restauradas, respaldos privados eliminados y paquete de pruebas ausente. USB cargando, simulación de batería retirada y force-idle desactivado verificados. Sin sesiones activas; teléfono libre. No certificados reposo profundo, reinicio/revocación de permisos, otros fabricantes ni los demás escenarios físicos de la matriz. Sin publicación.
+
+### Archivos Modificados
+
+`tests/NOTIFICATION-VALIDATION.md`; `docs/REPORTE-FUNCIONES-SENSIBLES-2026-10-08.md`; `AGENTS-history.md`. Auxiliares, evidencia e índice/estado WC-011 en `.codex/projects/Cotidie`. Los ensayos de código de esta fase fueron revertidos; permanecen las correcciones anteriores documentadas.
+
+Estado: verificación física de entrega, cadencia, imágenes y recuperación terminada; límites restantes explícitos. Política Nubia autorizada conservada y limpieza verificada. Continuidad WC-011.

@@ -9,6 +9,7 @@ export type CotidieScheduledEvent = {
   smallIcon: string;
   actionTypeId?: string;
   extra?: Record<string, unknown>;
+  sourceId?: string;
 };
 
 export type CotidieDailyRule = Omit<CotidieScheduledEvent, 'id' | 'at'> & {
@@ -21,8 +22,9 @@ export type CotidieDailyRule = Omit<CotidieScheduledEvent, 'id' | 'at'> & {
 
 export type NotificationScheduleStatus = { status: 'scheduled' | 'empty' | 'blocked'; reason: string; nextAlarmAt: number | null };
 type CotidieNotificationSchedulerPlugin = {
-  replaceSchedule(options: { events: CotidieScheduledEvent[]; dailyRules: CotidieDailyRule[] }): Promise<NotificationScheduleStatus>;
+  replaceSchedule(options: { events: CotidieScheduledEvent[]; dailyRules: CotidieDailyRule[]; activeEventSources: string[] }): Promise<NotificationScheduleStatus>;
   getScheduleStatus(): Promise<NotificationScheduleStatus>;
+  resumeSchedule(): Promise<NotificationScheduleStatus>;
   clearSchedule(): Promise<void>;
 };
 

@@ -51,7 +51,8 @@ test('imported remaining time stays within its configured duration and preserves
 });
 
 test('developer verifiers accept the existing local credentials without distributing plaintext', async () => {
-  const previous = require('node:child_process').execFileSync('git', ['show', 'HEAD:src/lib/dev-credentials.ts'], { cwd: root, encoding: 'utf8' });
+  // Immutable pre-migration blob: HEAD now contains verifiers, not legacy credentials.
+  const previous = require('node:child_process').execFileSync('git', ['show', '7bc475af432915832577492028423284ec0049d9'], { cwd: root, encoding: 'utf8' });
   const ast = ts.createSourceFile('previous.ts', previous, ts.ScriptTarget.Latest, true);
   const pairs = [];
   const visit = node => {

@@ -12,14 +12,13 @@ import type { Prayer } from '@/lib/types';
 import { fixedNotifications, type FixedNotificationEntry } from '@/lib/fixed-notifications';
 import { addByKind, addDays, formatTemplate, getNextOccurrence, parseFixedNotificationDate } from '@/context/settings/notification-date-utils';
 import { getEasterDate } from '@/lib/movable-feasts';
+import { fixedNotificationOccurrenceLimit, notificationEventSource } from '@/lib/notification-events';
 import { useToast } from '@/hooks/use-toast';
 import type { DailyReminder, Theme } from './types';
 
 const NOTIFICATION_ACTION_TYPE_ID = 'cotidie-prayer-actions';
 const CARTAS_REMINDER_DAYS = [30, 37, 44] as const;
 const DAY_MS = 24 * 60 * 60 * 1000;
-const MONTHLY_FIXED_NOTIFICATION_OCCURRENCES_ANDROID = 1;
-const MONTHLY_FIXED_NOTIFICATION_OCCURRENCES_IOS = 12;
 const NOTIFICATION_SCHEDULE_BATCH_SIZE = 24;
 const ANDROID_NOTIFICATION_SCHEDULE_LIMIT = 32;
 const IOS_NOTIFICATION_SCHEDULE_LIMIT = 60;
@@ -70,10 +69,18 @@ export const useNotificationScheduling = ({
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
     const listener = App.addListener('appStateChange', ({ isActive }) => {
-      if (isActive) setForegroundVersion(version => version + 1);
+      if (!isActive) return;
+      if (Capacitor.getPlatform() !== 'android') { setForegroundVersion(version => version + 1); return; }
+      // Re-arm first; replacement below preserves registered overdue events.
+      // Refreshing also renews the horizon and adapts dated notices to the current zone.
+      syncQueue.current = syncQueue.current.catch(() => undefined).then(async () => {
+        await CotidieNotificationScheduler.resumeSchedule();
+        setForegroundVersion(version => version + 1);
+      });
+      void syncQueue.current.catch(() => toast({ title: 'No se confirmó la programación de recordatorios', variant: 'destructive' }));
     });
     return () => { void listener.then(handle => handle.remove()); };
-  }, []);
+  }, [toast]);
   const getReminderTitle = useCallback((target: DailyReminder['target']) => {
     if (target.type === 'category') {
       return categories.find((c) => c.id === target.id)?.name ?? 'Recordatorio';
@@ -122,10 +129,6 @@ export const useNotificationScheduling = ({
       const now = new Date();
       const platform = Capacitor.getPlatform();
       const maxTotal = platform === 'ios' ? IOS_NOTIFICATION_SCHEDULE_LIMIT : ANDROID_NOTIFICATION_SCHEDULE_LIMIT;
-      const monthlyFixedOccurrenceLimit =
-        platform === 'ios'
-          ? MONTHLY_FIXED_NOTIFICATION_OCCURRENCES_IOS
-          : MONTHLY_FIXED_NOTIFICATION_OCCURRENCES_ANDROID;
       const totalSources = active.length + fixedActive.length + (cartasReminderActive ? CARTAS_REMINDER_DAYS.length : 0);
       const horizonDays = Math.min(30, Math.max(1, Math.floor(maxTotal / Math.max(1, totalSources))));
       const horizonEnd = new Date(now);
@@ -374,12 +377,7 @@ export const useNotificationScheduling = ({
             parsed.kind === 'monthly' || parsed.kind === 'relative-monthly' || parsed.kind === 'yearly'
               ? parsed.kind
               : null;
-          const fixedOccurrenceLimit =
-            parsed.kind === 'monthly' || parsed.kind === 'relative-monthly'
-              ? monthlyFixedOccurrenceLimit
-              : !entry.requiresNotificationsEnabled && parsed.kind === 'yearly'
-                ? 1
-                : null;
+          const fixedOccurrenceLimit = fixedNotificationOccurrenceLimit(platform, parsed.kind, entry.requiresNotificationsEnabled);
           let fixedOccurrences = 0;
           const calendarEnd = platform === 'android' ? androidCalendarEnd : horizonEnd;
           while (fixedOccurrenceLimit !== null ? fixedOccurrences < fixedOccurrenceLimit : next.getTime() <= calendarEnd.getTime()) {
@@ -639,13 +637,19 @@ export const useNotificationScheduling = ({
             channelId: notification.channelId,
             smallIcon: notification.smallIcon,
             extra: notification.extra,
+            sourceId: notificationEventSource(notification.extra),
           };
           if (notification.actionTypeId) event.actionTypeId = notification.actionTypeId;
           nativeEvents.push(event);
         });
         try {
           if (cancelled) return;
-          const status = await CotidieNotificationScheduler.replaceSchedule({ events: nativeEvents, dailyRules: nativeDailyRules });
+          const activeEventSources = new Set(nativeEvents.map(event => event.sourceId).filter((source): source is string => !!source));
+          fixedActive.filter(({ entry }) => !entry.devOnly || isDeveloperMode)
+            .forEach(({ entry, index }) => activeEventSources.add(`fixed:${index}:${entry.date}`));
+          if (cartasReminderActive) activeEventSources.add('cartas:' + cartasReminderAnchorAt);
+          const status = await CotidieNotificationScheduler.replaceSchedule({ events: nativeEvents, dailyRules: nativeDailyRules,
+            activeEventSources: [...activeEventSources] });
           if (status.status === 'blocked') throw new Error(status.reason);
         } catch (error) {
           console.warn('Failed to configure Cotidie native notification scheduler', error);
@@ -712,5 +716,7 @@ export const useNotificationScheduling = ({
     isDeveloperMode,
     notificationSyncVersion,
     foregroundVersion,
+    skipNotificationIfChecked,
+    planDeVidaCalendar,
   ]);
 };

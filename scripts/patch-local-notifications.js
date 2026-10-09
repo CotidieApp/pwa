@@ -134,6 +134,46 @@ if (!source.includes('NotificationCompat.BigPictureStyle')) {
   );
 }
 
+if (!source.includes('Cotidie immediate image v2')) {
+  replaceOnce(
+    /android\.graphics\.Bitmap bigPicture = localNotification\.getLargeIcon\(context\);/,
+    'android.graphics.Bitmap bigPicture = loadCotidieNotificationBitmap(context, imageDrawable);',
+    'immediate notification image resource'
+  );
+  const bitmapMethods = `    // Cotidie immediate image v2: extra.imageDrawable works without a separate largeIcon.
+    private android.graphics.Bitmap loadCotidieNotificationBitmap(Context context, String resource) {
+        int id = AssetUtil.getResourceID(context, resource, "drawable");
+        if (id <= 0) return null;
+        android.graphics.BitmapFactory.Options bounds = new android.graphics.BitmapFactory.Options();
+        bounds.inJustDecodeBounds = true;
+        bounds.inScaled = false;
+        android.graphics.BitmapFactory.decodeResource(context.getResources(), id, bounds);
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null;
+        android.graphics.BitmapFactory.Options options = new android.graphics.BitmapFactory.Options();
+        options.inScaled = false;
+        options.inPreferredConfig = android.graphics.Bitmap.Config.RGB_565;
+        options.inSampleSize = 1;
+        while (bounds.outWidth / options.inSampleSize > 512 || bounds.outHeight / options.inSampleSize > 512)
+            options.inSampleSize *= 2;
+        android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeResource(context.getResources(), id, options);
+        if (bitmap == null || bitmap.getConfig() == android.graphics.Bitmap.Config.RGB_565) return bitmap;
+        android.graphics.Bitmap compact = bitmap.copy(android.graphics.Bitmap.Config.RGB_565, false);
+        if (compact != null) { bitmap.recycle(); return compact; }
+        return bitmap;
+    }
+
+`;
+  replaceOnce(/    private void createActionIntents\(/, bitmapMethods + '$&', 'bounded immediate notification bitmap');
+}
+
+if (!source.includes('Cotidie dev test alerts')) {
+  replaceOnce(
+    /mBuilder\.setOnlyAlertOnce\(true\);/,
+    '// Cotidie dev test alerts: updating the single diagnostic ID still alerts each interval.\n        mBuilder.setOnlyAlertOnce(extra == null || !Boolean.TRUE.equals(extra.getBool("devTest")));',
+    'recurring diagnostic notification alert'
+  );
+}
+
 if (!source.includes('Cotidie strict exact alarm v4')) {
   replaceOnce(
     /    private void setExactIfPossible\(\r?\n        AlarmManager alarmManager,\r?\n        LocalNotificationSchedule schedule,\r?\n        long trigger,\r?\n        PendingIntent pendingIntent\r?\n    \) \{[\s\S]*?\r?\n    \}\r?\n\r?\n    public void cancel\(PluginCall call\) \{/,
