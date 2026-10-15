@@ -8171,3 +8171,21 @@ Análisis sintáctico del perfil, captura de argumentos de las cuatro variantes,
 ### Archivos Modificados
 
 Perfil PowerShell externo, `scripts/android-apk.mjs`, `README.md`, `docs/RELEASE-CHECKLIST.md` y este historial. Continuidad externa WC-024 actualizada.
+
+## 2026-10-15 — Corregir barra negra en Android físico
+
+### Planificacion
+
+Reproducir la 6.4.27 instalada en el Nubia conectado, localizar la capa que pinta negro y verificar el arreglo en Inicio, encabezado y diálogo de Cartas.
+
+### Ejecucion
+
+La captura y `dumpsys` mostraron que el `DecorView` aplicaba 140 px de relleno superior y desplazaba el WebView. Banderas heredadas de pantalla completa y adelantar `setDecorFitsSystemWindows(false)` no resolvieron el desplazamiento. `configureSystemBars()` ahora evita que `DecorView` consuma los insets y los deja pasar al WebView, conservando sus zonas seguras CSS. Se compiló un APK firmado con la clave privada vigente y se instaló encima de la aplicación sin borrar datos. La ruta de firma configurada seguía apuntando al lugar antiguo; se usó la clave externa vigente solo en el proceso de compilación. No se cambió la versión ni se publicó. La receta de diagnóstico quedó en `docs/ANDROID-SYSTEM-BARS.md` y enlazada desde `AGENTS.md` para encontrarla antes de futuros cambios.
+
+### Validacion
+
+Build web/PWA, sincronización Android y `assembleRelease` aprobados; instalación `adb install -r` correcta. En el Nubia Android 15 el WebView pasó de iniciar en y=140 a cubrir 0–2400. El píxel superior pasó de negro `(0,0,0)` a imagen `(104,62,31)`. Plan de Vida y Cartas muestran barra del mismo color que el encabezado `(146,106,12)`; «Información sobre Cartas» oscurece ambos a `(29,21,2)` y al cerrarlo vuelve la imagen. El APK final fue reinstalado y el píxel superior siguió mostrando la imagen. Este teléfono usa navegación por gestos, por lo que no se certificó el modo inferior de tres botones. Evidencia y continuidad: WC-027.
+
+### Archivos Modificados
+
+`android/app/src/main/java/com/benjamin/studio/MainActivity.java`, `docs/ANDROID-SYSTEM-BARS.md`, `AGENTS.md`, este historial y registros externos de proyecto/caché WC-027.

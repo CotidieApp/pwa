@@ -41,6 +41,11 @@ Este archivo contiene únicamente las reglas vigentes para trabajar en este repo
 - No declarar una acción como realizada sin evidencia de su resultado.
 - Informar explícitamente de cualquier validación que no haya sido posible.
 
+## Regresión frecuente: barras negras en Android
+
+- Si la barra superior o inferior pierde el fondo, consultar primero [docs/ANDROID-SYSTEM-BARS.md](docs/ANDROID-SYSTEM-BARS.md). El caso físico de 6.4.27 fue un relleno aplicado por `DecorView` que dejaba el WebView fuera de la zona superior; cambiar solo CSS o banderas de color no lo resolvió.
+- Para declarar corregida esta regresión, comprobar en el teléfono la imagen de Inicio, un encabezado sin imagen, un diálogo que oscurezca el fondo y el retorno. Verificar tanto los píxeles visibles como los límites del WebView; distinguir navegación por gestos de tres botones.
+
 ## Registro de intervenciones
 
 - Las intervenciones sustantivas deben registrarse en `AGENTS-history.md` con las secciones `Planificacion`, `Ejecucion`, `Validacion` y `Archivos Modificados`.

@@ -149,6 +149,13 @@ public class MainActivity extends BridgeActivity {
     private void configureSystemBars() {
         Window window = getWindow();
         WindowCompat.setDecorFitsSystemWindows(window, false);
+        window.getDecorView().setFitsSystemWindows(false);
+        // Some devices still pad DecorView; pass insets through to WebView without shifting it.
+        window.getDecorView().setOnApplyWindowInsetsListener((view, insets) -> {
+            view.setPadding(0, 0, 0, 0);
+            return insets;
+        });
+        window.getDecorView().setPadding(0, 0, 0, 0);
         window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         window.setStatusBarColor(Color.TRANSPARENT);
         window.setNavigationBarColor(Color.TRANSPARENT);
