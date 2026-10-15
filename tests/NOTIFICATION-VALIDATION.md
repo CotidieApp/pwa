@@ -74,3 +74,19 @@ El test JVM compila juntos `CotidieNotificationTimeline.java` y `CotidieNotifica
 | Revocar/restaurar acceso exacto, permiso de notificación o canal; reinicio y cambio de zona/hora | Motivo de bloqueo veraz, rearmado tras restaurar/abrir, horarios locales actualizados y ningún replay masivo. |
 
 La entrega fechada/diaria, cadencia dev, imagen activada/desactivada y agrupación de atrasos quedaron comprobadas en WC-011. Restan reposo profundo, reinicio, revocación/restauración de permisos, cambios de hora/zona y los demás escenarios de calendario/checks de la matriz. No extrapolar la prueba con pantalla apagada a esos estados.
+
+## Validación de autenticidad y actualización (2026-10-15)
+
+Las acciones que llegan por Activity requieren HMAC sobre ID, acción, JSON y flag removible antes de borrar, cancelar o emitir eventos. El productor conserva PendingIntent mutable para compatibilidad con RemoteInput; modificar cualquiera de esos campos invalida la firma. `mark_prayed` conserva su receptor privado.
+
+`MY_PACKAGE_REPLACED`, después del filtro de broadcasts del sistema, renueva los PendingIntent conservados por Android usando datos privados. No cambia horas ni vuelve a programar alertas. Las notificaciones visibles conservan su contenido; para una notificación única ya entregada cuyo JSON eliminó la versión anterior, solo se recupera la apertura general, sin reconstruir acciones mutantes ni metadatos de navegación desaparecidos.
+
+Pendiente físico: programar con la versión anterior, dejar una notificación visible, actualizar sin abrir la app y probar ambas; comprobar apertura en frío/caliente, descarte, acción privada y ausencia de nueva alerta. Repetir un Intent externo sin firma y con ID/JSON/acción alterados: no debe modificar calendario, estadísticas ni notificaciones. Las pruebas JVM cubren HMAC y alteración de campos; no sustituyen esta prueba Android.
+
+## Texto multilínea (2026-10-15)
+
+El mensaje con imagen ya no se coloca en setSummaryText de BigPictureStyle (una línea). La fuente autoritativa scripts/android/CotidieNotificationTextLayout.java, copiada por postinstall, aplica DecoratedCustomViewStyle en entrega inmediata y programada. Diseños separados permiten hasta 2 líneas de cuerpo contraído, 4 en heads-up y 12 expandido; título expandido hasta 2 líneas. Sin resumir ni cortar cadenas del payload; se respeta largeBody si existe. Tipografía 13/14sp con estilos de notificación del sistema para contraste claro/oscuro. Imagen original completa con fitCenter en 88 × 96dp al lado del texto, sin recorte ni recoloreado. El sistema conserva cabecera y botones; el constructor desde Notification preserva acciones/metadata al publicar una alarma antigua.
+
+Siete pruebas focalizadas del parche aprobadas, incluida instalación fresca, actualización e idempotencia; XML bien formado. La compilación de este cambio fue aplazada por el coordinador (76: 606/1536 MiB libres); las 11 JUnit previas no certifican estos nuevos recursos/helper.
+
+Pendiente: compilar y probar APK en Nubia, temas claro/oscuro, texto corto de Cartas/dev y largo con saltos de línea, imagen activada/desactivada, fuente ampliada, contraída/expandida/heads-up y acciones Marcar/Descartar en primer plano/segundo plano. Verificar también alarma persistida por versión anterior. Android limita altura (puede ser 48/88/252dp respectivamente), por lo que las líneas configuradas son máximos y no garantizan texto ilimitado ni expansión automática. Fuente: https://developer.android.com/develop/ui/views/notifications/custom-notification

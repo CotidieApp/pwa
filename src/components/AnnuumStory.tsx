@@ -67,6 +67,7 @@ export default function AnnuumStory({ onClose, originRect }: AnnuumStoryProps) {
 
   // Reset progress when slide changes
   useEffect(() => {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset the displayed value together with the external animation clock on slide change.
       setProgress(0);
       progressRef.current = 0;
       lastTimeRef.current = null;
@@ -321,7 +322,7 @@ function useMemoSlides(userStats: UserStats, allPrayers: Prayer[], showZeroStats
       { id: 'outro', component: OutroSlide },
     ];
     return slides;
-  }, [allPrayers, showZeroStats, userStats]);
+  }, [showZeroStats, userStats]);
 }
 
 // --- Slides Components ---

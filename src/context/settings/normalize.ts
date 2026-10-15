@@ -1,5 +1,6 @@
 import type { Prayer } from '@/lib/types';
 import { normalizeTimerMinutes } from '@/lib/prayer-timer';
+import { normalizeSimulatedDate } from '@/lib/calendar-date';
 import {
   defaultThemeColors,
   defaultOverlayPositions,
@@ -346,7 +347,7 @@ export const normalizeBackupState = (raw: any) => {
   const timerTime = Math.min(timerDuration * 60, Math.max(0, Math.floor(normalizeNumber(source.timerTime, timerDuration * 60))));
   const theme: Theme = source.theme === 'dark' ? 'dark' : 'light';
   const fontSize = isFiniteNumber(source.fontSize)
-    ? Math.round(source.fontSize)
+    ? Math.min(36, Math.max(10, Math.round(source.fontSize)))
     : source.fontSize === 'large'
       ? 18
       : 15;
@@ -381,7 +382,7 @@ export const normalizeBackupState = (raw: any) => {
     timerTime,
     timerActive: normalizeBoolean(source.timerActive) && timerTime > 0,
     overlayPositions: normalizeOverlayPositionsValue(source.overlayPositions),
-    simulatedDate: normalizeNullableString(source.simulatedDate),
+    simulatedDate: normalizeSimulatedDate(source.simulatedDate),
     planDeVidaTrackerEnabled: normalizeBoolean(source.planDeVidaTrackerEnabled, true),
     planDeVidaProgress: normalizeStringArray(source.planDeVidaProgress),
     planDeVidaCalendar: normalizePlanDeVidaCalendarValue(source.planDeVidaCalendar),
@@ -431,6 +432,18 @@ export const normalizeBackupState = (raw: any) => {
     hasViewedAnnuum: normalizeBoolean(source.hasViewedAnnuum),
     annuumFirstOpenedDate: normalizeNullableString(source.annuumFirstOpenedDate),
   };
+};
+
+export const mergeBackupImport = (current: Record<string, any>, incoming: Record<string, any>) => {
+  const merged = { ...current, ...incoming };
+  // Legacy preferences belong to the Spanish profile, even when current profiles exist.
+  if (hasOwnKey(incoming, 'prayerLanguagePreferences') && !hasOwnKey(incoming, 'prayerLanguageProfiles')) {
+    merged.prayerLanguageProfiles = {
+      ...normalizePrayerLanguageProfiles(current.prayerLanguageProfiles, current.prayerLanguagePreferences),
+      espanol: normalizeStringRecord(incoming.prayerLanguagePreferences),
+    };
+  }
+  return normalizeBackupState(merged);
 };
 
 export const normalizePartialImportPayload = (raw: any) => {

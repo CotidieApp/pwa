@@ -6,6 +6,8 @@ import { SettingsProvider } from '@/context/SettingsContext';
 import ThemeManager from "@/components/ThemeManager";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import ServiceWorkerCleanup from "@/components/ServiceWorkerCleanup";
+import ServiceWorkerUpdates from "@/components/ServiceWorkerUpdates";
+import ErrorBoundary from '@/components/ErrorBoundary';
 import { appVersion } from "@/lib/version";
 
 const HOME_BG_URL_KEY = "cotidie_home_bg_url";
@@ -42,10 +44,10 @@ export default function RootLayout({
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: preloadHomeBackgroundScript }} />
-        <script dangerouslySetInnerHTML={{ __html: devServiceWorkerCleanupScript }} />
+        {process.env.NODE_ENV !== 'production' && <script dangerouslySetInnerHTML={{ __html: devServiceWorkerCleanupScript }} />}
         <meta
           name="viewport"
-          content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover"
+          content="width=device-width, initial-scale=1, viewport-fit=cover"
         />
         <meta name="theme-color" content="#000000" />
         <meta name="google" content="notranslate" />
@@ -56,17 +58,19 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon.png" />
 
         {/* Fuentes Locales */}
+        {/* eslint-disable-next-line @next/next/no-css-tags -- Bundled local font CSS is shared by static web export and the offline Android asset path. */}
         <link rel="stylesheet" href="/fonts/fonts.css" />
       </head>
 
       <body className="h-full font-body bg-transparent">
-        <SettingsProvider>
+        <ErrorBoundary><SettingsProvider>
           <ThemeManager>
             <ServiceWorkerCleanup />
+            <ServiceWorkerUpdates />
             {children}
             <Toaster />
           </ThemeManager>
-        </SettingsProvider>
+        </SettingsProvider></ErrorBoundary>
       </body>
     </html>
   );

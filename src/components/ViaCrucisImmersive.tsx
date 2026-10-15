@@ -12,6 +12,11 @@ import { viaCrucis } from '@/lib/prayers/plan-de-vida/via-crucis';
 import ImmersivePrayerIndexOverlay, { type ImmersiveIndexSection } from '@/components/immersive/ImmersivePrayerIndexOverlay';
 
 // Standard Prayers Text
+// Bundled prayer content is immutable for this view, so compute these lists once.
+const introData = viaCrucis.prayers?.find(p => p.id === 'via-crucis-introduccion');
+const stationsData = viaCrucis.prayers?.filter(p => p.id?.startsWith('via-crucis-') && !isNaN(Number(p.id?.split('-')[2]))) || [];
+const outroData = viaCrucis.prayers?.filter(p => p.id && ['via-crucis-oremos', 'via-crucis-oracion-buena-muerte', 'via-crucis-oracion-momento-muerte'].includes(p.id)) || [];
+
 const PRAYERS_TEXT = {
   te_adoramos: `Te adoramos Cristo y te bendecimos. Que por tu Santa Cruz redimiste al mundo.`,
   padre_nuestro: `Padre nuestro, que estás en el cielo, santificado sea tu Nombre; venga a nosotros tu reino; hágase tu voluntad en la tierra como en el cielo. Danos hoy nuestro pan de cada día; perdona nuestras ofensas, como también nosotros perdonamos a los que nos ofenden; no nos dejes caer en la tentación, y líbranos del mal. Amén.`,
@@ -75,10 +80,6 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
   const navRef = useRef<HTMLDivElement | null>(null);
   const navDragStart = useRef<{ x: number; y: number; startX: number; startY: number }>({ x: 0, y: 0, startX: 0, startY: 0 });
 
-  // Data helpers
-  const introData = viaCrucis.prayers?.find(p => p.id === 'via-crucis-introduccion');
-  const stationsData = viaCrucis.prayers?.filter(p => p.id?.startsWith('via-crucis-') && !isNaN(Number(p.id?.split('-')[2]))) || [];
-  const outroData = viaCrucis.prayers?.filter(p => p.id && ['via-crucis-oremos', 'via-crucis-oracion-buena-muerte', 'via-crucis-oracion-momento-muerte'].includes(p.id)) || [];
 
   // Load Nav Position
   useEffect(() => {
@@ -87,6 +88,7 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
       if (raw) {
         const parsed = JSON.parse(raw);
         if (typeof parsed?.x === 'number' && typeof parsed?.y === 'number') {
+          // eslint-disable-next-line react-hooks/set-state-in-effect -- Browser-only position hydration must follow SSR and precede position persistence.
           setNavPos({ x: parsed.x, y: parsed.y });
         }
       }
@@ -340,7 +342,7 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
     }
 
     return sections;
-  }, [currentStationIndex, currentStepIndex, introData, jumpToIntro, jumpToOutroStep, jumpToStationStep, outroData, outroStepIndex, phase, stationDisplayTitle, stationsData]);
+  }, [currentStationIndex, currentStepIndex, jumpToIntro, jumpToOutroStep, jumpToStationStep, outroStepIndex, phase, stationDisplayTitle]);
 
   // Render Content
   const renderContent = () => {

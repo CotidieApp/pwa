@@ -9,9 +9,9 @@ const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, "..");
 
 const args = process.argv.slice(2);
-const noBump = args.includes("--no-bump");
-const skipPush = args.includes("--no-push");
-const skipDrive = args.includes("--no-drive");
+const noBump = !args.includes("--bump") || args.includes("--no-bump");
+const skipPush = !args.includes("--publish") || args.includes("--no-push");
+const skipDrive = !args.includes("--copy-drive") || args.includes("--no-drive");
 const setIndex = args.indexOf("--set");
 const setVersion = setIndex >= 0 ? args[setIndex + 1] : null;
 
@@ -539,29 +539,11 @@ if (!fs.existsSync(srcApk)) {
   throw new Error("No se encontró app-release.apk.");
 }
 
-logSection("[4/4] Publicación del APK");
+logSection("[4/4] Entrega local del APK");
 const outputFileName = `cotidie-installer-v${nextVersion}.apk`;
-const dstApk = path.join(rootDir, outputFileName);
-const removedApks = [];
-
-try {
-  const files = fs.readdirSync(rootDir);
-  for (const file of files) {
-    const isInstallerApk = file.startsWith("cotidie-installer-v") && file.endsWith(".apk");
-    if (isInstallerApk && file !== outputFileName) {
-      fs.unlinkSync(path.join(rootDir, file));
-      removedApks.push(file);
-    }
-  }
-} catch (error) {
-  console.warn(`No se pudieron limpiar todos los APK anteriores: ${error.message}`);
-}
-
-console.log(
-  removedApks.length > 0
-    ? `APKs anteriores eliminados (${removedApks.length}): ${removedApks.join(", ")}`
-    : "APKs anteriores: no había archivos que limpiar."
-);
+const deliveryDir = path.join(rootDir, 'dist');
+fs.mkdirSync(deliveryDir, {recursive:true});
+const dstApk = path.join(deliveryDir, outputFileName);
 
 const localCopyResult = copyFileWithStatus(srcApk, dstApk);
 console.log(`APK local: ${describeCopyStatus(localCopyResult.status)}.`);

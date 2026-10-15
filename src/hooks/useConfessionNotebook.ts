@@ -40,6 +40,7 @@ export function useConfessionNotebook() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Refresh reads private storage asynchronously; mount and external lifecycle events share the same guarded operation.
     void refresh();
     const visible = () => { if (document.visibilityState === 'visible') void refresh(); };
     const changed = () => { void refresh(); };

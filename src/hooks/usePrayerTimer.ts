@@ -14,11 +14,17 @@ export function usePrayerTimer(onFinished: () => void, onNotificationError: () =
   const [deadline, setDeadline] = useState<number | null>(null);
   const [nativeInitialized, setNativeInitialized] = useState(false);
   const actionsRevision = useRef(0);
+  const finishedRef = useRef(onFinished);
+  const notificationErrorRef = useRef(onNotificationError);
+  useEffect(() => {
+    finishedRef.current = onFinished;
+    notificationErrorRef.current = onNotificationError;
+  }, [onFinished, onNotificationError]);
   useEffect(() => {
     if (!ready || nativeInitialized) return;
     let disposed = false;
     const revision = actionsRevision.current;
-    if (Capacitor.getPlatform() !== 'android') { setNativeInitialized(true); return; }
+    if (Capacitor.getPlatform() !== 'android') return;
     void BackgroundActions.getTimerNotification().then(({ remainingMs, hasSession }) => {
       if (disposed) return;
       if (hasSession && actionsRevision.current === revision) {
@@ -31,10 +37,6 @@ export function usePrayerTimer(onFinished: () => void, onNotificationError: () =
     }).catch(() => { if (!disposed) { setNativeInitialized(true); notificationErrorRef.current(); } });
     return () => { disposed = true; };
   }, [ready, nativeInitialized]);
-  const finishedRef = useRef(onFinished);
-  const notificationErrorRef = useRef(onNotificationError);
-  finishedRef.current = onFinished;
-  notificationErrorRef.current = onNotificationError;
   const timerActive = deadline !== null;
 
   const resetTimer = useCallback(() => {

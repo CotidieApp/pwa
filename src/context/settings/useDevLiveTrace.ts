@@ -31,11 +31,11 @@ export const useDevLiveTrace = (
     // devtools console, or `adb logcat` on the installed Android app).
     const consoleMethod = normalizedLevel === 'error' ? console.error : normalizedLevel === 'warn' ? console.warn : console.info;
     consoleMethod(`[COTIDIE-TRACE][${nextEvent.source}] ${nextEvent.message}${nextEvent.data ? ` — ${nextEvent.data}` : ''}`);
-  }, [devLiveTraceEnabled, isDeveloperMode]);
+  }, [devLiveTraceEnabled, isDeveloperMode, setDevLiveTraceEvents]);
 
   const clearDevLiveTraceEvents = useCallback(() => {
     setDevLiveTraceEvents([]);
-  }, []);
+  }, [setDevLiveTraceEvents]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;

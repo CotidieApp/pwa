@@ -168,6 +168,8 @@ export const useHomeBackgroundRotation = ({
     isLoaded,
     homeBackgroundId,
     allHomeBackgrounds,
+    setHomeBackgroundId,
+    setLastBackgroundRotationDate,
   ]);
 
   return { allHomeBackgrounds, activeThemeColors };

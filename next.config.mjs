@@ -5,7 +5,6 @@ const withPWA = withPWAInit({
   dest: "public",
   disable: process.env.NODE_ENV === "development",
   register: true,
-  skipWaiting: true,
   // Cotidie is a static-export SPA: "/" always returns the same index.html.
   // With the default (dynamicStartUrl: true) the start URL is served
   // NetworkFirst, so offline the PWA waits on the network before falling back
@@ -13,6 +12,13 @@ const withPWA = withPWAInit({
   // conexion" symptom). Setting it false precaches the start URL, so the home
   // shell loads instantly from cache with no connection.
   dynamicStartUrl: false,
+  workboxOptions: {
+    // Keep the current shell and its chunks together until the user accepts a reload.
+    skipWaiting: false,
+    // Next 15 emits this build-only manifest but does not copy it to out/.
+    // A single 404 in precache rejects the entire service worker installation.
+    exclude: [/\/_next\/static\/.*(?<!\.p)\.woff2/, /\.map$/, /^manifest.*\.js$/, /dynamic-css-manifest\.json$/],
+  },
 });
 
 function hideFunctionProperties(value, seen = new WeakSet()) {

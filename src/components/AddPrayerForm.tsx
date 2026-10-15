@@ -22,6 +22,7 @@ import { Eye, Images, Trash2 } from 'lucide-react';
 import { renderText } from '@/lib/textFormatter';
 import ImageCropper from '@/components/ui/ImageCropper';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { useCommittedCallback } from '@/hooks/useCommittedCallback';
 
 const formSchema = z.object({
   title: z.string().min(1, { message: 'El título es requerido.' }),
@@ -34,6 +35,7 @@ const formSchema = z.object({
       message: 'Debe ser una ruta local (/images/) o una imagen local seleccionada.',
     }),
 });
+const draftSchema = formSchema.extend({ title: z.string() }).partial();
 
 type FormValues = z.infer<typeof formSchema>;
 type PrayerFormData = Omit<FormValues, 'content'> & { content: Prayer['content'] };
@@ -54,6 +56,7 @@ export default function AddPrayerForm({
 }: AddPrayerFormProps) {
   const { isDeveloperMode, allHomeBackgrounds } = useSettings();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [saveCompleted, setSaveCompleted] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [selectedImageFileName, setSelectedImageFileName] = useState<string | null>(null);
   const [isCropperOpen, setIsCropperOpen] = useState(false);
@@ -64,6 +67,8 @@ export default function AddPrayerForm({
   const [activeContentVariant, setActiveContentVariant] = useState<string | null>(null);
   const [showAppImages, setShowAppImages] = useState(false);
   const unmountedRef = useRef(false);
+  const draftFinishedRef = useRef(false);
+  const [draftError, setDraftError] = useState<string | null>(null);
 
   const draftStorageKey = useMemo(() => `cotidie_draft_${formType}`, [formType]);
   const isPrayerGroup = Boolean(existingPrayer?.prayers?.length);
@@ -91,42 +96,12 @@ export default function AddPrayerForm({
     mode: 'onSubmit',
   });
 
-  // === Carga de borrador al iniciar
-  useEffect(() => {
-    if (existingPrayer) return; // No cargar borrador si editamos algo existente
-
-    try {
-      const saved = window.localStorage.getItem(draftStorageKey);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed?.title || parsed?.content) {
-          form.reset({
-            title: parsed.title || '',
-            content: parsed.content || '',
-            imageUrl: parsed.imageUrl || '',
-          });
-        }
-      }
-    } catch {}
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draftStorageKey, existingPrayer]);
-
-  // === Guardado automático de borrador
-  useEffect(() => {
-    if (existingPrayer) return;
-
-    const interval = setInterval(() => {
-      const values = form.getValues();
-      if (values.title.trim() || values.content.trim()) {
-        window.localStorage.setItem(draftStorageKey, JSON.stringify(values));
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [draftStorageKey, existingPrayer, form]);
-
-  // === Relleno / limpieza al cambiar modo o elemento
-  useEffect(() => {
+  // Inicializar una sola vez por identidad: un render del contexto no debe
+  // reemplazar lo que el usuario está escribiendo.
+  const initializeForm = useCommittedCallback(() => {
+    draftFinishedRef.current = false;
+    setSaveCompleted(false);
+    setDraftError(null);
     if (existingPrayer) {
       const variants = existingPrayer.content && typeof existingPrayer.content === 'object'
         ? { ...existingPrayer.content }
@@ -150,31 +125,70 @@ export default function AddPrayerForm({
     } else {
       setContentVariants(null);
       setActiveContentVariant(null);
-      form.reset({
-        title: '',
-        content: '',
-        imageUrl: '',
-      });
+      let values: FormValues = { title: '', content: '', imageUrl: '' };
+      try {
+        const saved = window.localStorage.getItem(draftStorageKey);
+        if (saved) {
+          const parsed: unknown = JSON.parse(saved);
+          const draft = draftSchema.safeParse(parsed);
+          if (!draft.success || !parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+            throw new Error('Invalid draft');
+          }
+          values = { title: draft.data.title ?? '', content: draft.data.content ?? '', imageUrl: draft.data.imageUrl ?? '' };
+        }
+      } catch {
+        setDraftError('No se pudo recuperar el borrador. El contenido guardado se conservará hasta que escribas cambios.');
+      }
+      form.reset(values);
     }
     setSelectedImageFileName(null);
     setFinalCroppedImage(null);
     setImageToCrop(null);
     setIsCropperOpen(false);
     setShowAppImages(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [existingPrayer?.id, formType]);
+  });
+
+  useEffect(() => {
+    initializeForm();
+  }, [existingPrayer?.id, formType, initializeForm]);
+
+  const isEditing = Boolean(existingPrayer);
+  const { getValues, watch } = form;
+  useEffect(() => {
+    if (isEditing) return;
+    let pending = false;
+    // La suscripción se instala después de hidratar. No sobrescribir un
+    // borrador ilegible con los valores vacíos iniciales.
+    const subscription = watch(() => { pending = true; });
+    const persist = (reportError: boolean) => {
+      if (!pending || draftFinishedRef.current) return;
+      try {
+        const values = getValues();
+        if (values.title || values.content || values.imageUrl) {
+          window.localStorage.setItem(draftStorageKey, JSON.stringify(values));
+        } else {
+          window.localStorage.removeItem(draftStorageKey);
+        }
+        pending = false;
+        if (reportError) setDraftError(null);
+      } catch {
+        if (reportError) setDraftError('No se pudo guardar el borrador. Conserva esta pantalla abierta y copia el texto antes de salir. Se volverá a intentar.');
+      }
+    };
+    const interval = setInterval(() => persist(true), 1000);
+    return () => {
+      clearInterval(interval);
+      subscription.unsubscribe();
+      persist(false);
+    };
+  }, [draftStorageKey, isEditing, getValues, watch]);
 
   // === Limpieza al desmontar
   useEffect(() => {
+    unmountedRef.current = false;
     return () => {
       unmountedRef.current = true;
-      form.reset({
-        title: '',
-        content: '',
-        imageUrl: '',
-      });
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -183,7 +197,7 @@ export default function AddPrayerForm({
   }, [finalCroppedImage, form]);
 
   const onSubmit: SubmitHandler<FormValues> = async (data) => {
-    if (isSubmitting) return;
+    if (isSubmitting || draftFinishedRef.current) return;
     if (!isPrayerGroup && !data.content.trim()) {
       form.setError('content', { message: 'El contenido es requerido.' });
       return;
@@ -194,8 +208,16 @@ export default function AddPrayerForm({
         ? { ...contentVariants, [activeContentVariant]: data.content }
         : data.content;
       await Promise.resolve(onSave({ ...data, content }));
-      window.localStorage.removeItem(draftStorageKey);
-      form.reset({ title: '', content: '', imageUrl: '' });
+      draftFinishedRef.current = true;
+      if (!unmountedRef.current) setSaveCompleted(true);
+      if (!existingPrayer) {
+        try {
+          window.localStorage.removeItem(draftStorageKey);
+        } catch {
+          if (!unmountedRef.current) setDraftError('La oración se guardó, pero no se pudo borrar el borrador anterior. Puedes cerrar esta pantalla.');
+          return;
+        }
+      }
       if (!unmountedRef.current) {
         onCancel();
       }
@@ -225,6 +247,7 @@ export default function AddPrayerForm({
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="p-6 space-y-4">
+            {draftError ? <p role="alert" className="text-sm text-destructive">{draftError}</p> : null}
             {/* === Campo título === */}
             <FormField
               control={form.control}
@@ -431,15 +454,14 @@ export default function AddPrayerForm({
               type="button"
               variant="outline"
               onClick={() => {
-                form.reset({ title: '', content: '', imageUrl: '' });
                 setSelectedImageFileName(null);
                 onCancel();
               }}
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Guardando…' : 'Guardar'}
+            <Button type="submit" disabled={isSubmitting || saveCompleted}>
+              {saveCompleted ? 'Guardado' : isSubmitting ? 'Guardando…' : 'Guardar'}
             </Button>
           </CardFooter>
         </form>

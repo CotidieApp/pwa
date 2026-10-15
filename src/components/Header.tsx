@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { ArrowLeft, ChevronLeft, ChevronRight, RotateCcw, Expand, Minimize, Search, Pencil, Calendar, Info, EllipsisVertical, Clock3, Languages, Trash2 } from 'lucide-react';
 import { Button } from './ui/button';
+import { useCommittedCallback } from '@/hooks/useCommittedCallback';
 import { cn } from '@/lib/utils';
 import { useSettings } from '@/context/SettingsContext';
 import Timer from '@/components/Timer';
@@ -133,6 +134,7 @@ export default function Header({
     const posRef = useRef(pos);
     const dragRef = useRef<{ pointerId: number; offsetX: number; offsetY: number } | null>(null);
     const [isDragging, setIsDragging] = useState(false);
+    const commit = useCommittedCallback((position: { x: number; y: number }) => onCommit?.(position));
 
     useEffect(() => {
       posRef.current = pos;
@@ -141,7 +143,7 @@ export default function Header({
     useEffect(() => {
       if (isDragging) return;
       if (pos.x === initialPosition.x && pos.y === initialPosition.y) return;
-      setPos(initialPosition);
+      setPos({ x: initialPosition.x, y: initialPosition.y });
     }, [initialPosition.x, initialPosition.y, isDragging, pos.x, pos.y]);
 
     const onPointerDown = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
@@ -189,7 +191,7 @@ export default function Header({
         }
         dragRef.current = null;
         setIsDragging(false);
-        onCommit?.(posRef.current);
+        commit(posRef.current);
       };
 
       window.addEventListener('pointermove', handleMove);
@@ -200,7 +202,7 @@ export default function Header({
         window.removeEventListener('pointerup', handleUp);
         window.removeEventListener('pointercancel', handleUp);
       };
-    }, [isDragging]);
+    }, [isDragging, commit]);
 
     return { ref, pos, onPointerDown };
   };

@@ -100,6 +100,7 @@ export const FULL_BACKUP_KEYS = [
   'simulatedQuoteId',
   'customPlans',
   'notificationsEnabled',
+  'skipNotificationIfChecked',
   'dailyReminders',
   'cartasReminderEnabled',
   'cartasReminderAnchorAt',

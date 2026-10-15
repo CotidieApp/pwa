@@ -265,8 +265,12 @@ export const getExcerptFromElement = (element: Element | null, fallback: string)
 };
 
 export const detectNtBookId = (label: string): string | null => {
-  const normalizedLabel = ` ${normalizeText(label)} `;
-  for (const book of NT_BOOKS) {
+  const normalizedLabel = ` ${normalizeText(label)
+    .replace(/\bprimera\b/g, '1').replace(/\bsegunda\b/g, '2').replace(/\btercera\b/g, '3')
+    .replace(/\b(carta|cartas|a|los|de|s|san)\b/g, ' ').replace(/\s+/g, ' ').trim()} `;
+  // Numbered letters must be checked before the Gospel of John.
+  const books = [...NT_BOOKS].sort((a,b) => Math.max(...b.aliases.map(alias=>alias.length)) - Math.max(...a.aliases.map(alias=>alias.length)));
+  for (const book of books) {
     const hit = book.aliases.some((alias) => normalizedLabel.includes(` ${normalizeText(alias)} `));
     if (hit) return book.id;
   }

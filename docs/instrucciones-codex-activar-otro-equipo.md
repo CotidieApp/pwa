@@ -21,8 +21,8 @@ Usa esta guía cuando el usuario haya restaurado este repo o un ZIP de respaldo 
 Mantener si vino en el respaldo:
 
 - Código fuente completo (`src`, `android`, `scripts`, `public`, etc.).
-- `.env`, si existe.
-- `android/app/my-release-key.keystore`, si existe.
+- Las variables privadas y la clave de firma se transfieren por separado mediante un canal privado; el respaldo de código las excluye.
+- Conservar una copia privada del mismo keystore y sus contraseñas. No recrear la clave para una app ya distribuida.
 
 Regenerar o verificar en el equipo nuevo:
 
@@ -36,7 +36,7 @@ Regenerar o verificar en el equipo nuevo:
 
 - `scripts/setup-windows-dev.ps1` detecta o instala `Node.js LTS`, `Git`, `Android Studio` y `Visual Studio Code`, además de reescribir `android/local.properties`.
 - `scripts/install-powershell-commands.ps1` instala en el perfil de PowerShell el comando `crear ...` y deja apuntado el path actual del repo, así que en otro equipo debe ejecutarse de nuevo.
-- `android/app/build.gradle` ya referencia `my-release-key.keystore` dentro del repo. Si el archivo está presente, no hay que recrear la firma release.
+- `android/app/build.gradle` toma la firma de `COTIDIE_KEYSTORE_PATH`, `COTIDIE_KEYSTORE_PASSWORD`, `COTIDIE_KEY_ALIAS` y `COTIDIE_KEY_PASSWORD`. La ruta debe apuntar al keystore privado fuera del repositorio; ver `docs/RELEASE-CHECKLIST.md`.
 - `android/app/build.gradle` tolera que no exista `google-services.json`; sin ese archivo la app puede compilar, pero las push notifications de Firebase no quedarán operativas.
 - `npm install` ejecuta `postinstall`, así que también aplica los parches locales necesarios a dependencias.
 

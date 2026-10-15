@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { useCommittedCallback } from '@/hooks/useCommittedCallback';
 import { Input } from '@/components/ui/input';
 import {
   Dialog,
@@ -68,9 +69,9 @@ export default function PersonalEpubLibrary({ registerBackHandler }: PersonalEpu
   const [renameTargetId, setRenameTargetId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
 
-  const trace = (message: string, data: string, error = false) => pushDevLiveTrace({
+  const trace = useCommittedCallback((message: string, data: string, error = false) => pushDevLiveTrace({
     level: error ? 'warn' : 'info', source: 'personal-epubs', message, data,
-  });
+  }));
   useEffect(() => {
     let cancelled = false;
     void listPersonalEpubs().then(async items => {
@@ -87,7 +88,7 @@ export default function PersonalEpubLibrary({ registerBackHandler }: PersonalEpu
       });
     }).catch(error => { if (!cancelled) trace('library read', String(error), true); });
     return () => { cancelled = true; };
-  }, []);
+  }, [trace]);
 
   const selected = useMemo(() => epubs.find((item) => item.id === selectedId) ?? null, [epubs, selectedId]);
   const renameTarget = useMemo(

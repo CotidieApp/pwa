@@ -105,7 +105,8 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
       setSimulatedDate(null);
       return;
     }
-    setSimulatedDate(new Date(`${value}T12:00:00`).toISOString());
+    const date = new Date(`${value}T12:00:00`);
+    setSimulatedDate(Number.isFinite(date.getTime()) ? date.toISOString() : null);
   };
 
   return (

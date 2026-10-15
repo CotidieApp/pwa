@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useSettings } from '@/context/SettingsContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,10 +27,10 @@ export default function Timer() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [draftMinutes, setDraftMinutes] = useState(`${timerDuration}`);
 
-  useEffect(() => {
-    if (!isEditOpen) return;
-    setDraftMinutes(`${timerDuration}`);
-  }, [isEditOpen, timerDuration]);
+  const handleEditOpenChange = (open: boolean) => {
+    if (open) setDraftMinutes(`${timerDuration}`);
+    setIsEditOpen(open);
+  };
 
   if (!timerEnabled) {
     return null;
@@ -73,7 +73,7 @@ export default function Timer() {
         variant="ghost"
         size="icon"
         className="h-9 w-9 text-primary-foreground hover:bg-primary-foreground/10"
-        onClick={() => setIsEditOpen(true)}
+        onClick={() => handleEditOpenChange(true)}
         title="Editar duración"
       >
         <Pencil className="size-4" />
@@ -100,7 +100,7 @@ export default function Timer() {
       >
         <X className="size-4" />
       </Button>
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+      <Dialog open={isEditOpen} onOpenChange={handleEditOpenChange}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Duración del temporizador</DialogTitle>

@@ -45,7 +45,7 @@ export default function HomePage({ onSelectCategory, onOpenCustomPlan, onCreateC
     incrementStat,
     customPlans,
     deleteCustomPlan,
-  } = settings || {};
+  } = settings;
 
   const [easterEggQuotes, setEasterEggQuotes] = useState<EasterEggQuote[]>([]);
   const [isCustomPlansVisible, setIsCustomPlansVisible] = useState(false);
@@ -58,7 +58,6 @@ export default function HomePage({ onSelectCategory, onOpenCustomPlan, onCreateC
   const bgImage = allHomeBackgrounds?.find((img) => img.id === homeBackgroundId);
 
   const quoteOfTheDay = useMemo(() => {
-    if (!settings) return null;
     if (!simulatedQuoteId) return rawQuoteOfTheDay;
 
     const allQuotes: Quote[] = [
@@ -67,7 +66,7 @@ export default function HomePage({ onSelectCategory, onOpenCustomPlan, onCreateC
     ];
 
     return allQuotes.find((q) => q.id === simulatedQuoteId) || rawQuoteOfTheDay;
-  }, [rawQuoteOfTheDay, simulatedQuoteId, userQuotes, settings]);
+  }, [rawQuoteOfTheDay, simulatedQuoteId, userQuotes]);
 
   useEffect(() => {
     if (!quoteOfTheDay || !incrementStat) return;
@@ -80,7 +79,6 @@ export default function HomePage({ onSelectCategory, onOpenCustomPlan, onCreateC
   }, [incrementStat, quoteOfTheDay]);
 
   const triggerEasterEgg = useCallback(() => {
-    if (!settings || !registerEasterEggQuote) return;
     const now = Date.now();
     if (now - lastEasterEggAtRef.current < EASTER_EGG_COOLDOWN_MS) return;
     lastEasterEggAtRef.current = now;
@@ -116,11 +114,7 @@ export default function HomePage({ onSelectCategory, onOpenCustomPlan, onCreateC
         );
       }, SAINT_QUOTE_BALLOON_MS);
     }
-  }, [userQuotes, shownEasterEggQuoteIds, registerEasterEggQuote, settings]);
-
-  if (!settings) {
-    return <div className="h-full w-full bg-background" />;
-  }
+  }, [userQuotes, shownEasterEggQuoteIds, registerEasterEggQuote]);
 
   const objectPosition = getImageObjectPosition(bgImage?.id);
 
@@ -247,6 +241,8 @@ export default function HomePage({ onSelectCategory, onOpenCustomPlan, onCreateC
                 "w-full shrink-0 px-[clamp(1rem,4vw,1.5rem)]",
                 isCustomPlansVisible ? "pointer-events-none" : "pointer-events-auto",
               ].join(" ")}
+              ref={node => { if(node) node.inert = isCustomPlansVisible; }}
+              aria-hidden={isCustomPlansVisible}
             >
               {categories && <CategoryList categories={categories} onSelectCategory={onSelectCategory} />}
             </div>
@@ -256,6 +252,8 @@ export default function HomePage({ onSelectCategory, onOpenCustomPlan, onCreateC
                 "w-full shrink-0 px-[clamp(1rem,4vw,1.5rem)]",
                 isCustomPlansVisible ? "pointer-events-auto" : "pointer-events-none",
               ].join(" ")}
+              ref={node => { if(node) node.inert = !isCustomPlansVisible; }}
+              aria-hidden={!isCustomPlansVisible}
             >
               <div className="space-y-[clamp(0.35rem,1.2vh,0.5rem)]">
                 {([1, 2, 3, 4] as const).map((slot) => {
@@ -263,6 +261,15 @@ export default function HomePage({ onSelectCategory, onOpenCustomPlan, onCreateC
                   return (
                     <Card
                       key={slot}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={plan ? `Abrir ${plan.name}` : `Crear plan ${slot}`}
+                      onKeyDown={event => {
+                        if(event.target===event.currentTarget && (event.key==='Enter'||event.key===' ')) {
+                          event.preventDefault();
+                          plan ? onOpenCustomPlan(slot,{openFirstPrayer:true}) : handleRequestCreatePlan(slot);
+                        }
+                      }}
                       className="bg-card/80 shadow-lg backdrop-blur-sm border-border/50 p-[clamp(0.6rem,1.8vh,0.75rem)] min-h-[clamp(56px,9vh,72px)] flex items-center justify-between cursor-pointer hover:bg-accent/20 transition-colors"
                       onClick={() =>
                         plan ? onOpenCustomPlan(slot, { openFirstPrayer: true }) : handleRequestCreatePlan(slot)
@@ -401,7 +408,7 @@ export default function HomePage({ onSelectCategory, onOpenCustomPlan, onCreateC
                 }}
                 className="absolute bottom-0 left-1/2 text-center max-w-xs bg-black/60 backdrop-blur-md rounded-2xl p-6 text-white shadow-2xl border border-white/10"
               >
-                <p className="text-lg font-serif italic">"{quote.text}"</p>
+                <p className="text-lg font-serif italic">&quot;{quote.text}&quot;</p>
                 <p className="text-sm mt-3 font-bold text-primary-foreground/80">- {quote.author}</p>
               </motion.div>
             ))}

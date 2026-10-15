@@ -27,6 +27,7 @@ import { renderRosaryText, renderCenterIcon, getMysteryByDay } from '@/lib/rosar
 import { RosarySelectionView } from '@/components/rosary-immersive/RosarySelectionView';
 import { IntentionsMenuOverlay } from '@/components/rosary-immersive/IntentionsMenuOverlay';
 import { JaculatoriasMenuOverlay } from '@/components/rosary-immersive/JaculatoriasMenuOverlay';
+import { parseRosaryIntentions, parseRosaryJaculatorias } from '@/lib/rosary-immersive/storage';
 
 export default function RosaryImmersive({
   onClose,
@@ -36,6 +37,7 @@ export default function RosaryImmersive({
   mysteryContent: initialContent,
 }: ImmersiveRosaryProps) {
   const { isDistractionFree, theme, arrowBubbleSize, navMode, prayerTextZoom } = useSettings();
+  const { toast } = useToast();
   const touchNavEnabled = navMode === 'touch';
 
   const navBubbleClass = {
@@ -72,6 +74,7 @@ export default function RosaryImmersive({
   const [postStepIndex, setPostStepIndex] = useState(0);
 
   const [intentions, setIntentions] = useState<string[]>([]);
+  const [rosaryStorageReady, setRosaryStorageReady] = useState(false);
   const [showIntentionsMenu, setShowIntentionsMenu] = useState(false);
   const [newIntention, setNewIntention] = useState('');
   const [randomIntention, setRandomIntention] = useState<string | null>(null);
@@ -91,43 +94,38 @@ export default function RosaryImmersive({
     startY: 0,
   });
 
-  // Load intentions
+  // Hydrate both lists before enabling writes: mounting must not save the defaults first.
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('rosary_intentions');
-      if (saved) setIntentions(JSON.parse(saved));
-    } catch (e) { console.error(e); }
-  }, []);
+      const restoredIntentions = parseRosaryIntentions(localStorage.getItem('rosary_intentions'));
+      const restoredJaculatorias = parseRosaryJaculatorias(localStorage.getItem(JACULATORIAS_STORAGE_KEY));
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Hydrate browser storage after mount and enable writes only after both reads succeed (AU19).
+      setIntentions(restoredIntentions);
+      if (restoredJaculatorias !== null) setJaculatorias(restoredJaculatorias);
+      setRosaryStorageReady(true);
+    } catch {
+      toast({ variant: 'destructive', title: 'No se pudo leer el contenido personal del rosario',
+        description: 'Los datos guardados se conservan. Vuelve a abrir el rosario o restaura un respaldo; los cambios de esta sesión no se guardarán.' });
+    }
+  }, [toast]);
 
   useEffect(() => {
+    if (!rosaryStorageReady) return;
     try {
       localStorage.setItem('rosary_intentions', JSON.stringify(intentions));
-    } catch (e) { console.error(e); }
-  }, [intentions]);
+    } catch {
+      toast({ variant: 'destructive', title: 'No se pudieron guardar las intenciones del rosario' });
+    }
+  }, [intentions, rosaryStorageReady, toast]);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(JACULATORIAS_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          const cleaned = parsed
-            .map((item) => ({
-              v: typeof item?.v === 'string' ? item.v : '',
-              r: typeof item?.r === 'string' ? item.r : '',
-            }))
-            .filter((item) => item.v.trim().length > 0 || item.r.trim().length > 0);
-          if (cleaned.length > 0) setJaculatorias(cleaned);
-        }
-      }
-    } catch (e) { console.error(e); }
-  }, []);
-
-  useEffect(() => {
+    if (!rosaryStorageReady) return;
     try {
       localStorage.setItem(JACULATORIAS_STORAGE_KEY, JSON.stringify(jaculatorias));
-    } catch (e) { console.error(e); }
-  }, [jaculatorias]);
+    } catch {
+      toast({ variant: 'destructive', title: 'No se pudieron guardar las jaculatorias' });
+    }
+  }, [jaculatorias, rosaryStorageReady, toast]);
 
   useEffect(() => {
     try {
@@ -135,6 +133,7 @@ export default function RosaryImmersive({
       if (raw) {
         const parsed = JSON.parse(raw);
         if (typeof parsed?.x === 'number' && typeof parsed?.y === 'number') {
+          // eslint-disable-next-line react-hooks/set-state-in-effect -- Browser-only position hydration must follow SSR and precede position persistence.
           setNavPos({ x: parsed.x, y: parsed.y });
         }
       }
@@ -287,7 +286,6 @@ export default function RosaryImmersive({
 
   const [isSalveActive, setIsSalveActive] = useState(false);
   const rosaryExitAdvanceRef = useRef<{ expiresAt: number } | null>(null);
-  const { toast } = useToast();
 
   const currentPreStep = preSteps[preStepIndex];
   const currentStep = sequence[currentStepIndex];
@@ -296,11 +294,12 @@ export default function RosaryImmersive({
   // Random intention logic
   useEffect(() => {
     if (intentions.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Draw once per committed mystery/list change; randomness must not run during render.
       setRandomIntention(intentions[Math.floor(Math.random() * intentions.length)]);
     } else {
       setRandomIntention(null);
     }
-  }, [intentions.length, currentMysteryIndex]); // Re-roll per mystery
+  }, [intentions, currentMysteryIndex]); // Re-roll per mystery or when its intentions change.
 
   const handleNext = () => {
     if (isSalveActive) {
@@ -680,7 +679,6 @@ export default function RosaryImmersive({
       jumpToPostPrayer,
       jumpToPreStep,
       currentMysteryGroup,
-      postSteps,
       preStepIndex,
       preSteps,
       sequenceIndexMap,
@@ -928,7 +926,7 @@ export default function RosaryImmersive({
                     )
                     : <div className="whitespace-pre-wrap">{currentPostStep?.content}</div>
                   : currentStep?.type === 'intro'
-                    ? (randomIntention ? <span className="font-serif italic">"{randomIntention}"</span> : "Ofrecemos este misterio por nuestras intenciones...")
+                    ? (randomIntention ? <span className="font-serif italic">&quot;{randomIntention}&quot;</span> : "Ofrecemos este misterio por nuestras intenciones...")
                     : currentStep?.type === 'reading'
                       ? <span className="font-serif text-base whitespace-pre-wrap">{currentMysteryData.content}</span>
                       : <div className="whitespace-pre-wrap">{PRAYERS_TEXT[currentStep?.type as keyof typeof PRAYERS_TEXT]}</div>

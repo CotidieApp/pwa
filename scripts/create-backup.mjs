@@ -58,6 +58,10 @@ const excludedFiles = new Set([
 ]);
 
 const excludedExtensions = new Set([
+  '.keystore',
+  '.jks',
+  '.p12',
+  '.pfx',
   '.apk',
   '.log',
   '.temp',
@@ -78,6 +82,7 @@ function shouldExclude(relativePath, directoryEntry) {
   }
 
   if (directoryEntry.isFile()) {
+    if (baseName === '.env' || baseName.startsWith('.env.')) return true;
     if (excludedFiles.has(baseName)) {
       return true;
     }

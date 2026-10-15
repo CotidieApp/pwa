@@ -180,6 +180,15 @@ export default function PrayerList({
               key={sub.id || idx}
               className="relative aspect-square overflow-hidden flex flex-col items-center justify-center text-center cursor-pointer bg-transparent border border-border/60 shadow-none hover:bg-accent/10 transition-colors"
               onClick={() => onSelectPrayer(sub)}
+              role="button"
+              aria-label={sub.title}
+              tabIndex={0}
+              onKeyDown={event => {
+                if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+                  event.preventDefault();
+                  onSelectPrayer(sub);
+                }
+              }}
             >
               <div className="absolute right-2 top-2 z-20" onClick={(event) => event.stopPropagation()}>
                 {renderActionMenu(sub)}
@@ -203,12 +212,22 @@ export default function PrayerList({
                 isOracionesRoot && index === 0 && subcategories.length > 0 && "mt-4"
               )}
               onClick={() => onSelectPrayer(prayer)}
+              role="button"
+              aria-label={prayer.title}
+              tabIndex={0}
+              onKeyDown={event => {
+                if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+                  event.preventDefault();
+                  onSelectPrayer(prayer);
+                }
+              }}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3 flex-1 overflow-hidden">
                   {showTracker && prayer.id && (
                     <Checkbox
                       id={`tracker-${prayer.id}`}
+                      aria-label={`Marcar ${prayer.title} como completado`}
                       checked={planDeVidaProgress.includes(prayer.id)}
                       onCheckedChange={() => togglePlanDeVidaItem(prayer.id!)}
                       onClick={(e) => e.stopPropagation()}

@@ -2,6 +2,83 @@
 
 Historial de intervenciones del asistente en el repo.
 
+## 2026-10-11 — Borradores recuperables y dependencias residuales
+
+### Planificacion
+
+Corregir los fallos locales identificados tras el cierre del plan: restauración/autoguardado del formulario y dependencias de herramientas. Conservar versiones principales, datos personales y límites de publicación/instalación.
+
+### Ejecucion
+
+AU20: inicialización única por identidad, borradores parciales validados y conservados, errores de autoguardado visibles con reintento, flush al salir/cambiar tipo, limpieza de borrador vacío y protección del borrador al editar una oración. Guardado exitoso no se duplica ante fallo de limpieza. Eliminadas tres supresiones de hooks. Overrides acotados parser7.1.6/serializer7.0.5/uuid11.1.1, sin migraciones principales.
+
+### Validacion
+
+63pruebas aprobadas, incluyendo cinco del formulario real con React/RHF y tres contratos de dependencias. Lint0errores/0advertencias activas; ocho excepciones justificadas previas. Build/tipos y117recursosPWA aprobados. UI Edge aislada: cancelar/reabrir conserva borrador; cuota simulada avisa/conserva/reintenta; guardar elimina borrador,SWactivo,consola0/0. Audit15→6, causa restantebraces<=3.0.3 sin versión corregida publicada. APKactualizado81.016.754bytes,firma v2 verificada,hash42d86902d066d6497fd52dc5302a570325b171ae8d93bce9efe97fcd9afc7d3c. Gradle290tareas correcto; pipe retenido después del resumen cerrado tras comprobar ausencia de builds activos. Detalle en correction-state.md/WC-017. Sin publicación ni instalación.
+
+### Archivos Modificados
+
+AddPrayerForm.tsx; package.json/package-lock.json; scripts/test.mjs; tests/prayer-form.cjs y dependency-contracts.cjs; docs/CORRECCIONES-2026-10-09.md; este historial. Estado,índice,cacheWC-017 y evidencia fuera del repositorio.
+
+## 2026-10-11 — E25/E31/E32: revisión final y candidato local
+
+### Planificacion
+- Avanzar hasta la última etapa local autorizada; conservar límites físicos/externos y no publicar ni instalar.
+
+### Ejecucion
+- Revisadas66advertencias:58correcciones de código y8excepciones justificadas de línea, sin modificar reglas globales. Las3supresiones previas de AddPrayerForm se conservan explícitamente como deuda previa.
+- HomePage usa contrato real de useSettings; renderCategory/renderContent de MainApp después de callbacks capturados; listas inmutables de Vía Crucis fuera del render. Dependencias de Header/Annuum/Rosario/preview corregidas.
+- EPUB carga por fuente y usa apariencia/trazas vigentes sin reabrir al cambiar letra; biblioteca personal con trazas estables. Timer prepara borrador al abrir, trivia deriva cantidad válida, navegación/planes ajustan estado local con guardas de transición.
+- APK local generado sin bump/push/copia externa; reporte y continuidadWC-016 actualizados.
+
+### Validacion
+- Lint0errores/0advertencias activas,55pruebas correctas,tipos/build/117recursosPWA correctos. Diff sin errores de formato.
+- UI Edge aislada: mismo contenedorEPUB en100→120%/390x844,Mateo recuperado; timer cancelar15/guardar2/reabrir2; plan creado/guardado/abierto; toast nombrado. Consola0errores/0advertencias.
+- APK81.016.338bytes, firma v2 válida;SHA256 ca29f16614f4a461a23fec5f2caa7f8d4b9a57f977847e31db66f55010717dbf. Gradle290tareas correcto, sesión64847 salida0. Coordinador libre.
+- ADB sin dispositivos; E30/PWA instalada/calendario externo pendientes. Sin nueva certificación física, instalación ni publicación.
+
+### Archivos Modificados
+- src/components/home/HomePage.tsx, main/MainApp.tsx, ViaCrucisImmersive.tsx, Header.tsx, EpubReader.tsx, PersonalEpubLibrary.tsx, AnnuumStory.tsx, RosaryImmersive.tsx, Timer.tsx, plans/CustomPlanView.tsx, trivia/SpiritualTrivia.tsx, developer/MassStreakSparkPreview.tsx.
+- src/components/AudioPlayer.tsx, main/CartasIntro.tsx, main/dialogs/AudioDeleteDialog.tsx, settings/DeveloperSettings.tsx; src/hooks/useConfessionNotebook.ts, usePrayerTimer.ts; src/app/layout.tsx.
+- docs/CORRECCIONES-2026-10-09.md, tests/READING-VALIDATION.md y este historial. Entregable dist/cotidie-installer-v6.4.25.apk; estado/log/caché/evidencias fuera del repositorio.
+
+## 2026-10-11 — E25: hidratación y listener del contexto de ajustes
+
+### Planificacion
+- Revisar las seis advertencias restantes de SettingsContext sin hacer que las dependencias reinicien la carga o la suscripción nativa.
+
+### Ejecucion
+- useCommittedCallback mantiene identidad estable y lee el último callback confirmado por un efecto; usado para la carga explícita y las acciones del Plan de Vida.
+- applyBackupSnapshot con dependencias completas, hook de trazas adelantado para evitar acceso antes de inicialización, helpers puros fuera del render y dependencia innecesaria retirada.
+- El listener nativo permanece estable y solo consume pendientes después de recuperar correctamente el almacenamiento.
+
+### Validacion
+- 55 pruebas correctas. Se monta el proveedor real con puentes simulados: no repite hidratación/suscripción al cambiar tema/duración/fecha, usa fecha vigente y permite reintento explícito; un fallo de carga no consume acciones nativas.
+- Lint controlado: 0 errores/52 advertencias; SettingsContext y useCommittedCallback sin avisos. Build/tipos final correcto,117recursos PWA verificados (E25-context-build.log, sesión24315 terminada con salida0).
+- Sin publicación ni instalación; APK previo no incluye E25. Siguiente dominio HomePage/MainApp.
+
+### Archivos Modificados
+- src/context/SettingsContext.tsx, src/hooks/useCommittedCallback.ts, tests/settings-lifecycle.cjs, tests/READING-VALIDATION.md, docs/CORRECCIONES-2026-10-09.md y este historial. Estado/log/índice externo actualizados a WC-015.
+
+## 2026-10-10 — E25: lifecycle de hooks de ajustes
+
+### Planificacion
+- Retomar correction-state.md y revisar el dominio de hooks de ajustes conservando los contratos de notificaciones y widget; sin publicación ni instalación.
+
+### Ejecucion
+- Dependencias completas de trazas, rotación de fondo y santo. Widget observa el santo completo, incluido tipo/título usados por el color litúrgico.
+- Notificaciones leen el tema vigente desde ref actualizada en efecto; cambiar tema no sustituye el trabajo programado. Dependencias funcionales completas.
+- Cierre de toast nombrado «Cerrar aviso». Runner incorpora regresiones React con dependencias externas.
+
+### Validacion
+- 53 pruebas correctas, incluidas dos de lifecycle: cambio de tipo litúrgico, tema durante sincronización pendiente, nueva sincronización y limpieza al desmontar.
+- Lint controlado: 0 errores/58 advertencias (antes 66); cuatro hooks revisados sin avisos. Build controlado con tipos y 117 recursos PWA correcto.
+- Evidencia externa: E25-settings-tests.log, lint-E25-settings.json y E25-settings-build.log. No se repitieron pruebas físicas/UI; el APK anterior no incluye este lote.
+
+### Archivos Modificados
+- src/context/settings/useDevLiveTrace.ts, useHomeBackgroundRotation.ts, useSaintOfTheDay.ts y useNotificationScheduling.ts; src/components/ui/toast.tsx.
+- tests/settings-lifecycle.cjs, scripts/test.mjs, tests/READING-VALIDATION.md, docs/CORRECCIONES-2026-10-09.md y este historial. Continuidad externa actualizada a WC-015.
+
 ## Instrucciones permanentes para agentes
 - Toda IA o agente que modifique archivos de este repositorio debe agregar un reporte en `AGENTS.md`.
 - El reporte debe seguir la modalidad existente: `Planificacion`, `Ejecucion`, `Validacion` y `Archivos Modificados`.
@@ -7850,3 +7927,207 @@ Agenda/expiraciones restauradas, respaldos privados eliminados y paquete de prue
 `tests/NOTIFICATION-VALIDATION.md`; `docs/REPORTE-FUNCIONES-SENSIBLES-2026-10-08.md`; `AGENTS-history.md`. Auxiliares, evidencia e índice/estado WC-011 en `.codex/projects/Cotidie`. Los ensayos de código de esta fase fueron revertidos; permanecen las correcciones anteriores documentadas.
 
 Estado: verificación física de entrega, cadencia, imágenes y recuperación terminada; límites restantes explícitos. Política Nubia autorizada conservada y limpieza verificada. Continuidad WC-011.
+
+## 2026-10-09 — Revisión integral de funcionamiento y brechas
+
+### Planificacion
+
+Revisar la versión local 6.4.25 y entregar un reporte priorizado, sin corregir lógica ni publicar. Reutilizar la evidencia WC-007/WC-008/WC-011 distinguiendo pruebas actuales de observación física histórica. Datos y navegador de prueba aislados; auxiliares externos.
+
+### Ejecucion
+
+Revisión transversal de arranque, persistencia, import/export, navegación, planes, audio, EPUB, calendario, temporizador, privacidad, notificaciones y distribución. Reporte `docs/REPORTE-INTEGRAL-2026-10-09.md` con 17 hallazgos (4 P1, 11 P2, 2 P3), evidencia, corrección propuesta, aceptación y matriz de pendientes. Importación inválida de fondo null reproducida por UI y persistente tras recarga; sondas del código real verificaron desajuste export/import, serialización ICS y slot de navegación. Auditoría de dependencias contrastada con avisos oficiales, sin equiparar severidad del paquete con explotación en APK offline.
+
+### Validacion
+
+Build web/TypeScript coordinado correcto, 41 pruebas Node correctas y 1219 aserciones Java actuales correctas. Lint coordinado termina con 2 errores y 67 advertencias; registrado como hallazgo, no aprobación. Audit omit=dev: 33 paquetes afectados (3 críticos,22 altos,7 moderados,1 bajo), con límites de exposición explicitados. UI Edge: inicio/ajustes/plan/NT; cambio de letra produjo errores repetidos ResizeObserver, salida posible. Cuota de 8 MiB localStorage falló como se esperaba y su clave temporal se retiró. Intento de inyección de fallo inicial no concluyente, no usado para certificar AU-07. Chrome ausente: alternativa Edge; cargador de sondas corrigió resolución TS/JSON antes de medición válida. Sin APK, pruebas físicas ni publicación. Sesión Edge y servidor local cerrados.
+
+### Archivos Modificados
+
+`docs/REPORTE-INTEGRAL-2026-10-09.md`; `AGENTS-history.md`. Estado/índice WC-012 y evidencia bajo `.codex/projects/cotidie`. Código funcional, dependencias y versión sin cambios. Estado: revisión terminada; correcciones propuestas y certificación física pendientes.
+
+## 2026-10-09 — Correcciones integrales por etapas (en curso)
+
+### Planificacion
+
+Implementación autorizada por el usuario, conservando UX y funciones clave. Plan32etapas y checkpoints externos para reanudar sin repetir auditoría. Sin autorización de publicación o instalación en datos del teléfono.
+
+### Ejecucion
+
+Validación estructural y de referencias antes de importar; recuperación independiente ante lectura inválida; reinicio reanudable. RespaldoCTD2 con bibliotecas/progreso y restauración por intención durable. Audio binario en IndexedDB, eventos de reproducción y checkpoints. Slot de planes e ICS corregidos. Dependencias compatibles actualizadas y overrides XML/PostCSS; timer con checkpoint pequeño. APK local explícitamente separado de publicar; salida dist y conserva instaladores. Mejoras de teclado/zoom/sliders y cuota web. Nuevo hallazgo: índice NT omitía11cartas numeradas; reconocimiento corregido. Detalle y límites en docs/CORRECCIONES-2026-10-09.md.
+
+### Validacion
+
+49pruebas Node aprobadas; build/tipos aprobados en checkpoints E13/E24. Edge sintético: importación inválida rechazada, estado cifrado inválido recuperable, reinicio pendiente completado; respaldo real EPUB2360336bytes+audio26214400bytes+marcador/progreso exportado/reimportado con datos idénticos y stage retirado. Reproductor responde a rechazo de play, pausa externa y medio inválido. Reflow sin errores en escenarios instrumentados nuevos; causa original no demostrada. Lint0errores68advertencias antes de últimos cambios. Audit producción15avisos restantes,0críticos; herramientas aún requieren seguimiento. APK local en compilación al registrar; no afirmar certificación física ni publicación.
+
+### Archivos Modificados
+
+SettingsContext y módulos settings/validación/importación; StorageRecovery; backup-archive, audio-store, export-file, reading-store; MainApp/navigation/useNativeAppBindings; AudioPlayer; CategoryList/Settings/HomePage/slider; BrowserStorageStatus; layout; usePrayerTimer/prayer-timer; dev-credentials; ICS y helpers EPUB; package/lock, scripts android-apk/test; README, RELEASE-CHECKLIST, READING-VALIDATION y reportes. Evidencia/checkpoints externos bajo .codex/projects/cotidie/corrections-2026-10-09.
+
+## 2026-10-10 — Restauración, rosario, teclado y actualización web; candidato Android
+
+### Planificacion
+
+Retomar los checkpoints y cerrar las verificaciones web pendientes sin repetir la auditoría. Mantener recuperación explícita, contenido personal, reproducción y lectura offline. Generar un candidato local revisable; sin instalar ni publicar.
+
+### Ejecucion
+
+PrayerList ahora admite foco, Enter/Espacio y casillas con nombre, conservando acciones internas. La restauración aborta también ante errores sincrónicos de put para no confirmar borrados parciales. AU19: intenciones y jaculatorias del rosario incluidas/validadas en CTD2; hidratación antes de guardar, lista vacía respetada y errores visibles. El temporizador avisa si falla el checkpoint sin repetir el aviso cada segundo. PWA: exclusión del manifiesto inexistente que bloqueaba la instalación, comprobación de recursos después de exportar y actualización voluntaria mediante ServiceWorkerUpdates/workboxOptions.skipWaiting=false, tras reproducir mezcla de shell antiguo y chunks nuevos.
+
+### Validacion
+
+51 pruebas Node aprobadas: cuota, aborto, error sincrónico y reintento de restauración; contenido del rosario e importación inválida. Builds web/tipos y 117 recursos precache correctos. Edge: pausa/restauración de audio en segundo73; renombrado/borrado persistentes; siete ticks producen siete checkpoints de38caracteres y un snapshot completo, pausa/recarga893s; teclado Enter/Espacio, zoom2x;27libros del NT y1Juan recuperado offline; rosario no escribe defaults transitorios. Parser externo ical.js2.2.1 recupera732eventos y recurrencia29feb2028/2032. Actualización SW permanece esperando hasta pulsar Actualizar, conserva datos y funciona offline después. Persistencia web denegada se comunica correctamente.
+
+Lint coordinado0errores66advertencias, clasificadas en reporte; revisión por dominio aún pendiente. APK local6.4.25 generado,290tareas Gradle, firma v2 verificada. SHA256:24102a768250cc9a321bb3f1696d8353643e5345000ee7e5923f8ff2c9064bba. Sin copiaDrive, bump, publicación ni instalación. El pipe de sesión1485 permanece por daemon tras finalizar: guardia independiente confirma sin builds activos. Certificación física/instalación PWA siguen pendientes. Próximo trabajo local: E25 y detalle accesible del cierre de toast; estado externo WC-014.
+
+### Archivos Modificados
+
+PrayerList, RosaryImmersive, DeveloperSettings, SettingsContext; rosary-immersive/storage y backup-archive; ServiceWorkerUpdates, layout, next.config, build-controlled/check-pwa-export; reading-persistence y reporte de correcciones. Auxiliares y evidencia fuera del repositorio en .codex/projects/cotidie; APK en dist como entregable de la aplicación.
+
+## 2026-10-14 — Escaneo de seguridad estándar
+
+### Planificacion
+
+Continuar el escaneo Codex Security `f219002c-f1bc-486a-ac37-9576f4025ee1` sobre el worktree actual, sin crear otro escaneo ni modificar código de la aplicación.
+
+### Ejecucion
+
+Preflight listo con advertencia de capacidad de agentes. Modelo de amenazas y revisión estática independiente de importación, EPUB, estado privado, scripts, servidor, recepción Android y widgets. Informe sellado con tres hallazgos: importación automática destructiva desde intent externo (medio), lectura Android sin límite previo (bajo) y receiver de widgets exportado sin filtro de acción (bajo). El informe deja cobertura parcial y trabajo residual explícitos.
+
+### Validacion
+
+Cada hallazgo se contrastó con su flujo de entrada, control, operación y contraevidencia en el código. Los tres JSON canónicos existían antes de completar el mismo escaneo y el workbench generó `report.md`. No se ejecutaron pruebas físicas ni builds; la exposición de App Hosting sigue sin verificarse.
+
+### Archivos Modificados
+
+Solo `AGENTS-history.md` como registro de intervención; los artefactos de Codex Security están fuera del repositorio bajo `.codex/state/plugins/codex-security/scans/Cotidie`. Código funcional sin cambios.
+
+## 2026-10-14 — Corrección del consentimiento de importación externa
+
+### Planificacion
+
+Corregir el hallazgo medio del escaneo `f219002c-f1bc-486a-ac37-9576f4025ee1`: un intent externo aplicaba JSON automáticamente y podía borrar colecciones omitidas. Mantener respaldos históricos, importaciones parciales, planes y recuperación manual.
+
+### Ejecucion
+
+Diálogo explícito antes de aplicar archivos recibidos por window/localStorage, con instantánea ligada al consentimiento, cancelación sin escritura y defensa ante segunda llegada, doble aprobación y callbacks antiguos. El importador preserva campos omitidos y migra preferencias antiguas de idioma. Un estado que no pudo hidratarse no se sobrescribe mediante una importación parcial; la recuperación completa manual permanece disponible. Revisión independiente previa y posterior; se resolvieron los dos casos concretos detectados por el revisor.
+
+### Validacion
+
+`npm test`: 71 pruebas aprobadas, incluidas 8 nuevas regresiones del proveedor real y el diálogo. Lint focalizado coordinado: código 0 sin diagnósticos. Build final coordinado: TypeScript, exportación Next y 117 recursos PWA aprobados. El JSON con theme aislado no aplica cambios antes de aceptar, cancelar conserva el contenido y aprobar preserva las colecciones omitidas. Sin prueba física, APK, instalación ni publicación. Los dos hallazgos bajos siguen pendientes.
+
+### Archivos Modificados
+
+`src/components/ExternalImportDialog.tsx`; `src/context/SettingsContext.tsx`; `src/context/settings/normalize.ts`; `tests/settings-lifecycle.cjs`; `AGENTS-history.md`. Informe de corrección y continuidad WC-019 fuera del repositorio. Se conservaron las modificaciones previas ajenas a este hito.
+
+## 2026-10-14 — Correcciones de lectura Android y receivers
+
+### Planificacion
+
+Cerrar los dos hallazgos bajos pendientes del escaneo de seguridad y sus rutas equivalentes, conservando importación legítima, permisos temporales y eventos de sistema. Validar localmente sin instalar ni publicar.
+
+### Ejecucion
+
+Lectura por bloques con cota de 15 MiB previa a la escritura. La apertura, lectura y cierre de proveedores se aíslan en ImportReaderService, no exportado y en proceso privado, que termina al vencer su plazo o desligarse el cliente. La Activity lee solo el archivo de caché privado terminado, fuera de UI, con una solicitud vigente, callbacks anulables y limpieza de temporales; no recrea salidas canceladas. Se conservó el consentimiento de WC-019. Ambos receivers de arranque filtran únicamente las acciones de sistema declaradas. La revisión independiente detectó el riesgo de un worker atascado y motivó el proceso desechable.
+
+### Validacion
+
+71 pruebas Node y 8 JUnit nativas aprobadas. Gradle coordinado con JDK 21: compileDebugJavaWithJavac y testDebugUnitTest correctos; ejecución final código 0, 110 tareas. Manifiesto fusionado confirma servicio exported=false y process=:cotidie_import. git diff --check correcto. Caches, salidas y temporales de validación externos. Primer build aplazado con código 75; retomado tras guardia libre. Prueba de proveedor malicioso real, reapertura, widgets y diálogo en teléfono pendientes. No se generó APK ni se publicó.
+
+### Archivos Modificados
+
+Manifiesto Android; MainActivity; BoundedImportReader; ImportReaderService; SystemBroadcastPolicy; WidgetBootReceiver; CotidieNotificationSchedulerBootReceiver; AndroidInputSafetyTest; AGENTS-history. Informe y XML de pruebas retenidos fuera del repositorio, continuidad WC-020. Los tres hallazgos conocidos están corregidos en código local; el escaneo original conserva su cobertura parcial y el APK instalado no se actualizó.
+
+## 2026-10-15 — Nuevo análisis Codex Security tras las correcciones
+
+### Planificacion
+
+Volver a analizar el árbol actual con el plugin solicitado, verificar los controles corregidos y buscar problemas restantes. Conservar el escaneo original y revisar offline sin modificar código de la aplicación.
+
+### Ejecucion
+
+Escaneo estándar 41fbfb81-9ce6-4932-9e9a-ee765d5e8e40, con auditor independiente, modelo de arquitectura e investigaciones de Android, web, catálogos y componentes restantes. Se conservaron candidatos y contrapruebas en checkpoints antes de validarlos. Tres hallazgos nuevos bajos: falsificación de acciones de notificación mediante MainActivity, trabajo DOM sin presupuesto al capturar ancla EPUB y bucle persistente por fecha simulada inválida importada. Los tres hallazgos originales mantienen controles fuente.
+
+### Validacion
+
+Escaneo completado/sellado e informe generado por Codex Security. 351 archivos de texto/código auditados sobre 524 rutas; cobertura parcial por 172 binarios y lectura restringida del historial. Sin app, pruebas, builds, red, explotación ni publicación en este nuevo análisis. El lector EPUB conserva incertidumbre de parser/tiempo en WebView. Los assets Android actuales contienen frontend anterior; la ruta de APK los reconstruye/sincroniza, pero no se certificó el instalado. Keystore PKCS12 confirmado versionado pese a ignore, con estructura cifrada observada sin descifrar ni utilizar credenciales; custodia/clave activa pendientes, sin compromiso confirmado.
+
+### Archivos Modificados
+
+Solo AGENTS-history después del sellado y continuidad externa WC-021. Sin cambios funcionales. Informe y canonicales en el directorio externo del escaneo 91c2633a0c2225ae25a25bb9c0299d6fcdcc8317_20261014T234157Z_ezcvwbrs. Los tres hallazgos nuevos quedan pendientes de corrección local.
+
+## 2026-10-15 — Mitigaciones locales del nuevo escaneo y custodia de firma
+
+### Planificacion
+
+Aplicar los cambios locales autorizados a los tres hallazgos de WC-021, preservar cambios previos y aclarar/proteger el keystore sin cambiar la identidad de firma. Skill fix-finding con investigación read-only antes de editar y una revisión independiente posterior. Sin reabrir el escaneo sellado ni publicar.
+
+### Ejecucion
+
+HMAC nativo sobre identidad/acción/payload/removible, verificado antes de efectos; fuente autoritativa del helper y parche bajo scripts. Migración de PendingIntent antiguos al recibir MY_PACKAGE_REPLACED validado, conservando horarios y contenido visible; apertura general cuando la versión anterior ya eliminó los metadatos de una entrega única. Presupuesto EPUB para todos los nodos, caracteres y geometría, con fallback diagnóstico. Validación/normalización de fecha importada e hidratada, setter seguro y cálculos de calendario sin bucles. Las dos observaciones de la revisión independiente (elementos vacíos y compatibilidad al actualizar) se confirmaron y corrigieron.
+
+Keystore trasladado byte a byte a signing privado externo, variable de usuario actualizada, ACL protegida y lectura del alias comprobada sin imprimir secretos. Retirada del índice preparada; sin commit. Ignore/filtro de backups y guías actualizados. No se rotó la clave ni se purgaron historial Git o ZIP anteriores; no hay compromiso confirmado. Requiere respaldo privado independiente.
+
+### Validacion
+
+77 pruebas Node aprobadas; runner serializado tras timeout inicial de carga paralela. Compilación Java Android y 11 JUnit (8 seguridad de entrada y 3 HMAC) aprobados mediante coordinador, offline/JDK21/un worker y build/cache externos; última ejecución BUILD SUCCESSFUL 45s. Revisión independiente única, sin segunda certificación posterior.
+
+Lint/build inicial sin resultado final recuperable al retomar; comprobados procesos anteriores ausentes. Intento posterior aplazado por coordinador con código 76: 1087 MiB libres frente a mínimo 1536. No representa error de código. Lint, build web/tipos, sincronización Android y prueba física pendientes; assets/APK previos no se declaran actualizados. Sin instalación/publicación. Informe de correcciones retenido por Codex Security fuera del repositorio y continuidad WC-022.
+
+### Archivos Modificados
+
+scripts/patch-local-notifications.js, scripts/android/CotidieNotificationIntentPolicy.java, scripts/create-backup.mjs, scripts/test.mjs; fecha/esquema/reglas de calendario, SettingsContext y normalizador, DeveloperDashboard y epub-reader/layout; CotidieNotificationSchedulerBootReceiver y NotificationIntentPolicyTest; tests de persistencia/lifecycle/notificaciones/backup y matrices de validación; .gitignore, guías de release/traslado y este historial. Keystore retirado del índice y del checkout tras verificar copia privada. Estado/caché externos en project.md, índice y WC-022.
+
+## 2026-10-15 — Mostrar más texto en notificaciones
+
+### Planificacion
+
+Revisar la ruta real Android ante el recorte incluso de mensajes cortos. Mantener imagen completa e identidad, aprovechar área contraída/expandida/emergente y conservar acciones/seguridad. Confirmar límites del sistema con documentación oficial Android.
+
+### Ejecucion
+
+Se encontró el cuerpo con imagen en BigPictureStyle.setSummaryText, limitado a una línea. Helper autoritativo CotidieNotificationTextLayout y tres diseños RemoteViews decorados por Android: cuerpo hasta 2/4/12 líneas, título expandido 2, estilos adaptados al tema. Imagen íntegra fitCenter a un lado (88×96dp) para reservar el área principal al mensaje. Texto grande del payload preservado. Parche reproducible en postinstall y actualización de fuentes instaladas; rutas inmediata y programada usan el mismo renderer, incluso sin imagen. El constructor AndroidX desde Notification conserva acciones/propiedades de alarmas antiguas. No cambia permisos ni programación.
+
+### Validacion
+
+7 pruebas focalizadas aprobadas: actualización, instalación fresca, idempotencia, renderer compartido con/sin imagen, acciones y controles previos. Tres XML analizados correctamente y git diff --check aprobado. API del constructor y estilos contrastados con documentación oficial AndroidX/Android. Compilación Android aplazada por coordinador: código76, 606 MiB libres frente a1536; no se saltó control ni se reintentó en bucle. Los nuevos layouts no están certificados en teléfono ni incorporados a un APK. Temas/fuente grande/acciones/estados y comparación visual pendientes; Android conserva el límite de altura. Sin instalación ni publicación.
+
+### Archivos Modificados
+
+scripts/patch-local-notifications.js, scripts/android/CotidieNotificationTextLayout.java, tres layout/cotidie_notification_*.xml, tests/notification-patches.cjs, tests/NOTIFICATION-VALIDATION.md y este historial. Continuidad externa WC-023.
+
+## 2026-10-15 — Incremento de versión con `armar cotidie`
+
+### Planificacion
+
+Seguir el comando del perfil PowerShell hasta el generador Android y restaurar el incremento esperado sin ejecutar un APK ni modificar la versión actual.
+
+### Ejecucion
+
+El generador había cambiado a incremento explícito con `--bump`, pero `armar cotidie` seguía invocándolo sin argumentos. El perfil ahora pasa `--bump` en esa variante. La guía de release aclara los modos normal, `fijo` y versión concreta.
+
+### Validacion
+
+El perfil se analizó sin errores de sintaxis. Con `npm` sustituido temporalmente por una función de captura, las tres variantes enviaron respectivamente `--bump`, `--no-bump` y `--set 6.4.26`. No se ejecutó compilación, se cambió la versión del proyecto ni se publicó un APK.
+
+### Archivos Modificados
+
+Perfil PowerShell `C:\Users\balca\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1`, `docs/RELEASE-CHECKLIST.md` y este historial.
+
+## 2026-10-15 — Restaurar flujo completo de `armar cotidie`
+
+### Planificacion
+
+Corregir la omisión de publicación de la intervención anterior. El usuario confirmó que el comando normal debe copiar y publicar, creando automáticamente un commit; mantener una variante local explícita.
+
+### Ejecucion
+
+El perfil pasa `--bump --copy-drive --publish` para el comando normal, y añade `local` con `--bump --no-drive --no-push`. `fijo` conserva versión y usa copia/publicación; una versión concreta usa el flujo completo. En la ruta `--publish`, el generador vuelve a añadir todos los cambios, crear commit si corresponde, hacer push y publicar el APK. `npm run android:apk` directo conserva el comportamiento local. README y guía de release actualizados.
+
+### Validacion
+
+Análisis sintáctico del perfil, captura de argumentos de las cuatro variantes, `node --check scripts/android-apk.mjs` y `git diff --check` correctos. No se ejecutó build, commit, push, copia secundaria ni publicación; la versión permanece en 6.4.25.
+
+### Archivos Modificados
+
+Perfil PowerShell externo, `scripts/android-apk.mjs`, `README.md`, `docs/RELEASE-CHECKLIST.md` y este historial. Continuidad externa WC-024 actualizada.

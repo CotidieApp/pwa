@@ -430,7 +430,7 @@ export default function MassStreakSparkPreview({ onClose, year = new Date().getF
   }, [simulation.events]);
   const activeEvent =
     simulation.events[Math.max(0, Math.min(revealedCount - 1, simulation.events.length - 1))] ?? simulation.events[0] ?? null;
-  const currentMonthDate = activeEvent?.date ?? simulation.events[0]?.date ?? new Date(simulation.year, 0, 1);
+  const currentMonthDate = useMemo(() => activeEvent?.date ?? simulation.events[0]?.date ?? new Date(simulation.year, 0, 1), [activeEvent?.date, simulation.events, simulation.year]);
   const currentMonth = currentMonthDate.getMonth();
   const currentMonthKey = toMonthKey(currentMonthDate);
   const monthGrid = useMemo(

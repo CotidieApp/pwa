@@ -24,6 +24,8 @@ Module._resolveFilename = function(name, ...args) {
 };
 class MemoryStorage {
   data = new Map();
+  get length() { return this.data.size; }
+  key(index) { return [...this.data.keys()][index] ?? null; }
   getItem(key) { return this.data.get(key) ?? null; }
   setItem(key, value) { this.data.set(key, String(value)); }
   removeItem(key) { this.data.delete(key); }
@@ -43,6 +45,202 @@ const imports = require('../src/lib/import-safety.ts');
 const { validateEpubArchive } = require('../src/lib/epub-import-safety.ts');
 const { getLocalDateKey } = require('../src/lib/calendar-date.ts');
 const { normalizeBackupState } = require('../src/context/settings/normalize.ts');
+const { validateSettingsData, validatePlanReferences } = require('../src/lib/settings-validation.ts');
+
+test('invalid imported dates are rejected and legacy saved dates normalize safely', () => {
+  for (const date of ['not-a-date', ' ', '999999-12-31', {}, 42]) {
+    assert.throws(() => validateSettingsData({ theme: 'light', simulatedDate: date }), /simulatedDate/);
+    assert.equal(normalizeBackupState({ simulatedDate: date }).simulatedDate, null);
+  }
+  for (const date of ['2026-10-15', '2026-10-15T12:00:00', 'October 15, 2026 12:00:00']) {
+    assert.doesNotThrow(() => validateSettingsData({ simulatedDate: date }));
+    assert.equal(normalizeBackupState({ simulatedDate: date }).simulatedDate, date);
+  }
+  assert.doesNotThrow(() => validateSettingsData({ simulatedDate: null }));
+  assert.equal(normalizeBackupState({ simulatedDate: '' }).simulatedDate, null);
+});
+
+test('calendar functions terminate for invalid dates and extreme finite years', () => {
+  const { execFileSync } = require('node:child_process');
+  // A regressed infinite loop must fail this test by timeout, not freeze the test process.
+  execFileSync(process.execPath, ['-e', `
+    const fs = require('fs'), ts = require('typescript'), assert = require('assert/strict');
+    require.extensions['.ts'] = (m, f) => m._compile(ts.transpileModule(fs.readFileSync(f, 'utf8'),
+      { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText, f);
+    const feasts = require('./src/lib/movable-feasts.ts');
+    const rules = require('./src/lib/liturgical-color-rules.ts');
+    assert.equal(feasts.getMovableFeast(new Date(NaN), new Date()), null);
+    for (const year of [NaN, Infinity, -Infinity, 275760, -271821, 2026]) rules.getAdventDates(year);
+    feasts.getMovableFeast(new Date(8640000000000000), new Date(8640000000000000));
+    assert.equal(rules.getAdventDates(2026).advent1.getMonth(), 10);
+    assert.equal(rules.getAdventDates(2026).advent1.getDate(), 29);
+  `], { cwd: root, timeout: 5000, stdio: 'pipe' });
+});
+
+test('backup validation allows shared JSON values but rejects actual cycles', () => {
+  const shared={count:1};
+  assert.doesNotThrow(()=>imports.validateImportPayload({current:shared,total:shared}));
+  const cyclic={};cyclic.self=cyclic;
+  assert.throws(()=>imports.validateImportPayload(cyclic),/circulares/);
+});
+
+test('all 27 bundled New Testament books are reachable from their real TOC labels', async () => {
+  const {detectNtBookId}=require('../src/lib/epub-reader/helpers.ts');
+  const {NT_BOOKS}=require('../src/lib/epub-reader/constants.ts');
+  const zip=await require('jszip').loadAsync(fs.readFileSync(path.join(root,'public/epub/nuevo-testamento.epub')));
+  const ncx=Object.keys(zip.files).find(name=>name.endsWith('.ncx'));
+  const labels=[...(await zip.file(ncx).async('string')).matchAll(/<text>([^<]+)<\/text>/g)].map(match=>match[1]);
+  const ids=new Set(labels.map(detectNtBookId).filter(Boolean));
+  assert.deepEqual([...ids].sort(),NT_BOOKS.map(book=>book.id).sort());
+  assert.equal(detectNtBookId('Primera carta de S. Juan'),'1-juan');
+  assert.equal(detectNtBookId('II Corintios'),'2-corintios');
+});
+
+test('small timer checkpoint restores seconds and rejects stale duration or malformed values', () => {
+  assert.equal(prayerTimer.readTimerCheckpoint(JSON.stringify({version:1,duration:15,time:43}),15),43);
+  for(const raw of ['invalid','null',JSON.stringify({version:1,duration:10,time:43}),JSON.stringify({version:1,duration:15,time:901})])
+    assert.equal(prayerTimer.readTimerCheckpoint(raw,15),null);
+});
+
+test('complete backups round-trip binary audio, progress and legacy progress without private data', async () => {
+  const backup = require('../src/lib/backup-archive.ts');
+  const audio = require('../src/lib/audio-store.ts');
+  const bytes = Uint8Array.from([0, 255, 32, 128]).buffer;
+  await audio.saveAudioRecord({id:'backup-audio',title:'Prueba',sizeBytes:4,updatedAt:1,data:bytes});
+  localStorage.setItem('cotidie_spiritual_audio_progress', JSON.stringify({'backup-audio':3}));
+  localStorage.setItem('private-test', 'must-not-export');
+  localStorage.setItem('rosary_intentions', JSON.stringify(['Por mi familia', 'Por quienes sufren']));
+  localStorage.setItem('rosary_jaculatorias', JSON.stringify([{v:'Versículo personal',r:'Respuesta personal'}]));
+  await persistence.setItem('cotidie_epub_location_legacy-fixture', 'epubcfi(/6/2!/4/2)');
+  const blob = await backup.createBackupArchive({userPrayers:[], isDeveloperMode:true});
+  const archive = await backup.parseBackupArchive(blob);
+  assert.throws(()=>backup.validateBackupArchive({...archive,local:{cotidie_epub_bookmarks_book:'[null]'}}));
+  assert.throws(()=>backup.validateBackupArchive({...archive,local:{cotidie_spiritual_audio_progress:'{"a":{}}'}}));
+  assert.throws(()=>backup.validateBackupArchive({...archive,local:{rosary_intentions:'[null]'}}));
+  assert.throws(()=>backup.validateBackupArchive({...archive,local:{rosary_jaculatorias:'[{"v":false,"r":"Respuesta"}]'}}));
+  assert.equal(archive.settings.isDeveloperMode, undefined);
+  assert.equal(archive.local['private-test'],undefined);
+  assert.deepEqual(new Uint8Array(archive.library.audio[0].data),new Uint8Array(bytes));
+  assert.ok(archive.library.progress.some(([key])=>key==='cotidie_epub_location_legacy-fixture'));
+  const marker = await backup.stageBackupArchive(archive);
+  await audio.removeAudioRecord('backup-audio');
+  localStorage.setItem('cotidie_spiritual_audio_progress','{}');
+  localStorage.removeItem('rosary_intentions');
+  localStorage.removeItem('rosary_jaculatorias');
+  await backup.completeLibraryRestore(marker);
+  await backup.completeLibraryRestore(marker); // Retry after interruption is idempotent.
+  assert.equal((await audio.listAudioRecords())[0].title,'Prueba');
+  assert.equal(localStorage.getItem('cotidie_spiritual_audio_progress'),archive.local.cotidie_spiritual_audio_progress);
+  assert.deepEqual(JSON.parse(localStorage.getItem('rosary_intentions')), ['Por mi familia', 'Por quienes sufren']);
+  assert.deepEqual(JSON.parse(localStorage.getItem('rosary_jaculatorias')), [{v:'Versículo personal',r:'Respuesta personal'}]);
+  assert.equal(await persistence.getItem('cotidie_epub_location_legacy-fixture'),null);
+  await backup.discardRestoreStage(marker.id);
+  await assert.rejects(backup.completeLibraryRestore(marker),/Faltan/);
+  const corrupt = new Uint8Array(await blob.arrayBuffer());corrupt[corrupt.length-1]^=1;
+  await assert.rejects(backup.parseBackupArchive(new Blob([corrupt])));
+  await assert.rejects(backup.parseBackupArchive(blob.slice(0,blob.size-1)));
+  await audio.removeAudioRecord('backup-audio');
+  localStorage.removeItem('cotidie_spiritual_audio_progress');localStorage.removeItem('private-test');
+  localStorage.removeItem('rosary_intentions');localStorage.removeItem('rosary_jaculatorias');
+});
+
+test('rosary personal lists validate shape and preserve an intentionally empty list', () => {
+  const {parseRosaryIntentions,parseRosaryJaculatorias}=require('../src/lib/rosary-immersive/storage.ts');
+  assert.deepEqual(parseRosaryIntentions(null), []);
+  assert.deepEqual(parseRosaryIntentions('["Por la paz"]'), ['Por la paz']);
+  assert.deepEqual(parseRosaryJaculatorias('[]'), []);
+  assert.equal(parseRosaryJaculatorias(null), null);
+  for (const invalid of ['{}','null','[null]','[{}]']) assert.throws(()=>parseRosaryIntentions(invalid));
+  for (const invalid of ['{}','null','[null]','[{"v":1,"r":"a"}]']) assert.throws(()=>parseRosaryJaculatorias(invalid));
+});
+
+test('restore survives local quota failure and an aborted library transaction before retry', async () => {
+  const backup = require('../src/lib/backup-archive.ts');
+  const audio = require('../src/lib/audio-store.ts');
+  const bytes = Uint8Array.from([1, 2, 3]).buffer;
+  await audio.saveAudioRecord({id:'restore-target',title:'Restaurado',sizeBytes:3,updatedAt:1,data:bytes});
+  localStorage.setItem('cotidie_spiritual_audio_progress', '{"restore-target":12}');
+  const archive = await backup.parseBackupArchive(await backup.createBackupArchive({userPrayers:[]}));
+  const marker = await backup.stageBackupArchive(archive);
+  await audio.removeAudioRecord('restore-target');
+  await audio.saveAudioRecord({id:'restore-existing',title:'Anterior',sizeBytes:3,updatedAt:1,data:bytes});
+  const setItem = localStorage.setItem;
+  localStorage.setItem = function(key, value) {
+    if (key === 'cotidie_spiritual_audio_progress') throw new DOMException('Quota exceeded', 'QuotaExceededError');
+    return setItem.call(this, key, value);
+  };
+  try { await assert.rejects(backup.completeLibraryRestore(marker), {name:'QuotaExceededError'}); }
+  finally { localStorage.setItem = setItem; }
+  assert.ok((await audio.listAudioRecords()).some(record => record.id === 'restore-existing'));
+  const put = IDBObjectStore.prototype.put;
+  IDBObjectStore.prototype.put = function(...args) {
+    const request = put.apply(this, args);
+    if (this.name === 'audio') this.transaction.abort();
+    return request;
+  };
+  try { await assert.rejects(backup.completeLibraryRestore(marker)); }
+  finally { IDBObjectStore.prototype.put = put; }
+  assert.ok((await audio.listAudioRecords()).some(record => record.id === 'restore-existing'), 'aborted replacement preserves previous binary');
+  IDBObjectStore.prototype.put = function(...args) {
+    if (this.name === 'audio') throw new DOMException('Cannot clone', 'DataCloneError');
+    return put.apply(this, args);
+  };
+  try { await assert.rejects(backup.completeLibraryRestore(marker), {name:'DataCloneError'}); }
+  finally { IDBObjectStore.prototype.put = put; }
+  assert.ok((await audio.listAudioRecords()).some(record => record.id === 'restore-existing'), 'synchronous put failure also rolls back queued clears');
+  await backup.completeLibraryRestore(marker);
+  assert.deepEqual((await audio.listAudioRecords()).map(record=>record.id), ['restore-target']);
+  assert.equal(localStorage.getItem('cotidie_spiritual_audio_progress'), '{"restore-target":12}');
+  await backup.discardRestoreStage(marker.id);
+  await audio.removeAudioRecord('restore-target');
+  localStorage.removeItem('cotidie_spiritual_audio_progress');
+});
+
+test('audio migration retains source after failed commit and supports retry', async () => {
+  const audio = require('../src/lib/audio-store.ts');
+  const key='cotidie_spiritual_audio_file_migrate-audio';
+  localStorage.setItem('cotidie_spiritual_audio_library',JSON.stringify([{id:'migrate-audio',title:'Audio',updatedAt:1}]));
+  localStorage.setItem(key,'data:audio/mpeg;base64,AAECAw==');
+  const originalPut=IDBObjectStore.prototype.put;
+  IDBObjectStore.prototype.put=function(...args){const request=originalPut.apply(this,args);
+    if(this.name==='audio')request.addEventListener('success',()=>this.transaction.abort());return request;};
+  try {await assert.rejects(audio.migrateAudioLibrary());assert.ok(localStorage.getItem(key));}
+  finally {IDBObjectStore.prototype.put=originalPut;}
+  await audio.migrateAudioLibrary();
+  assert.equal(localStorage.getItem(key),null);
+  assert.equal((await audio.listAudioRecords()).find(a=>a.id==='migrate-audio').sizeBytes,4);
+  await audio.removeAudioRecord('migrate-audio');
+});
+
+test('navigation retains custom plan context and rejects invalid slots', () => {
+  const { normalizeNavState } = require('../src/components/main/navigation.ts');
+  for (const slot of [1,2,3,4]) assert.equal(normalizeNavState({activeView:'customPlan',selectedCustomPlanSlot:slot}).selectedCustomPlanSlot,slot);
+  assert.equal(normalizeNavState({activeView:'customPlan',selectedCustomPlanSlot:8}).selectedCustomPlanSlot,null);
+});
+test('ICS content lines are CRLF folded and TEXT escaping round-trips', () => {
+  const {generateSaintsICS, escapeICSText, foldICSLine} = require('../src/lib/ics-generator.ts');
+  const ics = generateSaintsICS();
+  assert.equal(ics.replace(/\r\n/g, '').includes('\n'), false);
+  for (const line of ics.split('\r\n')) assert.ok(Buffer.byteLength(line) <= 75);
+  assert.equal(escapeICSText('a\\b\nc,d;e'), 'a\\\\b\\nc\\,d\\;e');
+  const long = 'á😀'.repeat(70);
+  assert.equal(foldICSLine(long).replace(/\r\n /g,''),long);
+  for (const match of ics.matchAll(/DTSTART;VALUE=DATE:(\d{4})(\d{2})(\d{2})/g)) {
+    const date = new Date(+match[1],+match[2]-1,+match[3]);
+    assert.equal(date.getMonth()+1,+match[2]); assert.equal(date.getDate(),+match[3]);
+  }
+});
+
+test('untrusted settings reject malformed renderable structures and preserve compatible content', () => {
+  for (const value of [{userHomeBackgrounds:[null]}, {userQuotes:[{text:{},author:'a'}]},
+    {userPrayers:[{id:'a',title:'a',categoryId:'oraciones',prayers:[null]}]},
+    {customThemeColors:{primary:{h:0,s:1000}}}]) assert.throws(() => validateSettingsData(value));
+  const prayer = {id:'a',title:'Título',categoryId:'oraciones',content:{es:'Texto',la:'Textus'}};
+  assert.doesNotThrow(() => validateSettingsData({userPrayers:[prayer], userHomeBackgrounds:[]}));
+  assert.throws(() => validateSettingsData({userPrayers:[prayer,prayer]}));
+  assert.throws(() => validatePlanReferences([{prayerIds:['missing']}],[prayer]));
+  assert.doesNotThrow(() => validatePlanReferences([{prayerIds:['a']}],[prayer]));
+});
 
 test('imported remaining time stays within its configured duration and preserves valid pauses', () => {
   assert.equal(normalizeBackupState({ timerDuration: 2, timerTime: Number.MAX_VALUE, timerActive: false }).timerTime, 120);
@@ -50,25 +248,12 @@ test('imported remaining time stays within its configured duration and preserves
   assert.equal(normalizeBackupState({ timerDuration: 2, timerTime: -1 }).timerTime, 0);
 });
 
-test('developer verifiers accept the existing local credentials without distributing plaintext', async () => {
-  // Immutable pre-migration blob: HEAD now contains verifiers, not legacy credentials.
-  const previous = require('node:child_process').execFileSync('git', ['show', '7bc475af432915832577492028423284ec0049d9'], { cwd: root, encoding: 'utf8' });
-  const ast = ts.createSourceFile('previous.ts', previous, ts.ScriptTarget.Latest, true);
-  const pairs = [];
-  const visit = node => {
-    if (ts.isObjectLiteralExpression(node)) {
-      const values = {};
-      for (const property of node.properties)
-        if (ts.isPropertyAssignment(property) && ts.isStringLiteral(property.initializer))
-          values[property.name.getText(ast)] = property.initializer.text;
-      if (typeof values.user === 'string' && typeof values.pass === 'string') pairs.push(values);
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(ast);
-  assert.ok(pairs.length > 0);
-  const { verifyDeveloperCredentials } = require('../src/lib/dev-credentials.ts');
-  for (const pair of pairs) assert.equal(await verifyDeveloperCredentials(pair.user, pair.pass), true, 'Existing credential compatibility');
+test('credential verifier accepts a synthetic fixture without private credentials or Git history', async () => {
+  const {verifyCredentialPair, verifyDeveloperCredentials} = require('../src/lib/dev-credentials.ts');
+  const salt='00112233445566778899aabbccddeeff';
+  const hash=require('node:crypto').pbkdf2Sync('fixture\0example-only',Buffer.from(salt,'hex'),210000,32,'sha256').toString('hex');
+  assert.equal(await verifyCredentialPair('fixture','example-only',{salt,hash}),true);
+  assert.equal(await verifyCredentialPair('fixture','wrong',{salt,hash}),false);
   assert.equal(await verifyDeveloperCredentials('invalid', 'invalid'), false);
 });
 
@@ -499,10 +684,10 @@ test('Camino anchor restores same point/fraction when paragraph dimensions chang
 });
 
 test('central anchor uses the visible second spine document, keeping both boundary diagnostics', () => {
-  global.NodeFilter = { SHOW_TEXT: 4 };
+  global.NodeFilter = { SHOW_ALL: 0xFFFFFFFF };
   const rect = (left, top, width, height) => ({ left, top, right: left + width, bottom: top + height, width, height });
   const content = (spine, frameTop, frameHeight, textTop) => {
-    const node = { textContent: 'abcdefghij', length: 10, parentElement: { closest: () => null } };
+    const node = { nodeType: 3, textContent: 'abcdefghij', length: 10, parentElement: { closest: () => null } };
     const doc = { body: {}, createTreeWalker: () => {
       let visited = false;
       return { nextNode: () => visited ? null : (visited = true, node) };
@@ -523,6 +708,37 @@ test('central anchor uses the visible second spine document, keeping both bounda
   assert.equal(result.anchorKind, 'center');
   assert.equal(result.startCfi, cfi(1));
   assert.equal(result.endCfi, cfi(2));
+});
+
+test('anchor capture bounds huge nodes, node counts, rectangles and character measurements', () => {
+  global.NodeFilter = { SHOW_ALL: 0xFFFFFFFF };
+  const rect = { left: 0, top: 0, right: 200, bottom: 600, width: 200, height: 600 };
+  const run = (length, nodeCount, rectCount = 1, nodeType = 3) => {
+    let walks = 0, calls = 0, textReads = 0;
+    const node = { nodeType, length, parentElement: { closest: () => null },
+      get textContent() { textReads++; if (length > 4096) throw new Error('must check size first'); return 'a'.repeat(length); } };
+    const doc = { body: {}, createTreeWalker: (root, filter) => {
+      assert.equal(filter, 0xFFFFFFFF, 'empty elements must count toward the traversal budget');
+      return { nextNode: () => ++walks <= nodeCount ? node : null };
+    },
+      createRange: () => ({ selectNodeContents() {}, setStart() {}, setEnd() {}, collapse() {},
+        getClientRects: () => { calls++; return {length: rectCount, 0: rect}; },
+        getBoundingClientRect: () => { calls++; return rect; },
+      }) };
+    node.ownerDocument = doc;
+    const contents = { document: doc, window: { frameElement: { clientWidth: 200, getBoundingClientRect: () => rect } },
+      cfiFromRange: () => { throw new Error('must not claim a partial scan is central'); } };
+    const rendition = { getContents: () => [contents], currentLocation: () => ({start:{cfi:cfi(3)},end:{cfi:cfi(4)}}) };
+    const result = realLayout.captureEpubAnchor(rendition, {getBoundingClientRect:()=>rect}, trace);
+    assert.equal(result.anchorKind, 'fallback'); assert.equal(result.anchorCfi, cfi(3));
+    assert.ok(calls <= 2048); assert.ok(walks <= 513);
+    return {calls,textReads};
+  };
+  assert.deepEqual(run(2 * 1024 * 1024, 1), {calls:0,textReads:0});
+  run(1, 1000000);
+  assert.deepEqual(run(0, 1000000, 1, 1), {calls:0,textReads:0});
+  run(10, 1, 1000000);
+  run(4096, 1);
 });
 
 test('font readiness waits for iframe stylesheet before loading effective faces', async () => {

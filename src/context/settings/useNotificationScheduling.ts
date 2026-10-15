@@ -66,6 +66,10 @@ export const useNotificationScheduling = ({
   const [foregroundVersion, setForegroundVersion] = useState(0);
   const syncQueue = useRef<Promise<void>>(Promise.resolve());
   const lastBlockedReason = useRef<string | null>(null);
+  // Icon appearance is read at synchronization time; a theme change alone
+  // must not cancel and replace the notification schedule.
+  const notificationTheme = useRef(theme);
+  useEffect(() => { notificationTheme.current = theme; }, [theme]);
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
     const listener = App.addListener('appStateChange', ({ isActive }) => {
@@ -222,7 +226,7 @@ export const useNotificationScheduling = ({
         console.warn('Failed to ensure Android notification channel', error);
       });
 
-      const icon = theme === 'dark' ? 'small_icon_white' : 'small_icon_black';
+      const icon = notificationTheme.current === 'dark' ? 'small_icon_white' : 'small_icon_black';
 
       const pad2 = (n: number) => String(n).padStart(2, '0');
       const toDateKey = (d: Date) =>
@@ -699,9 +703,6 @@ export const useNotificationScheduling = ({
     }, 500);
 
     return () => { cancelled = true; clearTimeout(timeoutId); };
-    // `theme` is intentionally excluded: it only affects the notification icon color,
-    // and re-syncing (cancel + reschedule everything) on every dark/light toggle was
-    // unnecessary churn. The next genuine resync picks up the current theme.
   }, [
     isLoaded,
     notificationsEnabled,
@@ -718,5 +719,8 @@ export const useNotificationScheduling = ({
     foregroundVersion,
     skipNotificationIfChecked,
     planDeVidaCalendar,
+    getRootPlanDeVidaId,
+    exactAlarmSettingsRequestedRef,
+    toast,
   ]);
 };

@@ -60,6 +60,9 @@ export default function Settings({
           key={section.id}
           className="bg-card/80 p-4 shadow-md backdrop-blur-sm border-border/50 cursor-pointer hover:bg-accent/20 transition-colors"
           onClick={() => onSectionChange(section.id)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();onSectionChange(section.id);}}}
         >
           <div className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
@@ -76,6 +79,9 @@ export default function Settings({
         <Card
           className="motion-safe:animate-pulse border-amber-400/70 bg-amber-400/15 p-4 shadow-md backdrop-blur-sm cursor-pointer hover:bg-amber-400/25 transition-colors"
           onClick={onShowAnnuum}
+          role="button"
+          tabIndex={0}
+          onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();onShowAnnuum?.();}}}
         >
           <div className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">

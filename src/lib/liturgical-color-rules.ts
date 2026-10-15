@@ -76,9 +76,7 @@ const isSunday = (date: Date) => startOfDay(date).getDay() === 0;
 
 const getAdventStart = (year: number) => {
   const start = new Date(year, 10, 27);
-  while (start.getDay() !== 0) {
-    start.setDate(start.getDate() + 1);
-  }
+  if (Number.isFinite(start.getTime())) start.setDate(start.getDate() + (7 - start.getDay()) % 7);
   return startOfDay(start);
 };
 
@@ -116,9 +114,7 @@ const getHolyFamilyDate = (year: number) => {
 
 const getBaptismOfTheLordDate = (year: number) => {
   const candidate = new Date(year, 0, 7);
-  while (candidate.getDay() !== 0) {
-    candidate.setDate(candidate.getDate() + 1);
-  }
+  if (Number.isFinite(candidate.getTime())) candidate.setDate(candidate.getDate() + (7 - candidate.getDay()) % 7);
   return startOfDay(candidate);
 };
 

@@ -26,7 +26,7 @@ export function AudioDeleteDialog({ audioPendingDelete, onOpenChange, onConfirmD
         <AlertDialogHeader>
           <AlertDialogTitle>Eliminar audio</AlertDialogTitle>
           <AlertDialogDescription>
-            ¿Seguro que deseas eliminar "{audioPendingDelete?.title}" de tu biblioteca?
+            ¿Seguro que deseas eliminar &quot;{audioPendingDelete?.title}&quot; de tu biblioteca?
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

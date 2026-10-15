@@ -221,9 +221,8 @@ const getAdventDates = (year: number) => {
     let advent1 = new Date(startWindow);
     
     // Find the first Sunday on or after Nov 27
-    while (advent1.getDay() !== 0) {
-        advent1.setDate(advent1.getDate() + 1);
-    }
+    if (Number.isFinite(advent1.getTime()))
+        advent1.setDate(advent1.getDate() + (7 - advent1.getDay()) % 7);
     // advent1 is now the First Sunday of Advent
 
     return {
@@ -236,6 +235,7 @@ const getAdventDates = (year: number) => {
 };
 
 export const getMovableFeast = (currentDate: Date, easterDate: Date): SaintOfTheDay | null => {
+  if (!Number.isFinite(currentDate.getTime()) || !Number.isFinite(easterDate.getTime())) return null;
   const current = startOfDay(currentDate);
   const easter = startOfDay(easterDate);
   const year = current.getFullYear();

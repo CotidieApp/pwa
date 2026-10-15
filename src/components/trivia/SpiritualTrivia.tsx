@@ -121,7 +121,7 @@ const difficultyLabel = (difficulty: TriviaDifficultyId) =>
 export default function SpiritualTrivia() {
   const [category, setCategory] = useState<CategorySelection>('todas');
   const [difficulty, setDifficulty] = useState<DifficultySelection>('todas');
-  const [sessionLength, setSessionLength] = useState<SessionLength>(10);
+  const [preferredSessionLength, setSessionLength] = useState<SessionLength>(10);
   const [questions, setQuestions] = useState<PreparedQuestion[]>([]);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [selectedOptionIndex, setSelectedOptionIndex] = useState<number | null>(null);
@@ -143,10 +143,9 @@ export default function SpiritualTrivia() {
     [eligibleQuestionCount]
   );
 
-  useEffect(() => {
-    if (availableSessionLengths.includes(sessionLength)) return;
-    setSessionLength(availableSessionLengths[availableSessionLengths.length - 1] ?? 5);
-  }, [availableSessionLengths, sessionLength]);
+  const sessionLength = availableSessionLengths.includes(preferredSessionLength)
+    ? preferredSessionLength
+    : availableSessionLengths[availableSessionLengths.length - 1] ?? 5;
 
   const categoryResults = useMemo(
     () =>

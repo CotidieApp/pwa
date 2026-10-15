@@ -16,6 +16,7 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 import BackgroundActions from '@/plugins/BackgroundActions';
 import CotidieNotificationScheduler from '@/plugins/CotidieNotificationScheduler';
 import { usePrayerTimer } from '@/hooks/usePrayerTimer';
+import { useCommittedCallback } from '@/hooks/useCommittedCallback';
 import { useConfessionNotebook } from '@/hooks/useConfessionNotebook';
 import { initialPrayers, categories } from '@/lib/data';
 import type {
@@ -35,7 +36,13 @@ import { resolveDevotionDayMatch } from '@/lib/devotion-day-images';
 import { getLiturgicalColor } from '@/lib/getLiturgicalColor';
 import { getMovableFeast, getEasterDate } from '@/lib/movable-feasts';
 import { persistence } from '@/lib/persistence';
-import { getLocalDateKey } from '@/lib/calendar-date';
+import { validateSettingsData, validatePlanReferences } from '@/lib/settings-validation';
+import StorageRecovery from '@/components/StorageRecovery';
+import ExternalImportDialog from '@/components/ExternalImportDialog';
+import { TIMER_CHECKPOINT_KEY, readTimerCheckpoint } from '@/lib/prayer-timer';
+import { RESTORE_FIELD, validateBackupArchive, stageBackupArchive, completeLibraryRestore, discardRestoreStage,
+  type BackupArchive } from '@/lib/backup-archive';
+import { getLocalDateKey, normalizeSimulatedDate } from '@/lib/calendar-date';
 import { fixedNotifications, type FixedNotificationEntry } from '@/lib/fixed-notifications';
 import type { SmallWidgetDisplayMode } from '@/plugins/BackgroundActions';
 import { addByKind, addDays, formatTemplate, getNextOccurrence, parseFixedNotificationDate } from '@/context/settings/notification-date-utils';
@@ -117,6 +124,7 @@ import {
   stableSortValue,
   stableSerialize,
   normalizeBackupState,
+  mergeBackupImport,
   normalizePartialImportPayload,
   pickSnapshotKeys,
 } from '@/context/settings/normalize';
@@ -184,15 +192,41 @@ const normalizePlanDeVidaStats = (stats: UserStats): UserStats => {
 const SettingsContext = createContext<Settings | undefined>(undefined);
 const SAVED_STATE_KEY = 'cotidie_app_state';
 const PENDING_IMPORT_STORAGE_KEY = 'cotidie_pending_import';
+const RESET_PENDING_KEY = 'cotidie_reset_pending_v1';
+
+// Pure date/stat helpers have no dependency on the provider's render.
+const getPastoralDayDate = (date: Date) => {
+  const adjusted = new Date(date);
+  if (adjusted.getHours() < 5) adjusted.setDate(adjusted.getDate() - 1);
+  return adjusted;
+};
+const getPastoralDayKey = (date: Date) => getLocalDateKey(getPastoralDayDate(date));
+const isAngelusStatKey = (value?: string) =>
+  value === 'angelus' || value === 'regina-caeli' || value === 'regina-coeli' ||
+  value === 'reginaCoeli' || value === 'angelus-regina-coeli';
+const getAngelusStatKeys = (subKey?: string) => {
+  if (!subKey) return [];
+  if (!isAngelusStatKey(subKey)) return [subKey];
+  return Array.from(new Set(['angelus', subKey]));
+};
 
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
   const lastProcessedPendingImportRef = useRef<string | null>(null);
+  const pendingExternalImportRef = useRef<{ data: unknown } | null>(null);
+  const externalImportApplyingRef = useRef(false);
+  const [pendingExternalImport, setPendingExternalImport] = useState<{ data: unknown } | null>(null);
+  useEffect(() => () => { pendingExternalImportRef.current = null; }, []);
 
   const [isLoaded, setIsLoaded] = useState(false);
   const [storageReady, setStorageReady] = useState(false);
+  const [storageError, setStorageError] = useState<string | null>(null);
+  const [restoringLibrary, setRestoringLibrary] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const importInFlightRef = useRef(false);
   const resettingRef = useRef(false);
+  const timerCheckpointFailedRef = useRef(false);
+  const resetInFlightRef = useRef(false);
 
   const [theme, setTheme] = useState<Theme>('light');
   const [fontSize, setFontSize] = useState<FontSize>(15);
@@ -222,7 +256,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [overlayPositions, setOverlayPositions] =
     useState<OverlayPositions>(defaultOverlayPositions);
 
-  const [simulatedDate, setSimulatedDate] = useState<string | null>(null);
+  const [simulatedDate, setSimulatedDateState] = useState<string | null>(null);
+  const setSimulatedDate = useCallback((value: string | null) => {
+    setSimulatedDateState(normalizeSimulatedDate(value));
+  }, []);
 
   const [planDeVidaTrackerEnabled, setPlanDeVidaTrackerEnabled] = useState(true);
   const [planDeVidaProgress, setPlanDeVidaProgress] = useState<string[]>([]);
@@ -309,6 +346,12 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [showZeroStats, setShowZeroStats] = useState(false);
   const [hasViewedAnnuum, setHasViewedAnnuum] = useState(false);
   const [annuumFirstOpenedDate, setAnnuumFirstOpenedDate] = useState<string | null>(null);
+
+  const { pushDevLiveTrace, clearDevLiveTraceEvents } = useDevLiveTrace(
+    devLiveTraceEnabled,
+    isDeveloperMode,
+    setDevLiveTraceEvents,
+  );
 
   useEffect(() => {
     planDeVidaCalendarRef.current = planDeVidaCalendar;
@@ -418,7 +461,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setIsEditModeEnabled(snapshot.isEditModeEnabled);
     setTimerEnabled(snapshot.timerEnabled);
     setTimerDuration(snapshot.timerDuration);
-    setTimerTime(snapshot.timerActive ? snapshot.timerDuration * 60 : snapshot.timerTime);
+    setTimerTime(snapshot.timerTime);
     setOverlayPositions(snapshot.overlayPositions);
     setSimulatedDate(snapshot.simulatedDate);
     setPlanDeVidaTrackerEnabled(snapshot.planDeVidaTrackerEnabled);
@@ -468,8 +511,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setShowZeroStats(snapshot.showZeroStats);
     setHasViewedAnnuum(snapshot.hasViewedAnnuum);
     setAnnuumFirstOpenedDate(snapshot.annuumFirstOpenedDate);
-  }, []);
+  }, [pushDevLiveTrace, setMovableFeastsEnabled, setTimerDuration, setTimerEnabled, setTimerTime]);
 
+  // Countdown ticks persist a small checkpoint; the full settings object stays stable.
+  const timerSnapshotTime = timerActive ? timerDuration * 60 : timerTime;
   const backupSnapshot = useMemo(
     () =>
       normalizeBackupState({
@@ -491,7 +536,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         isEditModeEnabled,
         timerEnabled,
         timerDuration,
-        timerTime,
+        timerTime: timerSnapshotTime,
         timerActive,
         overlayPositions,
         simulatedDate,
@@ -563,7 +608,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       isEditModeEnabled,
       timerEnabled,
       timerDuration,
-      timerTime,
+      timerSnapshotTime,
       timerActive,
       overlayPositions,
       simulatedDate,
@@ -617,20 +662,37 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     annuumFirstOpenedDate,
   ]);
 
-  const getBackupSnapshot = useCallback(() => withoutLocalPrivileges(backupSnapshot), [backupSnapshot]);
+  const getBackupSnapshot = useCallback(() => withoutLocalPrivileges({...backupSnapshot,timerTime}), [backupSnapshot,timerTime]);
 
-  useEffect(() => {
-    const loadSettings = async () => {
+  // Hydration runs on mount/explicit retry, not when a setter or trace callback changes.
+  const loadSettings = useCommittedCallback(async () => {
+        void import('@/lib/export-file').then(module => module.cleanExpiredExports()).catch(() => undefined);
         if (typeof window === 'undefined') {
             setIsLoaded(true);
             return;
         }
 
         try {
-          const s: any = await privateOperation(SAVED_STATE_KEY, () => migratePrivate(SAVED_STATE_KEY));
-          setStorageReady(true);
+          setStorageError(null);
+          setIsLoaded(false);
+          setStorageReady(false);
+          if (localStorage.getItem(RESET_PENDING_KEY)) {
+            resettingRef.current = true;
+            throw new Error('Un reinicio anterior necesita completarse.');
+          }
+          let s: any = await privateOperation(SAVED_STATE_KEY, () => migratePrivate(SAVED_STATE_KEY));
+          if (s?.[RESTORE_FIELD]) {
+            const marker = s[RESTORE_FIELD];
+            await completeLibraryRestore(marker);
+            const { [RESTORE_FIELD]: ignored, ...restored } = s;
+            await saveState(restored);
+            s = restored;
+            await discardRestoreStage(marker.id).catch(() => undefined);
+          }
+
 
           if (!s) {
+            setStorageReady(true);
             setAlwaysShowPrayers(defaultAlwaysShowPrayers);
             setCustomPlans([null, null, null, null]);
             setIsLoaded(true);
@@ -638,7 +700,14 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           }
 
           // ... BLOQUE DE HIDRATACIÓN ...
+          // Repair only the obsolete invalid date field before validating the rest of saved data.
+          if (typeof s === 'object' && !Array.isArray(s)) {
+            s = { ...s, simulatedDate: normalizeSimulatedDate(s.simulatedDate) };
+          }
+          validateSettingsData(s);
           let snapshot = normalizeBackupState(s);
+          const timerCheckpoint = readTimerCheckpoint(localStorage.getItem(TIMER_CHECKPOINT_KEY), snapshot.timerDuration);
+          if (timerCheckpoint !== null && snapshot.timerEnabled) snapshot = {...snapshot,timerTime:timerCheckpoint};
           const currentYear = new Date().getFullYear();
           const hasSavedGlobalUserStats =
             s && typeof s === 'object' && !Array.isArray(s) && hasOwnKey(s as Record<string, any>, 'globalUserStats');
@@ -655,20 +724,35 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           }
 
           applyBackupSnapshot(snapshot);
+          setStorageReady(true);
         } catch (e) {
+          setStorageError(e instanceof Error ? e.message : 'No se pudo leer el almacenamiento.');
           toast({ title: 'No se pudo leer la configuración guardada',
             description: 'Tus datos se han conservado. Vuelve a abrir la aplicación para reintentarlo.', variant: 'destructive' });
         } finally {
           setIsLoaded(true);
         }
-    };
+  });
 
-    loadSettings();
-  }, []);
+  useEffect(() => { void loadSettings(); }, [loadAttempt, loadSettings]);
 
   /* =======================
      GUARDADO AUTOMÁTICO
      ======================= */
+
+  useEffect(() => {
+    if (!isLoaded || !storageReady || importInFlightRef.current || resettingRef.current) return;
+    try {
+      localStorage.setItem(TIMER_CHECKPOINT_KEY, JSON.stringify({version:1,duration:timerDuration,time:timerTime}));
+      timerCheckpointFailedRef.current = false;
+    } catch {
+      if (!timerCheckpointFailedRef.current) {
+        toast({ variant: 'destructive', title: 'No se pudo guardar el avance del temporizador',
+          description: 'Mantén la aplicación abierta. Al cerrarla podría perderse el avance reciente.' });
+      }
+      timerCheckpointFailedRef.current = true;
+    }
+  }, [isLoaded, storageReady, timerDuration, timerTime, toast]);
 
   useEffect(() => {
     if (!isLoaded || !storageReady || importInFlightRef.current || resettingRef.current) return;
@@ -768,12 +852,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   // Funciones auxiliares
   const generateId = () => Math.random().toString(36).substr(2, 9);
 
-  const { pushDevLiveTrace, clearDevLiveTraceEvents } = useDevLiveTrace(
-    devLiveTraceEnabled,
-    isDeveloperMode,
-    setDevLiveTraceEvents,
-  );
-  
   // incrementStat moved down to access getPrayerById
 
 
@@ -1135,9 +1213,16 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const hardResetApp = async () => {
+    if (resetInFlightRef.current) return;
+    resetInFlightRef.current = true;
     resettingRef.current = true;
     setStorageReady(false);
+    setRestoringLibrary(true);
     try {
+      await new Promise<void>(resolve => window.setTimeout(resolve, 0));
+      const { flushReadingWrites } = await import('@/lib/reading-store');
+      await flushReadingWrites().catch(() => undefined);
+      localStorage.setItem(RESET_PENDING_KEY, 'pending');
       await privateOperation(SAVED_STATE_KEY, () => removePrivate(SAVED_STATE_KEY));
       await privateOperation('cotidie_confession_note_v1', () => removePrivate('cotidie_confession_note_v1'));
       await privateOperation('cotidie_confession_note_v1', () => removePrivate('cotidie_confession_auto_delete_v1'));
@@ -1152,17 +1237,19 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         if (Capacitor.getPlatform() === 'android') await BackgroundActions.getPendingMarkPrayed();
       }
       await persistence.close();
-      await new Promise<void>((resolve, reject) => {
-        const request = indexedDB.deleteDatabase('cotidie-reading');
-        request.onsuccess = () => resolve();
-        request.onerror = request.onblocked = () => reject(new Error('Almacenamiento de lectura ocupado.'));
-      });
+      for (const name of ['cotidie-reading', 'cotidie-db', 'cotidie-offline-epubs']) {
+        await new Promise<void>((resolve, reject) => {
+          const request = indexedDB.deleteDatabase(name);
+          request.onsuccess = () => resolve();
+          request.onerror = request.onblocked = () => reject(new Error('Cierra las otras ventanas de Cotidie y vuelve a intentarlo.'));
+        });
+      }
+      sessionStorage.removeItem('cotidie_nav_state');
       localStorage.clear();
       window.location.reload();
-    } catch {
-      resettingRef.current = false;
-      toast({ title: 'No se completó el reinicio', description: 'Cierra otros lectores de Cotidie y vuelve a intentarlo.', variant: 'destructive' });
-    }
+    } catch (error) {
+      setStorageError(error instanceof Error ? error.message : 'No se completó el reinicio. Vuelve a intentarlo.');
+    } finally { resetInFlightRef.current = false; setRestoringLibrary(false); }
   };
 
   const toggleAlwaysShowPrayer = (id: string) => {
@@ -1242,16 +1329,49 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
       if (importInFlightRef.current) return notifyIfNeeded({ ...invalidResult, description: 'Hay otra importación en curso.' });
       importInFlightRef.current = true;
+      let archive: BackupArchive | null = null;
+      let pendingRestore = false;
       try {
-      validateImportPayload(data);
+      if (data?.format === 'cotidie-backup-2') {
+        validateBackupArchive(data);
+        archive = data;
+        data = data.settings;
+      }
+      if (!archive) validateImportPayload(data);
+      validateSettingsData(data);
       data = withoutLocalPrivileges(data);
+      if (!storageReady && !['userPrayers', 'userDevotions', 'userLetters'].every(key => Array.isArray(data[key]))) {
+        return notifyIfNeeded({ ...invalidResult, description: 'No se pudieron leer los datos actuales. Reintenta abrirlos o usa un respaldo completo con tus oraciones, devociones y cartas.' });
+      }
       const privileges = Object.fromEntries(LOCAL_PRIVILEGE_KEYS.map(key => [key, backupSnapshot[key]]));
       const commitImport = async (snapshot: ReturnType<typeof normalizeBackupState>) => {
         const localSnapshot = normalizeBackupState({ ...snapshot, ...privileges });
-        await saveState(localSnapshot);
+        validateSettingsData(localSnapshot);
+        validatePlanReferences(localSnapshot.customPlans, [...initialPrayers, ...localSnapshot.userPrayers,
+          ...localSnapshot.userDevotions, ...localSnapshot.userLetters]);
+        if (archive) {
+          if (resettingRef.current) throw new Error('Reinicio en curso.');
+          setRestoringLibrary(true);
+          // Unmount readers before replacing their checkpoints and drain pending writes.
+          await new Promise<void>(resolve => window.setTimeout(resolve, 0));
+          const { flushReadingWrites } = await import('@/lib/reading-store');
+          await flushReadingWrites();
+          const marker = await stageBackupArchive(archive);
+          try {
+            await saveState({ ...localSnapshot, [RESTORE_FIELD]: marker });
+            pendingRestore = true;
+          } catch (error) { await discardRestoreStage(marker.id); throw error; }
+          await completeLibraryRestore(marker);
+          await saveState(localSnapshot);
+          pendingRestore = false;
+          await discardRestoreStage(marker.id).catch(() => undefined);
+        } else await saveState(localSnapshot);
         if (resettingRef.current) throw new Error('Reinicio en curso.');
+        localStorage.removeItem(TIMER_CHECKPOINT_KEY);
         applyBackupSnapshot(localSnapshot);
+        setStorageError(null);
         setStorageReady(true);
+        if (archive) window.location.reload();
       };
 
       if (!data || typeof data !== 'object') {
@@ -1329,7 +1449,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (isFullAppStatePayload(data)) {
-        const nextSnapshot = normalizeBackupState(data);
+        // Legacy JSON can contain only some settings. Never erase omitted personal data.
+        const nextSnapshot = mergeBackupImport(backupSnapshot, data);
         await commitImport(nextSnapshot);
         const appliedResult: ImportResult = {
           status: 'applied',
@@ -1364,10 +1485,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         return notifyIfNeeded(invalidResult);
       }
 
-      const nextSnapshot = normalizeBackupState({
-        ...backupSnapshot,
-        ...partialPayload,
-      });
+      const nextSnapshot = mergeBackupImport(backupSnapshot, partialPayload);
       await commitImport(nextSnapshot);
       const appliedResult: ImportResult = {
         status: 'applied',
@@ -1381,23 +1499,42 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         message: 'Importacion parcial aplicada.',
       });
       return notifyIfNeeded(appliedResult);
-      } catch {
-        return notifyIfNeeded({ ...invalidResult, description: 'El archivo no es válido o no se pudo confirmar su guardado. El estado anterior se conserva.' });
-      } finally { importInFlightRef.current = false; }
+      } catch (error) {
+        if (pendingRestore) {
+          setStorageReady(false);
+          setStorageError('La restauración del respaldo quedó pendiente. Reintenta para completar sus archivos.');
+          return notifyIfNeeded({ ...invalidResult, description: 'Restauración pendiente; vuelve a abrir la aplicación para completarla.' });
+        }
+        return notifyIfNeeded({ ...invalidResult, description: error instanceof Error && error.message.startsWith('El respaldo')
+          ? error.message : 'El archivo no es válido o no se pudo confirmar su guardado. El estado anterior se conserva.' });
+      } finally { importInFlightRef.current = false; setRestoringLibrary(false); }
     },
-    [applyBackupSnapshot, backupSnapshot, pushDevLiveTrace, saveState, toast]
+    [applyBackupSnapshot, backupSnapshot, pushDevLiveTrace, saveState, storageReady, toast]
   );
 
   useEffect(() => {
     if (!isLoaded || typeof window === 'undefined') return;
 
-    const consumePendingImport = async () => {
+    const consumePendingImport = () => {
       try {
         // We now check window object directly to avoid LocalStorage quota limits with large backup files
         const raw = (window as any)[PENDING_IMPORT_STORAGE_KEY] || window.localStorage.getItem(PENDING_IMPORT_STORAGE_KEY);
-        if (!raw || raw === lastProcessedPendingImportRef.current) return;
+        if (!raw) return;
 
+        // Consume only the copies we inspected; keep a later arrival distinct.
+        if ((window as any)[PENDING_IMPORT_STORAGE_KEY] === raw) delete (window as any)[PENDING_IMPORT_STORAGE_KEY];
+        if (window.localStorage.getItem(PENDING_IMPORT_STORAGE_KEY) === raw) window.localStorage.removeItem(PENDING_IMPORT_STORAGE_KEY);
+        if (raw === lastProcessedPendingImportRef.current) return;
         lastProcessedPendingImportRef.current = raw;
+        if (!storageReady) {
+          toast({ variant: 'destructive', title: 'No se puede importar el archivo recibido',
+            description: 'Primero reintenta abrir tus datos o restaura un respaldo completo desde la pantalla de recuperación.' });
+          return;
+        }
+        if (pendingExternalImportRef.current) {
+          toast({ title: 'Hay un archivo pendiente', description: 'Confirma o cancela el archivo anterior antes de recibir otro.' });
+          return;
+        }
 
         pushDevLiveTrace({
           level: 'info',
@@ -1420,25 +1557,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           data: `length=${sanitized.length}`
         });
         const parsed = parseImportText(sanitized);
-        const result = await importUserData(parsed, { silent: true });
-
-        if (result.status === 'applied' || result.status === 'duplicate') {
-          if ((window as any)[PENDING_IMPORT_STORAGE_KEY] === raw) delete (window as any)[PENDING_IMPORT_STORAGE_KEY];
-          if (window.localStorage.getItem(PENDING_IMPORT_STORAGE_KEY) === raw) window.localStorage.removeItem(PENDING_IMPORT_STORAGE_KEY);
-          toast({
-            title: result.status === 'duplicate' ? 'Datos ya actualizados' : '¡Carga completa con éxito!',
-            description: result.status === 'duplicate'
-              ? 'El archivo ya coincide con tu estado actual.'
-              : 'Se han restaurado tus oraciones, devociones y ajustes.'
-          });
-          return;
-        }
-
-        toast({
-          variant: 'destructive',
-          title: result.title,
-          description: result.description,
-        });
+        validateSettingsData(parsed);
+        const pending = { data: parsed };
+        pendingExternalImportRef.current = pending;
+        setPendingExternalImport(pending);
       } catch (err) {
         pushDevLiveTrace({
           level: 'error',
@@ -1459,7 +1581,36 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       window.removeEventListener('cotidie-pending-import', consumePendingImport);
     };
-  }, [importUserData, isLoaded, pushDevLiveTrace, toast]);
+  }, [isLoaded, storageReady, pushDevLiveTrace, toast]);
+
+  const cancelExternalImport = () => {
+    if (externalImportApplyingRef.current || pendingExternalImportRef.current !== pendingExternalImport) return;
+    lastProcessedPendingImportRef.current = null;
+    pendingExternalImportRef.current = null;
+    setPendingExternalImport(null);
+  };
+  const confirmExternalImport = async () => {
+    const pending = pendingExternalImportRef.current;
+    if (!pending || pending !== pendingExternalImport || externalImportApplyingRef.current) return;
+    externalImportApplyingRef.current = true;
+    try {
+      if (!storageReady) {
+        lastProcessedPendingImportRef.current = null;
+        toast({ variant: 'destructive', title: 'No se aplicó el archivo', description: 'Reintenta abrir tus datos antes de importar.' });
+        return;
+      }
+      const result = await importUserData(pending.data, { silent: true });
+      if (result.status === 'invalid') lastProcessedPendingImportRef.current = null;
+      toast({ title: result.title, description: result.description,
+        ...(result.status === 'invalid' ? { variant: 'destructive' as const } : {}) });
+    } finally {
+      externalImportApplyingRef.current = false;
+      if (pendingExternalImportRef.current === pending) {
+        pendingExternalImportRef.current = null;
+        setPendingExternalImport(null);
+      }
+    }
+  };
 
   const setOverlayPosition = (key: keyof OverlayPositions, pos: OverlayPosition) => {
     setOverlayPositions((prev) => ({
@@ -1487,7 +1638,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setGlobalUserStats((prev) => applyPlanDeVidaAggregateIncrement(prev, id));
   };
 
-  const togglePlanDeVidaItem = (id: string, force?: boolean, skipStatIncrement?: boolean, eventDateKey?: string | null) => {
+  // Native actions keep one subscription while seeing current date, stats and traces.
+  const togglePlanDeVidaItem = useCommittedCallback((id: string, force?: boolean, skipStatIncrement?: boolean, eventDateKey?: string | null) => {
      const planItemId = getKnownPlanDeVidaRootId(id);
      if (!planItemId) return;
      const eventDate = parseEventDateFromDateKey(eventDateKey) ?? (simulatedDate ? new Date(simulatedDate) : new Date());
@@ -1536,7 +1688,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         }
         return prev.filter(p => p !== planItemId);
      });
-  };
+  });
 
   const togglePlanDeVidaCalendarEntry = (dateKey: string, id: string) => {
     const planItemId = getKnownPlanDeVidaRootId(id);
@@ -1602,7 +1754,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    if (!isLoaded) return;
+    if (!isLoaded || !storageReady) return;
     if (!Capacitor.isNativePlatform()) return;
 
     const applyPending = async () => {
@@ -1626,12 +1778,12 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       void subPromise.then((sub) => sub.remove()).catch(() => {});
     };
-  }, [isLoaded, togglePlanDeVidaItem]);
+  }, [isLoaded, storageReady, togglePlanDeVidaItem]);
 
-  const resetPlanDeVidaProgress = () => {
+  const resetPlanDeVidaProgress = useCallback(() => {
     setPlanDeVidaProgress([]);
     setLastResetTimestamp(Date.now());
-  };
+  }, []);
 
   // Plan de Vida: reinicio diario a las 05:00 (día pastoral)
   useEffect(() => {
@@ -1646,7 +1798,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     checkReset();
     const interval = window.setInterval(checkReset, 60 * 1000);
     return () => window.clearInterval(interval);
-  }, [lastResetTimestamp]);
+  }, [lastResetTimestamp, resetPlanDeVidaProgress]);
 
   useEffect(() => {
     const now = simulatedDate ? new Date(simulatedDate) : new Date();
@@ -1765,7 +1917,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       ...userDevotions,
       ...userPrayers,
     ];
-  }, [initialPrayers, hiddenPrayerIds, predefinedPrayerOverrides, userDevotions, userPrayers, userLetters]);
+  }, [hiddenPrayerIds, predefinedPrayerOverrides, userDevotions, userPrayers, userLetters]);
 
   const getPrayerById = useCallback((id: string, list: Prayer[]): Prayer | null => {
     for (const prayer of list) {
@@ -1800,30 +1952,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     
     return null;
   }, [allPrayers]);
-
-  // Día pastoral para stats/checks: 05:00 -> 04:59
-  const getPastoralDayDate = (date: Date) => {
-    const adjusted = new Date(date);
-    if (adjusted.getHours() < 5) {
-      adjusted.setDate(adjusted.getDate() - 1);
-    }
-    return adjusted;
-  };
-
-  const getPastoralDayKey = (date: Date) => getLocalDateKey(getPastoralDayDate(date));
-  const isAngelusStatKey = (value?: string) =>
-    value === 'angelus' ||
-    value === 'regina-caeli' ||
-    value === 'regina-coeli' ||
-    value === 'reginaCoeli' ||
-    value === 'angelus-regina-coeli';
-
-  const getAngelusStatKeys = (subKey?: string) => {
-    if (!subKey) return [];
-    if (!isAngelusStatKey(subKey)) return [subKey];
-    const keys = ['angelus', subKey];
-    return Array.from(new Set(keys));
-  };
 
   const buildPlanDeVidaCalendarStatsSummary = useCallback((calendar: Record<string, string[]>) => {
     let summary: UserStats = {
@@ -2111,6 +2239,15 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   });
 
 
+  const externalImportDialog = pendingExternalImport
+    ? <ExternalImportDialog onConfirm={confirmExternalImport} onCancel={cancelExternalImport} /> : null;
+
+  if (storageError) return <><StorageRecovery message={storageError} resetting={resettingRef.current}
+    retry={() => { if (resettingRef.current) void hardResetApp(); else setLoadAttempt(value => value + 1); }}
+    restore={data => importUserData(data)} />{externalImportDialog}</>;
+
+  if (restoringLibrary) return <div role="status" className="p-8 text-center">Restaurando tus datos… Mantén la aplicación abierta.</div>;
+
   return (
     <SettingsContext.Provider
       value={{
@@ -2271,6 +2408,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       }}
     >
       {children}
+      {externalImportDialog}
     </SettingsContext.Provider>
   );
 };

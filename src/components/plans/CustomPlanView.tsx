@@ -199,9 +199,11 @@ export default function CustomPlanView({ slot, onOpenPrayerId, onOpenPlanPrayerA
   const [addPrayerId, setAddPrayerId] = useState<string | null>(null);
   const [isLocalEditMode, setIsLocalEditMode] = useState(Boolean(startInEditMode));
 
-  useEffect(() => {
+  const [editSource, setEditSource] = useState({ slot, startInEditMode });
+  if (editSource.slot !== slot || editSource.startInEditMode !== startInEditMode) {
+    setEditSource({ slot, startInEditMode });
     setIsLocalEditMode(Boolean(startInEditMode));
-  }, [slot, startInEditMode]);
+  }
 
   const canEdit = isEditModeEnabled || isLocalEditMode;
 

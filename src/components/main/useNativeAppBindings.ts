@@ -22,9 +22,11 @@ export const useAndroidBackButton = (
     if (Capacitor.getPlatform() !== 'android') return;
 
     let listener: { remove: () => void } | null = null;
+    let disposed = false;
 
     const setup = async () => {
       listener = await App.addListener('backButton', () => {
+        if (disposed) return;
         const s = navStateRef.current;
 
         if (s.activeView !== 'home' || handleBackAtHome) {
@@ -34,11 +36,13 @@ export const useAndroidBackButton = (
 
         App.exitApp();
       });
+      if (disposed) listener.remove();
     };
 
-    void setup();
+    void setup().catch(() => undefined);
 
     return () => {
+      disposed = true;
       listener?.remove();
     };
   }, [handleBackAtHome, navStateRef, onBack]);

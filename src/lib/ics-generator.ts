@@ -1,5 +1,17 @@
 ﻿import saintsData from './saints-data.json';
 
+export const escapeICSText = (text: string) => text.replace(/\\/g, '\\\\').replace(/\r\n|\r|\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
+export function foldICSLine(line: string): string {
+  const encoder = new TextEncoder();
+  let result = '', length = 0;
+  for (const character of line) {
+    const bytes = encoder.encode(character).length;
+    if (length + bytes > 75) { result += '\r\n '; length = 1; }
+    result += character; length += bytes;
+  }
+  return result;
+}
+
 export const generateSaintsICS = (semester?: 1 | 2) => {
   let saints = saintsData.saints;
   const year = new Date().getFullYear();
@@ -52,10 +64,12 @@ export const generateSaintsICS = (semester?: 1 | 2) => {
 
     const month = saint.month.toString().padStart(2, '0');
     const day = saint.day.toString().padStart(2, '0');
-    const dtStart = `${year}${month}${day}`;
+    let eventYear = year;
+    while (new Date(eventYear, saint.month - 1, saint.day).getMonth() !== saint.month - 1) eventYear++;
+    const dtStart = `${eventYear}${month}${day}`;
 
-    const summary = (saint.name || 'Santo del día').replace(/,/g, '\\,').replace(/;/g, '\\;');
-    const description = `${saint.title || ''}\n\n${saint.bio || ''}`.replace(/,/g, '\\,').replace(/;/g, '\\;');
+    const summary = escapeICSText(saint.name || 'Santo del día');
+    const description = escapeICSText(`${saint.title || ''}\n\n${saint.bio || ''}`);
 
     const event = [
       'BEGIN:VEVENT',
@@ -64,18 +78,18 @@ export const generateSaintsICS = (semester?: 1 | 2) => {
       `DTSTART;VALUE=DATE:${dtStart}`,
       `SUMMARY:${summary}`,
       `DESCRIPTION:${description}`,
-      'RRULE:FREQ=YEARLY',
+      `RRULE:FREQ=YEARLY;BYMONTH=${saint.month};BYMONTHDAY=${saint.day}`,
       `CATEGORIES:${category}`,
       'X-GOOGLE-CALENDAR-CONTENT-DISPLAY:chip',
       'X-GOOGLE-CALENDAR-CONTENT-ICON:https://cotidie.app/icon.png',
       `COLOR:${hexColor}`,
       `X-APPLE-CALENDAR-COLOR:${hexColor}`,
       'END:VEVENT',
-    ].join('\r\n');
+    ].map(foldICSLine).join('\r\n');
 
     icsContent += '\r\n' + event;
   });
 
-  icsContent += '\r\nEND:VCALENDAR';
+  icsContent += '\r\nEND:VCALENDAR\r\n';
   return icsContent;
 };

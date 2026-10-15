@@ -2,6 +2,8 @@
 
 Ubicación: junto al proyecto en `Documents\Cotidie\docs\`. Firmas **no** van en git; viven en variables de usuario.
 
+El keystore es un archivo privado externo al repositorio; las variables solo contienen su ruta, alias y contraseñas. En este equipo se conserva en `C:\Users\balca\.codex\projects\cotidie\signing\my-release-key.keystore`. Mantener una copia privada independiente para recuperación: los ZIP de código excluyen keystores y archivos `.env*`. Los ZIP/historial Git anteriores pueden conservar copias antiguas; retirarlas del checkout no las elimina de esos lugares ni rota la clave.
+
 ## Antes de compilar
 
 1. Abrir una **terminal nueva** (para pillar env actualizado).
@@ -15,12 +17,17 @@ Ubicación: junto al proyecto en `Documents\Cotidie\docs\`. Firmas **no** van en
 ```
 
 3. Para Novum (si aplica), lo mismo con `NOVUM_*`.
-4. `JAVA_HOME` debe apuntar a Temurin 25 (no Oracle 8).
+4. El generador selecciona JDK 21 compatible (por ejemplo Temurin 21). No usar JDK25/Oracle8 para esta configuración.
 
 ## Compilar / publicar
 
+- `npm run android:apk` compila localmente bajo el coordinador, conserva la versión y entrega en `dist/`; conserva APK anteriores. No publica ni crea commits.
+- `--bump`/`--set X.Y.Z`, `--copy-drive` y `--publish` son opciones independientes del generador. `--publish` crea automáticamente un commit con todos los cambios pendientes, hace push y publica el APK en GitHub Releases. Revisar el árbol antes de usarlo; no ejecutar publicación como validación.
+
 - Perfil PowerShell: función `armar` (carga `COTIDIE_*` / `NOVUM_*` desde env de usuario; **no** scrapea `build.gradle`).
-- Ejemplos: `armar cotidie`, `armar cotidie novum`, etc. (ver ayuda de `armar` si dudas).
+- `armar cotidie` incrementa la versión de parche, compila, copia el APK a la ubicación secundaria, crea un commit con los cambios pendientes, hace push y publica el APK en GitHub Releases.
+- `armar cotidie fijo` hace lo mismo sin incrementar la versión; `armar cotidie local` incrementa y compila sin copia secundaria ni publicación. `armar cotidie X.Y.Z` fija una versión concreta y usa el flujo completo.
+- `armar cotidie novum` usa el flujo independiente de Novum.
 - Si falla signing: faltan env o keystore path inválido — no re-pegar passwords en gradle.
 
 ## Git (autoría)

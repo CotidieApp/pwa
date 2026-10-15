@@ -1,6 +1,9 @@
 package com.benjamin.studio;
 
 import android.content.Intent;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
@@ -9,19 +12,27 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.IBinder;
+import android.os.ResultReceiver;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.webkit.RenderProcessGoneDetail;
 import android.webkit.WebView;
+import android.widget.Toast;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.BridgeWebViewClient;
-import java.io.BufferedReader;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
+import java.io.File;
+import java.io.FileInputStream;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.json.JSONObject;
 
 public class MainActivity extends BridgeActivity {
@@ -31,7 +42,30 @@ public class MainActivity extends BridgeActivity {
     private static final String EXTRA_NAV_TARGET_ID = "cotidie_target_id";
     private static final String EXTRA_NAV_ROUTE = "cotidie_route";
     private static final int MAX_FLUSH_RETRIES = 12;
-    private static final int MAX_IMPORT_BYTES = 15 * 1024 * 1024;
+    private static final int MAX_IMPORT_BYTES = ImportReaderService.MAX_BYTES;
+    private static final long IMPORT_TIMEOUT_MS = ImportReaderService.TIMEOUT_MS + 5000L;
+    // This worker reads only a completed app-private cache file, never an external provider.
+    private static final ThreadPoolExecutor IMPORT_READS = new ThreadPoolExecutor(
+            1, 1, 0L, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(1));
+    private final Handler importHandler = new Handler(Looper.getMainLooper());
+    private ImportReadRequest importRequest;
+
+    private static final class ImportReadRequest {
+        final AtomicBoolean canceled = new AtomicBoolean(false);
+        File output;
+        ServiceConnection connection;
+        boolean bound;
+        boolean received;
+        Future<?> future;
+        Runnable timeout;
+        Runnable completion;
+
+        void cancel() {
+            canceled.set(true);
+            if (future != null) future.cancel(true);
+            IMPORT_READS.purge();
+        }
+    }
     private static final String WEBVIEW_PREFS = "cotidie_webview_stability";
     private static final String WEBVIEW_CRASH_COUNT_KEY = "render_crash_count";
     private static final String WEBVIEW_LAST_CRASH_AT_KEY = "render_crash_at";
@@ -105,6 +139,13 @@ public class MainActivity extends BridgeActivity {
         super.onPause();
     }
 
+    @Override
+    public void onDestroy() {
+        cancelImportRead();
+        pendingImportPayload = null;
+        super.onDestroy();
+    }
+
     private void configureSystemBars() {
         Window window = getWindow();
         WindowCompat.setDecorFitsSystemWindows(window, false);
@@ -174,12 +215,81 @@ public class MainActivity extends BridgeActivity {
 
         if (uri == null || !isSupportedImportUri(uri)) return;
 
-        String payload = readTextFromUri(uri);
+        final Uri importUri = uri;
         clearHandledImportIntent(intent);
-        if (payload == null || payload.trim().isEmpty()) return;
+        if (importRequest != null) {
+            Toast.makeText(this, "Espera a que termine la lectura del archivo anterior.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        pendingImportPayload = null;
+        final ImportReadRequest request = new ImportReadRequest();
+        importRequest = request;
+        request.timeout = () -> {
+            if (importRequest != request) return;
+            cancelImportRead();
+            showImportReadError();
+        };
+        importHandler.postDelayed(request.timeout, IMPORT_TIMEOUT_MS);
+        try {
+            request.output = File.createTempFile("cotidie-import-", ".json", getCacheDir());
+            ResultReceiver reply = new ResultReceiver(importHandler) {
+                @Override protected void onReceiveResult(int code, Bundle data) {
+                    if (importRequest != request || request.canceled.get() || request.received || isDestroyed()) return;
+                    request.received = true;
+                    if (code != ImportReaderService.SUCCESS) { cancelImportRead(); showImportReadError(); return; }
+                    loadCompletedImport(request);
+                }
+            };
+            request.connection = new ServiceConnection() {
+                @Override public void onServiceConnected(ComponentName name, IBinder service) {}
+                @Override public void onServiceDisconnected(ComponentName name) {
+                    if (importRequest == request && !request.received) { cancelImportRead(); showImportReadError(); }
+                }
+            };
+            Intent readIntent = new Intent(this, ImportReaderService.class).setData(importUri);
+            readIntent.putExtra(ImportReaderService.EXTRA_OUTPUT, request.output.getName());
+            readIntent.putExtra(ImportReaderService.EXTRA_REPLY, reply);
+            request.bound = bindService(readIntent, request.connection, Context.BIND_AUTO_CREATE);
+            if (!request.bound) { cancelImportRead(); showImportReadError(); }
+        } catch (Exception ignored) {
+            cancelImportRead();
+            showImportReadError();
+        }
+    }
 
-        pendingImportPayload = payload;
-        flushPendingImportToWebView();
+    private void loadCompletedImport(ImportReadRequest request) {
+        try {
+            request.future = IMPORT_READS.submit(() -> {
+                String payload = null;
+                try (InputStream stream = new FileInputStream(request.output)) {
+                    payload = BoundedImportReader.read(stream, MAX_IMPORT_BYTES, request.canceled::get);
+                } catch (Exception ignored) {
+                } finally {
+                    request.output.delete();
+                }
+                final String result = payload;
+                synchronized (request) {
+                    if (request.canceled.get()) return;
+                    request.completion = () -> {
+                        synchronized (request) { request.completion = null; }
+                        if (importRequest != request || request.canceled.get() || isDestroyed()) return;
+                        importHandler.removeCallbacks(request.timeout);
+                        unbindImportReader(request);
+                        importRequest = null;
+                        if (result == null || result.trim().isEmpty()) { showImportReadError(); return; }
+                        pendingImportPayload = result;
+                        flushPendingImportToWebView();
+                    };
+                    importHandler.post(request.completion);
+                }
+            });
+        } catch (RejectedExecutionException ignored) { cancelImportRead(); showImportReadError(); }
+    }
+
+    private void unbindImportReader(ImportReadRequest request) {
+        if (!request.bound) return;
+        request.bound = false;
+        try { unbindService(request.connection); } catch (IllegalArgumentException ignored) {}
     }
 
 
@@ -224,22 +334,23 @@ public class MainActivity extends BridgeActivity {
     }
 
 
-    private String readTextFromUri(Uri uri) {
-        try (InputStream inputStream = getContentResolver().openInputStream(uri)) {
-            if (inputStream == null) return null;
-            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
-            StringBuilder builder = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                builder.append(line).append('\n');
-                if (builder.length() > MAX_IMPORT_BYTES) {
-                    return null;
-                }
-            }
-            return builder.toString();
-        } catch (Exception ignored) {
-            return null;
+    private void cancelImportRead() {
+        ImportReadRequest previous = importRequest;
+        importRequest = null;
+        if (previous == null) return;
+        synchronized (previous) {
+            previous.canceled.set(true);
+            importHandler.removeCallbacks(previous.timeout);
+            if (previous.completion != null) importHandler.removeCallbacks(previous.completion);
+            previous.completion = null;
         }
+        previous.cancel();
+        unbindImportReader(previous);
+        if (previous.output != null) previous.output.delete();
+    }
+
+    private void showImportReadError() {
+        Toast.makeText(this, "No se pudo leer el archivo. Comprueba que sea un respaldo válido de hasta 15 MB e inténtalo de nuevo.", Toast.LENGTH_LONG).show();
     }
 
     private void clearHandledImportIntent(Intent intent) {

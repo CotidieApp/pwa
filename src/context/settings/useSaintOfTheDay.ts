@@ -62,8 +62,7 @@ export const useSaintOfTheDay = ({
     }).catch(() => {});
   }, [
     isLoaded,
-    saintOfTheDay?.name,
-    saintOfTheDay?.bio,
+    saintOfTheDay,
     saintOfTheDayImage?.id,
     saintOfTheDayImage?.imageUrl,
     saintOfTheDayPrayerId,
@@ -240,5 +239,11 @@ export const useSaintOfTheDay = ({
     overriddenFixedSaint,
     overriddenFixedSaintImage,
     saintRefreshClock,
+    setSaintOfTheDay,
+    setSaintOfTheDayImage,
+    setSaintOfTheDayPrayerId,
+    setOverriddenFixedSaint,
+    setOverriddenFixedSaintImage,
+    setLastSaintUpdate,
   ]);
 };

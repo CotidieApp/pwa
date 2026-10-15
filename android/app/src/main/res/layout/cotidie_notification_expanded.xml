@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:orientation="vertical">
+    <TextView android:id="@+id/cotidie_notice_title"
+        style="@style/TextAppearance.Compat.Notification.Title"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:textSize="15sp" android:maxLines="2" android:ellipsize="end"
+        android:includeFontPadding="false" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:layout_marginTop="3dp">
+        <TextView android:id="@+id/cotidie_notice_body"
+            style="@style/TextAppearance.Compat.Notification"
+            android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:textSize="14sp" android:maxLines="12" android:ellipsize="end"
+            android:includeFontPadding="false" />
+        <ImageView android:id="@+id/cotidie_notice_image"
+            android:layout_width="88dp" android:layout_height="96dp" android:layout_marginStart="8dp"
+            android:scaleType="fitCenter" android:contentDescription="@null" android:visibility="gone" />
+    </LinearLayout>
+</LinearLayout>

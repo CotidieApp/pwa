@@ -94,9 +94,9 @@ npm run build
 
 ## Generación del APK
 
-El comando principal no se limita a compilar: de forma predeterminada aumenta
-la versión de parche y puede publicar los resultados configurados por el
-proyecto.
+El comando principal compila localmente y conserva la versión. Publicar,
+aumentar versión o copiar a la ubicación secundaria requiere opciones explícitas.
+El APK queda en `dist/`; los instaladores anteriores se conservan.
 
 ```powershell
 npm run android:apk
@@ -107,6 +107,9 @@ Opciones disponibles:
 | Opción | Función |
 | --- | --- |
 | `--set X.Y.Z` | Establece una versión concreta. |
+| `--bump` | Aumenta la versión de parche. |
+| `--publish` | Crea un commit con todos los cambios pendientes, hace push y publica el APK. |
+| `--copy-drive` | Copia el APK a la ubicación secundaria configurada. |
 | `--no-bump` | Conserva la versión actual. |
 | `--no-push` | Omite Git y la publicación en GitHub. |
 | `--no-drive` | Omite la copia secundaria configurada. |
@@ -116,6 +119,9 @@ Para compilar localmente sin publicar ni modificar la versión:
 ```powershell
 npm run android:apk -- --no-bump --no-push --no-drive
 ```
+
+Antes de publicar, revisa los cambios pendientes: `--publish` los añade todos al commit automático.
+En este equipo, `armar cotidie` usa `--bump --copy-drive --publish`; `armar cotidie local` usa `--bump --no-drive --no-push`.
 
 ## Estructura principal
 

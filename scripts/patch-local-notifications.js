@@ -54,6 +54,12 @@ if (!fs.existsSync(managerPath)) {
   process.exit(0);
 }
 
+// Authoritative source stays in scripts; postinstall/build copies it into the plugin library.
+fs.copyFileSync(path.join(__dirname, 'android', 'CotidieNotificationIntentPolicy.java'),
+  path.join(path.dirname(managerPath), 'CotidieNotificationIntentPolicy.java'));
+fs.copyFileSync(path.join(__dirname, 'android', 'CotidieNotificationTextLayout.java'),
+  path.join(path.dirname(managerPath), 'CotidieNotificationTextLayout.java'));
+
 let source = fs.readFileSync(managerPath, 'utf8');
 let changed = false;
 
@@ -66,6 +72,71 @@ const replaceOnce = (pattern, replacement, label) => {
   source = next;
   changed = true;
 };
+
+if (!source.includes('CotidieNotificationIntentPolicy.isTrusted')) {
+  replaceOnce(/public JSObject handleNotificationActionPerformed\(Intent data, NotificationStorage notificationStorage\) \{/,
+    '$&\n        if (!CotidieNotificationIntentPolicy.isTrusted(context, data)) return null;',
+    'authenticate activity notification before any side effect');
+}
+if (!source.includes('CotidieNotificationIntentPolicy.attach')) {
+  replaceOnce(/(intent\.putExtra\(NOTIFICATION_IS_REMOVABLE_KEY, schedule == null \|\| schedule\.isRemovable\(\)\);)/,
+    '$1\n        CotidieNotificationIntentPolicy.attach(context, intent);',
+    'sign notification identity, action, payload and removable flag');
+}
+
+if (!source.includes('refreshCotidieNotificationIntents')) {
+  replaceOnce(/    @NonNull\r?\n    private Intent buildIntent/,
+    `    // Upgrade existing OS PendingIntent tokens without replaying alerts or changing alarm times.
+    public static void refreshCotidieNotificationIntents(Context context) {
+        android.content.SharedPreferences prefs = context.getSharedPreferences("cotidie_notification_auth", Context.MODE_PRIVATE);
+        if (prefs.getBoolean("intents_upgraded_v1", false)) return;
+        NotificationStorage storage = new NotificationStorage(context);
+        LocalNotificationManager manager = new LocalNotificationManager(storage, null, context, com.getcapacitor.CapConfig.loadDefault(context));
+        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) flags |= PendingIntent.FLAG_MUTABLE;
+        for (LocalNotification saved : storage.getSavedNotifications()) {
+            PendingIntent.getActivity(context, saved.getId(), manager.buildIntent(saved, DEFAULT_PRESS_ACTION), flags);
+            String group = saved.getActionTypeId();
+            if (group == null) continue;
+            NotificationAction[] actions = storage.getActionGroup(group);
+            if (actions == null) continue;
+            for (NotificationAction action : actions) {
+                if ("mark_prayed".equals(action.getId())) continue; // Already a private broadcast.
+                PendingIntent.getActivity(context, saved.getId() + action.getId().hashCode(), manager.buildIntent(saved, action.getId()), flags);
+            }
+        }
+        android.app.NotificationManager notifications = context.getSystemService(android.app.NotificationManager.class);
+        for (android.service.notification.StatusBarNotification active : notifications.getActiveNotifications()) {
+            // Native widget/timer notices use their own PendingIntent contracts.
+            if (active.getTag() != null) continue;
+            Notification notice = active.getNotification();
+            if (notice.contentIntent == null) continue;
+            LocalNotification saved = storage.getSavedNotification(Integer.toString(active.getId()));
+            if (saved == null) {
+                // Delivered one-shot payloads were deleted by the old publisher. Preserve visible
+                // content and a safe default open; never reconstruct a mutating custom action.
+                try {
+                    JSObject data = new JSObject();
+                    data.put("id", active.getId());
+                    data.put("title", notice.extras.getCharSequence(Notification.EXTRA_TITLE, "").toString());
+                    data.put("body", notice.extras.getCharSequence(Notification.EXTRA_TEXT, "").toString());
+                    saved = LocalNotification.buildNotificationFromJSObject(data);
+                } catch (java.text.ParseException e) { continue; }
+            }
+            // FLAG_NO_CREATE prevents touching unrelated native notifications with different intents.
+            Intent open = manager.buildIntent(saved, DEFAULT_PRESS_ACTION);
+            PendingIntent existing = PendingIntent.getActivity(context, saved.getId(), open, flags | PendingIntent.FLAG_NO_CREATE);
+            if (existing == null) continue;
+            Notification refreshed = Notification.Builder.recoverBuilder(context, notice)
+                .setContentIntent(existing).setOnlyAlertOnce(true).build();
+            notifications.notify(active.getId(), refreshed);
+        }
+        prefs.edit().putBoolean("intents_upgraded_v1", true).apply();
+    }
+
+    @NonNull
+    private Intent buildIntent`, 'refresh legacy notification tokens after package replacement');
+}
 
 if (!source.includes('com.benjamin.studio.MARK_PRAYED')) {
   replaceOnce(
@@ -101,7 +172,7 @@ if (!source.includes('com.benjamin.studio.MARK_PRAYED')) {
   );
 }
 
-if (!source.includes('NotificationCompat.BigPictureStyle')) {
+if (!source.includes('NotificationCompat.BigPictureStyle') && !source.includes('Cotidie multiline notification')) {
   replaceOnce(
     /        String sound = localNotification\.getSound\(context, getDefaultSound\(context\)\);/,
     `        JSObject extra = localNotification.getExtra();
@@ -164,6 +235,21 @@ if (!source.includes('Cotidie immediate image v2')) {
 
 `;
   replaceOnce(/    private void createActionIntents\(/, bitmapMethods + '$&', 'bounded immediate notification bitmap');
+}
+
+if (!source.includes('Cotidie multiline notification v2')) {
+  replaceOnce(/(?:        \/\/ Cotidie multiline notification[^\n]*\r?\n)?        JSObject extra = localNotification\.getExtra\(\);[\s\S]*?        String sound = localNotification\.getSound/,
+    `        // Cotidie multiline notification v2: reserve the body for text, never a one-line image summary.
+        JSObject extra = localNotification.getExtra();
+        String imageDrawable = extra != null ? extra.getString("imageDrawable") : null;
+        android.graphics.Bitmap bigPicture = null;
+        if (imageDrawable != null) {
+            bigPicture = loadCotidieNotificationBitmap(context, imageDrawable);
+        }
+        String displayBody = localNotification.getLargeBody() != null ? localNotification.getLargeBody() : localNotification.getBody();
+        CotidieNotificationTextLayout.apply(context, mBuilder, localNotification.getTitle(), displayBody, bigPicture);
+
+        String sound = localNotification.getSound`, 'multiline notification layouts');
 }
 
 if (!source.includes('Cotidie dev test alerts')) {
@@ -245,7 +331,7 @@ if (fs.existsSync(publisherPath)) {
     publisherChanged = true;
   };
 
-  if (!publisherSource.includes('Cotidie delayed big picture v2')) {
+  if (!publisherSource.includes('Cotidie delayed big picture v5')) {
     if (!publisherSource.includes('import android.graphics.Bitmap;')) {
       replacePublisherOnce(
         /import android\.content\.Intent;\r?\nimport android\.os\.Build;/,
@@ -285,31 +371,18 @@ import com.getcapacitor.plugin.util.AssetUtil;`,
     }
 
     const delayedBigPictureMethods = `    private Notification applyCotidieBigPictureStyle(Context context, Notification notification, JSObject notificationJson) {
-        // Cotidie delayed big picture v2
+        // Cotidie delayed big picture v5: preserve actions and all original notification metadata.
         if (notification == null || notificationJson == null) return notification;
         try {
             JSObject extra = notificationJson.getJSObject("extra");
-            if (extra == null) return notification;
-            String imageDrawable = extra.optString("imageDrawable", null);
-            if (imageDrawable == null || imageDrawable.trim().isEmpty()) return notification;
-
-            Bitmap bigPicture = loadCotidieNotificationBitmap(context, imageDrawable);
-            if (bigPicture == null) return notification;
+            String imageDrawable = extra == null ? null : extra.optString("imageDrawable", null);
+            Bitmap bigPicture = imageDrawable == null || imageDrawable.trim().isEmpty()
+                ? null : loadCotidieNotificationBitmap(context, imageDrawable);
 
             String title = notificationJson.optString("title", null);
-            String body = notificationJson.optString("body", null);
-            NotificationCompat.Builder builder = buildCotidieNotificationBuilder(context, notification, title, body);
-            NotificationCompat.BigPictureStyle style = new NotificationCompat.BigPictureStyle()
-                .bigPicture(bigPicture)
-                .bigLargeIcon((Bitmap) null);
-            if (title != null && !title.isEmpty()) {
-                style.setBigContentTitle(title);
-            }
-            if (body != null && !body.isEmpty()) {
-                style.setSummaryText(body);
-            }
-            builder.setStyle(style);
-            builder.setLargeIcon((Bitmap) null);
+            String body = notificationJson.optString("largeBody", notificationJson.optString("body", null));
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(context, notification);
+            CotidieNotificationTextLayout.apply(context, builder, title, body, bigPicture);
             return builder.build();
         } catch (Exception ignored) {
             return notification;

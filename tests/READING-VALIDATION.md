@@ -1,5 +1,9 @@
 # Persistencia de lectura: validación
 
+## Seguridad local — 15/10/2026
+
+La captura de ancla tiene presupuestos de nodos, rectángulos y mediciones. Ante contenido excesivo usa el CFI diagnóstico, marcado como fallback, sin aceptar un centro parcial. Regresiones Node cubren nodos enormes, muchos nodos/rectángulos y caracteres, además del segundo spine visible. Queda por comprobar en PWA/WebView real la restauración, columnas, rotación y tipografía con estos límites; las pruebas Node no certifican geometría física.
+
 ## Ronda de funciones sensibles — 8/10/2026
 
 - 36 regresiones Node correctas. Además de los contratos del lector: commit/aborto/apertura recuperable, migración cifrada y retención ante fallos, integridad/caducidad/revisiones, exclusión de privilegios, presupuesto real de expansión ZIP, borrado EPUB con checkpoints tardíos y fechas civiles en Santiago/DST/Auckland. Los fixtures de binarios son EPUB válidos; el NT empaquetado pasa el mismo validador.
@@ -7,6 +11,23 @@
 - Navegador local con datos ficticios: migración conservó tema/7 minutos en pausa/examen; retiró plaintext y dejó claves no extraíbles/ciphertext. Edición y opción 24 h sobrevivieron a recarga. Listo retiró examen y clave; no reapareció. Import con privilegios/actividad del timer en true: sin panel ni inicio, 3 minutos en pausa. Export sin privilegios/trazas/examen. Reinicio completo retiró nota/opción y restableció el timer desactivado.
 - EPUB eliminado conserva un marcador durable de retirada para impedir resurrección; no cambia el ID de libros conservados ni sus CFIs. Un fallo de limpieza heredada se reintenta. ZIP se valida antes de guardar y también al abrir fuentes antiguas.
 - Pendientes físicos: entrega/permiso exacto/canal bloqueado/reinicio/muerte del proceso, Keystore/copia/transferencia y Android 7; APK completo y PWA instalada/offline. ADB sin dispositivos en esta ronda. Las validaciones USB de versiones anteriores siguen siendo históricas.
+
+## Correcciones y ejecución reproducible (2026-10-09)
+
+`npm test` ejecuta las regresiones de persistencia, parches nativos y lifecycle de ajustes. Requiere fake-indexeddb y react-test-renderer@18.3.1 externos; no necesita credenciales ni historial Git. En este equipo:
+
+```powershell
+$env:COTIDIE_TEST_DEPS = 'C:\Users\balca\.codex\projects\cotidie\validation-2026-10-08\deps'
+npm test
+```
+
+En otro equipo, instalar las dependencias en un directorio auxiliar externo (`npm install --prefix <directorio> --no-save --no-package-lock --ignore-scripts fake-indexeddb react-test-renderer@18.3.1`) y apuntar la variable a él. Compilación/tipos con `npm run build`, que ya incorpora el control de concurrencia.
+
+E25: 55 pruebas correctas. Cuatro pruebas montan hooks/proveedor con React 18 y simulan puentes nativos: el widget reacciona al tipo litúrgico; cambiar tema conserva la sincronización y usa el icono vigente; desmontar cancela trabajo pendiente. En el proveedor real, cambiar ajustes no repite hidratación ni suscripciones; los eventos usan la fecha vigente. Un fallo de carga no consume acciones nativas, y el reintento explícito recupera la configuración. No certifican entrega Android ni aspecto del widget físico.
+
+Cierre E31/E32 del11deoctubre: lint0errores/0advertencias activas (8excepciones nuevas de línea justificadas+3supresiones previas);55pruebas,tipos/build y117recursosPWA correctos. UI aislada conserva instanciaEPUB con tamaño100→120%,Mateo tras recarga/reapertura,timer cancelar/guardar yplanes personales. APK final firmado v2:SHA256 ca29f16614f4a461a23fec5f2caa7f8d4b9a57f977847e31db66f55010717dbf. Pendientes físicos/externos y evidencia exacta en docs/CORRECCIONES-2026-10-09.md y correction-state.md externo.
+
+Nueva base: IndexedDB de lectura v2 conserva books/progress y añade audio/restore. Respaldo .ctdb incluye binarios e identidades de lectura; importación reanudable. Pruebas47 correctas: ida/vuelta de audio, progreso legado, checksums, truncamiento, reintento de restauración y migración fallida. EPUB sigue en0.3.93; XML parser fijado a0.8.15. Pendientes pruebas visuales completas EPUB/anotaciones y físicas Android de esta nueva base; no extender certificaciones anteriores.
 
 ## Contratos del lector
 

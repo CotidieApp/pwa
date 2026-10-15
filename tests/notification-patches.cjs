@@ -15,6 +15,11 @@ function fixture(run) {
     fs.mkdirSync(path.join(scratch, 'scripts'));
     fs.mkdirSync(path.join(scratch, javaDirectory), { recursive: true });
     fs.copyFileSync(path.join(root, 'scripts/patch-local-notifications.js'), path.join(scratch, 'scripts/patch-local-notifications.js'));
+    fs.mkdirSync(path.join(scratch, 'scripts/android'));
+    fs.copyFileSync(path.join(root, 'scripts/android/CotidieNotificationIntentPolicy.java'),
+      path.join(scratch, 'scripts/android/CotidieNotificationIntentPolicy.java'));
+    fs.copyFileSync(path.join(root, 'scripts/android/CotidieNotificationTextLayout.java'),
+      path.join(scratch, 'scripts/android/CotidieNotificationTextLayout.java'));
     for (const file of ['LocalNotificationManager.java', 'TimedNotificationPublisher.java', 'LocalNotificationRestoreReceiver.java'])
       fs.copyFileSync(path.join(root, javaDirectory, file), path.join(scratch, javaDirectory, file));
     run(scratch);
@@ -28,6 +33,12 @@ const manager = scratch => path.join(scratch, javaDirectory, 'LocalNotificationM
 function previousImageRoute(source) {
   return source.replace(/    \/\/ Cotidie immediate image v2[\s\S]*?    private void createActionIntents\(/,
     '    private void createActionIntents(').replace(
+    /        \/\/ Cotidie multiline notification v\d+[^\n]*\n[\s\S]*?        String sound = localNotification.getSound/,
+    `        JSObject extra = localNotification.getExtra();
+        String imageDrawable = extra != null ? extra.getString("imageDrawable") : null;
+        android.graphics.Bitmap bigPicture = localNotification.getLargeIcon(context);
+        mBuilder.setStyle(new NotificationCompat.BigPictureStyle().bigPicture(bigPicture));
+        String sound = localNotification.getSound`).replace(
     'android.graphics.Bitmap bigPicture = loadCotidieNotificationBitmap(context, imageDrawable);',
     'android.graphics.Bitmap bigPicture = localNotification.getLargeIcon(context);').replace(
     /\/\/ Cotidie dev test alerts:[^\r\n]*\r?\n        mBuilder\.setOnlyAlertOnce\([^\r\n]*\);/,
@@ -44,6 +55,7 @@ test('upgrade replaces the broken immediate-image route and remains idempotent',
   assert.equal((once.match(/private android.graphics.Bitmap loadCotidieNotificationBitmap/g) || []).length, 1);
   assert.match(once, /com.benjamin.studio.MARK_PRAYED/);
   assert.match(once, /Cotidie strict exact alarm v4/);
+  assert.match(once, /CotidieNotificationTextLayout.apply/);
   assert.match(once, /setOnlyAlertOnce\(extra == null \|\| !Boolean.TRUE.equals\(extra.getBool\("devTest"\)\)\)/);
   patch(scratch);
   assert.equal(fs.readFileSync(manager(scratch), 'utf8'), once);
@@ -57,9 +69,22 @@ test('fresh style installation resolves extra.imageDrawable without requiring la
   patch(scratch);
   const result = fs.readFileSync(manager(scratch), 'utf8');
   assert.match(result, /extra.getString\("imageDrawable"\)/);
-  assert.match(result, /NotificationCompat.BigPictureStyle/);
+  assert.match(result, /CotidieNotificationTextLayout.apply/);
   assert.match(result, /bigPicture = loadCotidieNotificationBitmap\(context, imageDrawable\)/);
   assert.doesNotMatch(result, /bigPicture = localNotification.getLargeIcon/);
+}));
+
+test('scheduled notifications retain actions and use the same multiline renderer with and without images', () => fixture(scratch => {
+  patch(scratch);
+  const timed = fs.readFileSync(path.join(scratch, javaDirectory, 'TimedNotificationPublisher.java'), 'utf8');
+  const renderer = timed.slice(timed.indexOf('private Notification applyCotidieBigPictureStyle'),
+    timed.indexOf('private NotificationCompat.Builder buildCotidieNotificationBuilder'));
+  assert.match(renderer, /new NotificationCompat.Builder\(context, notification\)/);
+  assert.match(renderer, /CotidieNotificationTextLayout.apply/);
+  assert.doesNotMatch(renderer, /if \(extra == null\) return|if \(bigPicture == null\) return|setSummaryText/);
+  const once = fs.readFileSync(manager(scratch), 'utf8');
+  patch(scratch);
+  assert.equal(fs.readFileSync(manager(scratch), 'utf8'), once);
 }));
 
 test('the dev image points to a packaged resource and all image routes remain available', () => {
@@ -81,6 +106,20 @@ function notificationPolicy() {
   }).outputText, filename);
   return compiled.exports;
 }
+
+test('activity notification guard precedes effects and the producer signs its intent', () => fixture(scratch => {
+  patch(scratch);
+  const once = fs.readFileSync(manager(scratch), 'utf8');
+  const handler = once.slice(once.indexOf('public JSObject handleNotificationActionPerformed'));
+  assert.ok(handler.indexOf('CotidieNotificationIntentPolicy.isTrusted') < handler.indexOf('notificationStorage.deleteNotification'));
+  assert.ok(handler.indexOf('CotidieNotificationIntentPolicy.isTrusted') < handler.indexOf('dismissVisibleNotification'));
+  assert.match(once, /CotidieNotificationIntentPolicy.attach\(context, intent\)/);
+  assert.match(once, /actionPendingIntent = PendingIntent.getBroadcast/);
+  assert.match(once, /refreshCotidieNotificationIntents/);
+  assert.ok(fs.existsSync(path.join(scratch, javaDirectory, 'CotidieNotificationIntentPolicy.java')));
+  patch(scratch);
+  assert.equal(fs.readFileSync(manager(scratch), 'utf8'), once);
+}));
 
 test('calendar replacement recognizes an active dated family but does not revive a changed Cartas anchor', () => {
   const source = notificationPolicy().notificationEventSource;

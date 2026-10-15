@@ -57,6 +57,8 @@
             </intent-filter>
         </activity>
 
+        <service android:name=".ImportReaderService" android:exported="false" android:process=":cotidie_import" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

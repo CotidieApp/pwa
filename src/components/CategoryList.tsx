@@ -18,6 +18,9 @@ export default function CategoryList({ categories, onSelectCategory }: CategoryL
           key={category.id}
           className="bg-card/80 shadow-lg backdrop-blur-sm border-border/50 p-[clamp(0.6rem,1.8vh,0.75rem)] min-h-[clamp(56px,9vh,72px)] flex items-center justify-between cursor-pointer hover:bg-accent/20 transition-colors"
           onClick={() => onSelectCategory(category)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={event => { if(event.key==='Enter' || event.key===' ') {event.preventDefault();onSelectCategory(category);} }}
         >
           <div className="flex items-center gap-4">
             <div className="text-accent bg-accent/10 rounded-lg h-[clamp(40px,7vh,48px)] w-[clamp(40px,7vh,48px)] flex items-center justify-center">

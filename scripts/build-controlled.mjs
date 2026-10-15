@@ -8,5 +8,6 @@ const require = createRequire(import.meta.url);
 const steps = [
   { executable: process.execPath, arguments: [require.resolve('typescript/bin/tsc'), '--noEmit'] },
   { executable: process.execPath, arguments: [require.resolve('next/dist/bin/next'), 'build'] },
+  { executable: process.execPath, arguments: [path.join(root,'scripts','check-pwa-export.mjs')] },
 ];
 process.exit(runControlled(steps, root));

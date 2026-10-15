@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import dynamic from 'next/dynamic';
+import { Capacitor } from '@capacitor/core';
 import type { Prayer, Category } from '@/lib/types';
 import { useSettings, type PrayerLanguageMode } from '@/context/SettingsContext';
 
@@ -30,6 +31,8 @@ const NuevoTestamentoReader = dynamic(() => import('@/components/NuevoTestamento
 const PersonalEpubLibrary = dynamic(() => import('@/components/PersonalEpubLibrary'), { ssr: false, loading: LazyView });
 import SearchCamino from '@/components/SearchCamino';
 import { AudioPlayer } from '@/components/AudioPlayer';
+import { migrateAudioLibrary, listAudioRecords, saveAudioRecord, removeAudioRecord, renameAudioRecord } from '@/lib/audio-store';
+import { App } from '@capacitor/app';
 import { letanias as letaniasRosarioBase } from '@/lib/prayers/plan-de-vida/santo-rosario/letanias';
 import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
@@ -52,10 +55,7 @@ import {
   type StoredSpiritualAudioItem,
   DEFAULT_SPIRITUAL_AUDIOS,
   MAX_SPIRITUAL_AUDIO_SIZE_BYTES,
-  toSpiritualAudioFileKey,
   removeAudioExtension,
-  loadStoredSpiritualAudios,
-  saveStoredSpiritualAudios,
   loadSpiritualAudioProgress,
   saveSpiritualAudioProgress,
 } from '@/components/main/spiritualAudio';
@@ -134,7 +134,9 @@ export default function MainApp() {
   const [activeSpiritualReadingAudioId, setActiveSpiritualReadingAudioId] = useState<string | null>(null);
   const audioUploadInputRef = useRef<HTMLInputElement | null>(null);
   const audioRenameInputRef = useRef<HTMLInputElement | null>(null);
-  const [userSpiritualAudios, setUserSpiritualAudios] = useState<StoredSpiritualAudioItem[]>(() => loadStoredSpiritualAudios());
+  const [userSpiritualAudios, setUserSpiritualAudios] = useState<StoredSpiritualAudioItem[]>([]);
+  const audioUrlsRef = useRef(new Set<string>());
+  const audioReadyRef = useRef(false);
   const [spiritualAudioProgress, setSpiritualAudioProgress] = useState<Record<string, number>>(() => loadSpiritualAudioProgress());
   const spiritualAudioProgressRef = useRef(spiritualAudioProgress);
   const activeSpiritualAudioRuntimeRef = useRef<{ id: string | null; currentTime: number; duration: number }>({
@@ -146,6 +148,18 @@ export default function MainApp() {
   const [audioPendingDelete, setAudioPendingDelete] = useState<StoredSpiritualAudioItem | null>(null);
   const [audioRenameTargetId, setAudioRenameTargetId] = useState<string | null>(null);
   const [audioRenameValue, setAudioRenameValue] = useState('');
+  useEffect(() => {
+    let disposed = false;
+    const urls = audioUrlsRef.current;
+    void migrateAudioLibrary().then(listAudioRecords).then(records => {
+      if (disposed) return;
+      setUserSpiritualAudios(records.map(({data,...meta}) => {
+        const src = URL.createObjectURL(new Blob([data],{type:meta.mimeType || ''})); urls.add(src); return {...meta,src};
+      }));
+      audioReadyRef.current = true;
+    }).catch(() => { if (!disposed) setSpiritualAudioError('No se pudo abrir la biblioteca de audios. Vuelve a abrir la aplicación para reintentar.'); });
+    return () => { disposed = true; audioReadyRef.current = false; for (const url of urls) URL.revokeObjectURL(url); urls.clear(); };
+  }, []);
   const shakeCountRef = useRef(0);
   const lastShakeTimeRef = useRef(0);
   const shakeResetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -353,11 +367,13 @@ export default function MainApp() {
   useEffect(() => {
     navStateRef.current = navState;
   }, [navState]);
-  useEffect(() => {
+  const [previousActiveView, setPreviousActiveView] = useState(navState.activeView);
+  if (previousActiveView !== navState.activeView) {
+    setPreviousActiveView(navState.activeView);
     if (navState.activeView !== 'settings' && navState.activeView !== 'developer') {
       setActiveSettingsSection(null);
     }
-  }, [navState.activeView]);
+  }
   useEffect(() => {
     dismissToastRef.current = dismiss;
   }, [dismiss]);
@@ -408,17 +424,35 @@ export default function MainApp() {
     } else {
       delete next[id];
     }
-    spiritualAudioProgressRef.current = next;
-    setSpiritualAudioProgress(next);
-    saveSpiritualAudioProgress(next);
+    if (next[id] === spiritualAudioProgressRef.current[id]) return;
+    try {
+      saveSpiritualAudioProgress(next);
+      spiritualAudioProgressRef.current = next;
+      setSpiritualAudioProgress(next);
+    }
+    catch { setSpiritualAudioError('No se pudo guardar el progreso del audio.'); }
   }, []);
+
+  useEffect(() => {
+    const checkpoint = () => persistActiveSpiritualAudioProgress();
+    document.addEventListener('visibilitychange', checkpoint);
+    window.addEventListener('pagehide', checkpoint);
+    const listener = Capacitor.isNativePlatform() ? App.addListener('appStateChange', checkpoint) : null;
+    const interval = window.setInterval(checkpoint, 15000);
+    return () => {
+      checkpoint(); window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', checkpoint); window.removeEventListener('pagehide', checkpoint);
+      void listener?.then(handle => handle.remove()).catch(() => {});
+    };
+  }, [persistActiveSpiritualAudioProgress]);
 
   const handleSpiritualAudioProgress = useCallback((id: string, currentTime: number, duration: number) => {
     activeSpiritualAudioRuntimeRef.current = { id, currentTime, duration };
   }, []);
 
-  const handleSpiritualAudioUpload = useCallback((file: File) => {
+  const handleSpiritualAudioUpload = useCallback(async (file: File) => {
     setSpiritualAudioError(null);
+    if (!audioReadyRef.current) { setSpiritualAudioError('Espera a que termine de abrirse la biblioteca.'); return; }
     if (file.size > MAX_SPIRITUAL_AUDIO_SIZE_BYTES) {
       setSpiritualAudioError('El audio supera el límite recomendado de 25MB.');
       return;
@@ -428,45 +462,36 @@ export default function MainApp() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const raw = typeof reader.result === 'string' ? reader.result : '';
-      if (!raw) {
-        setSpiritualAudioError('No se pudo leer el audio.');
-        return;
-      }
+    try {
+      const data = await file.arrayBuffer();
       const id = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
         ? crypto.randomUUID()
         : `audio-${Date.now()}`;
       const entry: StoredSpiritualAudioItem = {
         id,
         title: removeAudioExtension(file.name) || `Audio ${userSpiritualAudios.length + 1}`,
-        src: raw,
+        src: '',
         sizeBytes: file.size,
         updatedAt: Date.now(),
       };
-      try {
-        window.localStorage.setItem(toSpiritualAudioFileKey(entry.id), raw);
-        const next = [entry, ...userSpiritualAudios];
-        saveStoredSpiritualAudios(next);
-        setUserSpiritualAudios(next);
+        await saveAudioRecord({id:entry.id,title:entry.title,sizeBytes:entry.sizeBytes,updatedAt:entry.updatedAt,mimeType:file.type,data});
+        entry.src = URL.createObjectURL(new Blob([data],{type:file.type}));
+        audioUrlsRef.current.add(entry.src);
+        setUserSpiritualAudios(previous => [entry, ...previous]);
         persistActiveSpiritualAudioProgress();
         activeSpiritualAudioRuntimeRef.current = { id: entry.id, currentTime: 0, duration: 0 };
         setActiveSpiritualReadingAudioId(entry.id);
       } catch {
-        window.localStorage.removeItem(toSpiritualAudioFileKey(entry.id));
         setSpiritualAudioError('No se pudo guardar el audio en este dispositivo.');
       }
-    };
-    reader.onerror = () => setSpiritualAudioError('No se pudo leer el audio.');
-    reader.readAsDataURL(file);
   }, [persistActiveSpiritualAudioProgress, userSpiritualAudios]);
 
-  const deletePendingSpiritualAudio = useCallback(() => {
+  const deletePendingSpiritualAudio = useCallback(async () => {
     if (!audioPendingDelete) return;
-    window.localStorage.removeItem(toSpiritualAudioFileKey(audioPendingDelete.id));
+    try {
+    await removeAudioRecord(audioPendingDelete.id);
+    URL.revokeObjectURL(audioPendingDelete.src); audioUrlsRef.current.delete(audioPendingDelete.src);
     const nextAudios = userSpiritualAudios.filter((audio) => audio.id !== audioPendingDelete.id);
-    saveStoredSpiritualAudios(nextAudios);
     setUserSpiritualAudios(nextAudios);
 
     const nextProgress = { ...spiritualAudioProgressRef.current };
@@ -480,6 +505,7 @@ export default function MainApp() {
       setActiveSpiritualReadingAudioId(null);
     }
     setAudioPendingDelete(null);
+    } catch { setSpiritualAudioError('No se pudo completar el borrado del audio. Intenta nuevamente.'); }
   }, [activeSpiritualReadingAudioId, audioPendingDelete, userSpiritualAudios]);
 
   const openUserSpiritualAudioRename = useCallback((id: string) => {
@@ -494,7 +520,7 @@ export default function MainApp() {
     setAudioRenameValue('');
   }, []);
 
-  const submitUserSpiritualAudioRename = useCallback(() => {
+  const submitUserSpiritualAudioRename = useCallback(async () => {
     if (!audioRenameTarget) return;
     const nextTitle = audioRenameValue.trim();
     if (!nextTitle) return;
@@ -505,9 +531,11 @@ export default function MainApp() {
     const next = userSpiritualAudios.map((audio) =>
       audio.id === audioRenameTarget.id ? { ...audio, title: nextTitle, updatedAt: Date.now() } : audio
     );
-    setUserSpiritualAudios(next);
-    saveStoredSpiritualAudios(next);
-    closeUserSpiritualAudioRename();
+    try {
+      await renameAudioRecord(audioRenameTarget.id,nextTitle);
+      setUserSpiritualAudios(next);
+      closeUserSpiritualAudioRename();
+    } catch { setSpiritualAudioError('No se pudo guardar el nombre del audio.'); }
   }, [audioRenameTarget, audioRenameValue, closeUserSpiritualAudioRename, userSpiritualAudios]);
 
   // Effect to handle browser history (popstate for back/forward buttons)
@@ -904,320 +932,16 @@ export default function MainApp() {
   const currentPrayer = prayerPath.at(-1) || null;
   const isCaminoActive = currentPrayer?.id === 'camino-libro';
 
-  useEffect(() => {
-    if (isCaminoActive) return;
-    setIsSearchVisible(false);
-    setSearchState(DEFAULT_CAMINO_SEARCH_STATE);
-  }, [isCaminoActive]);
-
-  const renderCategory = () => {
-    if (!selectedCategory) return null;
-
-    if (selectedCategory.id === 'oraciones') {
-      const predeterminadas = allPrayers.filter(
-        (p) => p.categoryId === 'oraciones' && !p.isUserDefined
-      );
-      return (
-        <PrayerAccordion
-          predeterminadas={predeterminadas}
-          entradas={userPrayers}
-          onAddEntrada={() => handleAddEntrada('entry')}
-          onSelectPrayer={handleSelectPrayer}
-          onRemoveEntrada={removeUserPrayer}
-          onEditEntrada={(p) => handleEditEntrada(p, 'entry')}
-          onRemovePredefined={removePredefinedPrayer}
-          onEditPredefined={(p) => handleEditEntrada(p, 'predefined')}
-        />
-      );
+  const [wasCaminoActive, setWasCaminoActive] = useState(isCaminoActive);
+  if (wasCaminoActive !== isCaminoActive) {
+    setWasCaminoActive(isCaminoActive);
+    if (!isCaminoActive) {
+      setIsSearchVisible(false);
+      setSearchState(DEFAULT_CAMINO_SEARCH_STATE);
     }
+  }
 
-    if (currentPrayer?.id === 'cartas') {
-      return (
-        <>
-          <CartasIntro />
-          <PrayerList
-            prayers={userLetters}
-            onSelectPrayer={handleSelectPrayer}
-            onRemovePrayer={removeUserLetter}
-            onEditPrayer={(p) => handleEditEntrada(p, 'letter')}
-            showAddButton
-            onAddButtonClick={() => handleAddEntrada('letter')}
-            addButtonLabel="Añadir Carta"
-            categoryId={currentPrayer.id}
-            isUserPrayerList
-          />
-        </>
-      );
-    }
 
-    const prayerListSource =
-      selectedCategory.id === 'devociones'
-        ? [
-          ...allPrayers.filter(
-            (p) => p.categoryId === 'devociones' && !p.isUserDefined
-          ),
-          ...userDevotions,
-        ]
-        : allPrayers.filter((p) => p.categoryId === selectedCategory.id);
-
-    return (
-      <PrayerList
-        prayers={prayerListSource}
-        onSelectPrayer={handleSelectPrayer}
-        onOpenPrayerById={handleOpenPrayerById}
-        onRemovePrayer={
-          selectedCategory.id === 'devociones'
-            ? (id) => {
-              if (userDevotions.some((prayer) => prayer.id === id)) {
-                removeUserDevotion(id);
-              } else {
-                removePredefinedPrayer(id);
-              }
-            }
-            : isDeveloperMode && isEditModeEnabled
-              ? removePredefinedPrayer
-              : undefined
-        }
-        onEditPrayer={
-          selectedCategory.id === 'devociones'
-            ? (p) => handleEditEntrada(p, p.isUserDefined ? 'devotion' : 'predefined')
-            : isDeveloperMode && isEditModeEnabled
-              ? (p) => handleEditEntrada(p, 'predefined')
-              : undefined
-        }
-        showAddButton={selectedCategory.id === 'devociones'}
-        onAddButtonClick={() => handleAddEntrada('devotion')}
-        addButtonLabel="Agregar Devoción"
-        categoryId={selectedCategory.id}
-        prayerPathLength={prayerPath.length}
-      />
-    );
-  };
-
-  const handleOpenDeveloperDashboard = useCallback(() => {
-    setNavState({
-      ...initialState,
-      activeView: 'developer'
-    });
-  }, []);
-
-  const renderContent = () => {
-    switch (navState.activeView) {
-      case 'settings':
-        return <Settings
-          onOpenDeveloperDashboard={handleOpenDeveloperDashboard}
-          onShowAnnuum={() => setShowAnnuum(true)}
-          showAnnuumEntry={annuumAvailability.settingsVisible}
-          activeSection={activeSettingsSection}
-          onSectionChange={setActiveSettingsSection}
-        />;
-      case 'developer':
-        return <DeveloperDashboard onBack={handleBack} />;
-      case 'viaCrucis':
-        return <ViaCrucisImmersive onClose={() => setNavState({ ...initialState, activeView: 'category', selectedCategoryId: 'plan-de-vida' })} />;
-      case 'exposition':
-        return <ExpositionImmersive onClose={() => replaceNavState(buildPrayerNavState(['subcat-himnos']))} />;
-      case 'rosary':
-        return <RosaryImmersive
-          onClose={(targetId) => {
-            if (targetId) {
-              handleOpenPrayerById(targetId, {
-                rosaryReturnMode: targetId === 'letanias' ? 'selection' : null,
-              });
-            } else {
-              setNavState({ ...initialState, activeView: 'category', selectedCategoryId: 'plan-de-vida' });
-            }
-          }}
-          onSwitchToMeditated={() => setNavState(prev => ({ ...prev, activeView: 'rosaryMeditated' }))}
-        />;
-      case 'rosaryMeditated':
-        return <RosaryMeditated
-          onClose={() => setNavState({ ...initialState, activeView: 'category', selectedCategoryId: 'plan-de-vida' })}
-          onSwitchToImmersive={() => setNavState(prev => ({ ...prev, activeView: 'rosary' }))}
-          registerBackHandler={(handler) => {
-            rosaryMeditatedBackHandlerRef.current = handler;
-          }}
-        />;
-      case 'planCalendar':
-        return <PlanDeVidaCalendar />;
-      case 'category':
-        return <div className="p-4">{renderCategory()}</div>;
-      case 'customPlan': {
-        const slot = navState.selectedCustomPlanSlot;
-        if (!slot) return null;
-        return (
-          <div className="p-4">
-            <CustomPlanView
-              slot={slot}
-              onOpenPrayerId={handleOpenPrayerById}
-              onOpenPlanPrayerAt={(index) => handleOpenCustomPlanPrayerAt(slot, index)}
-              onDone={handleBack}
-              startInEditMode={navState.customPlanEditMode}
-            />
-          </div>
-        );
-      }
-      case 'addForm':
-      case 'editForm':
-        return (
-          <div className="p-4">
-            <AddPrayerForm
-              onSave={handleSavePrayer}
-              onCancel={handleCancelForm}
-              existingPrayer={editingPrayer}
-              formType={navState.addFormMode || 'entry'}
-            />
-          </div>
-        );
-      case 'prayer':
-        if (!currentPrayer) {
-          return <div className="p-4 text-sm text-muted-foreground">Oración no encontrada.</div>;
-        }
-        if (currentPrayer.id === 'cartas') {
-          return <div className="p-4">{renderCategory()}</div>;
-        }
-        if (currentPrayer.id === 'lectura-espiritual-audios') {
-          return (
-            <div className="p-4 space-y-4">
-              <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-4 rounded-xl border shadow-sm shrink-0 space-y-4">
-                {activeSpiritualAudio ? (
-                  <AudioPlayer
-                    key={activeSpiritualAudio.id}
-                    src={activeSpiritualAudio.src}
-                    title={activeSpiritualAudio.title}
-                    initialTime={spiritualAudioProgress[activeSpiritualAudio.id] ?? 0}
-                    progressKey={activeSpiritualAudio.id}
-                    onProgressChange={handleSpiritualAudioProgress}
-                  />
-                ) : null}
-                <div className="grid grid-cols-1 gap-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground ml-1">Meditaciones disponibles</p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => audioUploadInputRef.current?.click()}
-                    >
-                      Agregar audio
-                    </Button>
-                    <Input
-                      ref={audioUploadInputRef}
-                      id="spiritual-audio-upload"
-                      name="spiritual-audio-upload"
-                      type="file"
-                      accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg"
-                      className="hidden"
-                      aria-label="Agregar audio personal"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleSpiritualAudioUpload(file);
-                        e.currentTarget.value = '';
-                      }}
-                    />
-                  </div>
-                  {spiritualAudioError ? <p className="text-xs text-destructive ml-1">{spiritualAudioError}</p> : null}
-                  {spiritualAudios.map((audio) => (
-                    <div key={audio.id} className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className={cn(
-                          'min-w-0 flex-1 justify-start text-left h-auto py-2 px-3 rounded-lg border border-transparent',
-                          activeSpiritualAudio?.id === audio.id && 'border-primary/20 bg-primary/5 text-primary'
-                        )}
-                        onClick={() => {
-                          if (activeSpiritualAudio?.id === audio.id) return;
-                          persistActiveSpiritualAudioProgress();
-                          activeSpiritualAudioRuntimeRef.current = {
-                            id: audio.id,
-                            currentTime: spiritualAudioProgress[audio.id] ?? 0,
-                            duration: 0,
-                          };
-                          setActiveSpiritualReadingAudioId(audio.id);
-                        }}
-                      >
-                        <Play className={cn("mr-2 h-4 w-4 shrink-0", activeSpiritualAudio?.id === audio.id ? "fill-primary" : "text-muted-foreground")} />
-                        <span className="min-w-0 flex-1 truncate">{audio.title}</span>
-                      </Button>
-                      {audio.isUser ? (
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="shrink-0"
-                            aria-label={`Editar ${audio.title}`}
-                            onClick={() => openUserSpiritualAudioRename(audio.id)}
-                          >
-                            <Icon.Pencil className="size-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                            aria-label={`Eliminar ${audio.title}`}
-                            onClick={() => setAudioPendingDelete(audio as StoredSpiritualAudioItem)}
-                          >
-                            <Icon.Trash2 className="size-4" />
-                          </Button>
-                        </>
-                      ) : null}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          );
-        }
-        if (currentPrayer.prayers && currentPrayer.prayers.length > 0) {
-          return (
-            <div className="p-4 space-y-4">
-              {currentPrayer.id === 'subcat-confesion' ? <ConfessionNotebook /> : null}
-              <div className="mobile-landscape-section-list">
-                <PrayerList
-                  prayers={currentPrayer.prayers}
-                  onSelectPrayer={handleSelectPrayer}
-                  onOpenPrayerById={handleOpenPrayerById}
-                  onRemovePrayer={isDeveloperMode && isEditModeEnabled ? removePredefinedPrayer : undefined}
-                  onEditPrayer={isDeveloperMode && isEditModeEnabled ? (p) => handleEditEntrada(p, 'predefined') : undefined}
-                  categoryId={currentPrayer.id || ''}
-                  prayerPathLength={prayerPath.length}
-                />
-              </div>
-            </div>
-          );
-        }
-        if (currentPrayer.id === 'lectura-nuevo-testamento') {
-          return <NuevoTestamentoReader onClose={handleBack} />;
-        }
-        if (currentPrayer.id === 'lectura-espiritual-personales') {
-          return (
-            <PersonalEpubLibrary
-              registerBackHandler={(handler) => {
-                personalEpubBackHandlerRef.current = handler;
-              }}
-            />
-          );
-        }
-        if (currentPrayer.id === 'letanias') {
-          return (
-            <PrayerDetail
-              prayer={{ ...currentPrayer, content: letaniasRosarioBase.content }}
-              searchState={isCaminoActive ? searchState : undefined}
-            />
-          );
-        }
-        return <PrayerDetail prayer={currentPrayer} searchState={isCaminoActive ? searchState : undefined} />;
-      case 'home':
-      default:
-        return (
-          <HomePage
-            onSelectCategory={handleSelectCategory}
-            onOpenCustomPlan={handleOpenCustomPlan}
-            onCreateCustomPlan={handleCreateAndOpenCustomPlan}
-          />
-        );
-    }
-  };
 
   const handleOpenPrayerById = useCallback((id: string, options?: { countOpen?: boolean; rosaryReturnMode?: 'selection' | null }) => {
     const pathIds = getPrayerPathIds(id, allPrayers);
@@ -1544,6 +1268,319 @@ export default function MainApp() {
       removeUserLetter(prayer.id);
     } else {
       removeUserPrayer(prayer.id);
+    }
+  };
+
+  const renderCategory = () => {
+    if (!selectedCategory) return null;
+
+    if (selectedCategory.id === 'oraciones') {
+      const predeterminadas = allPrayers.filter(
+        (p) => p.categoryId === 'oraciones' && !p.isUserDefined
+      );
+      return (
+        <PrayerAccordion
+          predeterminadas={predeterminadas}
+          entradas={userPrayers}
+          onAddEntrada={() => handleAddEntrada('entry')}
+          onSelectPrayer={handleSelectPrayer}
+          onRemoveEntrada={removeUserPrayer}
+          onEditEntrada={(p) => handleEditEntrada(p, 'entry')}
+          onRemovePredefined={removePredefinedPrayer}
+          onEditPredefined={(p) => handleEditEntrada(p, 'predefined')}
+        />
+      );
+    }
+
+    if (currentPrayer?.id === 'cartas') {
+      return (
+        <>
+          <CartasIntro />
+          <PrayerList
+            prayers={userLetters}
+            onSelectPrayer={handleSelectPrayer}
+            onRemovePrayer={removeUserLetter}
+            onEditPrayer={(p) => handleEditEntrada(p, 'letter')}
+            showAddButton
+            onAddButtonClick={() => handleAddEntrada('letter')}
+            addButtonLabel="Añadir Carta"
+            categoryId={currentPrayer.id}
+            isUserPrayerList
+          />
+        </>
+      );
+    }
+
+    const prayerListSource =
+      selectedCategory.id === 'devociones'
+        ? [
+          ...allPrayers.filter(
+            (p) => p.categoryId === 'devociones' && !p.isUserDefined
+          ),
+          ...userDevotions,
+        ]
+        : allPrayers.filter((p) => p.categoryId === selectedCategory.id);
+
+    return (
+      <PrayerList
+        prayers={prayerListSource}
+        onSelectPrayer={handleSelectPrayer}
+        onOpenPrayerById={handleOpenPrayerById}
+        onRemovePrayer={
+          selectedCategory.id === 'devociones'
+            ? (id) => {
+              if (userDevotions.some((prayer) => prayer.id === id)) {
+                removeUserDevotion(id);
+              } else {
+                removePredefinedPrayer(id);
+              }
+            }
+            : isDeveloperMode && isEditModeEnabled
+              ? removePredefinedPrayer
+              : undefined
+        }
+        onEditPrayer={
+          selectedCategory.id === 'devociones'
+            ? (p) => handleEditEntrada(p, p.isUserDefined ? 'devotion' : 'predefined')
+            : isDeveloperMode && isEditModeEnabled
+              ? (p) => handleEditEntrada(p, 'predefined')
+              : undefined
+        }
+        showAddButton={selectedCategory.id === 'devociones'}
+        onAddButtonClick={() => handleAddEntrada('devotion')}
+        addButtonLabel="Agregar Devoción"
+        categoryId={selectedCategory.id}
+        prayerPathLength={prayerPath.length}
+      />
+    );
+  };
+
+  const handleOpenDeveloperDashboard = useCallback(() => {
+    setNavState({
+      ...initialState,
+      activeView: 'developer'
+    });
+  }, []);
+
+  const renderContent = () => {
+    switch (navState.activeView) {
+      case 'settings':
+        return <Settings
+          onOpenDeveloperDashboard={handleOpenDeveloperDashboard}
+          onShowAnnuum={() => setShowAnnuum(true)}
+          showAnnuumEntry={annuumAvailability.settingsVisible}
+          activeSection={activeSettingsSection}
+          onSectionChange={setActiveSettingsSection}
+        />;
+      case 'developer':
+        return <DeveloperDashboard onBack={handleBack} />;
+      case 'viaCrucis':
+        return <ViaCrucisImmersive onClose={() => setNavState({ ...initialState, activeView: 'category', selectedCategoryId: 'plan-de-vida' })} />;
+      case 'exposition':
+        return <ExpositionImmersive onClose={() => replaceNavState(buildPrayerNavState(['subcat-himnos']))} />;
+      case 'rosary':
+        return <RosaryImmersive
+          onClose={(targetId) => {
+            if (targetId) {
+              handleOpenPrayerById(targetId, {
+                rosaryReturnMode: targetId === 'letanias' ? 'selection' : null,
+              });
+            } else {
+              setNavState({ ...initialState, activeView: 'category', selectedCategoryId: 'plan-de-vida' });
+            }
+          }}
+          onSwitchToMeditated={() => setNavState(prev => ({ ...prev, activeView: 'rosaryMeditated' }))}
+        />;
+      case 'rosaryMeditated':
+        return <RosaryMeditated
+          onClose={() => setNavState({ ...initialState, activeView: 'category', selectedCategoryId: 'plan-de-vida' })}
+          onSwitchToImmersive={() => setNavState(prev => ({ ...prev, activeView: 'rosary' }))}
+          registerBackHandler={(handler) => {
+            rosaryMeditatedBackHandlerRef.current = handler;
+          }}
+        />;
+      case 'planCalendar':
+        return <PlanDeVidaCalendar />;
+      case 'category':
+        return <div className="p-4">{renderCategory()}</div>;
+      case 'customPlan': {
+        const slot = navState.selectedCustomPlanSlot;
+        if (!slot || !customPlans[slot - 1]) return <div className="p-4 space-y-3">
+          <p>Este plan ya no está disponible.</p>
+          <Button onClick={() => replaceNavState(initialState)}>Volver al inicio</Button>
+        </div>;
+        return (
+          <div className="p-4">
+            <CustomPlanView
+              slot={slot}
+              onOpenPrayerId={handleOpenPrayerById}
+              onOpenPlanPrayerAt={(index) => handleOpenCustomPlanPrayerAt(slot, index)}
+              onDone={handleBack}
+              startInEditMode={navState.customPlanEditMode}
+            />
+          </div>
+        );
+      }
+      case 'addForm':
+      case 'editForm':
+        return (
+          <div className="p-4">
+            <AddPrayerForm
+              onSave={handleSavePrayer}
+              onCancel={handleCancelForm}
+              existingPrayer={editingPrayer}
+              formType={navState.addFormMode || 'entry'}
+            />
+          </div>
+        );
+      case 'prayer':
+        if (!currentPrayer) {
+          return <div className="p-4 text-sm text-muted-foreground">Oración no encontrada.</div>;
+        }
+        if (currentPrayer.id === 'cartas') {
+          return <div className="p-4">{renderCategory()}</div>;
+        }
+        if (currentPrayer.id === 'lectura-espiritual-audios') {
+          return (
+            <div className="p-4 space-y-4">
+              <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-4 rounded-xl border shadow-sm shrink-0 space-y-4">
+                {activeSpiritualAudio ? (
+                  <AudioPlayer
+                    key={activeSpiritualAudio.id}
+                    src={activeSpiritualAudio.src}
+                    title={activeSpiritualAudio.title}
+                    initialTime={spiritualAudioProgress[activeSpiritualAudio.id] ?? 0}
+                    progressKey={activeSpiritualAudio.id}
+                    onProgressChange={handleSpiritualAudioProgress}
+                    onCheckpoint={persistActiveSpiritualAudioProgress}
+                  />
+                ) : null}
+                <div className="grid grid-cols-1 gap-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground ml-1">Meditaciones disponibles</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => audioUploadInputRef.current?.click()}
+                    >
+                      Agregar audio
+                    </Button>
+                    <Input
+                      ref={audioUploadInputRef}
+                      id="spiritual-audio-upload"
+                      name="spiritual-audio-upload"
+                      type="file"
+                      accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg"
+                      className="hidden"
+                      aria-label="Agregar audio personal"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleSpiritualAudioUpload(file);
+                        e.currentTarget.value = '';
+                      }}
+                    />
+                  </div>
+                  {spiritualAudioError ? <p className="text-xs text-destructive ml-1">{spiritualAudioError}</p> : null}
+                  {spiritualAudios.map((audio) => (
+                    <div key={audio.id} className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={cn(
+                          'min-w-0 flex-1 justify-start text-left h-auto py-2 px-3 rounded-lg border border-transparent',
+                          activeSpiritualAudio?.id === audio.id && 'border-primary/20 bg-primary/5 text-primary'
+                        )}
+                        onClick={() => {
+                          if (activeSpiritualAudio?.id === audio.id) return;
+                          persistActiveSpiritualAudioProgress();
+                          activeSpiritualAudioRuntimeRef.current = {
+                            id: audio.id,
+                            currentTime: spiritualAudioProgress[audio.id] ?? 0,
+                            duration: 0,
+                          };
+                          setActiveSpiritualReadingAudioId(audio.id);
+                        }}
+                      >
+                        <Play className={cn("mr-2 h-4 w-4 shrink-0", activeSpiritualAudio?.id === audio.id ? "fill-primary" : "text-muted-foreground")} />
+                        <span className="min-w-0 flex-1 truncate">{audio.title}</span>
+                      </Button>
+                      {audio.isUser ? (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="shrink-0"
+                            aria-label={`Editar ${audio.title}`}
+                            onClick={() => openUserSpiritualAudioRename(audio.id)}
+                          >
+                            <Icon.Pencil className="size-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            aria-label={`Eliminar ${audio.title}`}
+                            onClick={() => setAudioPendingDelete(audio as StoredSpiritualAudioItem)}
+                          >
+                            <Icon.Trash2 className="size-4" />
+                          </Button>
+                        </>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        }
+        if (currentPrayer.prayers && currentPrayer.prayers.length > 0) {
+          return (
+            <div className="p-4 space-y-4">
+              {currentPrayer.id === 'subcat-confesion' ? <ConfessionNotebook /> : null}
+              <div className="mobile-landscape-section-list">
+                <PrayerList
+                  prayers={currentPrayer.prayers}
+                  onSelectPrayer={handleSelectPrayer}
+                  onOpenPrayerById={handleOpenPrayerById}
+                  onRemovePrayer={isDeveloperMode && isEditModeEnabled ? removePredefinedPrayer : undefined}
+                  onEditPrayer={isDeveloperMode && isEditModeEnabled ? (p) => handleEditEntrada(p, 'predefined') : undefined}
+                  categoryId={currentPrayer.id || ''}
+                  prayerPathLength={prayerPath.length}
+                />
+              </div>
+            </div>
+          );
+        }
+        if (currentPrayer.id === 'lectura-nuevo-testamento') {
+          return <NuevoTestamentoReader onClose={handleBack} />;
+        }
+        if (currentPrayer.id === 'lectura-espiritual-personales') {
+          return (
+            <PersonalEpubLibrary
+              registerBackHandler={(handler) => {
+                personalEpubBackHandlerRef.current = handler;
+              }}
+            />
+          );
+        }
+        if (currentPrayer.id === 'letanias') {
+          return (
+            <PrayerDetail
+              prayer={{ ...currentPrayer, content: letaniasRosarioBase.content }}
+              searchState={isCaminoActive ? searchState : undefined}
+            />
+          );
+        }
+        return <PrayerDetail prayer={currentPrayer} searchState={isCaminoActive ? searchState : undefined} />;
+      case 'home':
+      default:
+        return (
+          <HomePage
+            onSelectCategory={handleSelectCategory}
+            onOpenCustomPlan={handleOpenCustomPlan}
+            onCreateCustomPlan={handleCreateAndOpenCustomPlan}
+          />
+        );
     }
   };
 

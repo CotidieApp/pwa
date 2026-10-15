@@ -85,8 +85,9 @@ export const normalizeNavState = (raw: any): NavigationState => {
     selectedCategoryId,
     prayerPathIds,
     rosaryReturnMode,
+    selectedCustomPlanSlot: [1, 2, 3, 4].includes(raw?.selectedCustomPlanSlot) ? raw.selectedCustomPlanSlot : null,
     customPlanPrayerSlot,
-    customPlanPrayerIndex,
+    customPlanPrayerIndex: Number.isInteger(customPlanPrayerIndex) && customPlanPrayerIndex! >= 0 ? customPlanPrayerIndex : null,
   };
 };
 

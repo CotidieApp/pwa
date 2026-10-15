@@ -11,7 +11,7 @@ export default function CartasIntro() {
           sino como un hijo a su Padre. Amor de Padre es el Suyo, no lo olvides.
         </p>
         <blockquote className="italic text-foreground/80 pl-4 border-l-2 border-border">
-          "Cuando te pongas delante de Dios, ten el descaro santo de un hijo que habla con su Padre."
+          &quot;Cuando te pongas delante de Dios, ten el descaro santo de un hijo que habla con su Padre.&quot;
         </blockquote>
         <div className="text-right text-foreground/80">- San Josemaría Escrivá</div>
       </CardContent>

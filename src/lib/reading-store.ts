@@ -6,18 +6,23 @@ export const compareReading = (a: ReadingStamp, b: ReadingStamp) =>
 
 export async function openReadingDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open('cotidie-reading', 1);
+    let abandoned = false;
+    const request = indexedDB.open('cotidie-reading', 2);
     request.onupgradeneeded = () => {
-      request.result.createObjectStore('progress');
-      request.result.createObjectStore('books');
+      for (const name of ['progress', 'books', 'audio', 'restore'])
+        if (!request.result.objectStoreNames.contains(name)) request.result.createObjectStore(name);
     };
-    request.onsuccess = () => resolve(request.result);
+    request.onsuccess = () => {
+      if (abandoned) { request.result.close(); return; }
+      request.result.onversionchange = () => request.result.close();
+      resolve(request.result);
+    };
     request.onerror = () => reject(request.error);
-    request.onblocked = () => reject(new Error('Reading database blocked'));
+    request.onblocked = () => { abandoned = true; reject(new Error('Reading database blocked')); };
   });
 }
 
-export async function readingTransaction<T>(store: 'progress' | 'books', mode: IDBTransactionMode,
+export async function readingTransaction<T>(store: 'progress' | 'books' | 'audio' | 'restore', mode: IDBTransactionMode,
   run: (store: IDBObjectStore, result: (value: T) => void) => void): Promise<T> {
   const db = await openReadingDB();
   try {
@@ -60,6 +65,12 @@ const queues = new Map<string, Promise<unknown>>();
 const latest = new Map<string, ReadingStamp>();
 const deleting = new Set<string>();
 const deletionMarker = (key: string) => 'cotidie_deleted:' + key;
+export async function flushReadingWrites(): Promise<void> {
+  await Promise.all([...queues.values()]);
+}
+export function resetReadingMemory(): void {
+  queues.clear(); latest.clear(); deleting.clear();
+}
 export async function isReadingDeleted(key: string): Promise<boolean> {
   if (deleting.has(key) || localStorage.getItem(deletionMarker(key)) === 'true') return true;
   try { return !!await readReading('deleted:' + key); }

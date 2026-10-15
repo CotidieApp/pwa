@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useCommittedCallback } from '@/hooks/useCommittedCallback';
 import ePub, { type Book, type Rendition } from 'epubjs';
 import { EpubReadingController } from '@/lib/epub-reader/controller';
 import { EpubRelativePaginator, getReaderFileName } from '@/lib/epub-reader/pagination';
@@ -66,7 +67,8 @@ export default function EpubReader({
   context = 'nt',
   onClose,
 }: EpubReaderProps) {
-  const { theme, fontFamily, pushDevLiveTrace, prayerTextZoom } = useSettings();
+  const { theme, fontFamily, pushDevLiveTrace: traceCallback, prayerTextZoom } = useSettings();
+  const pushDevLiveTrace = useCommittedCallback(traceCallback);
   useScreenWakeLock(true);
   const isNtContext = context === 'nt';
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -127,7 +129,9 @@ export default function EpubReader({
   const readerBackgroundColor = readerThemeColors.background;
   const readerFontFamily = READER_FONT_FAMILIES[fontFamily] ?? READER_FONT_FAMILIES.literata;
   const appearanceRef = useRef({ text: readerTextColor, background: readerBackgroundColor, family: readerFontFamily, size: readerFontSize });
-  appearanceRef.current = { text: readerTextColor, background: readerBackgroundColor, family: readerFontFamily, size: readerFontSize };
+  useEffect(() => {
+    appearanceRef.current = { text: readerTextColor, background: readerBackgroundColor, family: readerFontFamily, size: readerFontSize };
+  }, [readerTextColor, readerBackgroundColor, readerFontFamily, readerFontSize]);
   const tocBookAnchors = useMemo(() => {
     if (!isNtContext) return {};
     const map: Record<string, TocEntry> = {};
@@ -440,6 +444,10 @@ export default function EpubReader({
         activePaginator = paginator;
         paginatorRef.current = paginator;
 
+        // The book lifecycle follows its source, not typography. Subsequent changes
+        // use the existing reflow path; bootstrap reads the latest committed appearance.
+        const { text: readerTextColor, background: readerBackgroundColor,
+          family: readerFontFamily, size: readerFontSize } = appearanceRef.current;
         rendition.themes.default({
           body: {
             color: readerTextColor,
@@ -615,7 +623,7 @@ export default function EpubReader({
       }
       void Promise.resolve(closing).finally(dispose);
     };
-  }, [activeFile, beginTransition, bookmarksStorageKey, endTransition, epubUrl, highlightsStorageKey, locationStorageKey, sourceBase64, sourceBuffer]);
+  }, [activeFile, beginTransition, bookmarksStorageKey, endTransition, epubUrl, highlightsStorageKey, locationStorageKey, sourceBase64, sourceBuffer, pushDevLiveTrace]);
 
   const requestReflow = useCallback(() => {
     const controller = controllerRef.current;
@@ -729,7 +737,7 @@ export default function EpubReader({
       disposed = true;
       handle?.remove();
     };
-  }, [persistCurrentLocation]);
+  }, [persistCurrentLocation, pushDevLiveTrace]);
 
   const movePage = (operation: 'next' | 'prev') => {
     if (showControlsRef.current) return;
