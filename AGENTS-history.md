@@ -2,6 +2,46 @@
 
 Historial de intervenciones del asistente en el repo.
 
+## 2026-10-15 — Auditar barras en cambios de pantalla
+
+### Planificacion
+
+Revisar las dos barras del sistema a través de navegación normal, diálogos, paneles, lectores y pantallas completas; conservar el fondo y el contraste correspondientes a la superficie visible.
+
+### Ejecucion
+
+Las capas base de barras se ubicaron dentro del contenedor de vistas para que una pantalla completa las cubra de forma natural. `ThemeManager` compone superficies completas, velos y contenido de portales según la zona que ocupan antes de elegir iconos claros u oscuros. Se incorporó el velo del panel lateral a ese cálculo. El EPUB redujo sus capas de barras al nivel entre contenido y portales y eliminó el segundo oscurecimiento del panel. Las vistas de rosario, Vía Crucis, Exposición, Annuum, Nuevo Testamento, EPUB y vistas previas de desarrollo identifican su superficie visible. El modo sin distracciones conserva barras pintadas con el fondo de lectura o la imagen configurada.
+
+### Validacion
+
+Build coordinado y 117 entradas PWA aprobados. Recorrido Edge móvil: Inicio calcula la imagen en ambas barras; Plan de Vida iguala color de encabezado y zona inferior; preparación de Nuevo Testamento y Rosario cubren la capa base con su propia superficie; EPUB expone sus dos capas propias y, al abrir el panel, el contenido del panel cubre el punto central de las barras con iconos oscuros. La revisión estática incluyó los restantes componentes de pantalla completa y los tres tipos de portal. Edge informa insets de 0 px y no había Android conectado: falta la confirmación visual física. Sin APK nuevo, instalación ni publicación.
+
+### Archivos Modificados
+
+`MainApp`, `ThemeManager`, `EpubReader`, `NuevoTestamentoReader`, `AnnuumStory`, `RosaryImmersive`, `RosaryMeditated`, `RosarySelectionView`, `ViaCrucisImmersive`, `ExpositionImmersive`, `DeveloperDashboard`, `MassStreakSparkPreview` y los portales `dialog`, `alert-dialog`, `sheet`; este historial. Continuidad externa WC-026.
+
+## 2026-10-15 — Restaurar fondo y color en barras del sistema
+
+### Planificacion
+
+Revisar la regresión visible en 6.4.26 en las zonas superior e inferior de Android, conservar el encuadre de la imagen de inicio y el color del encabezado según el tema.
+
+### Ejecucion
+
+Se confirmó que `MainApp` dejaba transparentes ambas capas de las zonas seguras al mostrar fondo completo. Se restauró la pintura explícita de la imagen en esas capas con el encuadre vigente; el encabezado estándar sigue usando `bg-primary` y la zona inferior `bg-background`. El panel de desarrollador conserva su barra superior propia.
+
+La revisión posterior de Información de Cartas mostró que las capas de barras estaban en `z-100`, por encima del velo `z-50`. Se bajaron a `z-40`, por encima del encabezado y debajo de los diálogos, y se marcó el velo de los diálogos comunes para que `ThemeManager` calcule el contraste de los iconos con el oscurecimiento efectivo.
+
+### Validacion
+
+`npm run build` y verificación de 117 entradas PWA correctos. En Edge móvil, ambas capas de inicio calculan la imagen y posición `50% 15%`; en Ajustes, la barra superior y el encabezado comparten `rgb(211, 132, 13)` y la inferior calcula `rgb(245, 247, 250)`. El emulador de navegador informa inset de 0 px; no hubo dispositivo Android conectado para validar físicamente las barras. Sin APK nuevo, instalación ni publicación.
+
+Tras el ajuste del velo, `npm run build` y las 117 entradas PWA volvieron a aprobarse. Recorrido Edge móvil Inicio → Plan de Vida → Cartas → Información: barras `z-40`, velo abierto `z-50` con negro al 80 %, iconos claros (`false:false`); al cerrar, iconos oscuros (`true:true`). La apariencia física de Android sigue pendiente.
+
+### Archivos Modificados
+
+`src/components/main/MainApp.tsx`, `src/components/ThemeManager.tsx`, `src/components/ui/alert-dialog.tsx`, `src/components/ui/dialog.tsx`; este historial. Continuidad externa WC-025.
+
 ## 2026-10-11 — Borradores recuperables y dependencias residuales
 
 ### Planificacion

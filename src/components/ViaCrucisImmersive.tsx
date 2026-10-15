@@ -433,6 +433,7 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
 
   return (
     <div
+      data-system-bar-surface=""
       onClick={(e) => {
         if (!touchNavEnabled) return
         handleTouchNavigation(e, handlePrev, handleNext, {

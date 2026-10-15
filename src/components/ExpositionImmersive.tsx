@@ -156,6 +156,7 @@ export default function ExpositionImmersive({ onClose }: ExpositionImmersiveProp
 
   return (
     <div
+      data-system-bar-surface=""
       className={cn(
         'fixed inset-0 z-50 flex overflow-hidden pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] pt-[env(safe-area-inset-top)]',
         isDark ? 'bg-black text-white' : 'bg-zinc-50 text-zinc-950'

@@ -535,7 +535,7 @@ export default function MassStreakSparkPreview({ onClose, year = new Date().getF
   }, [fullMonthKeys, isComplete, isPlaying, revealedCount, simulation.events]);
 
   return (
-    <div className="fixed inset-0 z-[120] overflow-hidden bg-slate-950 px-[max(0px,env(safe-area-inset-left))] pt-[max(0px,env(safe-area-inset-top))] pr-[max(0px,env(safe-area-inset-right))] pb-[max(0px,env(safe-area-inset-bottom))] text-slate-50">
+    <div data-system-bar-surface="" className="fixed inset-0 z-[120] overflow-hidden bg-slate-950 px-[max(0px,env(safe-area-inset-left))] pt-[max(0px,env(safe-area-inset-top))] pr-[max(0px,env(safe-area-inset-right))] pb-[max(0px,env(safe-area-inset-bottom))] text-slate-50">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(251,191,36,0.14),transparent_34%),radial-gradient(circle_at_18%_80%,rgba(249,115,22,0.16),transparent_28%),linear-gradient(180deg,#020617_0%,#0f172a_42%,#020617_100%)]" />
 
       <div className="relative flex h-full min-h-0 flex-col">

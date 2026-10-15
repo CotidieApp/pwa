@@ -981,6 +981,7 @@ export default function EpubReader({
 
   return (
     <div
+      data-system-bar-surface=""
       className="fixed inset-0 z-[120] flex flex-col"
       style={{
         height: '100dvh',
@@ -998,7 +999,7 @@ export default function EpubReader({
               <div
                 aria-hidden="true"
                 data-system-bar-layer="top"
-                className="pointer-events-none fixed inset-x-0 top-0 z-[200]"
+                className="pointer-events-none fixed inset-x-0 top-0 z-[45]"
                 style={{
                   height: 'env(safe-area-inset-top, 0px)',
                   backgroundColor: readerBackgroundColor,
@@ -1007,30 +1008,11 @@ export default function EpubReader({
               <div
                 aria-hidden="true"
                 data-system-bar-layer="bottom"
-                className="pointer-events-none fixed inset-x-0 bottom-0 z-[200]"
+                className="pointer-events-none fixed inset-x-0 bottom-0 z-[45]"
                 style={{
                   height: 'env(safe-area-inset-bottom, 0px)',
                   backgroundColor: readerBackgroundColor,
                 }}
-              />
-            </>,
-            document.body
-          )
-        : null}
-      {isPanelOpen && typeof document !== 'undefined'
-        ? createPortal(
-            <>
-              <div
-                aria-hidden="true"
-                data-system-bar-layer="top"
-                className="pointer-events-none fixed inset-x-0 top-0 z-[200] bg-black/80"
-                style={{ height: 'env(safe-area-inset-top, 0px)' }}
-              />
-              <div
-                aria-hidden="true"
-                data-system-bar-layer="bottom"
-                className="pointer-events-none fixed inset-x-0 bottom-0 z-[200] bg-black/80"
-                style={{ height: 'env(safe-area-inset-bottom, 0px)' }}
               />
             </>,
             document.body
@@ -1041,7 +1023,7 @@ export default function EpubReader({
         // Absolute top-0 anchors to the parent's padding box (the screen edge),
         // ignoring its paddingTop: env(safe-area-inset-top). Without this offset
         // the controls slide under the status bar and get covered by the opaque
-        // system-bar layer (z-[200]) drawn over that inset.
+        // system-bar layer drawn over that inset.
         style={{ top: 'env(safe-area-inset-top, 0px)' }}
       >
         <div className="rounded-lg border border-border bg-card/95 p-3 shadow-sm backdrop-blur">

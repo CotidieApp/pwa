@@ -23,7 +23,7 @@ export function RosarySelectionView({
   handleJumpToLitanies,
 }: RosarySelectionViewProps) {
   return (
-    <div className={cn(
+    <div data-system-bar-surface="" className={cn(
       "fixed inset-0 z-50 flex flex-col items-center justify-center p-6 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[max(1.5rem,env(safe-area-inset-left))] pr-[max(1.5rem,env(safe-area-inset-right))] bg-background/95 backdrop-blur-sm",
       isDark ? "text-white" : "text-zinc-900"
     )}>

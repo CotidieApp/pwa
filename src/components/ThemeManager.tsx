@@ -53,12 +53,41 @@ const getLayerZIndex = (element: HTMLElement) => {
 
 const collectPointBackgrounds = (side: 'top' | 'bottom') => {
   const selector = `[data-system-bar-layer="${side}"]`;
+  const x = Math.max(1, Math.floor(window.innerWidth / 2));
+  const y = side === 'top' ? 1 : Math.max(1, window.innerHeight - 2);
   const explicitLayers = Array.from(document.querySelectorAll<HTMLElement>(selector))
     .filter((element) => window.getComputedStyle(element).display !== 'none')
-    .sort((a, b) => getLayerZIndex(b) - getLayerZIndex(a));
+  const screenSurfaces = Array.from(document.querySelectorAll<HTMLElement>('[data-system-bar-surface]'))
+    .filter((element) => {
+      const style = window.getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      return style.display !== 'none' && style.visibility !== 'hidden' &&
+        x >= rect.left && x < rect.right && y >= rect.top && y < rect.bottom;
+    });
+  const backgroundLayers = [...explicitLayers, ...screenSurfaces]
+    .sort((a, b) => getLayerZIndex(b) - getLayerZIndex(a) ||
+      (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? 1 : -1));
 
   const colors: RgbaColor[] = [];
-  for (const element of explicitLayers) {
+  const portalLayers = Array.from(document.querySelectorAll<HTMLElement>(
+    '[data-system-bar-overlay][data-state="open"], [data-system-bar-portal-surface][data-state="open"]'
+  ))
+    .filter((element) => {
+      const style = window.getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      return style.display !== 'none' && style.visibility !== 'hidden' &&
+        x >= rect.left && x < rect.right && y >= rect.top && y < rect.bottom;
+    })
+    .sort((a, b) => getLayerZIndex(b) - getLayerZIndex(a) ||
+      (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? 1 : -1));
+  for (const element of portalLayers) {
+    const style = window.getComputedStyle(element);
+    const color = parseCssColor(style.backgroundColor);
+    if (color && color.a > 0) {
+      colors.push({ ...color, a: color.a * Number(style.opacity || 1) });
+    }
+  }
+  for (const element of backgroundLayers) {
     const style = window.getComputedStyle(element);
     const color = parseCssColor(style.backgroundColor);
     if (color && color.a > 0) {
@@ -68,10 +97,9 @@ const collectPointBackgrounds = (side: 'top' | 'bottom') => {
 
   const current = compositeColors(colors);
   if (current.a < 0.995) {
-    const x = Math.max(1, Math.floor(window.innerWidth / 2));
-    const y = side === 'top' ? 1 : Math.max(1, window.innerHeight - 2);
     for (const element of document.elementsFromPoint(x, y)) {
-      if (!(element instanceof HTMLElement) || element.matches(selector)) continue;
+      if (!(element instanceof HTMLElement) || element.matches(selector) ||
+        element.hasAttribute('data-system-bar-overlay') || element.hasAttribute('data-system-bar-portal-surface')) continue;
       const style = window.getComputedStyle(element);
       const color = parseCssColor(style.backgroundColor);
       if (!color || color.a <= 0) continue;
@@ -191,7 +219,7 @@ export default function ThemeManager({ children }: { children: React.ReactNode }
       subtree: true,
       childList: true,
       attributes: true,
-      attributeFilter: ['class', 'style', 'data-state', 'data-system-bar-layer'],
+      attributeFilter: ['class', 'style', 'data-state', 'data-system-bar-layer', 'data-system-bar-surface'],
     });
     window.addEventListener('resize', scheduleSynchronization);
     document.addEventListener('transitionend', scheduleSynchronization, true);

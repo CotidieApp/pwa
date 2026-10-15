@@ -161,6 +161,7 @@ export default function AnnuumStory({ onClose, originRect }: AnnuumStoryProps) {
           transition: { duration: 0.5, ease: "easeInOut" }
       } : { opacity: 0 }}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
+      data-system-bar-surface=""
       className="fixed z-[100] bg-black text-white flex flex-col overflow-hidden"
     >
       {/* Background Layer */}

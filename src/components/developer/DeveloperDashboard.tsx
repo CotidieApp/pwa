@@ -239,7 +239,7 @@ export default function DeveloperDashboard({ onBack }: DeveloperDashboardProps) 
       </div>
 
       {showAnnuumPreview ? (
-        <div className="fixed inset-0 z-[100] bg-black">
+        <div data-system-bar-surface="" className="fixed inset-0 z-[100] bg-black">
           <Button className="absolute right-4 top-4 z-[110] bg-white text-black hover:bg-gray-200" onClick={() => setShowAnnuumPreview(false)}>
             Salir
           </Button>

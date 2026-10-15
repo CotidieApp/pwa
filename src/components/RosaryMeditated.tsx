@@ -122,7 +122,7 @@ export default function RosaryMeditated({
   }, [registerBackHandler, selectedMeditationIndex]);
 
   return (
-    <div className={cn(
+    <div data-system-bar-surface="" className={cn(
       "fixed inset-0 z-50 bg-background flex flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]",
       isDark ? "text-white" : "text-zinc-900"
     )}>

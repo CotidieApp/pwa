@@ -88,6 +88,7 @@ function PwaNuevoTestamentoReader({ onClose }: Props) {
 
   return (
     <div
+      data-system-bar-surface=""
       className="fixed inset-0 z-[120] flex flex-col bg-background"
       style={{
         paddingTop: 'env(safe-area-inset-top, 0px)',

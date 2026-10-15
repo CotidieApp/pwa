@@ -35,6 +35,7 @@ import { migrateAudioLibrary, listAudioRecords, saveAudioRecord, removeAudioReco
 import { App } from '@capacitor/app';
 import { letanias as letaniasRosarioBase } from '@/lib/prayers/plan-de-vida/santo-rosario/letanias';
 import { cn } from '@/lib/utils';
+import { getImageObjectPosition } from '@/lib/image-display';
 import { Switch } from '@/components/ui/switch';
 import { AnimatePresence } from 'framer-motion';
 import { getAnnuumAvailability, getLocalDateKey } from '@/lib/movable-feasts';
@@ -179,6 +180,7 @@ export default function MainApp() {
     isDeveloperMode,
     isEditModeEnabled,
     perpetualBackgroundEnabled,
+    homeBackgroundId,
     removePredefinedPrayer,
     isDistractionFree,
     toggleDistractionFree,
@@ -1217,6 +1219,12 @@ export default function MainApp() {
     navState.activeView !== 'home' && navState.activeView !== 'developer';
   const hasPerpetualBackground = isDeveloperMode && perpetualBackgroundEnabled;
   const showsBackgroundImage = navState.activeView === 'home' || hasPerpetualBackground;
+  const systemBarBackgroundStyle = showsBackgroundImage ? {
+    backgroundImage: 'var(--home-bg-image)',
+    backgroundSize: 'cover',
+    backgroundPosition: getImageObjectPosition(homeBackgroundId ?? undefined),
+    backgroundAttachment: 'fixed' as const,
+  } : undefined;
   const hasTransparentSystemBars =
     showsBackgroundImage ||
     navState.activeView === 'viaCrucis' ||
@@ -1593,7 +1601,7 @@ export default function MainApp() {
       style={showsBackgroundImage ? {
         backgroundImage: 'var(--home-bg-image)',
         backgroundSize: 'cover',
-        backgroundPosition: 'center top',
+        backgroundPosition: getImageObjectPosition(homeBackgroundId ?? undefined),
         backgroundAttachment: 'fixed'
       } : undefined}
     >
@@ -1605,25 +1613,6 @@ export default function MainApp() {
           )}
         />
       ) : null}
-      {/* Dynamic System Bar Overlays */}
-      {!isDistractionFree && (
-        <>
-          <div
-            data-system-bar-layer="top"
-            className={cn(
-              "fixed top-0 inset-x-0 h-[env(safe-area-inset-top)] z-[100] pointer-events-none transition-colors duration-200",
-              navState.activeView === 'developer' ? "bg-slate-950" : hasTransparentSystemBars ? "bg-transparent" : "bg-primary"
-            )}
-          />
-          <div
-            data-system-bar-layer="bottom"
-            className={cn(
-              "fixed bottom-0 inset-x-0 h-[env(safe-area-inset-bottom)] z-[100] pointer-events-none transition-colors duration-200",
-              hasTransparentSystemBars ? "bg-transparent" : "bg-background"
-            )}
-          />
-        </>
-      )}
       {annuumAvailability.bubbleVisible && navState.activeView === 'home' && (
         <div
           className="absolute z-40 cursor-pointer hover:scale-110 transition-transform"
@@ -1657,6 +1646,22 @@ export default function MainApp() {
       )}
 
       <div className="relative z-10 flex h-full w-full flex-col md:max-w-6xl md:mx-auto md:border-x md:border-border/50">
+        <div
+          data-system-bar-layer="top"
+          className={cn(
+            "fixed top-0 inset-x-0 h-[env(safe-area-inset-top)] z-40 pointer-events-none transition-colors duration-200",
+            navState.activeView === 'developer' ? "bg-slate-950" : hasTransparentSystemBars ? "bg-transparent" : isDistractionFree ? "bg-background" : "bg-primary"
+          )}
+          style={navState.activeView === 'developer' ? undefined : systemBarBackgroundStyle}
+        />
+        <div
+          data-system-bar-layer="bottom"
+          className={cn(
+            "fixed bottom-0 inset-x-0 h-[env(safe-area-inset-bottom)] z-40 pointer-events-none transition-colors duration-200",
+            hasTransparentSystemBars ? "bg-transparent" : "bg-background"
+          )}
+          style={systemBarBackgroundStyle}
+        />
         {showsStandardHeader && (
           <Header
             title={headerTitle}
