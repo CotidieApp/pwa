@@ -2,6 +2,8 @@
 
 Continuación del [reporte integral](REPORTE-INTEGRAL-2026-10-09.md), actualizada el 11 de octubre. Código local 6.4.25, sin publicación ni instalación en dispositivos. Este documento distingue implementación, prueba web y certificación física; el plan recuperable y los logs permanecen fuera del repositorio, bajo `.codex/projects/cotidie`.
 
+**Cambio posterior (15 de octubre):** el respaldo completo se exporta con extensión `.ctd`. Su contenido CTD2 no cambió. La importación distingue la cabecera del archivo y acepta tanto `.ctd` completos como `.ctd` antiguos de solo ajustes y `.ctdb` completos anteriores. Las referencias a `.ctdb` en el historial siguiente describen la versión probada entonces.
+
 ## Cambios y evidencia
 
 ### Seguimiento local posterior a E32 — 2026-10-11

@@ -26,8 +26,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { appVersion } from '@/lib/version';
-import { MAX_IMPORT_BYTES, parseImportText } from '@/lib/import-safety';
-import { createBackupArchive, parseBackupArchive, MAX_BACKUP_BYTES } from '@/lib/backup-archive';
+import { parseImportText } from '@/lib/import-safety';
+import { createBackupArchive, parseCotidieBackupFile } from '@/lib/backup-archive';
 import { exportFile } from '@/lib/export-file';
 
 interface DeveloperSettingsProps {
@@ -61,7 +61,7 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
     setBackupBusy(true);
     try {
       const archive = await createBackupArchive(getBackupSnapshot());
-      await exportFile(archive, `cotidie_backup_${new Date().toISOString().replace(/[:Z]/g,'-')}.ctdb`);
+      await exportFile(archive, `cotidie_backup_${new Date().toISOString().replace(/[:Z]/g,'-')}.ctd`);
       toast({title:'Respaldo completo listo',description:'Incluye bibliotecas y progreso. Conserva el archivo en un lugar privado.'});
     } catch (error) {
       toast({variant:'destructive',title:'No se pudo crear el respaldo',description:error instanceof Error ? error.message : 'Intenta nuevamente.'});
@@ -129,51 +129,15 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
   const handleFileImport = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    if (file.name.toLowerCase().endsWith('.ctdb')) {
-      event.target.value = '';
-      if (backupBusy) return;
-      setBackupBusy(true);
-      try {
-        if (file.size > MAX_BACKUP_BYTES) throw new Error('El respaldo completo supera los 128 MB.');
-        const result = await importUserData(await parseBackupArchive(file), {silent:true});
-        toast({title:result.title,description:result.description,...(result.status==='invalid'?{variant:'destructive' as const}:{})});
-      } catch(error) {toast({variant:'destructive',title:'No se pudo restaurar',description:error instanceof Error ? error.message : 'Archivo inválido.'});}
-      finally {setBackupBusy(false);} return;
-    }
-    if (file.size > MAX_IMPORT_BYTES) {
-      toast({ title: 'El respaldo supera los 15 MB', variant: 'destructive' });
-      event.target.value = '';
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = async (loadEvent) => {
-      try {
-        const text = (loadEvent.target?.result as string).replace(/^\uFEFF/, '');
-        if (!text.trim().startsWith('{') && !text.trim().startsWith('[')) {
-          toast({
-            variant: 'destructive',
-            title: 'Archivo no compatible',
-            description: 'El archivo seleccionado no parece ser un respaldo de Cotidie válido.',
-          });
-          return;
-        }
-
-        const data = parseImportText(text);
-        const result = await importUserData(data, { silent: true });
-
-        if (result.status === 'invalid') {
-          toast({ variant: 'destructive', title: result.title, description: result.description });
-          return;
-        }
-
-        toast({ title: result.title, description: result.description });
-      } catch {
-        toast({ variant: 'destructive', title: 'Error al importar', description: 'El archivo no es válido.' });
-      }
-    };
-    reader.readAsText(file);
     event.target.value = '';
+    if (backupBusy) return;
+    setBackupBusy(true);
+    try {
+      const result = await importUserData(await parseCotidieBackupFile(file), { silent: true });
+      toast({title:result.title,description:result.description,...(result.status==='invalid'?{variant:'destructive' as const}:{})});
+    } catch (error) {
+      toast({variant:'destructive',title:'No se pudo restaurar',description:error instanceof Error ? error.message : 'Archivo inválido.'});
+    } finally { setBackupBusy(false); }
   };
 
   const handleDevTitleClick = () => {
@@ -248,18 +212,18 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
           <div className="flex items-center justify-between gap-3 rounded-md border bg-card/60 px-3 py-3">
             <div className="min-w-0">
               <div className="text-sm font-medium">Copia de seguridad</div>
-              <div className="text-xs text-muted-foreground">.ctdb: ajustes, EPUB, audios, progreso y contenido personal del rosario (hasta 128 MB)</div>
+              <div className="text-xs text-muted-foreground">.ctd completo: ajustes, EPUB, audios, progreso y contenido personal del rosario (hasta 128 MB)</div>
             </div>
             <Button variant="outline" size="sm" disabled={backupBusy} onClick={handleExport}>{backupBusy ? 'Procesando…' : 'Exportar'}</Button>
           </div>
           <p className="text-xs text-muted-foreground">El respaldo no está cifrado. Guárdalo en un lugar privado. No incluye el cuaderno de confesión ni accesos de desarrollador.</p>
-          <Button variant="ghost" size="sm" disabled={backupBusy} onClick={handleLegacyExport}>Exportar solo ajustes (.ctd, hasta 15 MB)</Button>
+          <Button variant="ghost" size="sm" disabled={backupBusy} onClick={handleLegacyExport}>Exportar formato anterior (.ctd, solo ajustes)</Button>
           <BrowserStorageStatus />
 
           <div className="flex items-center justify-between gap-3 rounded-md border bg-card/60 px-3 py-3">
             <div className="min-w-0">
               <div className="text-sm font-medium">Restaurar datos</div>
-              <div className="text-xs text-muted-foreground">.ctd o .ctdb. Un respaldo completo reemplaza las bibliotecas y su progreso.</div>
+              <div className="text-xs text-muted-foreground">Acepta .ctd actuales y anteriores, y .ctdb. Un respaldo completo reemplaza las bibliotecas y su progreso.</div>
             </div>
             <Button variant="outline" size="sm" disabled={backupBusy} onClick={() => importFileRef.current?.click()}>Importar</Button>
             <input

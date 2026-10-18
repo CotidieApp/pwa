@@ -1,7 +1,7 @@
 import { openReadingDB, readingTransaction, isReadingDeleted, resetReadingMemory } from './reading-store';
 import { persistence } from './persistence';
 import { listPersonalEpubs, openPersonalEpub } from './personal-epubs';
-import { validateImportPayload, withoutLocalPrivileges } from './import-safety';
+import { MAX_IMPORT_BYTES, parseImportText, validateImportPayload, withoutLocalPrivileges } from './import-safety';
 import { validateSettingsData } from './settings-validation';
 import { validateEpubArchive } from './epub-import-safety';
 import { z } from 'zod';
@@ -123,6 +123,15 @@ export async function parseBackupArchive(file: Blob): Promise<BackupArchive> {
   if (offset !== file.size) fail();
   const archive: BackupArchive={format:FORMAT,settings:metadata.settings,local:metadata.local,library};
   validateBackupArchive(archive); return archive;
+}
+
+export async function parseCotidieBackupFile(file: File): Promise<BackupArchive | unknown> {
+  const signature = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+  const isComplete = signature.length === 4 &&
+    signature[0] === 67 && signature[1] === 84 && signature[2] === 68 && signature[3] === 50;
+  if (isComplete || file.name.toLowerCase().endsWith('.ctdb')) return parseBackupArchive(file);
+  if (file.size > MAX_IMPORT_BYTES) throw new Error('El respaldo supera los 15 MB.');
+  return parseImportText(await file.text());
 }
 
 export async function stageBackupArchive(archive: BackupArchive): Promise<RestoreMarker> {

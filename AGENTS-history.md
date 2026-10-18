@@ -2,6 +2,24 @@
 
 Historial de intervenciones del asistente en el repo.
 
+## 2026-10-15 — Unificar la extensión del respaldo completo
+
+### Planificacion
+
+Usar `.ctd` para los nuevos respaldos completos de Cotidie sin cambiar el contenido CTD2 y conservar la importación de archivos anteriores.
+
+### Ejecucion
+
+La exportación completa ahora nombra sus archivos `.ctd`. Un lector compartido examina la cabecera CTD2 antes de importar, por lo que admite respaldos completos `.ctd`, completos `.ctdb` anteriores y `.ctd` antiguos de solo ajustes. La pantalla de recuperación usa la misma detección. La opción de exportación antigua sigue identificada como formato anterior.
+
+### Validacion
+
+La prueba de ida y vuelta cubrió las tres combinaciones y rechazó un `.ctdb` inválido. `npm test`: 77/78 pruebas aprobadas; una prueba de calendario ajena al cambio agotó su límite de 5 segundos. `npm run build`: TypeScript, compilación web y 117 recursos PWA correctos. Sin APK, instalación ni publicación; importación física Android pendiente.
+
+### Archivos Modificados
+
+`src/lib/backup-archive.ts`, `src/components/settings/DeveloperSettings.tsx`, `src/components/StorageRecovery.tsx`, `tests/reading-persistence.cjs`, `docs/CORRECCIONES-2026-10-09.md` y este historial.
+
 ## 2026-10-15 — Auditar barras en cambios de pantalla
 
 ### Planificacion
@@ -8189,3 +8207,21 @@ Build web/PWA, sincronización Android y `assembleRelease` aprobados; instalaci�
 ### Archivos Modificados
 
 `android/app/src/main/java/com/benjamin/studio/MainActivity.java`, `docs/ANDROID-SYSTEM-BARS.md`, `AGENTS.md`, este historial y registros externos de proyecto/caché WC-027.
+
+## 2026-10-17 — Fondos de oraciones, examen, temporizador e imagen del 12 de octubre
+
+### Planificacion
+
+Recuperar los fondos de las lecturas inmersivas sin extender el fondo de Inicio, conservar todas las líneas del examen, mostrar el temporizador en cualquier vista y dar al 12 de octubre una imagen propia para sus dos celebraciones.
+
+### Ejecucion
+
+La revisión de Git mostró que el Rosario aún conservaba sus imágenes y colores por misterio, pero la capa que los dibujaba se había retirado. Se restauró esa capa. Vía Crucis y Exposición y Bendición ahora usan, respectivamente, las imágenes existentes de la Crucifixión y la Eucaristía con velos tenues. El renderizador de `PrayerDetail` dejó de filtrar el texto y los versos numerados que comparten bloque con viñetas. El temporizador salió de `Header` a una capa global de `MainApp`, con posición arrastrable persistente, por encima de los lectores. Para el 12 de octubre se creó un collage nuevo de Nuestra Señora del Pilar y San Carlo Acutis y se añadió una selección de imagen limitada a esa fecha. La versión inicial con la Inmaculada se sustituyó usando como referencia una fotografía CC0 de la talla del Pilar en Zaragoza.
+
+### Validacion
+
+`npm run build` aprobado dos veces tras los cambios, con TypeScript, exportación y 118 recursos PWA. En Edge local se vio el fondo del Rosario; el caso de tres líneas del examen apareció completo en modo vista, y el temporizador se vio en Inicio y sobre el lector EPUB del Nuevo Testamento. Revisión estática de la ruta EPUB compartida con lectura espiritual personal y de las demás capas inmersivas. Sin APK, prueba física Android ni publicación.
+
+### Archivos Modificados
+
+`src/components/RosaryImmersive.tsx`, `src/components/ViaCrucisImmersive.tsx`, `src/components/ExpositionImmersive.tsx`, `src/components/PrayerDetail.tsx`, `src/components/Header.tsx`, `src/components/GlobalTimerOverlay.tsx`, `src/components/main/MainApp.tsx`, `src/context/settings/useSaintOfTheDay.ts`, `public/images/october-12-pilar-carlo.png` y este historial. Continuidad externa WC-029.

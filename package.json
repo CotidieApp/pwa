@@ -1,6 +1,6 @@
 {
   "name": "cotidie",
-  "version": "6.4.28",
+  "version": "6.4.29",
   "private": true,
   "scripts": {
     "dev": "next dev",

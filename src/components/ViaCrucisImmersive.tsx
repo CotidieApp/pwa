@@ -444,6 +444,8 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
         "fixed inset-0 z-50 flex flex-col items-center justify-between pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] overflow-hidden",
         isDark ? "bg-black text-white" : "bg-zinc-50 text-zinc-900"
       )}>
+      <div className="pointer-events-none absolute inset-0 z-0 bg-cover bg-center opacity-25" style={{ backgroundImage: "url('/images/crucifixion.jpeg')" }} />
+      <div className="pointer-events-none absolute inset-0 z-0 bg-gradient-to-b from-red-900/20 to-black/20" />
       {/* Top Bar */}
       <div className="w-full flex justify-between items-start p-4 relative z-20">
         <div className="w-10" /> {/* Spacer */}

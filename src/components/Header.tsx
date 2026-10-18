@@ -6,7 +6,6 @@ import { Button } from './ui/button';
 import { useCommittedCallback } from '@/hooks/useCommittedCallback';
 import { cn } from '@/lib/utils';
 import { useSettings } from '@/context/SettingsContext';
-import Timer from '@/components/Timer';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import {
@@ -107,11 +106,10 @@ export default function Header({
 }: HeaderProps) {
 
   const [isClearChecksOpen, setIsClearChecksOpen] = useState(false);
-  const { isDistractionFree: isGlobalDistractionFree, timerEnabled, overlayPositions, setOverlayPosition, arrowBubbleSize,
+  const { isDistractionFree: isGlobalDistractionFree, overlayPositions, setOverlayPosition, arrowBubbleSize,
     planDeVidaProgress, clearPlanDeVidaChecksForToday } =
     useSettings();
 
-  const shouldFloatTimer = timerEnabled;
   const shouldFloatNavControls = showPrevNext || floatBackButton;
   const navBubbleClass = {
     sm: "gap-1 p-1 pl-2 rounded-xl",
@@ -207,9 +205,6 @@ export default function Header({
     return { ref, pos, onPointerDown };
   };
 
-  const timerOverlay = useDraggableOverlay(overlayPositions.timer, (pos) =>
-    setOverlayPosition('timer', pos)
-  );
   const planNavOverlay = useDraggableOverlay(overlayPositions.planNav, (pos) =>
     setOverlayPosition('planNav', pos)
   );
@@ -233,18 +228,6 @@ export default function Header({
 
   return (
     <>
-      {shouldFloatTimer && (
-        <div
-          ref={timerOverlay.ref}
-          className="fixed z-40 rounded-xl bg-primary text-primary-foreground shadow-lg border border-primary-foreground/10 p-1 pl-2 flex items-center gap-2 touch-none"
-          style={{ left: timerOverlay.pos.x, top: timerOverlay.pos.y }}
-          onPointerDown={timerOverlay.onPointerDown}
-        >
-          <DragHandle />
-          <Timer />
-        </div>
-      )}
-
       {shouldFloatNavControls && (
         <div
           ref={planNavOverlay.ref}

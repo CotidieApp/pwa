@@ -19,6 +19,8 @@ import {
   SALVE_TEXT,
   PRE_ROSARY_STEPS,
   MYSTERY_NAMES,
+  MYSTERY_IMAGES,
+  MYSTERY_COLORS,
   FULL_MYSTERY_TITLES,
   JACULATORIAS_STORAGE_KEY,
 } from '@/lib/rosary-immersive/content';
@@ -714,6 +716,8 @@ export default function RosaryImmersive({
         "fixed inset-0 z-50 flex flex-col items-center justify-between pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] overflow-hidden",
         isDark ? "bg-black text-white" : "bg-zinc-50 text-zinc-900"
       )}>
+      <div className="pointer-events-none absolute inset-0 z-0 bg-cover bg-center opacity-30" style={{ backgroundImage: `url(${MYSTERY_IMAGES[selectedMysteryType]})` }} />
+      <div className={cn('pointer-events-none absolute inset-0 z-0 bg-gradient-to-b opacity-20', MYSTERY_COLORS[selectedMysteryType])} />
       {/* Top Bar */}
       <div className="w-full flex justify-between items-start p-4 relative z-20">
         <div className="flex items-center gap-2">

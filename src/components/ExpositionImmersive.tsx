@@ -163,6 +163,8 @@ export default function ExpositionImmersive({ onClose }: ExpositionImmersiveProp
       )}
       onClick={(event) => handleTouchNavigation(event, goPrev, goNext)}
     >
+      <div className="pointer-events-none absolute inset-0 z-0 bg-cover bg-center opacity-25" style={{ backgroundImage: "url('/images/eucharist.jpeg')" }} />
+      <div className="pointer-events-none absolute inset-0 z-0 bg-gradient-to-b from-amber-500/10 to-black/10" />
       <div className="relative z-10 flex min-h-0 w-full flex-col">
         <div className="flex items-start justify-between gap-2 px-4 py-3">
           <div className="w-11" />

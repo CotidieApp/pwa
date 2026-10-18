@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from './ui/button';
-import { parseImportText, MAX_IMPORT_BYTES } from '@/lib/import-safety';
-import { parseBackupArchive } from '@/lib/backup-archive';
+import { parseCotidieBackupFile } from '@/lib/backup-archive';
 
 export default function StorageRecovery({ message, resetting, retry, restore }: {
   message: string; resetting: boolean; retry: () => void;
@@ -25,9 +24,7 @@ export default function StorageRecovery({ message, resetting, retry, restore }: 
         if (!file) return;
         setBusy(true); setError('');
         try {
-          const complete = file.name.toLowerCase().endsWith('.ctdb');
-          if (!complete && file.size > MAX_IMPORT_BYTES) throw new Error('El respaldo supera los 15 MB.');
-          const result = await restore(complete ? await parseBackupArchive(file) : parseImportText(await file.text()));
+          const result = await restore(await parseCotidieBackupFile(file));
           if (result.status === 'invalid') setError(result.description || 'No se pudo restaurar.');
         } catch (reason) { setError(reason instanceof Error ? reason.message : 'No se pudo leer el archivo.'); }
         finally { setBusy(false); }

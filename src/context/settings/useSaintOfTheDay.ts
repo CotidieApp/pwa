@@ -161,7 +161,14 @@ export const useSaintOfTheDay = ({
       const devotionMatch = resolveDevotionDayMatch(saint);
       let image = dayImage;
 
-      if (currentMonth === 12 && (currentDay === 24 || currentDay === 25)) {
+      if (currentMonth === 10 && currentDay === 12) {
+        image = {
+          id: 'october-12-pilar-carlo',
+          description: 'Nuestra Señora del Pilar y San Carlo Acutis',
+          imageUrl: '/images/october-12-pilar-carlo.png',
+          imageHint: 'Nuestra Señora del Pilar y San Carlo Acutis',
+        };
+      } else if (currentMonth === 12 && (currentDay === 24 || currentDay === 25)) {
         const christmasImage = PlaceHolderImages.find((img) => img.id === 'christmas-image') || null;
         image = christmasImage || dayImage;
       } else if (saint?.name?.includes('Pentecostés')) {

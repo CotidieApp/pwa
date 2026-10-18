@@ -198,24 +198,34 @@ const renderText = (text: string): React.ReactNode[] => {
       continue;
     }
 
-    // Listas con - o • (líneas dentro del bloque)
+    // Preserve every line when prose, numbered verses and bullets share a block.
     if (/^[-•]\s+/m.test(trimmed)) {
-      const items = trimmed
-        .split('\n')
-        .filter((ln) => /^[-•]\s+/.test(ln))
-        .map((ln) => {
-          const txt = ln.replace(/^[-•]\s+/, '');
-          const safe = formatInlineHtml(escapeHtml(txt));
-          return `<li>${safe}</li>`;
-        })
-        .join('');
-      out.push(
-        <ul
-          key={`ul-${i}`}
-          className="mt-3 ml-6 list-disc space-y-1"
-          dangerouslySetInnerHTML={{ __html: items }}
-        />
-      );
+      let bullets: string[] = [];
+      const flushBullets = (lineIndex: number) => {
+        if (!bullets.length) return;
+        out.push(
+          <ul key={`ul-${i}-${lineIndex}`} className="mt-3 ml-6 list-disc space-y-1"
+            dangerouslySetInnerHTML={{ __html: bullets.map((item) => `<li>${item}</li>`).join('') }} />
+        );
+        bullets = [];
+      };
+      const mixedLines = trimmed.split('\n');
+      mixedLines.forEach((rawLine, lineIndex) => {
+        const line = rawLine.trim();
+        if (/^[-•]\s+/.test(line)) {
+          bullets.push(formatInlineHtml(escapeHtml(line.replace(/^[-•]\s+/, ''))));
+        } else if (line) {
+          flushBullets(lineIndex);
+          const numbered = line.match(/^(\d+)\.\s*(.*)$/);
+          out.push(
+            <p key={`mixed-${i}-${lineIndex}`} className="mt-3 first:mt-0">
+              {numbered ? <><strong>{numbered[1]}.</strong>{' '}<span dangerouslySetInnerHTML={{ __html: formatInlineHtml(escapeHtml(numbered[2])) }} /></> :
+                <span dangerouslySetInnerHTML={{ __html: formatInlineHtml(escapeHtml(line)) }} />}
+            </p>
+          );
+        }
+      });
+      flushBullets(mixedLines.length);
       continue;
     }
 

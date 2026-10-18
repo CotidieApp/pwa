@@ -114,6 +114,10 @@ test('complete backups round-trip binary audio, progress and legacy progress wit
   await persistence.setItem('cotidie_epub_location_legacy-fixture', 'epubcfi(/6/2!/4/2)');
   const blob = await backup.createBackupArchive({userPrayers:[], isDeveloperMode:true});
   const archive = await backup.parseBackupArchive(blob);
+  assert.equal((await backup.parseCotidieBackupFile(Object.assign(blob, {name:'cotidie_backup.ctd'}))).format, 'cotidie-backup-2');
+  assert.equal((await backup.parseCotidieBackupFile(Object.assign(blob, {name:'cotidie_backup.ctdb'}))).format, 'cotidie-backup-2');
+  assert.deepEqual(await backup.parseCotidieBackupFile(Object.assign(new Blob(['\uFEFF{"userPrayers":[]}']), {name:'cotidie_legacy.ctd'})), {userPrayers:[]});
+  await assert.rejects(backup.parseCotidieBackupFile(Object.assign(new Blob(['{"userPrayers":[]}']), {name:'invalid.ctdb'})));
   assert.throws(()=>backup.validateBackupArchive({...archive,local:{cotidie_epub_bookmarks_book:'[null]'}}));
   assert.throws(()=>backup.validateBackupArchive({...archive,local:{cotidie_spiritual_audio_progress:'{"a":{}}'}}));
   assert.throws(()=>backup.validateBackupArchive({...archive,local:{rosary_intentions:'[null]'}}));

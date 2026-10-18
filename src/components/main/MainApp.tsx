@@ -61,6 +61,7 @@ import {
   saveSpiritualAudioProgress,
 } from '@/components/main/spiritualAudio';
 import { TimerFinishedDialog } from '@/components/main/dialogs/TimerFinishedDialog';
+import GlobalTimerOverlay from '@/components/GlobalTimerOverlay';
 import { ErrorReportDialog } from '@/components/main/dialogs/ErrorReportDialog';
 import { LettersInfoDialog } from '@/components/main/dialogs/LettersInfoDialog';
 import { AudioRenameDialog } from '@/components/main/dialogs/AudioRenameDialog';
@@ -1756,6 +1757,7 @@ export default function MainApp() {
         />
       )}
 
+      <GlobalTimerOverlay />
       <TimerFinishedDialog
         open={showTimerFinishedAlert}
         onOpenChange={setShowTimerFinishedAlert}
