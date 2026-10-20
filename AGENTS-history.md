@@ -8225,3 +8225,21 @@ La revisión de Git mostró que el Rosario aún conservaba sus imágenes y color
 ### Archivos Modificados
 
 `src/components/RosaryImmersive.tsx`, `src/components/ViaCrucisImmersive.tsx`, `src/components/ExpositionImmersive.tsx`, `src/components/PrayerDetail.tsx`, `src/components/Header.tsx`, `src/components/GlobalTimerOverlay.tsx`, `src/components/main/MainApp.tsx`, `src/context/settings/useSaintOfTheDay.ts`, `public/images/october-12-pilar-carlo.png` y este historial. Continuidad externa WC-029.
+
+## 2026-10-19 — Recuperación fiel de fondos inmersivos y avance del Rosario
+
+### Planificacion
+
+Contrastar la restauración de WC-029 con el código anterior a la retirada del 8 de octubre, observar el comportamiento en el Nubia conectado y corregir los fondos y el avance visibles.
+
+### Ejecucion
+
+El Rosario vuelve a usar las 20 imágenes específicas por misterio, el Sagrado Corazón en la introducción, la Inmaculada en el cierre, el desplazamiento gradual de la imagen y el control para alternar fondo. Los saltos de introducción/misterio ahora dicen «Saltar» para distinguirlos del avance por toque lateral. La meditación larga dispone de desplazamiento vertical. Exposición recupera `exposicionBendicion.imageUrl` con anclaje superior y velo original por tema. Vía Crucis recupera la imagen, el velo y el control anteriores a la retirada. El historial de febrero menciona catorce imágenes por estación, pero todos los commits recuperables inmediatamente anteriores al 8 de octubre conservan una sola (`immaculate-heart.jpeg`); no se reconstruyeron archivos o URL ausentes inventando imágenes.
+
+### Validacion
+
+En Nubia 6.4.29, antes de la desconexión USB, se observó que la flecha superior saltaba la introducción y después misterios enteros, mientras la meditación larga quedaba cortada. Build web y exportación PWA aprobados; en Edge móvil, introducción con Sagrado Corazón, primer misterio con su imagen propia y toque lateral de Meditación a Padre Nuestro, con movimiento del fondo. La meditación larga tiene `scrollHeight` mayor que `clientHeight`. APK firmado local 6.4.29 generado, 84,13 MB, SHA-256 `5d602f70b640872bf66aacdfe8ef83d30a6b956b63b5c1f58ee6c7441c2f8d30`; sin publicación. Instalación y comprobación del APK corregido en Nubia pendientes por desconexión USB.
+
+### Archivos Modificados
+
+`src/components/RosaryImmersive.tsx`, `src/components/ViaCrucisImmersive.tsx`, `src/components/ExpositionImmersive.tsx` y este historial. Continuidad externa WC-030.
