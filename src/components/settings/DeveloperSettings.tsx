@@ -13,6 +13,7 @@ import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import { generateSaintsICS } from '@/lib/ics-generator';
 import BrowserStorageStatus from './BrowserStorageStatus';
+import DeveloperSupport from './DeveloperSupport';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -337,6 +338,7 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
               <Icon.Instagram className="size-4" />
               <a href="https://instagram.com/cotidieapp" target="_blank" rel="noopener noreferrer" className="hover:underline">@cotidieapp</a>
             </div>
+            <DeveloperSupport />
           </div>
         </CardContent>
         <CardFooter className="flex-col items-start p-4">

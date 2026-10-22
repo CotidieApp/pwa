@@ -8243,3 +8243,77 @@ En Nubia 6.4.29, antes de la desconexión USB, se observó que la flecha superio
 ### Archivos Modificados
 
 `src/components/RosaryImmersive.tsx`, `src/components/ViaCrucisImmersive.tsx`, `src/components/ExpositionImmersive.tsx` y este historial. Continuidad externa WC-030.
+
+## 2026-10-21 — Entrega privada saneada para una derivación familiar
+
+### Planificacion
+
+Preparar un ZIP del proyecto para el hermano del autor, personalizable por Claude y compilable sin cuentas, firma ni configuración privada de Cotidie. Conservar autoría, contratos relevantes del lector y requisitos de compilación, sin publicar ni modificar el producto original.
+
+### Ejecucion
+
+Se preparó una copia externa mediante lista explícita de archivos. Se excluyeron entornos reales, verificadores originales de acceso, material de firma, historial/remotos Git, historiales de agentes, configuración local, herramientas de instalación personal, scripts de publicación/copia a Drive, builds, APK y dependencias instaladas. En la copia se adaptaron coherentemente paquete/namespace/Java/acciones/pruebas a `org.cotidie.familiar`, nombre provisional «Oración familiar», firma propia mediante variables `DERIVADA_*`, generador local debug/release y canales de soporte/compartir desactivados. Se añadió configurador opcional de credenciales propias, constancia de autoría de Benjamín Alcalde G., alcance familiar, guía para Claude, compilación/firma, advertencias de recursos de terceros y guía EPUB sin historial. La fuente Times New Roman sin licencia adjunta quedó fuera, conservando fallback serif. Código del producto original intacto; cambios de adaptación exclusivamente en la copia externa.
+
+### Validacion
+
+En la copia: `npm ci` correcto, 77/77 pruebas, TypeScript/exportación web/117 recursos PWA, Capacitor y APK debug correctos; Gradle 218 tareas. `aapt` confirmó paquete independiente, nombre, versión 6.4.30/119 y SDK 24/35. Configurador de acceso propio probado en temporal retirado. Revisión de 512 archivos y EPUB descomprimido sin coincidencias con los valores sensibles comparados ni patrones fuertes revisados. ZIP final de 513 archivos, 84.554.508 bytes, entradas exactas/CRC y hashes verificados; SHA-256 `79323ecd4fc18d80bc0417e09e9ba557a319567c62245aee372508a483e686cf`. No es certificación exhaustiva de vulnerabilidades ni derechos de terceros. Release con firma del destinatario y pruebas físicas pendientes. Sin publicación, envío ni instalación.
+
+### Archivos Modificados
+
+Este historial únicamente dentro del repositorio. Entregables: `C:\Users\balca\Documents\Cotidie-para-mi-hermano-2026-10-21.zip` y su `.sha256`. Preparación, copia, inventarios, reportes y logs privados bajo `C:\Users\balca\.codex\projects\cotidie\share-2026-10-21`; continuidad WC-031.
+
+## 2026-10-21 — Atribución reforzada de la copia familiar (v2)
+
+### Planificacion
+
+Reforzar la identificación de Benjamín Alcalde G. como creador original de Cotidie en la entrega familiar, por petición del autor, conservando autorías de terceros y la primera copia saneada.
+
+### Ejecucion
+
+Se creó una segunda copia externa desde el inventario de WC-031. Se añadieron avisos de procedencia del proyecto en 281 archivos de código, NOTICE, metadatos author/license/origen en package.json y PROVENANCE.json enlazado al hash de la primera entrega. Se reforzó el crédito en Información/Acerca de, conservando la mención de colaboración con IA y los derechos de terceros. El control explícito y editable check:attribution se ejecuta antes de builds web/APK para detectar pérdida accidental de avisos. No es un candado ni prueba registral. Las dependencias y el contenido funcional se conservaron; no se añadieron secretos, firmas ni telemetría.
+
+### Validacion
+
+77/77 pruebas; control positivo y casos de retirada de nombre/encabezado comprobados en temporal eliminado. Dependencias/resoluciones idénticas a v1 salvo metadatos de atribución, reutilizando la instalación validada. Compilación v2: atribución, tipos, web, 117 recursos PWA, Capacitor y APK debug correctos; 218 tareas Gradle. Crédito comprobado en el JavaScript empaquetado del APK, sin prueba física nueva. Saneamiento de 515 archivos y EPUB sin coincidencias con valores sensibles/patrones revisados. ZIP de 516 archivos, 84.605.129 bytes; CRC/entradas/hashes verificados. SHA-256 `87f2c8fe7f931f4212e6932cf40514472a2cbbc4f87ceb3c3d62a0a80a2d96f7`. Release propio, equipo del destinatario, pruebas físicas y derechos de publicación de terceros pendientes. Sin envío ni publicación.
+
+### Archivos Modificados
+
+Solo este historial en el repositorio original. ZIP recomendado: `C:\Users\balca\Documents\Cotidie-para-mi-hermano-v2-autoria-2026-10-21.zip` y su `.sha256`. La primera entrega se conserva. Copia/auxiliares/evidencia externos bajo `.codex\projects\cotidie\share-authorship-v2-2026-10-21`; continuidad WC-032.
+
+## 2026-10-22 — Aportes voluntarios en Información y conexión Ko-fi/PayPal
+
+### Planificacion
+
+Preparar un botón discreto en Información y configurar Ko-fi para apoyar al desarrollador, con un mensaje personalizado que evite la fórmula de comprar un café. Activar el enlace solo cuando exista un destinatario verificado y el cobro esté configurado.
+
+### Ejecucion
+
+Se añadió DeveloperSupport junto a los datos del desarrollador en la ruta real Settings/informacion/DeveloperSettings. Por corrección expresa del usuario, el botón definitivo dice «¿Una donación? No me quejo.» y debajo «Para que a Cotidie no le falten mejoras… ni a su programador el pan de cada día». Sustituye los mensajes iniciales de «ayudita terrenal» y cuentas en la Tierra. Usa estilos semánticos del tema, enlace externo accesible con noopener/noreferrer y aporte voluntario. Tras comprobar la conexión PayPal se activó el destino público fijo https://ko-fi.com/cotidie, retirando la variable provisional de entorno. No se añadieron dependencias.
+
+El usuario completó el registro, verificaciones de identidad y autorización PayPal; Ko-fi mostró Connected. Se confirmó Chile y desapareció el aviso que impedía aceptar aportes. Perfil con icono oficial completo, categorías Software/Spirituality, biografía española, vista previa y agradecimiento personalizados, mínimo US$1 y contadores/rankings ocultos. Se comprobó la persistencia de los textos e importes. Se cambió Standard a Free mediante Move to 0%: Ko-fi no cobra comisión propia en aportes únicos; PayPal mantiene sus cargos. La desactivación completa de opciones mensuales exigía Standard y se rechazó el upsell; el aporte puntual aparece seleccionado visualmente. El color dorado inicial volvió al azul del plan gratuito; icono conservado. Formulario público disponible sin café, sin efectuar una donación real.
+
+### Validacion
+
+TypeScript inicial y npm run build final aprobados mediante el coordinador compartido: tipos, exportación Next y 118 entradas PWA verificadas. git diff --check correcto. En la exportación local se recorrieron Ajustes/Información a 360 px con temas claro y oscuro: texto íntegro, sin desbordamiento y contraste visible; el clic real abrió ko-fi.com/cotidie en otra pestaña. Capturas externas de ambos temas, formulario público y modo gratuito. Servidor auxiliar detenido y viewport restaurado. Sin APK, instalación, prueba física, publicación ni transacción real; no se afirma que el botón ya esté en la versión instalada. Continuidad WC-033.
+
+### Archivos Modificados
+
+`src/components/settings/DeveloperSettings.tsx`, `src/components/settings/DeveloperSupport.tsx` y este historial. Evidencia y continuidad fuera del repositorio bajo `.codex/projects/cotidie/support-2026-10-22` y `work-cache/entries/WC-033-aportes-kofi-2026-10-22.md`.
+
+## 2026-10-22 — Selector de aportes por Mercado Pago y PayPal
+
+### Planificacion
+
+Ofrecer ambos medios desde el botón de Información, conservar el texto confirmado por el usuario y crear un enlace Mercado Pago de monto libre en pesos, con asistencia del usuario para iniciar sesión.
+
+### Ejecucion
+
+Se creó https://link.mercadopago.cl/cotidie en la cuenta del usuario mediante Link sin monto definido; el destinatario público Benjamín Alcalde y el ingreso libre de montos CLP quedaron comprobados. No se modificó el perfil global ni se efectuó un pago. DeveloperSupport ahora abre el Dialog estándar «Elige cómo aportar», con Mercado Pago/CLP y PayPal/USD a través de Ko-fi. Mantiene «¿Una donación? No me quejo.» y la frase del pan debajo. Los enlaces abren otra pestaña con noopener/noreferrer; portales y estilos reutilizan la infraestructura vigente de temas/barras. Sin dependencias nuevas.
+
+### Validacion
+
+npm run build aprobado mediante el coordinador compartido: tipos, exportación web y 118 recursos PWA. Recorrido de la versión actualizada en 360 × 780 con temas claro y oscuro: opciones completas, sin desbordamiento; ambos clics abrieron los destinos correctos. Escape cerró el diálogo y devolvió el foco al botón con aria-expanded=false. Enlace público Mercado Pago con monto 1000 validado sin continuar al checkout. Capturas externas conservadas. Sin transacción real, APK, instalación, prueba física ni publicación. Continuidad WC-034.
+
+### Archivos Modificados
+
+`src/components/settings/DeveloperSupport.tsx` y este historial. Evidencia/auxiliares y continuidad bajo `.codex/projects/cotidie/support-2026-10-22` y `work-cache/entries/WC-034-doble-opcion-aportes-2026-10-22.md`, fuera del repositorio.
