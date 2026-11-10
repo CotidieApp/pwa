@@ -6,6 +6,9 @@ import { validateSettingsData } from './settings-validation';
 import { validateEpubArchive } from './epub-import-safety';
 import { z } from 'zod';
 import { parseRosaryIntentions, parseRosaryJaculatorias } from './rosary-immersive/storage';
+import { decryptBackup, isEncryptedBackup, MAX_ENCRYPTED_BACKUP_BYTES } from './encrypted-backup';
+import { requestSecret, BACKUP_PASSWORD_DESCRIPTION } from './security-prompt';
+import { rememberBackupPassword } from './backup-authentication';
 
 export const MAX_BACKUP_BYTES = 128 * 1024 * 1024;
 export const MAX_BACKUP_META_BYTES = 30 * 1024 * 1024;
@@ -126,12 +129,24 @@ export async function parseBackupArchive(file: Blob): Promise<BackupArchive> {
 }
 
 export async function parseCotidieBackupFile(file: File): Promise<BackupArchive | unknown> {
-  const signature = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+  if (file.size > MAX_ENCRYPTED_BACKUP_BYTES) throw new Error('El respaldo supera el tamaño máximo permitido.');
+  let input: Blob = file;
+  let importedPassword: string | null = null;
+  if (await isEncryptedBackup(file)) {
+    let decrypted: Blob | undefined;
+    const secret = await requestSecret({ title: 'Abrir respaldo cifrado', description: BACKUP_PASSWORD_DESCRIPTION,
+      verify: async password => { decrypted = await decryptBackup(file, password); } });
+    if (secret === null || !decrypted) throw new Error('Importación cancelada. Tus datos se conservaron.');
+    importedPassword = secret;
+    input = decrypted;
+    if (await isEncryptedBackup(input)) throw new Error('El respaldo contiene un formato anidado no permitido.');
+  }
+  const signature = new Uint8Array(await input.slice(0, 4).arrayBuffer());
   const isComplete = signature.length === 4 &&
     signature[0] === 67 && signature[1] === 84 && signature[2] === 68 && signature[3] === 50;
-  if (isComplete || file.name.toLowerCase().endsWith('.ctdb')) return parseBackupArchive(file);
-  if (file.size > MAX_IMPORT_BYTES) throw new Error('El respaldo supera los 15 MB.');
-  return parseImportText(await file.text());
+  if (isComplete || file.name.toLowerCase().endsWith('.ctdb')) return rememberBackupPassword(await parseBackupArchive(input), importedPassword);
+  if (input.size > MAX_IMPORT_BYTES) throw new Error('El respaldo supera los 15 MB.');
+  return rememberBackupPassword(parseImportText(await input.text()), importedPassword);
 }
 
 export async function stageBackupArchive(archive: BackupArchive): Promise<RestoreMarker> {

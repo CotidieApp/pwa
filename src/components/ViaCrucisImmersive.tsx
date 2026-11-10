@@ -1,6 +1,7 @@
 ﻿'use client';
 
-import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import ImmersiveStepTransition from '@/components/immersive/ImmersiveStepTransition';
 import { handleTouchNavigation, TOUCH_NAV_INTERACTIVE_SELECTORS } from '@/utils/touchNavigation';
 import { ChevronLeft, ChevronRight, X, Cross, Sparkles, Heart, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -74,9 +75,9 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
 
   const [phase, setPhase] = useState<'intro' | 'stations' | 'outro'>('intro');
   const [outroStepIndex, setOutroStepIndex] = useState(0);
-  useLayoutEffect(() => {
+  const resetReadingScroll = useCallback(() => {
     if (prayerScrollRef.current) prayerScrollRef.current.scrollTop = 0;
-  }, [phase, currentStationIndex, currentStepIndex, outroStepIndex]);
+  }, []);
   const [showBackground, setShowBackground] = useState(true);
   const viaCrucisExitAdvanceRef = useRef<{ expiresAt: number } | null>(null);
   const { toast } = useToast();
@@ -496,13 +497,15 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
         onClose={() => setShowPrayerIndex(false)}
       />
 
-      {/* Keep the reading surface mounted while updating each step with its header and progress. */}
+      {/* Preserve the reading surface while replaying the historical step transition. */}
       <div className="flex-1 flex flex-col items-center justify-center w-full px-6 relative z-10 min-h-0">
-          <div
+          <ImmersiveStepTransition
+            stepKey={`${phase}-${currentStationIndex}-${currentStepIndex}-${outroStepIndex}`}
+            onStepVisible={resetReadingScroll}
             className="w-full"
           >
             {renderContent()}
-          </div>
+          </ImmersiveStepTransition>
       </div>
 
       {!touchNavEnabled && (

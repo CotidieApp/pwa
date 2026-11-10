@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { Capacitor } from '@capacitor/core';
 import type { Prayer, Category } from '@/lib/types';
@@ -8,6 +8,8 @@ import { useSettings, type PrayerLanguageMode } from '@/context/SettingsContext'
 
 import Header from '@/components/Header';
 import CartasIntro from '@/components/main/CartasIntro';
+import LettersLocked from '@/components/LettersLocked';
+import { setLettersPrivacySource, subscribeLettersSecurity, getLettersSecurityStatus } from '@/lib/letters-security';
 import PrayerList from '@/components/PrayerList';
 import PrayerDetail from '@/components/PrayerDetail';
 import MesDeMariaReflection from '@/components/MesDeMariaReflection';
@@ -128,6 +130,7 @@ export default function MainApp() {
   };
   const [navState, setNavState] = useState<NavigationState>(() => getInitialNavState());
   const navStateRef = useRef(navState);
+  const contentScrollRef = useRef<HTMLDivElement>(null);
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [showAnnuum, setShowAnnuum] = useState(false);
   const [annuumClock, setAnnuumClock] = useState(() => new Date());
@@ -193,6 +196,8 @@ export default function MainApp() {
     togglePlanDeVidaItem,
     planDeVidaTrackerEnabled,
     userLetters,
+    lettersSecurityEnabled,
+    lettersLocked,
     addUserLetter,
     removeUserLetter,
     customPlans,
@@ -594,12 +599,6 @@ export default function MainApp() {
     window.history.pushState(navState, '');
   }, [navState]);
 
-  useEffect(() => {
-    requestAnimationFrame(() => {
-      window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
-    });
-  }, [navState.activeView]);
-
   const getPrayerById = useCallback((id: string, list: Prayer[]): Prayer | null => {
     const findRecursively = (targetId: string, currentList: Prayer[]): Prayer | null => {
       for (const prayer of currentList) {
@@ -935,7 +934,27 @@ export default function MainApp() {
   }
 
   const currentPrayer = prayerPath.at(-1) || null;
+  const isLettersRoute = navState.prayerPathIds.includes('cartas') || navState.addFormMode === 'letter' || editingPrayer?.categoryId === 'cartas';
+  useEffect(() => {
+    setLettersPrivacySource('letters', lettersSecurityEnabled && isLettersRoute);
+    return () => setLettersPrivacySource('letters', false);
+  }, [lettersSecurityEnabled, isLettersRoute]);
+  useEffect(() => subscribeLettersSecurity(() => {
+    if (getLettersSecurityStatus().locked) setPrayerPendingDelete(null);
+  }), []);
   const isCaminoActive = currentPrayer?.id === 'camino-libro';
+
+  const contentScrollKey = JSON.stringify([
+    navState.activeView, navState.selectedCategoryId, navState.prayerPathIds,
+    navState.editingPrayerId, navState.selectedCustomPlanSlot,
+    navState.customPlanPrayerSlot, navState.customPlanPrayerIndex,
+  ]);
+  useLayoutEffect(() => {
+    // Lists share this container across routes. Long texts restore their own
+    // inner reader position in PrayerDetail; leave that container untouched.
+    contentScrollRef.current?.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [contentScrollKey]);
 
   const [wasCaminoActive, setWasCaminoActive] = useState(isCaminoActive);
   if (wasCaminoActive !== isCaminoActive) {
@@ -1728,6 +1747,7 @@ export default function MainApp() {
           />
         )}
         <div
+          ref={contentScrollRef}
           className={cn(
             'flex-1 overflow-x-hidden overscroll-none',
             navState.activeView === 'home'
@@ -1760,7 +1780,7 @@ export default function MainApp() {
             }
           }}
         >
-          {renderContent()}
+          {lettersLocked && isLettersRoute ? <LettersLocked /> : renderContent()}
         </div>
       </div>
 

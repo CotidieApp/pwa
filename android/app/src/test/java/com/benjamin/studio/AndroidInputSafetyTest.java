@@ -60,6 +60,35 @@ public class AndroidInputSafetyTest {
         assertArrayEquals(new byte[]{1, 2, 3}, valid.toByteArray());
     }
 
+    @Test public void binaryImportUsesItsOwnBoundAndPreservesEveryByte() throws Exception {
+        byte[] bytes = new byte[]{'C', 'T', 'D', '3', 0, (byte) 255, 3, 4, 5};
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        BoundedImportReader.copyImport(new ByteArrayInputStream(bytes), output, 5, bytes.length, () -> false);
+        assertArrayEquals(bytes, output.toByteArray());
+        bytes[3] = '2';
+        assertTrue(BoundedImportReader.isBinaryBackup(java.util.Arrays.copyOf(bytes, 4)));
+        assertThrows(IOException.class, () -> BoundedImportReader.copyImport(
+                new ByteArrayInputStream(bytes), new ByteArrayOutputStream(), 5, bytes.length - 1, () -> false));
+        bytes[0] = '{';
+        assertThrows(IOException.class, () -> BoundedImportReader.copyImport(
+                new ByteArrayInputStream(bytes), new ByteArrayOutputStream(), 5, bytes.length, () -> false));
+    }
+
+    @Test public void binaryDetectionPreservesShortReadsAndCancellation() throws Exception {
+        byte[] bytes = new byte[]{'C', 'T', 'D', '3', (byte) 255};
+        InputStream shortReads = new ByteArrayInputStream(bytes) {
+            @Override public synchronized int read(byte[] buffer, int offset, int length) {
+                return super.read(buffer, offset, Math.min(1, length));
+            }
+        };
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        BoundedImportReader.copyImport(shortReads, output, 4, 5, () -> false);
+        assertArrayEquals(bytes, output.toByteArray());
+        assertFalse(BoundedImportReader.isBinaryBackup(new byte[]{'C', 'T', 'D'}));
+        assertThrows(InterruptedIOException.class, () -> BoundedImportReader.copyImport(
+                new ByteArrayInputStream(bytes), new ByteArrayOutputStream(), 4, 5, () -> true));
+    }
+
     @Test public void cancellationBeforeAndDuringReadNeverReturnsPartialPayload() {
         assertThrows(InterruptedIOException.class, () -> BoundedImportReader.read(
                 new ByteArrayInputStream(new byte[]{1}), 8, () -> true));

@@ -25,6 +25,7 @@ import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.BridgeWebViewClient;
 import java.io.InputStream;
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -42,7 +43,7 @@ public class MainActivity extends BridgeActivity {
     private static final String EXTRA_NAV_TARGET_ID = "cotidie_target_id";
     private static final String EXTRA_NAV_ROUTE = "cotidie_route";
     private static final int MAX_FLUSH_RETRIES = 12;
-    private static final int MAX_IMPORT_BYTES = ImportReaderService.MAX_BYTES;
+    private static final int MAX_IMPORT_BYTES = ImportReaderService.MAX_JSON_BYTES;
     private static final long IMPORT_TIMEOUT_MS = ImportReaderService.TIMEOUT_MS + 5000L;
     // This worker reads only a completed app-private cache file, never an external provider.
     private static final ThreadPoolExecutor IMPORT_READS = new ThreadPoolExecutor(
@@ -59,6 +60,7 @@ public class MainActivity extends BridgeActivity {
         Future<?> future;
         Runnable timeout;
         Runnable completion;
+        String stagedToken;
 
         void cancel() {
             canceled.set(true);
@@ -88,7 +90,10 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(BackgroundActionsPlugin.class);
         registerPlugin(CotidieNotificationSchedulerPlugin.class);
         registerPlugin(PrivateStoragePlugin.class);
+        registerPlugin(LettersSecurityPlugin.class);
+        registerPlugin(BackupImportPlugin.class);
         super.onCreate(savedInstanceState);
+        BackupImportPlugin.clearPending(this);
         WebView.setWebContentsDebuggingEnabled((getApplicationInfo().flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0);
         if (bridge != null && bridge.getWebView() != null) {
             bridge.getWebView().setNetworkAvailable(false);
@@ -142,6 +147,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onDestroy() {
         cancelImportRead();
+        BackupImportPlugin.clearPending(this);
         pendingImportPayload = null;
         super.onDestroy();
     }
@@ -229,6 +235,7 @@ public class MainActivity extends BridgeActivity {
             return;
         }
         pendingImportPayload = null;
+        BackupImportPlugin.clearPending(this);
         final ImportReadRequest request = new ImportReadRequest();
         importRequest = request;
         request.timeout = () -> {
@@ -268,11 +275,23 @@ public class MainActivity extends BridgeActivity {
         try {
             request.future = IMPORT_READS.submit(() -> {
                 String payload = null;
-                try (InputStream stream = new FileInputStream(request.output)) {
-                    payload = BoundedImportReader.read(stream, MAX_IMPORT_BYTES, request.canceled::get);
+                try (BufferedInputStream stream = new BufferedInputStream(new FileInputStream(request.output))) {
+                    stream.mark(4);
+                    byte[] prefix = BoundedImportReader.prefix(stream, request.canceled::get);
+                    stream.reset();
+                    if (BoundedImportReader.isBinaryBackup(prefix)) {
+                        synchronized (request) {
+                            if (request.canceled.get()) return;
+                            request.stagedToken = BackupImportPlugin.stage(this, request.output);
+                            payload = new JSONObject().put("cotidieBackupImportToken", request.stagedToken).toString();
+                        }
+                    } else {
+                        payload = BoundedImportReader.read(stream, MAX_IMPORT_BYTES, request.canceled::get);
+                    }
                 } catch (Exception ignored) {
                 } finally {
                     request.output.delete();
+                    if (payload == null) BackupImportPlugin.discard(this, request.stagedToken);
                 }
                 final String result = payload;
                 synchronized (request) {
@@ -350,6 +369,8 @@ public class MainActivity extends BridgeActivity {
             importHandler.removeCallbacks(previous.timeout);
             if (previous.completion != null) importHandler.removeCallbacks(previous.completion);
             previous.completion = null;
+            BackupImportPlugin.discard(this, previous.stagedToken);
+            previous.stagedToken = null;
         }
         previous.cancel();
         unbindImportReader(previous);
@@ -357,7 +378,7 @@ public class MainActivity extends BridgeActivity {
     }
 
     private void showImportReadError() {
-        Toast.makeText(this, "No se pudo leer el archivo. Comprueba que sea un respaldo válido de hasta 15 MB e inténtalo de nuevo.", Toast.LENGTH_LONG).show();
+        Toast.makeText(this, "No se pudo leer el archivo. Comprueba que sea un respaldo válido: hasta 128 MB en CTD o 15 MB en JSON.", Toast.LENGTH_LONG).show();
     }
 
     private void clearHandledImportIntent(Intent intent) {

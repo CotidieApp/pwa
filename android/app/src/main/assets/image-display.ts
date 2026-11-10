@@ -106,6 +106,7 @@ export const placeholderImagePreference: Record<string, ImageDisplay> = {
 // ===============================================================
 export const getImageObjectPosition = (id?: string): string => {
   if (!id) return toObjectPosition("center");
+  if (/^mes-de-maria-pequena-reflexion(?:-\d+)?$/.test(id)) return toObjectPosition("top");
   const prayerPref = prayerImagePreference[id];
   const placeholderPref = placeholderImagePreference[id];
   return toObjectPosition(prayerPref || placeholderPref || "center");

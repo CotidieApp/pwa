@@ -7,6 +7,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Switch } from '@/components/ui/switch';
+import LettersSecurityControls from '@/components/LettersSecurityControls';
 
 type LettersInfoDialogProps = {
   open: boolean;
@@ -26,7 +27,7 @@ export function LettersInfoDialog({
       open={open}
       onOpenChange={onOpenChange}
     >
-      <AlertDialogContent>
+      <AlertDialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <AlertDialogHeader>
           <AlertDialogTitle>Información sobre Cartas</AlertDialogTitle>
           <AlertDialogDescription asChild>
@@ -55,6 +56,7 @@ export function LettersInfoDialog({
                   * El contador se reinicia automáticamente al crear una carta nueva.
                 </p>
               </div>
+              <LettersSecurityControls closeInfo={() => onOpenChange(false)} />
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>

@@ -43,7 +43,85 @@ const loadHook = (file, mocks) => loadSource('src/context/settings/' + file + '.
 const moduleParent = module;
 const noop = () => {};
 
-async function withSettingsProvider(run, failFirstLoad = false, initialState = null) {
+test('reader restores after its own ref attaches, saves on route changes and resets only short prayers', async () => {
+  const oldWindow = global.window;
+  const oldDocument = global.document;
+  global.window = new EventTarget();
+  global.document = new EventTarget();
+  const writes = [];
+  let settings = { isLoaded: true, scrollPositions: { long: 480, next: 120, short: 300 },
+    setScrollPosition: (id, top) => writes.push([id, top]) };
+  const { usePrayerScrollPosition } = loadSource('src/hooks/usePrayerScrollPosition.ts', {
+    '@/context/SettingsContext': { useSettings: () => settings },
+    '@/hooks/useCaminoProgress': { useCaminoProgress: noop },
+  });
+  const container = Object.assign(new EventTarget(), { scrollTop: 70,
+    scrollTo: ({ top, behavior }) => { assert.equal(behavior, 'instant'); container.scrollTop = top; } });
+  function Harness({ id, long = true }) {
+    const ref = React.useRef(null);
+    usePrayerScrollPosition({ id, isLongText: long }, ref);
+    return React.createElement('div', { ref });
+  }
+  let view;
+  try {
+    await act(async () => { view = create(React.createElement(Harness, { id: 'long' }), { createNodeMock: () => container }); });
+    assert.equal(container.scrollTop, 480);
+    container.scrollTop = 650;
+    container.dispatchEvent(new Event('scroll'));
+    settings = { ...settings, setScrollPosition: (id, top) => writes.push([id, top]) };
+    await act(async () => view.update(React.createElement(Harness, { id: 'long' })));
+    assert.equal(container.scrollTop, 650, 'settings rerenders must not restore again');
+    await act(async () => view.update(React.createElement(Harness, { id: 'next' })));
+    assert.deepEqual(writes.at(-1), ['long', 650], 'flush before another route resets the shared node');
+    assert.equal(container.scrollTop, 120);
+    container.scrollTop = 245;
+    await act(async () => view.update(React.createElement(Harness, { id: 'short', long: false })));
+    assert.deepEqual(writes.at(-1), ['next', 245], 'leaving immediately must save without waiting for debounce');
+    assert.equal(container.scrollTop, 0, 'short prayers ignore old saved positions');
+    await act(async () => view.unmount()); view = null;
+    assert.equal(writes.some(([id]) => id === 'short'), false);
+  } finally {
+    if (view) await act(async () => view.unmount());
+    global.window = oldWindow;
+    global.document = oldDocument;
+  }
+});
+
+test('reader waits for saved settings and leaves Camino restoration to its semantic reader', async () => {
+  const oldWindow = global.window;
+  const oldDocument = global.document;
+  global.window = new EventTarget();
+  global.document = new EventTarget();
+  let settings = { isLoaded: false, scrollPositions: { long: 900 }, setScrollPosition: noop };
+  let caminoEnabled;
+  const { usePrayerScrollPosition } = loadSource('src/hooks/usePrayerScrollPosition.ts', {
+    '@/context/SettingsContext': { useSettings: () => settings },
+    '@/hooks/useCaminoProgress': { useCaminoProgress: enabled => { caminoEnabled = enabled; } },
+  });
+  const container = Object.assign(new EventTarget(), { scrollTop: 70, scrollTo: ({ top }) => { container.scrollTop = top; } });
+  function Harness({ id }) {
+    const ref = React.useRef(null);
+    usePrayerScrollPosition({ id, isLongText: true }, ref);
+    return React.createElement('div', { ref });
+  }
+  let view;
+  try {
+    await act(async () => { view = create(React.createElement(Harness, { id: 'long' }), { createNodeMock: () => container }); });
+    assert.equal(container.scrollTop, 70);
+    settings = { ...settings, isLoaded: true };
+    await act(async () => view.update(React.createElement(Harness, { id: 'long' })));
+    assert.equal(container.scrollTop, 900);
+    await act(async () => view.update(React.createElement(Harness, { id: 'camino-libro' })));
+    assert.equal(caminoEnabled, true);
+    assert.equal(container.scrollTop, 900, 'generic scroll must not touch Camino');
+  } finally {
+    if (view) await act(async () => view.unmount());
+    global.window = oldWindow;
+    global.document = oldDocument;
+  }
+});
+
+async function withSettingsProvider(run, failFirstLoad = false, initialState = null, extraMocks = {}) {
   const oldWindow = global.window;
   const oldStorage = global.localStorage;
   const values = new Map();
@@ -52,6 +130,7 @@ async function withSettingsProvider(run, failFirstLoad = false, initialState = n
     localStorage: global.localStorage, setInterval: () => 1, clearInterval: noop,
   });
   const counters = { loads: 0, subscriptions: 0, removals: 0, pendingReads: 0, writes: [], toasts: [] };
+  const privateQueues = new Map();
   const recordToast = value => counters.toasts.push(value);
   const ExternalImportMock = () => null;
   let recovery;
@@ -80,7 +159,11 @@ async function withSettingsProvider(run, failFirstLoad = false, initialState = n
     '@/context/settings/useNotificationScheduling': { useNotificationScheduling: noop },
     '@/lib/data': { initialPrayers: [{ id: 'santa-misa', categoryId: 'plan-de-vida', title: 'Misa' }], categories: [] },
     '@/lib/private-storage': {
-      privateOperation: async (_key, operation) => operation(),
+      privateOperation: (key, operation) => {
+        const next = (privateQueues.get(key) || Promise.resolve()).catch(noop).then(operation);
+        privateQueues.set(key, next);
+        return next;
+      },
       migratePrivate: async () => {
         counters.loads++;
         if (failFirstLoad && counters.loads === 1) throw new Error('Simulated storage failure');
@@ -91,6 +174,8 @@ async function withSettingsProvider(run, failFirstLoad = false, initialState = n
     '@/lib/export-file': { cleanExpiredExports: async () => {} },
     '@/components/StorageRecovery': props => { recovery = props; return null; },
     '@/components/ExternalImportDialog': ExternalImportMock,
+    '@/components/SecretPromptDialog': () => null,
+    ...extraMocks,
   });
   function Consumer() { settings = useSettings(); return null; }
   let renderer;
@@ -117,6 +202,82 @@ const receiveImport = async (raw, storage = false) => act(async () => {
   if (storage) window.localStorage.setItem('cotidie_pending_import', raw);
   else window.cotidie_pending_import = raw;
   window.dispatchEvent(new Event('cotidie-pending-import'));
+});
+
+test('Cartas provider activates atomically, hides locked letters, reauthenticates every export and disables without losing content', async () => {
+  const prompts = require('../src/lib/security-prompt.ts');
+  const service = require('../src/lib/letters-security.ts');
+  let saved;
+  const secret = 'mi clave de Cartas 2026';
+  const waitForPrompt = async () => {
+    const deadline = Date.now() + 2000;
+    while (!prompts.getSecretPrompt()) {
+      if (Date.now() > deadline) throw new Error('La solicitud de clave no apareció');
+      await new Promise(resolve => setTimeout(resolve, 5));
+    }
+  };
+  await withSettingsProvider(async ({ counters, getSettings }) => {
+    assert.equal(getSettings().lettersSecurityEnabled, false);
+    assert.equal((await getSettings().prepareDataExport()).password, null, 'disabled security must not ask for a password');
+    let activation;
+    await act(async () => { activation = getSettings().enableLettersSecurity(); await waitForPrompt(); });
+    assert.equal(prompts.getSecretPrompt().confirm, true);
+    assert.equal(prompts.getSecretPrompt().warning, true, 'activation must warn that the password is unrecoverable');
+    await act(async () => { prompts.finishSecretPrompt(secret); await activation; });
+    assert.equal(getSettings().lettersSecurityEnabled, true);
+    saved = counters.writes.at(-1);
+    assert.deepEqual(saved.userLetters, []);
+    assert.ok(saved.lettersVault);
+    assert.equal(JSON.stringify(saved).includes('Carta personal'), false);
+    await act(async () => { await getSettings().lockLettersSecurity(); });
+    assert.equal(getSettings().lettersLocked, true);
+    assert.deepEqual(getSettings().userLetters, []);
+    assert.throws(() => getSettings().getBackupSnapshot(), /Desbloquea/);
+    let authorized;
+    await act(async () => { authorized = getSettings().prepareDataExport(); await waitForPrompt(); });
+    const exportPrompt = prompts.getSecretPrompt();
+    assert.ok(exportPrompt);
+    await act(async () => { await exportPrompt.verify(secret); prompts.finishSecretPrompt(secret); });
+    const exported = await authorized;
+    assert.equal(exported.password, secret);
+    assert.deepEqual(exported.snapshot.userLetters, personalImportFixture.userLetters);
+    assert.equal(getSettings().lettersLocked, false);
+    let repeated;
+    await act(async () => { repeated = getSettings().prepareDataExport(); await waitForPrompt(); });
+    const canceled = assert.rejects(repeated, /cancelado/);
+    assert.ok(prompts.getSecretPrompt(), 'an unlocked session still needs a fresh challenge before export');
+    await act(async () => { prompts.finishSecretPrompt(null); await canceled; });
+    let disabling;
+    await act(async () => { disabling = getSettings().disableLettersSecurity(); await waitForPrompt(); });
+    const disablePrompt = prompts.getSecretPrompt();
+    assert.ok(disablePrompt);
+    await act(async () => { await disablePrompt.verify(secret); prompts.finishSecretPrompt(secret); await disabling; });
+    assert.equal(getSettings().lettersSecurityEnabled, false);
+    assert.deepEqual(getSettings().userLetters, personalImportFixture.userLetters);
+    assert.equal(counters.writes.at(-1).lettersVault, undefined);
+    assert.equal(service.getLettersSecurityStatus().enabled, false);
+  }, false, personalImportFixture);
+  await withSettingsProvider(async ({ getSettings }) => {
+    assert.equal(getSettings().lettersSecurityEnabled, true);
+    assert.equal(getSettings().lettersLocked, true, 'saved encrypted state must hydrate locked');
+    assert.deepEqual(getSettings().userLetters, []);
+  }, false, saved);
+});
+
+test('authenticated encrypted backup restores Cartas protected with its portable password', async () => {
+  const { rememberBackupPassword } = require('../src/lib/backup-authentication.ts');
+  await withSettingsProvider(async ({ counters, getSettings }) => {
+    const data = rememberBackupPassword({ ...personalImportFixture }, 'clave portable de respaldo');
+    let result;
+    await act(async () => { result = await getSettings().importUserData(data, { silent: true }); });
+    assert.equal(result.status, 'applied');
+    assert.equal(getSettings().lettersSecurityEnabled, true);
+    assert.deepEqual(getSettings().userLetters, personalImportFixture.userLetters);
+    assert.deepEqual(counters.writes.at(-1).userLetters, []);
+    assert.ok(counters.writes.at(-1).lettersVault);
+    await act(async () => { await getSettings().lockLettersSecurity(); });
+    assert.deepEqual(getSettings().userLetters, []);
+  });
 });
 
 test('invalid date import cannot write and persisted invalid dates recover without losing personal data', async () => {
@@ -181,6 +342,135 @@ test('external import waits for consent and cancellation preserves saved persona
     assert.ok(getImportDialog(), 'a cancelled file can be shared again deliberately');
     await act(async () => getImportDialog().onCancel());
   }, false, personalImportFixture);
+});
+
+test('a delayed native import reserves its consent slot before a second file arrives', async () => {
+  let finishReading;
+  const reading = new Promise(resolve => { finishReading = resolve; });
+  const reads = [];
+  await withSettingsProvider(async ({ counters, getSettings, getImportDialog }) => {
+    const originalWrites = counters.writes.length;
+    await receiveImport('{"cotidieBackupImportToken":"11111111-1111-4111-8111-111111111111"}');
+    assert.equal(reads.length, 1);
+    assert.equal(getImportDialog(), undefined, 'consent must wait for the first file to finish decoding');
+    await receiveImport('{"cotidieBackupImportToken":"22222222-2222-4222-8222-222222222222"}');
+    assert.equal(reads.length, 1, 'another native read cannot overtake the first asynchronous read');
+    await act(async () => { finishReading({ theme: 'dark' }); await reading; });
+    const firstConsent = getImportDialog();
+    assert.ok(firstConsent);
+    assert.equal(counters.writes.length, originalWrites, 'decoding alone never applies an import');
+    await receiveImport('{"theme":"light","userLetters":[]}');
+    assert.equal(getImportDialog(), firstConsent, 'later files cannot replace the captured consent');
+    await act(async () => { await firstConsent.onConfirm(); });
+    assert.equal(getSettings().theme, 'dark');
+    assert.deepEqual(getSettings().userLetters, personalImportFixture.userLetters);
+    assert.equal(getImportDialog(), undefined);
+  }, false, personalImportFixture, {
+    '@/lib/native-backup-import': { readNativeBackupImport: token => { reads.push(token); return reading; } },
+  });
+});
+
+test('locking a portable full restore before its marker commits aborts activation and restores original letters', async () => {
+  const { rememberBackupPassword } = require('../src/lib/backup-authentication.ts');
+  const service = require('../src/lib/letters-security.ts');
+  const restoreField = 'cotidieRestorePendingV2';
+  let finishStaging, stagingReached;
+  const staging = new Promise(resolve => { finishStaging = resolve; });
+  const stageEntered = new Promise(resolve => { stagingReached = resolve; });
+  const discarded = [];
+  let completed = 0, reloads = 0;
+  const marker = { id: 'test-precommit-stage', local: {} };
+  const importedLetters = [{ id: 'imported-letter', title: 'Test imported private letter', categoryId: 'cartas' }];
+  const archive = { format: 'cotidie-backup-2', settings: { ...personalImportFixture, theme: 'dark', userLetters: importedLetters },
+    local: {}, library: { books: [], audio: [], progress: [] } };
+  await withSettingsProvider(async ({ counters, getSettings, getRecovery }) => {
+    window.setTimeout = setTimeout;
+    window.location = { reload: () => { reloads++; } };
+    const originalWrites = counters.writes.length;
+    let importing;
+    await act(async () => {
+      importing = getSettings().importUserData(rememberBackupPassword(archive, 'test portable restore password'), { silent: true });
+      await stageEntered;
+    });
+    assert.equal(service.getLettersSecurityStatus().enabled, true);
+    await act(async () => { await getSettings().lockLettersSecurity(); });
+    assert.equal(service.getLettersSecurityStatus().locked, true);
+    assert.equal(counters.writes.length, originalWrites, 'lock persistence cannot run over a staged import');
+    let result;
+    await act(async () => { finishStaging(marker); result = await importing; });
+    assert.equal(result.status, 'invalid');
+    assert.equal(service.getLettersSecurityStatus().enabled, false, 'the uncommitted activation must roll back');
+    assert.deepEqual(getSettings().userLetters, personalImportFixture.userLetters);
+    assert.equal(getSettings().theme, 'light');
+    assert.equal(getRecovery(), undefined);
+    assert.equal(counters.writes.some(value => value[restoreField]), false);
+    assert.equal(counters.writes.some(value => value.lettersVault), false);
+    assert.equal(completed, 0);
+    assert.deepEqual(discarded, [marker.id]);
+    assert.equal(reloads, 0);
+  }, false, personalImportFixture, {
+    '@/lib/reading-store': { flushReadingWrites: async () => {} },
+    '@/lib/backup-archive': {
+      RESTORE_FIELD: restoreField, validateBackupArchive: noop,
+      stageBackupArchive: async () => { stagingReached(); return staging; },
+      completeLibraryRestore: async () => { completed++; },
+      discardRestoreStage: async id => { discarded.push(id); },
+    },
+  });
+});
+
+test('locking after a full restore marker commits preserves recovery intent instead of saving the old snapshot', async () => {
+  const prompts = require('../src/lib/security-prompt.ts');
+  const service = require('../src/lib/letters-security.ts');
+  const secret = 'test local restore password';
+  service.initialiseLettersVault(null);
+  await service.enableLettersVault(secret, personalImportFixture.userLetters);
+  const protectedInitial = await service.protectLettersForStorage(personalImportFixture);
+  const restoreField = 'cotidieRestorePendingV2';
+  const marker = { id: 'test-committed-stage', local: {} };
+  let finishLibraryRestore, restoringReached;
+  const restoring = new Promise(resolve => { finishLibraryRestore = resolve; });
+  const restoreEntered = new Promise(resolve => { restoringReached = resolve; });
+  const discarded = [];
+  let reloads = 0;
+  const archive = { format: 'cotidie-backup-2', settings: { ...personalImportFixture, theme: 'dark',
+    userLetters: [{ id: 'imported-letter', title: 'Test replacement letter', categoryId: 'cartas' }] },
+    local: {}, library: { books: [], audio: [], progress: [] } };
+  await withSettingsProvider(async ({ counters, getSettings, getRecovery }) => {
+    window.setTimeout = setTimeout;
+    window.location = { reload: () => { reloads++; } };
+    let importing;
+    await act(async () => { importing = getSettings().importUserData(archive, { silent: true }); });
+    assert.ok(prompts.getSecretPrompt(), 'existing protected letters require fresh local authorization');
+    await act(async () => {
+      await prompts.getSecretPrompt().verify(secret);
+      prompts.finishSecretPrompt(secret);
+      await restoreEntered;
+    });
+    const committedWrites = counters.writes.length;
+    const committed = counters.writes.at(-1);
+    assert.deepEqual(committed[restoreField], marker);
+    assert.ok(committed.lettersVault);
+    await act(async () => { await getSettings().lockLettersSecurity(); });
+    assert.equal(service.getLettersSecurityStatus().locked, true);
+    assert.equal(counters.writes.length, committedWrites, 'both lock writers must defer while restore is in flight');
+    let result;
+    await act(async () => { finishLibraryRestore(); result = await importing; });
+    assert.equal(result.status, 'invalid');
+    assert.match(getRecovery().message, /restauración.*pendiente/i);
+    assert.deepEqual(counters.writes.at(-1)[restoreField], marker, 'the durable marker must survive for startup recovery');
+    assert.equal(counters.writes.length, committedWrites);
+    assert.deepEqual(discarded, [], 'recovery still needs its staged files');
+    assert.equal(reloads, 0);
+  }, false, protectedInitial, {
+    '@/lib/reading-store': { flushReadingWrites: async () => {} },
+    '@/lib/backup-archive': {
+      RESTORE_FIELD: restoreField, validateBackupArchive: noop,
+      stageBackupArchive: async () => marker,
+      completeLibraryRestore: async () => { restoringReached(); await restoring; },
+      discardRestoreStage: async id => { discarded.push(id); },
+    },
+  });
 });
 
 test('consent applies the captured localStorage payload once and preserves omitted fields and privileges', async () => {

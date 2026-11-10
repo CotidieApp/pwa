@@ -30,6 +30,8 @@ import { appVersion } from '@/lib/version';
 import { parseImportText } from '@/lib/import-safety';
 import { createBackupArchive, parseCotidieBackupFile } from '@/lib/backup-archive';
 import { exportFile } from '@/lib/export-file';
+import { encryptBackup } from '@/lib/encrypted-backup';
+import { assertLettersExportAuthorized } from '@/lib/letters-security';
 
 interface DeveloperSettingsProps {
   onOpenDashboard?: () => void;
@@ -43,7 +45,8 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
     hardResetApp,
     isDeveloperMode,
     loginAsDeveloper,
-    getBackupSnapshot,
+    prepareDataExport,
+    lettersSecurityEnabled,
     importUserData,
   } = useSettings();
 
@@ -61,8 +64,11 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
     if (backupBusy) return;
     setBackupBusy(true);
     try {
-      const archive = await createBackupArchive(getBackupSnapshot());
-      await exportFile(archive, `cotidie_backup_${new Date().toISOString().replace(/[:Z]/g,'-')}.ctd`);
+      const authorized = await prepareDataExport();
+      const archive = await createBackupArchive(authorized.snapshot);
+      const output = authorized.password === null ? archive : await encryptBackup(archive, authorized.password);
+      assertLettersExportAuthorized(authorized.epoch);
+      await exportFile(output, `cotidie_backup_${new Date().toISOString().replace(/[:Z]/g,'-')}.ctd`);
       toast({title:'Respaldo completo listo',description:'Incluye bibliotecas y progreso. Conserva el archivo en un lugar privado.'});
     } catch (error) {
       toast({variant:'destructive',title:'No se pudo crear el respaldo',description:error instanceof Error ? error.message : 'Intenta nuevamente.'});
@@ -73,17 +79,21 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
     if (backupBusy) return;
     setBackupBusy(true);
     try {
-      const dataToExport = getBackupSnapshot();
+      const authorized = await prepareDataExport();
+      const dataToExport = authorized.snapshot;
       const dataStr = JSON.stringify(dataToExport, null, 2);
       const utf8DataStr = `\uFEFF${dataStr}`;
       parseImportText(utf8DataStr); // Never offer a legacy file that our importer cannot read.
       const backupDate = new Date().toISOString().split('T')[0] || 'backup';
       const fileName = `cotidie_backup_${backupDate}.ctd`;
 
-      await exportFile(new Blob([utf8DataStr], {type:'application/json;charset=utf-8'}), fileName);
+      const archive = new Blob([utf8DataStr], {type:'application/json;charset=utf-8'});
+      const output = authorized.password === null ? archive : await encryptBackup(archive, authorized.password);
+      assertLettersExportAuthorized(authorized.epoch);
+      await exportFile(output, fileName);
       toast({ title: 'Respaldo de ajustes listo' });
-    } catch {
-      toast({ variant: 'destructive', title: 'Error al exportar', description: 'No se pudieron exportar los datos.' });
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error al exportar', description: error instanceof Error ? error.message : 'No se pudieron exportar los datos.' });
     } finally { setBackupBusy(false); }
   };
 
@@ -217,14 +227,16 @@ export default function DeveloperSettings({ onOpenDashboard }: DeveloperSettings
             </div>
             <Button variant="outline" size="sm" disabled={backupBusy} onClick={handleExport}>{backupBusy ? 'Procesando…' : 'Exportar'}</Button>
           </div>
-          <p className="text-xs text-muted-foreground">El respaldo no está cifrado. Guárdalo en un lugar privado. No incluye el cuaderno de confesión ni accesos de desarrollador.</p>
-          <Button variant="ghost" size="sm" disabled={backupBusy} onClick={handleLegacyExport}>Exportar formato anterior (.ctd, solo ajustes)</Button>
+          <p className="text-xs text-muted-foreground">{lettersSecurityEnabled
+            ? 'El respaldo se cifra con tu clave de Cartas. La clave no es recuperable: anótala y guárdala en un lugar seguro.'
+            : 'El respaldo no está cifrado. Guárdalo en un lugar privado.'} No incluye el cuaderno de confesión ni accesos de desarrollador.</p>
+          <Button variant="ghost" size="sm" disabled={backupBusy} onClick={handleLegacyExport}>{lettersSecurityEnabled ? 'Exportar solo ajustes (.ctd cifrado)' : 'Exportar formato anterior (.ctd, solo ajustes)'}</Button>
           <BrowserStorageStatus />
 
           <div className="flex items-center justify-between gap-3 rounded-md border bg-card/60 px-3 py-3">
             <div className="min-w-0">
               <div className="text-sm font-medium">Restaurar datos</div>
-              <div className="text-xs text-muted-foreground">Acepta .ctd actuales y anteriores, y .ctdb. Un respaldo completo reemplaza las bibliotecas y su progreso.</div>
+              <div className="text-xs text-muted-foreground">Acepta .ctd actuales y anteriores, y .ctdb. Los respaldos cifrados piden su clave original. Un respaldo completo reemplaza las bibliotecas y su progreso.</div>
             </div>
             <Button variant="outline" size="sm" disabled={backupBusy} onClick={() => importFileRef.current?.click()}>Importar</Button>
             <input

@@ -22,7 +22,8 @@ public class ImportReaderService extends Service {
     static final String EXTRA_REPLY = "cotidie_import_reply";
     static final int SUCCESS = 1;
     static final int FAILURE = 0;
-    static final int MAX_BYTES = 15 * 1024 * 1024;
+    static final int MAX_JSON_BYTES = 15 * 1024 * 1024;
+    static final int MAX_BYTES = 128 * 1024 * 1024 + 64;
     static final long TIMEOUT_MS = 15000L;
     private final Handler deadline = new Handler(Looper.getMainLooper());
     private File activeOutput;
@@ -51,7 +52,7 @@ public class ImportReaderService extends Service {
                  AssetFileDescriptor descriptor = getContentResolver().openAssetFileDescriptor(uri, "r", new CancellationSignal())) {
                 if (descriptor != null) {
                     try (InputStream input = descriptor.createInputStream()) {
-                        BoundedImportReader.copy(input, target, MAX_BYTES, () -> false);
+                        BoundedImportReader.copyImport(input, target, MAX_JSON_BYTES, MAX_BYTES, () -> false);
                     }
                     status = SUCCESS;
                 }

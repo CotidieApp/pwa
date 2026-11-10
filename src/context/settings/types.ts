@@ -124,6 +124,14 @@ export type Settings = {
   removeUserPrayer: (id: string) => void;
 
   userLetters: Prayer[];
+  lettersSecurityEnabled: boolean;
+  lettersLocked: boolean;
+  lettersDeviceUnlockEnabled: boolean;
+  enableLettersSecurity: () => Promise<void>;
+  disableLettersSecurity: () => Promise<void>;
+  unlockLettersSecurity: (ownPassword?: boolean) => Promise<void>;
+  lockLettersSecurity: () => Promise<void>;
+  prepareDataExport: () => Promise<{ snapshot: Record<string, unknown>; password: string | null; epoch: number }>;
   addUserLetter: (p: Omit<Prayer, 'id' | 'isUserDefined'> & { imageUrl?: string }) => void;
   removeUserLetter: (id: string) => void;
 

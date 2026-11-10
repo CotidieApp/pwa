@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import React, { useRef, useLayoutEffect, useCallback, useEffect, useState } from 'react';
+import React, { useRef, useCallback, useEffect, useState } from 'react';
 import type { Prayer } from '@/lib/types';
 import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,7 +12,7 @@ import { Label } from './ui/label';
 import * as Icon from 'lucide-react';
 import { AudioPlayer } from './AudioPlayer';
 import { useScreenWakeLock } from '@/hooks/useScreenWakeLock';
-import { useCaminoProgress } from '@/hooks/useCaminoProgress';
+import { usePrayerScrollPosition } from '@/hooks/usePrayerScrollPosition';
 import { isCaminoLineMatch } from '@/lib/camino-search';
 import LetterContent from '@/components/LetterContent';
 
@@ -458,11 +458,6 @@ const PrayerContent = ({
   onBilingualModeChange?: (active: boolean) => void;
 }) => {
   const {
-    setScrollPosition,
-    scrollPositions,
-    fontFamily,
-    pushDevLiveTrace,
-    isLoaded,
     theme,
     pinchToZoomEnabled,
     prayerTextZoom,
@@ -470,8 +465,6 @@ const PrayerContent = ({
     prayerLanguagePreferences,
     prayerLanguageProfile,
   } = useSettings();
-  const throttleTimeout = useRef<NodeJS.Timeout | null>(null);
-  const restoredScrollKeyRef = useRef<string | null>(null);
 
   // Pinch-to-zoom logic
   const [initialDistance, setInitialDistance] = useState<number | null>(null);
@@ -535,78 +528,6 @@ const PrayerContent = ({
   const themeMode: 'light' | 'dark' = theme === 'dark' ? 'dark' : 'light';
   const prayerId: string = prayer.id ?? '';
   const isCamino = prayerId === 'camino-libro';
-  useCaminoProgress(isCamino && isLoaded, scrollContainerRef, scrollPositions['camino-libro'], prayerTextZoom, fontFamily,
-    (message, data, error) => pushDevLiveTrace({ level: error ? 'warn' : 'info', source: 'camino-reader', message, data }));
-
-  useEffect(() => {
-    if (prayer.isLongText) return;
-    const el = scrollContainerRef?.current;
-    if (el) {
-      el.scrollTo(0, 0);
-    }
-    window.scrollTo(0, 0);
-  }, [prayerId, prayer.isLongText, scrollContainerRef]);
-
-  const handleScroll = useCallback(() => {
-    if (isCamino || !prayer.isLongText || !prayerId) return;
-    const container = scrollContainerRef?.current;
-    if (!container) return;
-    if (throttleTimeout.current) clearTimeout(throttleTimeout.current);
-    throttleTimeout.current = setTimeout(() => {
-      setScrollPosition(prayerId, container.scrollTop);
-    }, 200);
-  }, [isCamino, prayerId, prayer.isLongText, setScrollPosition, scrollContainerRef]);
-
-  useLayoutEffect(() => {
-    if (isCamino || !prayerId) return;
-    const container = scrollContainerRef?.current;
-    if (!container) return;
-    const restoreKey = `${prayerId}:${prayer.isLongText ? 'long' : 'short'}`;
-    if (restoredScrollKeyRef.current === restoreKey) return;
-
-    if (prayer.isLongText) {
-      const saved = scrollPositions[prayerId];
-      if (typeof saved === 'number') {
-        container.scrollTo({ top: saved });
-        restoredScrollKeyRef.current = restoreKey;
-        return;
-      }
-    }
-
-    // Normal prayer or no saved position: always reset to top
-    container.scrollTo({ top: 0 });
-    restoredScrollKeyRef.current = restoreKey;
-  }, [isCamino, prayerId, scrollPositions, prayer.isLongText, scrollContainerRef]);
-
-  useEffect(() => {
-    const container = scrollContainerRef?.current;
-    if (!container) return;
-    container.addEventListener('scroll', handleScroll, { passive: true });
-
-    const flushScrollPosition = () => {
-      if (isCamino || !prayer.isLongText || !prayerId) return;
-      const currentContainer = scrollContainerRef?.current;
-      if (!currentContainer) return;
-      setScrollPosition(prayerId, currentContainer.scrollTop);
-    };
-
-    const handleVisibilityChange = () => {
-      if (typeof document === 'undefined') return;
-      if (document.visibilityState !== 'hidden') return;
-      flushScrollPosition();
-    };
-
-    window.addEventListener('pagehide', flushScrollPosition);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      container.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('pagehide', flushScrollPosition);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      flushScrollPosition();
-      if (throttleTimeout.current) clearTimeout(throttleTimeout.current);
-    };
-  }, [isCamino, handleScroll, prayer.isLongText, prayerId, setScrollPosition, scrollContainerRef]);
 
   useEffect(() => {
     if (searchState?.term && searchState.activeIndex !== -1) {
@@ -738,6 +659,7 @@ export default function PrayerDetail({
   const [localAudioSrc, setLocalAudioSrc] = useState<string | null>(null);
   const [isBilingualMode, setIsBilingualMode] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  usePrayerScrollPosition(prayer, scrollContainerRef);
   useScreenWakeLock(Boolean(prayer.isLongText));
 
   const predefinedAudios = [

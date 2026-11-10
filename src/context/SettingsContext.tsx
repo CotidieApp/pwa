@@ -39,6 +39,14 @@ import { persistence } from '@/lib/persistence';
 import { validateSettingsData, validatePlanReferences } from '@/lib/settings-validation';
 import StorageRecovery from '@/components/StorageRecovery';
 import ExternalImportDialog from '@/components/ExternalImportDialog';
+import SecretPromptDialog from '@/components/SecretPromptDialog';
+import { requestSecret, finishSecretPrompt } from '@/lib/security-prompt';
+import { readNativeBackupImport } from '@/lib/native-backup-import';
+import { consumeBackupPassword } from '@/lib/backup-authentication';
+import LettersSecurity from '@/plugins/LettersSecurity';
+import { useLettersSecurityStatus, initialiseLettersVault, protectLettersForStorage, enableLettersVault,
+  unlockLettersVault, lockLettersVault, disableLettersVault, assertLettersUnlocked, getLettersSecurityEpoch,
+  validateNewLettersPassword } from '@/lib/letters-security';
 import { TIMER_CHECKPOINT_KEY, readTimerCheckpoint } from '@/lib/prayer-timer';
 import { RESTORE_FIELD, validateBackupArchive, stageBackupArchive, completeLibraryRestore, discardRestoreStage,
   type BackupArchive } from '@/lib/backup-archive';
@@ -211,10 +219,13 @@ const getAngelusStatKeys = (subKey?: string) => {
 };
 
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {
+  const lettersSecurity = useLettersSecurityStatus();
+  const securityTransitionRef = useRef(false);
   const { toast } = useToast();
   const lastProcessedPendingImportRef = useRef<string | null>(null);
   const pendingExternalImportRef = useRef<{ data: unknown } | null>(null);
   const externalImportApplyingRef = useRef(false);
+  const externalImportReadingRef = useRef(false);
   const [pendingExternalImport, setPendingExternalImport] = useState<{ data: unknown } | null>(null);
   useEffect(() => () => { pendingExternalImportRef.current = null; }, []);
 
@@ -361,11 +372,20 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
      LOCAL STORAGE (BLINDADO) & INDEXEDDB
      ======================= */
 
-  const saveState = useCallback(async (state: any) => {
+  const saveState = useCallback(async (state: any, requireConfirmed = false) => {
     if (typeof window === 'undefined') return;
+    const securityEpoch = getLettersSecurityEpoch();
     await privateOperation(SAVED_STATE_KEY, async () => {
-      if (resettingRef.current) return;
-      await writePrivate(SAVED_STATE_KEY, state);
+      if (resettingRef.current || securityEpoch !== getLettersSecurityEpoch()) {
+        if (requireConfirmed) throw new Error('La aplicación se bloqueó o cambió durante el guardado. Reintenta.');
+        return;
+      }
+      const protectedState = await protectLettersForStorage(state);
+      if (securityEpoch !== getLettersSecurityEpoch()) {
+        if (requireConfirmed) throw new Error('La aplicación se bloqueó durante el guardado. Reintenta.');
+        return;
+      }
+      await writePrivate(SAVED_STATE_KEY, protectedState);
     });
   }, []);
 
@@ -511,7 +531,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setShowZeroStats(snapshot.showZeroStats);
     setHasViewedAnnuum(snapshot.hasViewedAnnuum);
     setAnnuumFirstOpenedDate(snapshot.annuumFirstOpenedDate);
-  }, [pushDevLiveTrace, setMovableFeastsEnabled, setTimerDuration, setTimerEnabled, setTimerTime]);
+  }, [pushDevLiveTrace, setMovableFeastsEnabled, setTimerDuration, setTimerEnabled, setTimerTime, setSimulatedDate]);
 
   // Countdown ticks persist a small checkpoint; the full settings object stays stable.
   const timerSnapshotTime = timerActive ? timerDuration * 60 : timerTime;
@@ -662,7 +682,88 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     annuumFirstOpenedDate,
   ]);
 
-  const getBackupSnapshot = useCallback(() => withoutLocalPrivileges({...backupSnapshot,timerTime}), [backupSnapshot,timerTime]);
+  const getBackupSnapshot = useCallback(() => {
+    assertLettersUnlocked();
+    return withoutLocalPrivileges({...backupSnapshot,timerTime});
+  }, [backupSnapshot,timerTime]);
+
+  const unlockLettersSecurity = useCommittedCallback(async (ownPassword: boolean = false) => {
+    if (!lettersSecurity.enabled) return;
+    if (!lettersSecurity.locked) await saveState(backupSnapshot);
+    try {
+      const unlocked = await unlockLettersVault('Desbloquear Cartas', ownPassword);
+      setUserLetters(unlocked.letters);
+    } catch (error) {
+      await saveState(backupSnapshot);
+      throw error;
+    }
+  });
+  const lockLettersSecurity = useCommittedCallback(async () => {
+    finishSecretPrompt(null);
+    if (!lettersSecurity.enabled) { await lockLettersVault([]); return; }
+    await lockLettersVault(userLetters);
+    setUserLetters([]);
+    if (importInFlightRef.current) return;
+    await saveState({ ...backupSnapshot, userLetters: [] });
+  });
+  const enableLettersSecurity = useCommittedCallback(async () => {
+    if (securityTransitionRef.current || !storageReady) throw new Error('Espera a que termine el guardado actual.');
+    securityTransitionRef.current = true;
+    let rollback: (() => void) | undefined;
+    try {
+      const secret = await requestSecret({ title: 'Proteger Cartas',
+        description: 'Crea una clave de al menos 8 caracteres o un PIN de 8 cifras. Úsala también para abrir tus respaldos cifrados. Se recomienda una frase larga.',
+        confirm: true, warning: true, verify: async value => { validateNewLettersPassword(value); } });
+      if (secret === null) return;
+      rollback = await enableLettersVault(secret, userLetters);
+      await saveState(backupSnapshot, true);
+      toast({ title: 'Cartas protegidas', description: 'Conserva tu clave anotada en un lugar seguro.' });
+    } catch (error) { rollback?.(); if (rollback) setUserLetters(backupSnapshot.userLetters); throw error; }
+    finally { securityTransitionRef.current = false; }
+  });
+  const disableLettersSecurity = useCommittedCallback(async () => {
+    if (securityTransitionRef.current) throw new Error('Hay otro cambio de seguridad en curso.');
+    securityTransitionRef.current = true;
+    try {
+      if (!lettersSecurity.locked) await saveState(backupSnapshot);
+      const unlocked = await unlockLettersVault('Desactivar seguridad de Cartas');
+      const disabled = await disableLettersVault(() => saveState({ ...backupSnapshot, userLetters: unlocked.letters }, true));
+      setUserLetters(unlocked.letters);
+      toast({ title: 'Seguridad de Cartas desactivada', description: disabled.cleanupPending
+        ? 'Tus cartas se conservaron. No se pudo completar la limpieza de la clave del dispositivo.'
+        : 'Los respaldos antiguos mantienen su clave original.' });
+    } finally { securityTransitionRef.current = false; }
+  });
+  const prepareDataExport = useCommittedCallback(async () => {
+    if (!storageReady || securityTransitionRef.current) throw new Error('Espera a que tus datos estén disponibles.');
+    let exportLetters = userLetters;
+    let exportPassword: string | null = null;
+    if (lettersSecurity.enabled) {
+      if (!lettersSecurity.locked) await saveState(backupSnapshot);
+      const unlocked = await unlockLettersVault('Autorizar exportación de datos');
+      exportLetters = unlocked.letters;
+      exportPassword = unlocked.password;
+      setUserLetters(exportLetters);
+    }
+    return { snapshot: withoutLocalPrivileges({ ...backupSnapshot, timerTime, userLetters: exportLetters }),
+      password: exportPassword, epoch: getLettersSecurityEpoch() };
+  });
+
+  useEffect(() => {
+    if (lettersSecurity.enabled && lettersSecurity.locked) setUserLetters([]);
+  }, [lettersSecurity.enabled, lettersSecurity.locked]);
+  useEffect(() => {
+    if (isLoaded && storageReady && lettersSecurity.enabled && lettersSecurity.locked && !securityTransitionRef.current && !importInFlightRef.current)
+      void saveState(backupSnapshot).catch(() => undefined);
+  }, [isLoaded, storageReady, lettersSecurity.enabled, lettersSecurity.locked, lettersSecurity.revision, backupSnapshot, saveState]);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const hide = () => { if (document.visibilityState === 'hidden') void lockLettersSecurity().catch(() => undefined); };
+    const pagehide = () => { void lockLettersSecurity().catch(() => undefined); };
+    document.addEventListener('visibilitychange', hide);
+    window.addEventListener('pagehide', pagehide);
+    return () => { document.removeEventListener('visibilitychange', hide); window.removeEventListener('pagehide', pagehide); };
+  }, [lockLettersSecurity]);
 
   // Hydration runs on mount/explicit retry, not when a setter or trace callback changes.
   const loadSettings = useCommittedCallback(async () => {
@@ -681,6 +782,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
             throw new Error('Un reinicio anterior necesita completarse.');
           }
           let s: any = await privateOperation(SAVED_STATE_KEY, () => migratePrivate(SAVED_STATE_KEY));
+          initialiseLettersVault(s?.lettersVault);
           if (s?.[RESTORE_FIELD]) {
             const marker = s[RESTORE_FIELD];
             await completeLibraryRestore(marker);
@@ -755,7 +857,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   }, [isLoaded, storageReady, timerDuration, timerTime, toast]);
 
   useEffect(() => {
-    if (!isLoaded || !storageReady || importInFlightRef.current || resettingRef.current) return;
+    if (!isLoaded || !storageReady || importInFlightRef.current || resettingRef.current || securityTransitionRef.current) return;
     void saveState(backupSnapshot).catch(() => toast({ title: 'No se confirmó el guardado',
       description: 'Conserva la aplicación abierta y vuelve a intentarlo.', variant: 'destructive' }));
   }, [backupSnapshot, isLoaded, storageReady, saveState, toast]);
@@ -1150,6 +1252,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const addUserLetter = (p: Omit<Prayer, 'id' | 'isUserDefined'> & { imageUrl?: string }) => {
+    assertLettersUnlocked();
     const newP: Prayer = { ...p, id: generateId(), isUserDefined: true, categoryId: 'cartas' };
     setUserLetters(prev => [...prev, newP]);
     setCartasReminderAnchorAt(Date.now());
@@ -1159,11 +1262,13 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const removeUserLetter = (id: string) => {
+    assertLettersUnlocked();
     setUserLetters(prev => prev.filter(p => p.id !== id));
     toast({ title: 'Carta eliminada.' });
   };
 
   const updateUserPrayer = (id: string, data: { title: string; content: Prayer['content']; imageUrl?: string }) => {
+    if (userLetters.some(item => item.id === id)) assertLettersUnlocked();
     // Check all lists
     setUserDevotions(prev => prev.map(p => p.id === id ? { ...p, ...data } : p));
     setUserPrayers(prev => prev.map(p => p.id === id ? { ...p, ...data } : p));
@@ -1224,6 +1329,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       await flushReadingWrites().catch(() => undefined);
       localStorage.setItem(RESET_PENDING_KEY, 'pending');
       await privateOperation(SAVED_STATE_KEY, () => removePrivate(SAVED_STATE_KEY));
+      await LettersSecurity.clearSecret();
+      initialiseLettersVault(undefined);
       await privateOperation('cotidie_confession_note_v1', () => removePrivate('cotidie_confession_note_v1'));
       await privateOperation('cotidie_confession_note_v1', () => removePrivate('cotidie_confession_auto_delete_v1'));
       await persistence.removeItem(SAVED_STATE_KEY);
@@ -1331,7 +1438,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       importInFlightRef.current = true;
       let archive: BackupArchive | null = null;
       let pendingRestore = false;
+      let securityRollback: (() => void) | undefined;
+      const importedPassword = consumeBackupPassword(data);
       try {
+      if (securityTransitionRef.current) throw new Error('Hay un cambio de seguridad en curso.');
       if (data?.format === 'cotidie-backup-2') {
         validateBackupArchive(data);
         archive = data;
@@ -1340,6 +1450,9 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       if (!archive) validateImportPayload(data);
       validateSettingsData(data);
       data = withoutLocalPrivileges(data);
+      if (Array.isArray(data.userLetters) && lettersSecurity.enabled) {
+        await unlockLettersSecurity();
+      }
       if (!storageReady && !['userPrayers', 'userDevotions', 'userLetters'].every(key => Array.isArray(data[key]))) {
         return notifyIfNeeded({ ...invalidResult, description: 'No se pudieron leer los datos actuales. Reintenta abrirlos o usa un respaldo completo con tus oraciones, devociones y cartas.' });
       }
@@ -1349,6 +1462,13 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         validateSettingsData(localSnapshot);
         validatePlanReferences(localSnapshot.customPlans, [...initialPrayers, ...localSnapshot.userPrayers,
           ...localSnapshot.userDevotions, ...localSnapshot.userLetters]);
+        if (importedPassword !== null && !lettersSecurity.enabled && Array.isArray(localSnapshot.userLetters)) {
+          securityRollback = await enableLettersVault(importedPassword, localSnapshot.userLetters);
+        }
+        const importEpoch = getLettersSecurityEpoch();
+        const assertImportCurrent = () => {
+          if (resettingRef.current || getLettersSecurityEpoch() !== importEpoch) throw new Error('La aplicación se bloqueó durante la importación. Reintenta.');
+        };
         if (archive) {
           if (resettingRef.current) throw new Error('Reinicio en curso.');
           setRestoringLibrary(true);
@@ -1356,16 +1476,19 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           await new Promise<void>(resolve => window.setTimeout(resolve, 0));
           const { flushReadingWrites } = await import('@/lib/reading-store');
           await flushReadingWrites();
+          assertImportCurrent();
           const marker = await stageBackupArchive(archive);
           try {
-            await saveState({ ...localSnapshot, [RESTORE_FIELD]: marker });
+            assertImportCurrent();
+            await saveState({ ...localSnapshot, [RESTORE_FIELD]: marker }, true);
             pendingRestore = true;
           } catch (error) { await discardRestoreStage(marker.id); throw error; }
           await completeLibraryRestore(marker);
-          await saveState(localSnapshot);
+          assertImportCurrent();
+          await saveState(localSnapshot, true);
           pendingRestore = false;
           await discardRestoreStage(marker.id).catch(() => undefined);
-        } else await saveState(localSnapshot);
+        } else { assertImportCurrent(); await saveState(localSnapshot, true); }
         if (resettingRef.current) throw new Error('Reinicio en curso.');
         localStorage.removeItem(TIMER_CHECKPOINT_KEY);
         applyBackupSnapshot(localSnapshot);
@@ -1505,17 +1628,21 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           setStorageError('La restauración del respaldo quedó pendiente. Reintenta para completar sus archivos.');
           return notifyIfNeeded({ ...invalidResult, description: 'Restauración pendiente; vuelve a abrir la aplicación para completarla.' });
         }
+        securityRollback?.();
+        if (securityRollback) setUserLetters(backupSnapshot.userLetters);
         return notifyIfNeeded({ ...invalidResult, description: error instanceof Error && error.message.startsWith('El respaldo')
           ? error.message : 'El archivo no es válido o no se pudo confirmar su guardado. El estado anterior se conserva.' });
       } finally { importInFlightRef.current = false; setRestoringLibrary(false); }
     },
-    [applyBackupSnapshot, backupSnapshot, pushDevLiveTrace, saveState, storageReady, toast]
+    [applyBackupSnapshot, backupSnapshot, pushDevLiveTrace, saveState, storageReady, toast, lettersSecurity.enabled, unlockLettersSecurity]
   );
 
   useEffect(() => {
     if (!isLoaded || typeof window === 'undefined') return;
 
-    const consumePendingImport = () => {
+    const consumePendingImport = async () => {
+      if (externalImportReadingRef.current) return;
+      externalImportReadingRef.current = true;
       try {
         // We now check window object directly to avoid LocalStorage quota limits with large backup files
         const raw = (window as any)[PENDING_IMPORT_STORAGE_KEY] || window.localStorage.getItem(PENDING_IMPORT_STORAGE_KEY);
@@ -1556,8 +1683,11 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           message: 'Intentando parsear JSON...',
           data: `length=${sanitized.length}`
         });
-        const parsed = parseImportText(sanitized);
-        validateSettingsData(parsed);
+        const candidate = parseImportText(sanitized);
+        const parsed = typeof candidate?.cotidieBackupImportToken === 'string'
+          ? await readNativeBackupImport(candidate.cotidieBackupImportToken) : candidate;
+        if (pendingExternalImportRef.current) throw new Error('Hay otra importación pendiente.');
+        if ((parsed as { format?: string })?.format !== 'cotidie-backup-2') validateSettingsData(parsed);
         const pending = { data: parsed };
         pendingExternalImportRef.current = pending;
         setPendingExternalImport(pending);
@@ -1573,7 +1703,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           title: 'Error al importar',
           description: 'El archivo compartido no es valido.',
         });
-      }
+      } finally { externalImportReadingRef.current = false; }
     };
 
     consumePendingImport();
@@ -1770,7 +1900,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
     void applyPending();
     const subPromise = App.addListener('appStateChange', (state) => {
-      if (!state.isActive) return;
+      if (!state.isActive) { void lockLettersSecurity().catch(() => undefined); return; }
       void applyPending();
       setNotificationSyncVersion((version) => version + 1);
     });
@@ -1778,7 +1908,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       void subPromise.then((sub) => sub.remove()).catch(() => {});
     };
-  }, [isLoaded, storageReady, togglePlanDeVidaItem]);
+  }, [isLoaded, storageReady, togglePlanDeVidaItem, lockLettersSecurity]);
 
   const resetPlanDeVidaProgress = useCallback(() => {
     setPlanDeVidaProgress([]);
@@ -1908,7 +2038,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     const base = applyPredefinedPrayerState(initialPrayers, hiddenPrayerIds, predefinedPrayerOverrides);
     const withLetters = base.map(p => {
       if (p.id === 'cartas') {
-        return { ...p, prayers: userLetters };
+        return { ...p, prayers: lettersSecurity.enabled && lettersSecurity.locked ? [] : userLetters };
       }
       return p;
     });
@@ -1917,7 +2047,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       ...userDevotions,
       ...userPrayers,
     ];
-  }, [hiddenPrayerIds, predefinedPrayerOverrides, userDevotions, userPrayers, userLetters]);
+  }, [hiddenPrayerIds, predefinedPrayerOverrides, userDevotions, userPrayers, userLetters, lettersSecurity.enabled, lettersSecurity.locked]);
 
   const getPrayerById = useCallback((id: string, list: Prayer[]): Prayer | null => {
     for (const prayer of list) {
@@ -2244,7 +2374,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   if (storageError) return <><StorageRecovery message={storageError} resetting={resettingRef.current}
     retry={() => { if (resettingRef.current) void hardResetApp(); else setLoadAttempt(value => value + 1); }}
-    restore={data => importUserData(data)} />{externalImportDialog}</>;
+    restore={data => importUserData(data)} />{externalImportDialog}<SecretPromptDialog /></>;
 
   if (restoringLibrary) return <div role="status" className="p-8 text-center">Restaurando tus datos… Mantén la aplicación abierta.</div>;
 
@@ -2271,7 +2401,11 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         userPrayers,
         addUserPrayer,
         removeUserPrayer,
-        userLetters,
+        userLetters: lettersSecurity.enabled && lettersSecurity.locked ? [] : userLetters,
+        lettersSecurityEnabled: lettersSecurity.enabled,
+        lettersLocked: lettersSecurity.enabled && lettersSecurity.locked,
+        lettersDeviceUnlockEnabled: lettersSecurity.device,
+        enableLettersSecurity, disableLettersSecurity, unlockLettersSecurity, lockLettersSecurity, prepareDataExport,
         addUserLetter,
         removeUserLetter,
         updateUserPrayer,
@@ -2409,6 +2543,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     >
       {children}
       {externalImportDialog}
+      <SecretPromptDialog />
     </SettingsContext.Provider>
   );
 };

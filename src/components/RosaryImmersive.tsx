@@ -1,6 +1,7 @@
 ﻿'use client';
 
-import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import ImmersiveStepTransition from '@/components/immersive/ImmersiveStepTransition';
 import { handleTouchNavigation, TOUCH_NAV_INTERACTIVE_SELECTORS } from '@/utils/touchNavigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronLeft, ChevronRight, X, Plus, Trash2, Settings2, Calendar, Pencil, BookOpen, Crown, Cross, Sparkles, Image as ImageIcon } from 'lucide-react';
@@ -459,18 +460,10 @@ export default function RosaryImmersive({
   const isPreRosaryActive = isPreRosary && preSteps.length > 0;
   const isPostRosaryActive = (isPostRosary && postSteps.length > 0) || isSalveActive;
 
-  useLayoutEffect(() => {
+  const resetReadingScroll = useCallback(() => {
     if (contentScrollRef.current) contentScrollRef.current.scrollTop = 0;
     if (prayerScrollRef.current) prayerScrollRef.current.scrollTop = 0;
-    const surface = contentScrollRef.current;
-    if (!surface?.animate || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const transition = surface.animate(
-      [{ opacity: 0.55, transform: 'translateY(6px)' }, { opacity: 1, transform: 'translateY(0)' }],
-      { duration: 220, easing: 'ease-out' },
-    );
-    return () => transition.cancel();
-  }, [mode, selectedMysteryType, isPreRosaryActive, isPostRosaryActive, isSalveActive,
-    currentMysteryIndex, currentStepIndex, preStepIndex, postStepIndex]);
+  }, []);
 
   const getMysteryImage = useCallback((type: MysteryType, index: number) => {
     if (isPreRosaryActive) return '/images/sacred-heart.jpeg';
@@ -906,9 +899,11 @@ export default function RosaryImmersive({
         removeJaculatoria={removeJaculatoria}
       />
 
-      {/* Keep the reading surface mounted while updating each step with its header and progress. */}
+      {/* Preserve both reading nodes while replaying the historical step transition. */}
       <div ref={contentScrollRef} className="flex-1 min-h-0 flex flex-col items-center w-full overflow-y-auto overscroll-contain px-6 py-6 text-center relative z-10">
-          <div
+          <ImmersiveStepTransition
+            stepKey={`${selectedMysteryType}-${isPreRosaryActive}-${isPostRosaryActive}-${isSalveActive}-${currentMysteryIndex}-${currentStepIndex}-${preStepIndex}-${postStepIndex}`}
+            onStepVisible={resetReadingScroll}
             className="my-auto flex flex-col items-center w-full max-w-lg"
           >
             {!isPreRosaryActive && !isPostRosaryActive && currentStep?.type === 'reading' && (
@@ -983,7 +978,7 @@ export default function RosaryImmersive({
                       : <div className="whitespace-pre-wrap">{PRAYERS_TEXT[currentStep?.type as keyof typeof PRAYERS_TEXT]}</div>
               }
             </div>
-          </div>
+          </ImmersiveStepTransition>
       </div>
 
       
