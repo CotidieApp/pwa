@@ -45,6 +45,7 @@ function load(file) {
   return loaded.exports;
 }
 mocks['@/hooks/useCommittedCallback'] = load('src/hooks/useCommittedCallback.ts');
+mocks['@/components/LetterContent'] = load('src/components/LetterContent.tsx');
 const Form = load('src/components/AddPrayerForm.tsx').default;
 
 async function fixture(run, initial = {}, extra = {}) {

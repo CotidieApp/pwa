@@ -20,6 +20,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSettings } from '@/context/SettingsContext';
 import { Eye, Images, Trash2 } from 'lucide-react';
 import { renderText } from '@/lib/textFormatter';
+import LetterContent from '@/components/LetterContent';
 import ImageCropper from '@/components/ui/ImageCropper';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useCommittedCallback } from '@/hooks/useCommittedCallback';
@@ -54,7 +55,7 @@ export default function AddPrayerForm({
   formType,
   existingPrayer,
 }: AddPrayerFormProps) {
-  const { isDeveloperMode, allHomeBackgrounds } = useSettings();
+  const { isDeveloperMode, allHomeBackgrounds, prayerTextZoom } = useSettings();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [saveCompleted, setSaveCompleted] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -326,9 +327,14 @@ export default function AddPrayerForm({
                   </FormControl>
 
                   {/* ⚡ Vista previa en tiempo real */}
+                  {formType === 'letter' && (
+                    <p className="text-xs text-muted-foreground">
+                      Cursiva: *texto* o _texto_. Negrita: **texto**. Encabezados: #, ## y ### seguidos de un espacio. Listas: - o 1.
+                    </p>
+                  )}
                   {showPreview && (
-                    <div className="mt-4 p-3 border rounded-md bg-muted/40 text-sm leading-relaxed text-foreground/90">
-                      {renderText(field.value || '')}
+                    <div className={`mt-4 p-3 border rounded-md bg-muted/40 leading-relaxed text-foreground/90 ${formType === 'letter' ? '' : 'text-sm'}`}>
+                      {formType === 'letter' ? <LetterContent text={field.value || ''} zoom={prayerTextZoom} /> : renderText(field.value || '')}
                     </div>
                   )}
 

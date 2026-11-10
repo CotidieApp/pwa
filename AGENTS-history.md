@@ -8317,3 +8317,67 @@ npm run build aprobado mediante el coordinador compartido: tipos, exportación w
 ### Archivos Modificados
 
 `src/components/settings/DeveloperSupport.tsx` y este historial. Evidencia/auxiliares y continuidad bajo `.codex/projects/cotidie/support-2026-10-22` y `work-cache/entries/WC-034-doble-opcion-aportes-2026-10-22.md`, fuera del repositorio.
+
+## 2026-10-23 — Cuerpo persistente en oraciones interactivas y diagnóstico del lector
+
+### Planificacion
+
+Revisar en el Nubia conectado los cambios de paso del Rosario/Vía Crucis frente a Exposición, y comprobar el libro personal Imitación de Cristo. Evaluar ampliación a PDF/Markdown antes de implementarla; el usuario pidió avisar si convenía derivarla a Astra.
+
+### Ejecucion
+
+Rosario y Vía conservan el nodo del cuerpo entre pasos; se retiraron AnimatePresence, zoom/resorte y las keys que sustituían ese nodo. useLayoutEffect devuelve las áreas de lectura al inicio al cambiar de paso. Se conservaron fondos, encuadres, colores y movimiento del fondo del Rosario. La primera variante, que retiraba solo la animación pero conservaba keys, seguía dejando el cuerpo vacío físicamente hasta desplazar la pantalla; fue sustituida por la versión final. Edge no reprodujo ese vacío: no se afirma una causa de compositor de bajo nivel certificada.
+
+Se comprobó el registro personal Imitación de Cristo y una copia del EPUB de Download, sin extraer datos privados de la app. El archivo compartido pasa el validador y contiene XHTML/CSS con títulos y cursivas. La biblioteca abrió el capítulo I y permitió avanzar/retroceder y reabrir, incluso tras arranque frío; controles flotantes cubren el título mientras están visibles. El usuario precisó el síntoma «No abre o queda cargando»: sigue pendiente de reproducción/corrección, y estas aperturas exitosas no lo refutan. No se implementaron nuevos formatos. Se informó que el lector multiformato requiere un hito propio con Astra y se preparó el traspaso externo, sin crear ni enviar a otro chat.
+
+### Validacion
+
+Tipos, build web, 118 recursos PWA y ensamblado Android release aprobados con el coordinador. Un intento se aplazó por RAM, código76 (1524/1536MiB); se reintentó después de cerrar los recursos propios de navegador/servidor. npm test: 77/78 aprobadas, un timeout de 5s en calendario ajeno al cambio, sin repetir ni alterar el umbral. Réplica DOM de fuentes reales React18: 11 avances Rosario/8 Vía, nodo conservado y reinicio de desplazamiento; UI/config/motion simulados, no equivalente a WebView físico.
+
+APK final 6.5.0, código121, 84,13MB, SHA-256 `ba263f2d9f3bb04a40a0c28985e22a8180fc126eb6b1fe0e08ebe7b48092acac`; adb install -r devolvió Success conservando datos. Nubia final: Adoraciones/Comunión y retroceso; primer doloroso Meditación/Ofrecimiento/Padre Nuestro y retroceso; Vía introducción/Adoración/Meditación y retroceso, todos con cuerpo visible. No se certificaron todos los misterios/estaciones/temas. Checks de Rosario/Vía marcados por el recorrido devueltos a su estado inicial; libros conservados, progreso de Imitación en capítulo I por la prueba. Sin versión nueva, publicación ni copia Drive. Teléfono devuelto a Inicio.
+
+### Archivos Modificados
+
+`src/components/RosaryImmersive.tsx`, `src/components/ViaCrucisImmersive.tsx` y este historial. APK local `dist/cotidie-installer-v6.5.0.apk`. Evidencia/logs/harness/capturas y `lector-astra.md` en `.codex/projects/cotidie/reader-review-2026-10-23`; continuidad WC-035. El lector de producción no se modificó en este hito.
+
+### [2026-10-26] Traslado a Documentos\Proyectos
+
+**Planificacion:** Reubicar el proyecto y sus referencias operativas conservando cambios locales, Git y firma.
+
+**Ejecucion:** Carpeta movida a `C:\Users\balca\Documents\Proyectos\Cotidie`; perfil PowerShell, confianza y registro de Codex actualizados. Directorios de los chats personales afectados migrados mediante la API local. Sin cambios de version, instalacion ni publicacion.
+
+**Validacion:** Estado Git identico inmediatamente antes/despues del movimiento; funcion `cotidie` abre el destino. Build con tipos y 118 recursos PWA correcto. `:app:packageRelease` y 11 pruebas Android correctos con JDK 21 y salidas externas. APK local conserva certificado SHA256 `e51ea637db49f462f81cb462f34a7d08b7cae72718362f302eb0ef23b3e51feb`. La comprobacion cubre el traslado local, no una nueva prueba fisica del telefono.
+
+**Archivos Modificados:** `AGENTS-history.md`; ubicacion del arbol completo. Configuracion, logs y evidencia externos en `.codex/projects/mejoras-operativas/migration-20261026`.
+
+## 2026-11-01 — Correcciones recuperadas de CotidieDev
+### Planificacion
+Leer exclusivamente el chat autorizado por USB; conservar cambios previos y coordinar build compartido.
+### Ejecucion
+Rosario: dos controles vuelven a >> con etiquetas accesibles; animacion sobre superficie montada, cancelable y respetando reduced-motion. PWA: ignorar controllerchange con controlador identico y workers redundantes. No se enviaron mensajes ni se publico.
+### Validacion
+verify.cjs focalizado correcto; git diff --check correcto; npm run build coordinado terminado (sesion 23489, codigo 0), tipos/web/118 entradas PWA correctos. Sin APK nuevo: cambios fisicos pendientes. Pendientes EPUB/Markdown (fallo y formatos por precisar), tablet, version anterior de Rosario y alcance de Novum a la pagina. El arreglo PWA cubre un caso concreto; causa original no reproducida.
+### Archivos Modificados
+src/components/RosaryImmersive.tsx; src/components/ServiceWorkerUpdates.tsx; AGENTS-history.md. Evidencia: C:/Users/balca/.codex/projects/jarvis/workspace/cotidie-correcciones/estado.md y verify.cjs.
+
+Validacion posterior del mismo hito: APK local coordinado (sesion 38162) correcto, SHA256 fbe4cc58043e8f54449aa37d1668b3c88c4b6b1dff9aec70f1e61d1b5a16b4fe; instalado mediante adb install -r Success, 6.5.0/121. Tras reinicio de proceso, >> visible y salto Adoracion a meditacion del primer glorioso con texto visible. Fluidez/avance-retroceso ordinario/PWA instalada/tablet no certificados. Check Rosario restaurado a desmarcado; retorno Inicio. Esto sustituye el estado anterior sin APK/prueba fisica. Evidencia en estado.md y capturas del mismo directorio Jarvis. Sin publicacion.
+
+## 2026-11-01 — Revisión de correcciones y composición horizontal
+### Planificacion
+Contrastar los pedidos recuperados por JAIME y la composición horizontal documentada con el código vigente, conservando cambios locales.
+### Ejecucion
+Los dos saltos del Rosario muestran el carácter «»» solicitado y conservan sus etiquetas accesibles. Se recuperó la imagen lateral de secciones con suboraciones en horizontal, retirada al corregir una imagen que cubría la vista vertical; el contenedor oculto fuera del modo horizontal tiene posición y tamaño cuando se muestra. Se preservó el cuaderno de confesión y el encuadre configurado.
+### Validacion
+Build controlado completo correcto, con tipos, exportación y 118 entradas PWA; git diff --check correcto. Sin prueba visual o física de esta modificación ni APK nuevo. La tablet, el fallo EPUB, el aviso PWA original y la fluidez de transiciones siguen pendientes de reproducción o comprobación.
+### Archivos Modificados
+src/components/RosaryImmersive.tsx, src/components/main/MainApp.tsx, src/app/globals.css y este historial.
+
+## 2026-11-09 — Oración mariana, formato de Cartas y reflexión diaria
+### Planificacion
+Incorporar Bendita sea tu pureza en su variante chilena, compartir el formato de Cartas, fijar la imagen del Rosario en modo Leer y añadir una reflexión diaria del PDF aportado entre las oraciones inicial y final de Mes de María. Conservar los cambios locales anteriores y no publicar.
+### Ejecucion
+Oración cotejada con el manual de Capellanía del Colegio Itahue. Cartas usa LetterContent tanto en la vista previa como al abrir la carta guardada: asterisco y guion bajo simples para cursiva, dobles para negrita, encabezados #/##/###, listas, citas, separadores y escapes, con texto HTML tratado como texto. Rosario separa la imagen del cuerpo desplazable. PDF de 78 páginas renderizado y leído mediante OCR de Windows; seleccionadas y cotejadas las 31 reflexiones principales de las páginas pares 14–74, con sus títulos, excluyendo cantos, indicaciones y meditaciones complementarias. Nueva subsección con selección por fecha local, primer día fuera del 8/11–8/12, anterior/siguiente acotados e información de Pastoral Uandes.
+### Validacion
+81/81 pruebas correctas, incluidas ocho focalizadas de contenido/borradores y selección de las 31 fechas en tres años. Lint focalizado sin errores ni advertencias. Build final controlado correcto, con tsc, exportación estática y 118 entradas PWA. Edge a 390×844: HTML de Cartas idéntico antes/después de guardar, mismo tamaño y estilos de énfasis; captura en claro y oscuro. Recorrido de las 31 fechas, límites y diálogo de información comprobados. En Rosario, scroll del texto de 201px conservó imagen en y=83,5px y scroll exterior en cero; nueva oración accesible. Sin APK nuevo, instalación, prueba física Android ni publicación. Evidencia externa en `.codex/projects/cotidie/mes-maria-2026`; la exportación final incluye las correcciones del OCR posteriores al recorrido visual.
+### Archivos Modificados
+src/components/LetterContent.tsx; AddPrayerForm.tsx; PrayerDetail.tsx; RosaryMeditated.tsx; MesDeMariaReflection.tsx; src/components/main/MainApp.tsx; src/lib/mes-de-maria.ts; src/lib/data.tsx; src/lib/prayers/oraciones/bendita-sea-tu-pureza.ts; src/lib/prayers/plan-de-vida/mes-de-maria.ts; mes-de-maria-reflections.json; tests/devotional-content.cjs; tests/prayer-form.cjs; scripts/test.mjs; AGENTS-history.md. Caché y auxiliares fuera del repositorio.

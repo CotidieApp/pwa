@@ -168,7 +168,7 @@ export default function RosaryMeditated({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className={cn('flex-1 min-h-0 p-4', selectedMeditationIndex === null ? 'overflow-y-auto' : 'flex flex-col overflow-hidden')}>
         {selectedMeditationIndex === null ? (
           <div className="space-y-6 max-w-2xl mx-auto pb-8">
             <div className="grid grid-cols-2 gap-2 mb-6">
@@ -208,22 +208,24 @@ export default function RosaryMeditated({
             </div>
           </div>
         ) : (
-          <div className="max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-300 pb-8">
+          <div className="max-w-2xl w-full mx-auto flex flex-1 min-h-0 flex-col">
             <div
-              className="w-full h-48 sm:h-64 rounded-xl bg-cover bg-top mb-6 shadow-md"
+              className="w-full h-[min(28vh,12rem)] sm:h-[min(32vh,16rem)] shrink-0 rounded-xl bg-cover bg-top mb-4 shadow-md"
               style={{ backgroundImage: `url(${getMysteryImage(selectedMysteryType, selectedMeditationIndex)})` }}
             />
 
-            <h3 className="text-2xl font-bold mb-2 text-center">
-              {FULL_MYSTERY_TITLES[selectedMeditation?.id || '']}
-            </h3>
+            <div key={selectedMeditation?.id} data-app-scroll-container="true" className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y pb-8">
+              <h3 className="text-2xl font-bold mb-2 text-center">
+                {FULL_MYSTERY_TITLES[selectedMeditation?.id || '']}
+              </h3>
 
-            <div className="h-1 w-20 bg-primary/20 mx-auto mb-6 rounded-full" />
+              <div className="h-1 w-20 bg-primary/20 mx-auto mb-6 rounded-full" />
 
-            <div className="prose dark:prose-invert max-w-none text-lg leading-relaxed">
-              <p className="whitespace-pre-wrap">
-                {typeof selectedMeditation?.content === 'string' ? selectedMeditation.content : ''}
-              </p>
+              <div className="prose dark:prose-invert max-w-none text-lg leading-relaxed">
+                <p className="whitespace-pre-wrap">
+                  {typeof selectedMeditation?.content === 'string' ? selectedMeditation.content : ''}
+                </p>
+              </div>
             </div>
           </div>
         )}

@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from 'react';
 import { handleTouchNavigation, TOUCH_NAV_INTERACTIVE_SELECTORS } from '@/utils/touchNavigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronLeft, ChevronRight, X, Plus, Trash2, Settings2, Calendar, Pencil, BookOpen, Crown, Cross, Sparkles, Image as ImageIcon } from 'lucide-react';
@@ -73,6 +73,8 @@ export default function RosaryImmersive({
   );
   const [currentMysteryIndex, setCurrentMysteryIndex] = useState(0); // 0-4
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const contentScrollRef = useRef<HTMLDivElement | null>(null);
+  const prayerScrollRef = useRef<HTMLDivElement | null>(null);
   const [isPostRosary, setIsPostRosary] = useState(false);
   const [postStepIndex, setPostStepIndex] = useState(0);
 
@@ -457,6 +459,19 @@ export default function RosaryImmersive({
   const isPreRosaryActive = isPreRosary && preSteps.length > 0;
   const isPostRosaryActive = (isPostRosary && postSteps.length > 0) || isSalveActive;
 
+  useLayoutEffect(() => {
+    if (contentScrollRef.current) contentScrollRef.current.scrollTop = 0;
+    if (prayerScrollRef.current) prayerScrollRef.current.scrollTop = 0;
+    const surface = contentScrollRef.current;
+    if (!surface?.animate || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const transition = surface.animate(
+      [{ opacity: 0.55, transform: 'translateY(6px)' }, { opacity: 1, transform: 'translateY(0)' }],
+      { duration: 220, easing: 'ease-out' },
+    );
+    return () => transition.cancel();
+  }, [mode, selectedMysteryType, isPreRosaryActive, isPostRosaryActive, isSalveActive,
+    currentMysteryIndex, currentStepIndex, preStepIndex, postStepIndex]);
+
   const getMysteryImage = useCallback((type: MysteryType, index: number) => {
     if (isPreRosaryActive) return '/images/sacred-heart.jpeg';
     if (isPostRosaryActive) return '/images/immaculate-conception.jpeg';
@@ -833,7 +848,7 @@ export default function RosaryImmersive({
               title="Saltar introducción"
               aria-label="Saltar introducción"
             >
-              <span className="text-[10px] font-semibold leading-tight">Saltar</span>
+              <span aria-hidden="true" className="text-lg font-semibold leading-tight">»</span>
             </Button>
           )}
 
@@ -846,7 +861,7 @@ export default function RosaryImmersive({
               title="Saltar misterio"
               aria-label="Saltar misterio completo"
             >
-              <span className="text-[10px] font-semibold leading-tight">Saltar</span>
+              <span aria-hidden="true" className="text-lg font-semibold leading-tight">»</span>
             </Button>
           )}
 
@@ -891,15 +906,9 @@ export default function RosaryImmersive({
         removeJaculatoria={removeJaculatoria}
       />
 
-      {/* Main Content Center */}
-      <div className="flex-1 min-h-0 flex flex-col items-center w-full overflow-y-auto overscroll-contain px-6 py-6 text-center relative z-10">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={`${isPreRosaryActive ? 'pre' : isPostRosaryActive ? 'post' : 'mystery'}-${currentMysteryIndex}-${currentStepIndex}-${preStepIndex}-${postStepIndex}`}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.05 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+      {/* Keep the reading surface mounted while updating each step with its header and progress. */}
+      <div ref={contentScrollRef} className="flex-1 min-h-0 flex flex-col items-center w-full overflow-y-auto overscroll-contain px-6 py-6 text-center relative z-10">
+          <div
             className="my-auto flex flex-col items-center w-full max-w-lg"
           >
             {!isPreRosaryActive && !isPostRosaryActive && currentStep?.type === 'reading' && (
@@ -933,6 +942,7 @@ export default function RosaryImmersive({
             </h3>
 
             <div
+              ref={prayerScrollRef}
               data-no-touch-nav
               style={{ fontSize: `${prayerTextZoom}em` }}
               className="text-lg sm:text-xl opacity-90 leading-relaxed max-h-[35vh] overflow-y-auto px-4 scrollbar-hide w-full">
@@ -973,8 +983,7 @@ export default function RosaryImmersive({
                       : <div className="whitespace-pre-wrap">{PRAYERS_TEXT[currentStep?.type as keyof typeof PRAYERS_TEXT]}</div>
               }
             </div>
-          </motion.div>
-        </AnimatePresence>
+          </div>
       </div>
 
       

@@ -179,6 +179,10 @@ blockquote {
   background: transparent;
 }
 
+.mobile-landscape-section-image {
+  display: none;
+}
+
 /* Mobile landscape layout. Portrait and taller desktop/tablet viewports remain unchanged. */
 @media (orientation: landscape) and (max-height: 600px) {
   .mobile-landscape-home {
@@ -358,6 +362,10 @@ blockquote {
     align-items: start;
     gap: 0.75rem;
     min-height: calc(100dvh - 4.5rem);
+  }
+
+  .mobile-landscape-section-layout[data-has-image="true"] > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 0;
   }
 
   .mobile-landscape-section-layout[data-has-image="true"] .mobile-landscape-section-image {

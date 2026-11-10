@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import os from "node:os";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
@@ -7,6 +8,7 @@ import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, "..");
+const workDir = process.env.COTIDIE_APK_WORK_DIR || path.join(os.homedir(), ".codex", "projects", "cotidie");
 
 const args = process.argv.slice(2);
 const noBump = !args.includes("--bump") || args.includes("--no-bump");
@@ -159,7 +161,7 @@ const resolveAndroidJava = () => {
 const buildCommandEnv = () => {
   if (commandEnvCache) return commandEnvCache;
   const env = { ...process.env };
-  const gradleUserHome = path.join(rootDir, ".gradle-user-home");
+  const gradleUserHome = process.env.GRADLE_USER_HOME || path.join(workDir, "gradle-user-home");
   fs.mkdirSync(gradleUserHome, { recursive: true });
   env.GRADLE_USER_HOME = gradleUserHome;
 
@@ -358,7 +360,7 @@ const resolveDriveApkDir = () => {
   }
 
   return {
-    dir: path.join(rootDir, "output", "apk-archive"),
+    dir: path.join(workDir, "apk-archive"),
     source: "local-fallback",
     isDrivePath: false,
   };
@@ -403,7 +405,7 @@ const publishApkToGitHubRelease = (apkPath, version) => {
   const repository = process.env.COTIDIE_APK_RELEASE_REPO || "CotidieApp/cotidie-web";
   const tag = `v${version}`;
   const assetName = "cotidie-latest.apk";
-  const uploadDir = path.join(rootDir, "output", "github-release");
+  const uploadDir = path.join(workDir, "github-release");
   const uploadPath = path.join(uploadDir, assetName);
   const ghCommand = resolveGitHubCliCommand();
 

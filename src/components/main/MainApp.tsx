@@ -10,6 +10,8 @@ import Header from '@/components/Header';
 import CartasIntro from '@/components/main/CartasIntro';
 import PrayerList from '@/components/PrayerList';
 import PrayerDetail from '@/components/PrayerDetail';
+import MesDeMariaReflection from '@/components/MesDeMariaReflection';
+import { MES_DE_MARIA_REFLECTION_ID } from '@/lib/mes-de-maria';
 import ConfessionNotebook from '@/components/ConfessionNotebook';
 import Settings, { getSettingsSectionLabel, type SettingsSection } from '@/components/Settings';
 import AddPrayerForm from '@/components/AddPrayerForm';
@@ -35,7 +37,7 @@ import { migrateAudioLibrary, listAudioRecords, saveAudioRecord, removeAudioReco
 import { App } from '@capacitor/app';
 import { letanias as letaniasRosarioBase } from '@/lib/prayers/plan-de-vida/santo-rosario/letanias';
 import { cn } from '@/lib/utils';
-import { getImageObjectPosition } from '@/lib/image-display';
+import { getImageObjectPosition, getImageObjectScale } from '@/lib/image-display';
 import { Switch } from '@/components/ui/switch';
 import { AnimatePresence } from 'framer-motion';
 import { getAnnuumAvailability, getLocalDateKey } from '@/lib/movable-feasts';
@@ -1449,6 +1451,9 @@ export default function MainApp() {
         if (currentPrayer.id === 'cartas') {
           return <div className="p-4">{renderCategory()}</div>;
         }
+        if (currentPrayer.id === MES_DE_MARIA_REFLECTION_ID) {
+          return <MesDeMariaReflection />;
+        }
         if (currentPrayer.id === 'lectura-espiritual-audios') {
           return (
             <div className="p-4 space-y-4">
@@ -1544,9 +1549,23 @@ export default function MainApp() {
         }
         if (currentPrayer.prayers && currentPrayer.prayers.length > 0) {
           return (
-            <div className="p-4 space-y-4">
-              {currentPrayer.id === 'subcat-confesion' ? <ConfessionNotebook /> : null}
-              <div className="mobile-landscape-section-list">
+            <div className="mobile-landscape-section-layout p-4 space-y-4" data-has-image={Boolean(currentPrayer.imageUrl)}>
+              {currentPrayer.imageUrl ? (
+                <div className="mobile-landscape-section-image">
+                  <Image
+                    src={currentPrayer.imageUrl}
+                    alt={currentPrayer.title}
+                    fill
+                    className="object-cover"
+                    style={{
+                      objectPosition: currentPrayer.imageUrl.startsWith('data:image/') ? '50% 50%' : getImageObjectPosition(currentPrayer.id),
+                      transform: `scale(${currentPrayer.imageUrl.startsWith('data:image/') ? 1 : getImageObjectScale(currentPrayer.id)})`,
+                    }}
+                  />
+                </div>
+              ) : null}
+              <div className="mobile-landscape-section-list space-y-4">
+                {currentPrayer.id === 'subcat-confesion' ? <ConfessionNotebook /> : null}
                 <PrayerList
                   prayers={currentPrayer.prayers}
                   onSelectPrayer={handleSelectPrayer}

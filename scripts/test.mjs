@@ -18,6 +18,6 @@ try {
   process.exit(1);
 }
 const result = spawnSync(process.execPath, ['--require', preload, '--test', '--test-concurrency=1',
-  'tests/reading-persistence.cjs', 'tests/notification-patches.cjs', 'tests/settings-lifecycle.cjs', 'tests/prayer-form.cjs', 'tests/dependency-contracts.cjs', 'tests/backup-filter.cjs'], {cwd:root,stdio:'inherit'});
+  'tests/reading-persistence.cjs', 'tests/notification-patches.cjs', 'tests/settings-lifecycle.cjs', 'tests/prayer-form.cjs', 'tests/devotional-content.cjs', 'tests/dependency-contracts.cjs', 'tests/backup-filter.cjs'], {cwd:root,stdio:'inherit'});
 if (result.error) console.error(result.error.message);
 process.exit(result.status ?? 1);

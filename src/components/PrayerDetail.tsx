@@ -14,6 +14,7 @@ import { AudioPlayer } from './AudioPlayer';
 import { useScreenWakeLock } from '@/hooks/useScreenWakeLock';
 import { useCaminoProgress } from '@/hooks/useCaminoProgress';
 import { isCaminoLineMatch } from '@/lib/camino-search';
+import LetterContent from '@/components/LetterContent';
 
 // Encadre centralizado por id (si no tienes este archivo, coméntalo o ajusta):
 import { getImageObjectPosition, getImageObjectScale } from '@/lib/image-display';
@@ -635,6 +636,9 @@ const PrayerContent = ({
   }, [onBilingualModeChange, selectedLang]);
 
   if (typeof prayer.content === 'string') {
+    if (prayer.categoryId === 'cartas') {
+      return <LetterContent text={prayer.content} zoom={prayerTextZoom} />;
+    }
     const { term = '', activeIndex = -1 } = searchState || {};
     return (
       <div

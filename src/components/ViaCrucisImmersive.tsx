@@ -1,8 +1,7 @@
 ﻿'use client';
 
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from 'react';
 import { handleTouchNavigation, TOUCH_NAV_INTERACTIVE_SELECTORS } from '@/utils/touchNavigation';
-import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, X, Cross, Sparkles, Heart, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -64,6 +63,7 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
   // State
   const [currentStationIndex, setCurrentStationIndex] = useState(0); // 0-13 for stations
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const prayerScrollRef = useRef<HTMLDivElement | null>(null);
   const [showPrayerIndex, setShowPrayerIndex] = useState(false);
 
   // Phases: Intro -> Stations -> Outro
@@ -74,6 +74,9 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
 
   const [phase, setPhase] = useState<'intro' | 'stations' | 'outro'>('intro');
   const [outroStepIndex, setOutroStepIndex] = useState(0);
+  useLayoutEffect(() => {
+    if (prayerScrollRef.current) prayerScrollRef.current.scrollTop = 0;
+  }, [phase, currentStationIndex, currentStepIndex, outroStepIndex]);
   const [showBackground, setShowBackground] = useState(true);
   const viaCrucisExitAdvanceRef = useRef<{ expiresAt: number } | null>(null);
   const { toast } = useToast();
@@ -373,6 +376,7 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
           <div className="text-8xl mb-6 flex justify-center"><Heart className="h-16 w-16" /></div>
           <h2 className="text-2xl font-bold mb-6">{data?.title}</h2>
           <div
+            ref={prayerScrollRef}
             data-no-touch-nav
             className="text-lg opacity-90 leading-relaxed whitespace-pre-wrap max-h-[50vh] overflow-y-auto px-2 scrollbar-hide overscroll-contain">
             {typeof data?.content === 'string' ? data.content : ''}
@@ -430,6 +434,7 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
 
         {/* Content Text */}
         <div
+          ref={prayerScrollRef}
           data-no-touch-nav
           style={{ fontSize: `${prayerTextZoom}em` }}
           className="text-lg sm:text-xl opacity-90 leading-relaxed px-4 max-h-[30vh] overflow-y-auto scrollbar-hide overscroll-contain">
@@ -491,20 +496,13 @@ export default function ViaCrucisImmersive({ onClose }: ImmersiveViaCrucisProps)
         onClose={() => setShowPrayerIndex(false)}
       />
 
-      {/* Main Content */}
+      {/* Keep the reading surface mounted while updating each step with its header and progress. */}
       <div className="flex-1 flex flex-col items-center justify-center w-full px-6 relative z-10 min-h-0">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={`${phase}-${currentStationIndex}-${currentStepIndex}-${outroStepIndex}`}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.05 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+          <div
             className="w-full"
           >
             {renderContent()}
-          </motion.div>
-        </AnimatePresence>
+          </div>
       </div>
 
       {!touchNavEnabled && (

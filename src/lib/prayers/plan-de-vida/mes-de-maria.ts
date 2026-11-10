@@ -1,4 +1,5 @@
 import type { Prayer } from '@/lib/types';
+import { MES_DE_MARIA_REFLECTION_ID } from '@/lib/mes-de-maria';
 
 export const mesdeMaria: Prayer = {
   id: 'mes-de-maria',
@@ -22,6 +23,12 @@ La rosa, cuyo brillo agrada a tus ojos es la caridad, el amor a Dios y a nuestro
 En este mes bendito, procuraremos cultivar en nuestros corazones la humildad, modesta flor que te es tan querida y con tu auxilio llegaremos a ser puros, humildes, caritativos, pacientes y esperanzados.
 
 ¡Oh, María!, haz producir en el fondo de nuestros corazones todas estas amables virtudes, que ellas broten, florezcan y den al fin frutos de gracia, para poder ser algún día dignos hijos de la más Santa y de la mejor de las madres. Amén.`
+    },
+    {
+      id: MES_DE_MARIA_REFLECTION_ID,
+      title: 'Pequeña reflexión',
+      categoryId: 'plan-de-vida',
+      imageUrl: '/images/immaculate-conception.jpeg',
     },
     {
       id: 'oracion-mes-de-maria-final',

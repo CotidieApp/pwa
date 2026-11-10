@@ -10,14 +10,14 @@ export default function ServiceWorkerUpdates() {
     if (process.env.NODE_ENV !== 'production' || Capacitor.isNativePlatform() || !('serviceWorker' in navigator)) return;
     let disposed = false;
     let requestedReload = false;
-    let wasControlled = !!navigator.serviceWorker.controller;
+    let previousController = navigator.serviceWorker.controller;
     let registration: ServiceWorkerRegistration | undefined;
     let shownWorker: ServiceWorker | null = null;
     let dismissNotice: (() => void) | undefined;
     const observed = new Map<ServiceWorker, () => void>();
 
     const offerReload = (worker: ServiceWorker) => {
-      if (disposed || shownWorker === worker) return;
+      if (disposed || shownWorker === worker || worker.state === 'redundant') return;
       shownWorker = worker;
       dismissNotice?.();
       const notice = toast({
@@ -44,9 +44,10 @@ export default function ServiceWorkerUpdates() {
       worker.addEventListener('statechange', onStateChange);
     };
     const onControllerChange = () => {
+      const controller = navigator.serviceWorker.controller;
       if (requestedReload) window.location.reload();
-      else if (wasControlled && navigator.serviceWorker.controller) offerReload(navigator.serviceWorker.controller);
-      wasControlled = true;
+      else if (previousController && controller && previousController !== controller) offerReload(controller);
+      previousController = controller;
     };
     navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
     void navigator.serviceWorker.ready.then(activeRegistration => {
