@@ -40,7 +40,9 @@ Las importaciones externas de Android se leen por bloques en el servicio aislado
 
 Validación del 10 de noviembre de 2026: 122 pruebas Node, 13 JUnit, compilación Java Android, tipos, build web y 118 entradas PWA correctos. Lint focalizado sin errores ni advertencias. En Edge móvil se comprobó activación, aviso y reconocimiento de clave no recuperable, errores de clave, bloqueo, exportación cifrada, cancelación y restauración en una sesión nueva con protección y contenido conservados.
 
-Pendientes: prueba física de huella, credencial del teléfono, bloqueo y retorno, invalidación de credenciales y apertura externa en WebView Android. No se generó ni instaló APK en esta intervención. La protección no constituye una certificación frente a un sistema operativo o al origen web comprometidos; una clave numérica sigue teniendo menor resistencia a intentos sobre una copia que una frase larga.
+Entrega posterior autorizada: versión 6.5.2, código 123, APK firmado generado, copiado a Drive y publicado en GitHub Releases. El código completo se envió a main. SHA-256 del APK: `815687a4f4250e570920a68f3de07edd2f58c237716217760735250f07247799`.
+
+Pendientes: instalación y prueba física de huella, credencial del teléfono, bloqueo y retorno, invalidación de credenciales y apertura externa en WebView Android. La protección no constituye una certificación frente a un sistema operativo o al origen web comprometidos; una clave numérica sigue teniendo menor resistencia a intentos sobre una copia que una frase larga.
 
 ## Fuentes
 
