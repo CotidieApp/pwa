@@ -21,12 +21,12 @@ El keystore es un archivo privado externo al repositorio; las variables solo con
 
 ## Compilar / publicar
 
-- `npm run android:apk` compila localmente bajo el coordinador, conserva la versión y entrega en `dist/`; conserva APK anteriores. No publica ni crea commits.
-- `--bump`/`--set X.Y.Z`, `--copy-drive` y `--publish` son opciones independientes del generador. `--publish` crea automáticamente un commit con todos los cambios pendientes, hace push y publica el APK en GitHub Releases. Revisar el árbol antes de usarlo; no ejecutar publicación como validación.
+- `npm run android:apk` compila bajo el coordinador, conserva la versión, entrega en `dist/` y crea un commit local con los cambios pendientes. Conserva APK anteriores. Revisar el árbol antes de compilar y usar `--no-commit` solo por indicación expresa.
+- `--bump`/`--set X.Y.Z`, `--copy-drive` y `--publish` son opciones independientes del generador. `--publish` hace push y publica el APK en GitHub Releases. `--no-push` omite esos dos pasos.
 
 - Perfil PowerShell: función `armar` (carga `COTIDIE_*` / `NOVUM_*` desde env de usuario; **no** scrapea `build.gradle`).
 - `armar cotidie` incrementa la versión de parche, compila, copia el APK a la ubicación secundaria, crea un commit con los cambios pendientes, hace push y publica el APK en GitHub Releases.
-- `armar cotidie fijo` hace lo mismo sin incrementar la versión; `armar cotidie local` incrementa y compila sin copia secundaria ni publicación. `armar cotidie X.Y.Z` fija una versión concreta y usa el flujo completo.
+- `armar cotidie fijo` conserva la versión y ejecuta el flujo completo. `armar cotidie local` incrementa, compila y hace commit local. `armar cotidie X.Y.Z` fija una versión concreta y usa el flujo completo.
 - `armar cotidie novum` usa el flujo independiente de Novum.
 - Si falla signing: faltan env o keystore path inválido — no re-pegar passwords en gradle.
 

@@ -94,8 +94,9 @@ npm run build
 
 ## Generación del APK
 
-El comando principal compila localmente y conserva la versión. Publicar,
-aumentar versión o copiar a la ubicación secundaria requiere opciones explícitas.
+El comando principal compila localmente, conserva la versión y registra los cambios
+pendientes en un commit. Publicar, aumentar la versión o copiar a la ubicación secundaria
+requiere opciones explícitas.
 El APK queda en `dist/`; los instaladores anteriores se conservan.
 
 ```powershell
@@ -108,10 +109,11 @@ Opciones disponibles:
 | --- | --- |
 | `--set X.Y.Z` | Establece una versión concreta. |
 | `--bump` | Aumenta la versión de parche. |
-| `--publish` | Crea un commit con todos los cambios pendientes, hace push y publica el APK. |
+| `--publish` | Hace push y publica el APK en GitHub Releases. |
 | `--copy-drive` | Copia el APK a la ubicación secundaria configurada. |
 | `--no-bump` | Conserva la versión actual. |
-| `--no-push` | Omite Git y la publicación en GitHub. |
+| `--no-commit` | Omite el commit automático. |
+| `--no-push` | Omite el push y la publicación en GitHub. |
 | `--no-drive` | Omite la copia secundaria configurada. |
 
 Para compilar localmente sin publicar ni modificar la versión:
@@ -120,8 +122,8 @@ Para compilar localmente sin publicar ni modificar la versión:
 npm run android:apk -- --no-bump --no-push --no-drive
 ```
 
-Antes de publicar, revisa los cambios pendientes: `--publish` los añade todos al commit automático.
-En este equipo, `armar cotidie` usa `--bump --copy-drive --publish`; `armar cotidie local` usa `--bump --no-drive --no-push`.
+Revisa los cambios pendientes antes de compilar. El commit automático incluye los cambios pendientes del repositorio.
+En este equipo, `armar cotidie` usa `--bump --copy-drive --publish` y `armar cotidie local` usa `--bump --no-drive --no-push`. Ambos crean un commit local si hay cambios nuevos.
 
 ## Estructura principal
 

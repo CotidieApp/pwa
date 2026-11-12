@@ -12,6 +12,7 @@ const workDir = process.env.COTIDIE_APK_WORK_DIR || path.join(os.homedir(), ".co
 
 const args = process.argv.slice(2);
 const noBump = !args.includes("--bump") || args.includes("--no-bump");
+const skipCommit = args.includes("--no-commit");
 const skipPush = !args.includes("--publish") || args.includes("--no-push");
 const skipDrive = !args.includes("--copy-drive") || args.includes("--no-drive");
 const setIndex = args.indexOf("--set");
@@ -475,14 +476,14 @@ if (setVersion) {
 console.log("\nCotidie - Generador de APK Android");
 console.log(`Versión actual: v${current}`);
 console.log(`Versión objetivo: v${nextVersion}`);
-console.log(`Publicación Git: ${skipPush ? "omitida por --no-push" : "habilitada"}`);
-console.log(`Publicación APK GitHub: ${skipPush ? "omitida por --no-push" : "habilitada"}`);
+console.log(`Commit local: ${skipCommit ? "omitido por --no-commit" : "habilitado"}`);
+console.log(`Publicación en GitHub: ${skipPush ? "omitida" : "habilitada"}`);
 console.log(`Copia secundaria: ${skipDrive ? "omitida por --no-drive" : "habilitada"}`);
 
 const androidJava = resolveAndroidJava();
 console.log(`Java compatible para Android: ${androidJava.home} (Java ${androidJava.major})`);
 
-if (!skipPush) {
+if (!skipCommit) {
   ensureGitIndexUnlocked();
 }
 
@@ -550,20 +551,12 @@ const dstApk = path.join(deliveryDir, outputFileName);
 const localCopyResult = copyFileWithStatus(srcApk, dstApk);
 console.log(`APK local: ${describeCopyStatus(localCopyResult.status)}.`);
 console.log(`Ruta: ${dstApk}`);
-const secondaryCopy = skipDrive ? null : copyApkToDrive(dstApk, nextVersion);
-if (skipDrive) {
-  console.log("Copia secundaria omitida por --no-drive.");
-}
 
-let gitStatus = skipPush ? "omitida por --no-push" : "pendiente";
-if (skipPush) {
-  console.log("Publicación Git omitida; el APK se generó normalmente.");
-}
-
-if (!skipPush) {
-  logSection("Publicación Git");
+const gitCommand = resolveGitCommand();
+let commitStatus = "omitido por --no-commit";
+if (!skipCommit) {
+  logSection("Commit local");
   try {
-    const gitCommand = resolveGitCommand();
     runCommand(gitCommand, ["add", "-A", "--", "."], rootDir);
 
     const stagedResult = spawnSync(gitCommand, ["diff", "--cached", "--quiet"], {
@@ -576,30 +569,43 @@ if (!skipPush) {
       throw stagedResult.error;
     }
 
-    let commitCreated = false;
     if (stagedResult.status === 1) {
-      runCommand(gitCommand, ["commit", "-m", `Auto-deploy: Build v${nextVersion}`], rootDir);
-      commitCreated = true;
+      runCommand(gitCommand, ["commit", "-m", `Build Android v${nextVersion}`], rootDir);
+      commitStatus = "creado";
     } else if (stagedResult.status === 0) {
-      console.log("Commit: no había cambios nuevos para registrar.");
+      commitStatus = "sin cambios nuevos para registrar";
     } else {
       throw new Error(`No se pudo comprobar el índice de Git (código ${stagedResult.status}).`);
     }
+    console.log(`Commit: ${commitStatus}.`);
+  } catch (error) {
+    throw new Error(`El APK está disponible en ${dstApk}, pero el commit falló: ${error.message}`, { cause: error });
+  }
+}
 
+const secondaryCopy = skipDrive ? null : copyApkToDrive(dstApk, nextVersion);
+if (skipDrive) {
+  console.log("Copia secundaria omitida por --no-drive.");
+}
+
+let pushStatus = skipPush ? "omitido" : "pendiente";
+if (!skipPush) {
+  logSection("Publicación Git");
+  try {
     console.log("Ejecutando git push...");
     runCommand(gitCommand, ["push"], rootDir);
-    gitStatus = commitCreated ? "commit creado y push completado" : "sin commit nuevo; push verificado";
-    console.log(`Publicación Git: ${gitStatus}.`);
+    pushStatus = "completado";
+    console.log(`Push: ${pushStatus}.`);
   } catch (error) {
-    gitStatus = `fallida: ${error.message}`;
+    pushStatus = `fallido: ${error.message}`;
     console.error(`Publicación Git fallida: ${error.message}`);
     console.error("El APK ya está disponible; Git puede sincronizarse manualmente después.");
   }
 }
 
 let releasePublication = null;
-let releaseStatus = skipPush ? "omitida por --no-push" : "pendiente";
-if (!skipPush && !gitStatus.startsWith("fallida")) {
+let releaseStatus = skipPush ? "omitida" : "pendiente";
+if (pushStatus === "completado") {
   logSection("Publicación APK en GitHub Releases");
   try {
     releasePublication = publishApkToGitHubRelease(dstApk, nextVersion);
@@ -624,6 +630,7 @@ console.log(`APK local: ${dstApk}`);
 console.log(
   secondaryCopy ? `Copia secundaria: ${secondaryCopy.path} (${describeCopyStatus(secondaryCopy.copyResult.status)})` : "Copia secundaria: omitida"
 );
-console.log(`Git: ${gitStatus}`);
+console.log(`Commit local: ${commitStatus}`);
+console.log(`Push: ${pushStatus}`);
 console.log(`GitHub Release: ${releaseStatus}`);
 console.log(`Duración total: ${formatDuration(Date.now() - buildStartedAt)}`);

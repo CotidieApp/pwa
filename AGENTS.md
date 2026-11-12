@@ -31,6 +31,7 @@ Este archivo contiene únicamente las reglas vigentes para trabajar en este repo
 - Usar `apply_patch` para ediciones manuales de archivos.
 - Avanzar con supuestos reversibles y preguntar solo cuando falte una decisión que cambie materialmente el resultado, el riesgo, el costo o una acción externa.
 - No publicar, desplegar, borrar, comprar ni modificar sistemas externos sin autorización explícita.
+- Tras generar y verificar un APK de Cotidie, registrar los cambios de esa compilación en un commit local. Omitir el commit solo si el usuario lo indica expresamente (`--no-commit`). Si Git ya contiene esos cambios, basta con verificar el commit existente. El push y la publicación del APK requieren autorización explícita.
 
 ## Verificación
 

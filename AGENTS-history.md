@@ -2,6 +2,46 @@
 
 Historial de intervenciones del asistente en el repo.
 
+## 2026-11-12 — Commit por defecto al generar un APK
+
+### Planificacion
+
+Registrar la versión 6.6.0 local y aplicar la regla indicada por el usuario a futuras compilaciones Android.
+
+### Ejecucion
+
+El generador registra los cambios en Git después de verificar la copia local del APK y antes de la copia secundaria. `--no-commit` omite el commit por indicación expresa. `--publish` controla el push y la Release. Si falla el commit, el generador conserva el APK local e informa el fallo con código de salida distinto de cero. La 6.6.0 queda registrada localmente.
+
+### Validacion
+
+Sintaxis de Node y diez escenarios simulados del tramo posterior a la compilación correctos. Cubren compilación local, exclusión explícita del commit, árbol sin cambios, publicación y fallos de commit, copia y push. El SHA-256 del APK local coincide con el de la compilación verificada del 11 de noviembre. Pendientes la publicación de 6.6.0 y la prueba física de huella.
+
+### Archivos Modificados
+
+`scripts/android-apk.mjs`, `AGENTS.md`, `AGENTS-history.md`, `README.md`, `docs/RELEASE-CHECKLIST.md` y `docs/SEGURIDAD-CARTAS.md`, junto con las fuentes de la 6.6.0 detalladas en la intervención anterior.
+
+## 2026-11-11 — Entrada automática a Cartas protegidas y APK local 6.6.0
+
+### Planificacion
+
+Solicitar inmediatamente el método configurado al entrar en Cartas bloqueada, incluida huella, sin pulsación previa. Revisar brevemente la seguridad del flujo y preparar la versión solicitada X.(Y+1).0 para el ciclo normal de compilación y push.
+
+### Ejecucion
+
+LettersLocked inicia una autenticación por montaje visible mediante el mismo servicio existente. Una referencia evita duplicados por replay de efectos y otra impide intentos simultáneos antes del siguiente render. Cancelar conserva el bloqueo y los botones de reintento/clave propia; no vuelve a abrir automáticamente por rerender o retorno de foco. Si se monta oculta, espera a estar visible y retira el listener al salir. Se conservaron cifrado, autenticación nativa, alternativa propia y controles de segundo plano. Versión sincronizada de 6.5.2/123 a 6.6.0/124 en las cuatro fuentes habituales. Recuperados los antecedentes pertinentes con project-work-cache, sin repetir la auditoría integral anterior.
+
+### Validacion
+
+24/24 pruebas focalizadas correctas: 6 nuevas de interfaz y 18 del servicio con criptografía real; sesión 85607, salida 0. Revisión manual breve de MainApp, SettingsContext, letters-security, security-prompt y LettersSecurityPlugin: sin hallazgos nuevos en la barrera de renderizado, selección del método, concurrencia, cancelación, credencial ligada a CryptoObject y rechazo de resultados tardíos tras bloqueo. La suite completa, sesión 92763, devuelve 1 por EPERM al crear temporales de notification-patches fuera de las rutas permitidas; no se declara aprobada. El coordinador obligatorio Invoke-ControlledBuild.ps1 rechaza iniciar lint por falta de acceso al recurso CIM (sesión de herramienta, salida 1); la misma precondición impide el build normal. No se eludió ni se repitió el control. Tipos, web/PWA, APK, copia Drive, commit/push y publicación pendientes del entorno permitido. Sin instalación ni prueba física de huella. El sandbox solo permite editar el repositorio y mantiene .git de solo lectura; no se escribieron cachés, logs ni auxiliares fuera de las rutas autorizadas. El estado final y los pendientes quedan en este registro y en docs/SEGURIDAD-CARTAS.md.
+
+### Archivos Modificados
+
+src/components/LettersLocked.tsx; tests/letters-locked.cjs; scripts/test.mjs; package.json; package-lock.json; src/lib/version.ts; android/app/build.gradle; docs/SEGURIDAD-CARTAS.md; AGENTS-history.md.
+
+### Recuperación de la compilación local
+
+El coordinador arrancó desde el escritorio y TypeScript encontró TS2345 en LettersLocked. Se tipó como booleano el parámetro opcional del desbloqueo sin cambiar el flujo. Las 24 pruebas focalizadas pasaron y el build controlado completó tipos, web, PWA con 118 entradas, Capacitor y assembleRelease. El APK local en dist/cotidie-installer-v6.6.0.apk se verificó con firma v2, versión 6.6.0 y código 124. SHA-256 e8204f92f1a35efc681dbb75bd2736209273d6fd1bbaa2363fbe961425097484. Quedan pendientes la prueba física de huella y la entrega externa.
+
 ## 2026-10-15 — Unificar la extensión del respaldo completo
 
 ### Planificacion

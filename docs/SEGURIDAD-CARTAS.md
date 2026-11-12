@@ -8,6 +8,8 @@ En Android 11 o posterior, si existe seguridad compatible configurada, se autori
 
 Cartas se bloquea al ocultar o abandonar la app y permite bloquear manualmente. Las rutas de lectura, edición y creación quedan cubiertas, también al restaurar una ruta anterior. En Android se usa FLAG_SECURE en Cartas y en los diálogos de clave.
 
+Al entrar en una ruta de Cartas bloqueada se solicita inmediatamente el método configurado: desbloqueo del celular (incluida la huella) o clave propia de Cartas. Se hace un solo intento automático por entrada; cancelar conserva la pantalla bloqueada y permite reintentar o elegir explícitamente la clave propia. Los cambios de estado y el retorno de foco no repiten la solicitud cancelada. Una pantalla bloqueada montada con la app oculta espera a que esté visible antes de solicitar autenticación.
+
 Al exportar datos completos o solo ajustes:
 
 - Con seguridad desactivada se conserva el respaldo anterior, sin pedir clave.
@@ -37,6 +39,10 @@ La cabecera autenticada tiene 48 bytes: firma CTD3, versión y algoritmos, prop�
 Las importaciones externas de Android se leen por bloques en el servicio aislado existente. Los CTD2/CTD3 se preparan en caché privada; el puente solo entrega un token nativo de un archivo, nunca acepta rutas del llamador ni transfiere el archivo entero como base64. Los temporales se retiran al terminar, cancelar, sustituir la importación o destruir la actividad. El consentimiento permanece vinculado a los datos capturados.
 
 ## Verificación y alcance
+
+Revisión breve del 11 de noviembre de 2026, para la entrada automática de 6.6.0: 24 pruebas focalizadas correctas (6 del componente y 18 del servicio con cifrado real). Se revisaron la barrera de renderizado de MainApp, el proveedor, las épocas de autorización y el puente nativo: la entrada automática utiliza la misma autenticación, no expone cartas antes del éxito, no abre solicitudes simultáneas y conserva el bloqueo ante cancelación o respuestas invalidadas al pasar a segundo plano. Sin hallazgos nuevos en este alcance; no sustituye un escaneo integral ni una prueba física de huella.
+
+La versión 6.6.0/código 124 se compiló mediante el coordinador. Pasaron tipos, exportación web, 118 entradas PWA y `assembleRelease`. El APK local se verificó con firma v2 y SHA-256 `e8204f92f1a35efc681dbb75bd2736209273d6fd1bbaa2363fbe961425097484`. Pendientes la publicación y la prueba física de huella.
 
 Validación del 10 de noviembre de 2026: 122 pruebas Node, 13 JUnit, compilación Java Android, tipos, build web y 118 entradas PWA correctos. Lint focalizado sin errores ni advertencias. En Edge móvil se comprobó activación, aviso y reconocimiento de clave no recuperable, errores de clave, bloqueo, exportación cifrada, cancelación y restauración en una sesión nueva con protección y contenido conservados.
 
