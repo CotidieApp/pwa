@@ -2,6 +2,24 @@
 
 Historial de intervenciones del asistente en el repo.
 
+## 2026-11-12 — Entrega de Cotidie 6.6.0
+
+### Planificacion
+
+Completar el push y la distribución habitual solicitados en el encargo original de la 6.6.0 con el APK firmado ya verificado.
+
+### Ejecucion
+
+Commit funcional `d5634aea84192a879ded8d8c6f8452ad35663cc7` enviado a `main` de `CotidieApp/pwa`. APK publicado en `CotidieApp/cotidie-web`, Release `v6.6.0`, asset `cotidie-latest.apk`. Copia en `G:/Mi unidad/Cotidie/APK Installer/cotidie-installer-v6.6.0.apk`.
+
+### Validacion
+
+`git ls-remote` confirmó el commit funcional en `main` después del push. El APK 6.6.0/124, con firma v2 y 88.249.247 bytes, conserva el SHA-256 `e8204f92f1a35efc681dbb75bd2736209273d6fd1bbaa2363fbe961425097484` en el archivo local, la copia de Drive y el asset publicado. La Release es definitiva. Pendiente la prueba física de huella.
+
+### Archivos Modificados
+
+`AGENTS-history.md` y `docs/SEGURIDAD-CARTAS.md` para registrar la entrega. Estado y caché de Cotidie actualizados fuera del repositorio.
+
 ## 2026-11-12 — Commit por defecto al generar un APK
 
 ### Planificacion
