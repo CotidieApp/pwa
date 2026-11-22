@@ -1,7 +1,7 @@
 import { getChileanMassSelection, type ChileanLiturgicalDay } from './liturgy-chile';
 import type { LiturgyReading, LiturgySection } from './liturgy-hours-reader';
 
-const LECTIONARY_PATH = '/liturgy/lectionary-cl.json.gz';
+const LECTIONARY_PATH = '/liturgy/lectionary-cl.json.gzip';
 const { inflate } = require('pako') as { inflate: (input: Uint8Array) => Uint8Array };
 
 type Passage = { c?: string; h?: string; i?: string; x: string };

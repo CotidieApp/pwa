@@ -106,7 +106,8 @@ lecturas del domingo, aunque rotula las Horas como propias de la fiesta en esa
 entrada. Conviene confirmar esa indicación al recibir el Propio vigente.
 
 `src/lib/liturgy-chile.ts` identifica la celebración y los ciclos. El lector
-abre la combinación correspondiente de `public/liturgy/lectionary-cl.json.gz`.
+abre la combinación correspondiente de `public/liturgy/lectionary-cl.json.gzip`.
+El sufijo `.gzip` conserva la ruta y los bytes comprimidos en el APK. Android procesa los archivos `.gz` al empacar.
 Queda pendiente cotejar cada variante con los tres tomos del Leccionario
 aprobado. La aplicación incluye cero EPUB para las dos funciones.
 
@@ -244,6 +245,6 @@ extraídas con `pdftotext -layout`. Los recursos finales son JSON y JSON
 comprimido. Los originales y el PDF son material de compilación.
 
 ```powershell
-python -X utf8 scripts/vendor-lectionary-chile.py <carpeta-de-fuentes> public/liturgy/lectionary-cl.json.gz
+python -X utf8 scripts/vendor-lectionary-chile.py <carpeta-de-fuentes> public/liturgy/lectionary-cl.json.gzip
 python -X utf8 scripts/vendor-hours-chile.py <carpeta-de-fuentes> public/liturgy/hours-cl.json
 ```

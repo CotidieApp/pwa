@@ -240,7 +240,7 @@ test('Chilean Ordo 24–30 August 2026: packaged offices, optional memorials and
   const engine = await corpus;
   const assets = path.dirname(corpusPath);
   const regional = JSON.parse(fs.readFileSync(path.join(assets, 'hours-cl.json'), 'utf8'));
-  const lectionary = JSON.parse(require('node:zlib').gunzipSync(fs.readFileSync(path.join(assets, 'lectionary-cl.json.gz'))));
+  const lectionary = JSON.parse(require('node:zlib').gunzipSync(fs.readFileSync(path.join(assets, 'lectionary-cl.json.gzip'))));
   // CECh, Ordo 2026, Tiempo ordinario II, PDF pp. 33–34. The August 30
   // Mass readings agree across sources; the celebration and Office are disputed.
   const week = [
@@ -274,7 +274,7 @@ test('Chilean Ordo 24–30 August 2026: packaged offices, optional memorials and
 test('packaged Chilean Hour and Mass readers cover current and future dates offline', async t => {
   const requested = new Set();
   const blocked = t.mock.method(globalThis, 'fetch', async url => {
-    assert.match(url, /^\/liturgy\/(hours-cl\.json|lectionary-cl\.json\.gz)$/);
+    assert.match(url, /^\/liturgy\/(hours-cl\.json|lectionary-cl\.json\.gzip)$/);
     requested.add(url);
     return new Response(fs.readFileSync(path.join(__dirname, '../public', url)));
   });
