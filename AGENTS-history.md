@@ -8732,3 +8732,21 @@ Pruebas de Annuum sobre apertura y cierre temprano, umbral, primer día y tempor
 ### Archivos Modificados
 
 src/components/AnnuumStory.tsx, src/components/main/MainApp.tsx, src/context/SettingsContext.tsx, src/context/settings/defaults.ts, src/context/settings/normalize.ts, src/context/settings/types.ts, src/lib/movable-feasts.ts, tests/santoral.cjs y tests/settings-lifecycle.cjs.
+
+## 2026-11-22 — Entrega de Cotidie 6.6.1
+
+### Planificacion
+
+Compilar el APK completo y verificar sus recursos y firma antes de distribuirlo. El usuario confirmó que cuenta con permiso de redistribución de los textos litúrgicos para este APK y autorizó la publicación.
+
+### Ejecucion
+
+Se corrigió la vista previa de Annuum, que usa el componente sin registrar la finalización. En la primera inspección del APK, Android había retirado el sufijo `.gz` del Leccionario al empaquetarlo. Se cambió a `.gzip`, se actualizaron las rutas del lector y la precaché, y se reconstruyó la versión 6.6.1 con código 125. Las fuentes se enviaron a `main` en `654926638` y el APK se publicó en la release v6.6.1 de CotidieApp/cotidie-web. Se copió el instalador a Drive.
+
+### Validacion
+
+Pasaron las 150 pruebas, TypeScript, la compilación web, las 126 entradas de precaché y `assembleRelease`. El APK contiene el Credo bilingüe, Annuum y los siete recursos cotejados contra la fuente. La firma v2 corresponde al certificado de la versión anterior. GitHub, Drive y el APK local arrojan el mismo SHA-256, `1d5f10c94a581d3d5d2ac2b463b4338a4dc63e1f8528f94db3d8c119287c7674`. No hubo un teléfono Android conectado para la prueba física.
+
+### Archivos Modificados
+
+src/components/AnnuumStory.tsx, docs/LITURGIA-DE-LAS-HORAS.md, scripts/check-pwa-export.mjs, src/lib/liturgy-mass-reader.ts, tests/liturgy-hours.cjs, public/liturgy/lectionary-cl.json.gzip, package.json, package-lock.json, src/lib/version.ts, android/app/build.gradle y AGENTS-history.md.
