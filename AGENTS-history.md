@@ -8768,3 +8768,21 @@ La prueba del componente comprueba que al presionar el ojo en Cristo Rey se mues
 ### Archivos Modificados
 
 src/lib/placeholder-images.json, src/context/settings/useSaintOfTheDay.ts, android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetContentFactory.java, tests/settings-lifecycle.cjs y AGENTS-history.md.
+
+## 2026-11-22 — Entrega de Cotidie 6.6.2
+
+### Planificacion
+
+Completar la entrega del APK firmado que restaura la Coronación de la Virgen, con la autorización del usuario.
+
+### Ejecucion
+
+Se envió el commit `2c6b300ef` a `main`, se publicó 6.6.2 como versión más reciente en GitHub Releases y se copió el APK a Drive. Se reutilizó el instalador verificado de código 126.
+
+### Validacion
+
+Firma v2, compilación web y Android, 151 pruebas y 730 estados de Inicio y widget verificados para el APK distribuido. El APK local, Drive y el recurso de GitHub coinciden en SHA-256 `ac6bc6c2a98c68eed8c37f873738e22ff0a90f38c7f911de97bcaf8ebed44d35`. La prueba física queda pendiente porque ADB no detectó un dispositivo.
+
+### Archivos Modificados
+
+AGENTS-history.md.
