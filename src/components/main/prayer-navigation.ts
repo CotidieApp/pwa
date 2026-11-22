@@ -1,4 +1,5 @@
 import type { Prayer } from '@/lib/types';
+import { LITURGY_HOURS_ID, LITURGY_MASS_ID } from '@/lib/liturgy-hours';
 
 const ORACION_DEL_DIA_ID = '__oracion_del_dia__';
 
@@ -9,6 +10,8 @@ const ORACION_DEL_DIA_ID = '__oracion_del_dia__';
 const NAVIGATION_ONLY_LEAF_IDS = new Set([
   'lectura-espiritual-personales',
   'lectura-espiritual-audios',
+  LITURGY_HOURS_ID,
+  LITURGY_MASS_ID,
 ]);
 
 // A node counts as "opened for prayer/reading" only if it is real content:

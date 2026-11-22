@@ -451,11 +451,15 @@ const PrayerContent = ({
   searchState,
   scrollContainerRef,
   onBilingualModeChange,
+  readingContent,
+  readingBilingual,
 }: {
   prayer: Prayer;
   searchState?: { term: string; activeIndex: number; resultsCount: number };
   scrollContainerRef?: React.RefObject<HTMLDivElement>;
   onBilingualModeChange?: (active: boolean) => void;
+  readingContent?: React.ReactNode;
+  readingBilingual?: boolean;
 }) => {
   const {
     theme,
@@ -556,6 +560,14 @@ const PrayerContent = ({
     onBilingualModeChange?.(isBothVariantKey(selectedLang));
   }, [onBilingualModeChange, selectedLang]);
 
+  if (readingContent !== undefined) {
+    return (
+      <div className={cn('text-foreground/90 leading-relaxed touch-pan-y', !readingBilingual && 'prayer-single-language-text')} style={{ fontSize: `${prayerTextZoom}em` }}>
+        {readingContent}
+      </div>
+    );
+  }
+
   if (typeof prayer.content === 'string') {
     if (prayer.categoryId === 'cartas') {
       return <LetterContent text={prayer.content} zoom={prayerTextZoom} />;
@@ -650,17 +662,24 @@ const PrayerContent = ({
 export default function PrayerDetail({
   prayer,
   searchState,
+  readingContent,
+  readingBilingual = false,
+  keepScreenAwake = false,
 }: {
   prayer: Prayer;
   searchState?: { term: string; activeIndex: number; resultsCount: number };
+  readingContent?: React.ReactNode;
+  readingBilingual?: boolean;
+  keepScreenAwake?: boolean;
 }) {
   const { isDistractionFree, isDeveloperMode, perpetualBackgroundEnabled } = useSettings();
   const showsPerpetualBackground = isDeveloperMode && perpetualBackgroundEnabled;
   const [localAudioSrc, setLocalAudioSrc] = useState<string | null>(null);
-  const [isBilingualMode, setIsBilingualMode] = useState(false);
+  const [isPrayerBilingual, setIsPrayerBilingual] = useState(false);
+  const isBilingualMode = readingBilingual || isPrayerBilingual;
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   usePrayerScrollPosition(prayer, scrollContainerRef);
-  useScreenWakeLock(Boolean(prayer.isLongText));
+  useScreenWakeLock(Boolean(prayer.isLongText) || keepScreenAwake);
 
   const predefinedAudios = [
     { title: 'Discurso San Josemaría', src: '/media/Discurso San Josemaría.mp3' },
@@ -751,12 +770,14 @@ export default function PrayerDetail({
                   !isBilingualMode && 'pr-6'
                 )}
               >
-                {prayer.content ? (
+                {prayer.content || readingContent !== undefined ? (
                   <PrayerContent
                     prayer={prayer}
                     searchState={searchState}
                     scrollContainerRef={scrollContainerRef}
-                    onBilingualModeChange={setIsBilingualMode}
+                    onBilingualModeChange={setIsPrayerBilingual}
+                    readingContent={readingContent}
+                    readingBilingual={readingBilingual}
                   />
                 ) : (
                   <p className="text-sm text-muted-foreground">Contenido no disponible.</p>

@@ -1,5 +1,6 @@
 import officialCalendar2026Raw from './liturgical-colors-chile-2026.json';
 import officialCalendar2027Raw from './liturgical-colors-chile-2027.json';
+import { parseCalendarDate } from './calendar-date';
 import {
   LITURGICAL_COLOR_HEX,
   type LiturgicalColorName,
@@ -39,8 +40,7 @@ const normalizeDate = (input: DateInput): Date | null => {
   if (input instanceof Date) {
     return Number.isNaN(input.getTime()) ? null : input;
   }
-  const parsed = new Date(input);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+  return parseCalendarDate(input);
 };
 
 const toDateKey = (date: Date) => {

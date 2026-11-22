@@ -1,0 +1,20 @@
+[
+  { "id": "christ-the-king-image", "description": "Cristo Rey bendice y sostiene el Evangeliario", "imageUrl": "/images/cristo-rey.jpg", "names": ["Nuestro Señor Jesucristo, Rey del Universo"] },
+  { "id": "saintoftheday-0", "description": "Resurrección del Señor", "imageUrl": "/images/rosario/glorioso-1.jpg", "names": ["Domingo de Resurrección", "Domingo de la Divina Misericordia", "III Domingo de Pascua", "IV Domingo de Pascua", "V Domingo de Pascua", "VI Domingo de Pascua"] },
+  { "id": "ascension-image", "description": "Ascensión del Señor", "imageUrl": "/images/rosario/glorioso-2.jpg", "names": ["Ascensión del Señor"] },
+  { "id": "baptism-image", "description": "Bautismo de Jesús en el Jordán", "imageUrl": "/images/rosario/luminoso-1.jpg", "names": ["Bautismo del Señor"] },
+  { "id": "christmas-image", "description": "Nacimiento de Jesús y adoración de los Magos", "imageUrl": "/images/christmas-image.jpg", "names": ["Epifanía del Señor", "Natividad del Señor", "San Gregorio de Spoleto y Nochebuena"] },
+  { "id": "saintoftheday-3", "description": "Sagrada Familia", "imageUrl": "/images/holy-family.jpeg", "names": ["Sagrada Familia de Jesús, María y José"] },
+  { "id": "pentecost-image", "description": "Venida del Espíritu Santo", "imageUrl": "/images/rosario/glorioso-3.jpg", "names": ["Pentecostés"] },
+  { "id": "mary-mother-church-image", "description": "María reunida en oración con los apóstoles", "imageUrl": "/images/rosario/glorioso-3.jpg", "names": ["María, Madre de la Iglesia"] },
+  { "id": "holy-trinity-image", "description": "Santísima Trinidad", "imageUrl": "/images/holy-trinity.jpeg", "names": ["Santísima Trinidad"] },
+  { "id": "corpus-christi-image", "description": "La Última Cena", "imageUrl": "/images/eucharist.jpeg", "names": ["Corpus Christi", "Jueves Santo"] },
+  { "id": "holy-cross-image", "description": "Cristo crucificado, Diego Velázquez", "imageUrl": "/images/immaculate-heart.jpeg", "names": ["Viernes Santo", "Exaltación de la Santa Cruz"] },
+  { "id": "home-sacred-heart", "description": "Sagrado Corazón de Jesús", "imageUrl": "/images/sacred-heart.jpeg", "names": ["Sagrado Corazón de Jesús"] },
+  { "id": "immaculate-heart-of-mary-image", "description": "El Corazón de María, estampa histórica de la Biblioteca del Congreso", "imageUrl": "/images/corazon-inmaculado-de-maria.jpg", "names": ["Inmaculado Corazón de María"] },
+  { "id": "prayer-for-chile-image", "description": "Nuestra Señora del Carmen, Patrona de Chile", "imageUrl": "/images/virgen-del-carmen-chile.jpeg", "names": ["Día de Oración por Chile"] },
+  { "id": "presentation-image", "description": "Presentación de Jesús en el Templo", "imageUrl": "/images/rosario/gozoso-4.jpg", "names": ["Presentación del Señor"] },
+  { "id": "assumption-image", "description": "Asunción de la Virgen María", "imageUrl": "/images/rosario/glorioso-4.jpg", "names": ["Asunción de la Virgen María"] },
+  { "id": "visitation-image", "description": "Visitación de María a Isabel", "imageUrl": "/images/rosario/gozoso-2.jpg", "names": ["Visitación de la Virgen María"] },
+  { "id": "october-12-pilar-carlo", "description": "Nuestra Señora del Pilar y San Carlo Acutis", "imageUrl": "/images/october-12-pilar-carlo.png", "names": ["Nuestra Señora del Pilar / San Carlo Acutis"] }
+]

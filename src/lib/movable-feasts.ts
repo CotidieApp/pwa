@@ -1,5 +1,13 @@
 import type { SaintOfTheDay } from './types';
+import saintsData from './saints-data.json';
 import { addDays, isSameDay, startOfDay } from 'date-fns';
+
+export const CHRIST_THE_KING = {
+  name: 'Nuestro Señor Jesucristo, Rey del Universo',
+  bio: 'En el último domingo del año litúrgico celebramos el reinado de Cristo. Jesús manifiesta su realeza al entregar la vida en la cruz y vencer a la muerte. Su reino de verdad, justicia, amor y paz nos llama a reconocerlo en los más pequeños y a servirlos.',
+  title: 'Solemnidad',
+  type: 'celebration',
+} satisfies Omit<SaintOfTheDay, 'day' | 'month'>;
 
 type MovableFeastDefinition = Omit<SaintOfTheDay, 'day' | 'month'> & {
   offset: number; // Days from Easter Sunday
@@ -60,21 +68,21 @@ const movableFeastsDefinitions: Record<string, MovableFeastDefinition> = {
   holyMonday: {
     offset: -6,
     name: "Lunes Santo",
-    bio: "Día para preparar el alma para la crucifixión, muerte y resurrección del Señor. Ocasión de reflexión y meditación. Lunes, conmemoración de los Santos Arcángeles.",
+    bio: "En Betania, María unge los pies de Jesús. Su gesto de amor anticipa la sepultura del Señor.",
     title: "Celebración del Día",
     type: "celebration",
   },
   holyTuesday: {
     offset: -5,
     name: "Martes Santo",
-    bio: "Día para preparar el alma para la crucifixión, muerte y resurrección del Señor. Ocasión de reflexión y meditación. Martes, conmemoración de la filiación divina.",
+    bio: "En la Última Cena, Jesús anuncia que uno de los discípulos lo entregará y que Pedro lo negará. La Iglesia se prepara para celebrar su Pasión.",
     title: "Celebración del Día",
     type: "celebration",
   },
   holyWednesday: {
     offset: -4,
     name: "Miércoles Santo",
-    bio: "Día para preparar el alma para la crucifixión, muerte y resurrección del Señor. Ocasión de reflexión y meditación. Miércoles, conmemoración a San José.",
+    bio: "El Evangelio recuerda el acuerdo de Judas para entregar a Jesús. La Iglesia se dispone a celebrar el Triduo Pascual.",
     title: "Celebración del Día",
     type: "celebration",
   },
@@ -109,14 +117,14 @@ const movableFeastsDefinitions: Record<string, MovableFeastDefinition> = {
   ascension: {
     offset: 42, // En Chile se traslada al domingo siguiente.
     name: "Ascensión del Señor",
-    bio: "Cuarenta días después de su Resurrección, Jesús asciende al cielo en presencia de sus discípulos, prometiendo el envío del Espíritu Santo.",
+    bio: "Jesús resucitado vuelve al Padre y promete a sus discípulos el Espíritu Santo. Los Hechos de los Apóstoles recuerdan los cuarenta días en que se les apareció. En Chile celebramos la Ascensión el séptimo domingo de Pascua.",
     title: "Solemnidad",
     type: "celebration",
   },
   pentecost: {
     offset: 49, // 50th day
     name: "Pentecostés",
-    bio: "Cincuenta días después de la Resurrección, el Espíritu Santo desciende sobre los Apóstoles, marcando el nacimiento de la Iglesia y el inicio de su misión evangelizadora.",
+    bio: "En el quincuagésimo día de Pascua, el Espíritu Santo desciende sobre los discípulos reunidos y los impulsa a anunciar el Evangelio.",
     title: "Solemnidad",
     type: "celebration",
   },
@@ -124,7 +132,7 @@ const movableFeastsDefinitions: Record<string, MovableFeastDefinition> = {
     offset: 7,
     name: "Domingo de la Divina Misericordia",
     bio: "Jornada para confiar en la misericordia de Dios y en la obra redentora de Cristo, que nos llama a la conversión y al perdón.",
-    title: "Fiesta",
+    title: "II Domingo de Pascua",
     type: "celebration",
   },
   maryMotherOfChurch: {
@@ -137,8 +145,8 @@ const movableFeastsDefinitions: Record<string, MovableFeastDefinition> = {
   christHighPriest: {
     offset: 53, // Jueves posterior a Pentecostés
     name: "Jesucristo, Sumo y Eterno Sacerdote",
-    bio: "Solemnidad que reconoce a Jesús como sumo sacerdote, ofrecimiento perpetuo y mediador entre Dios y la humanidad.",
-    title: "Solemnidad",
+    bio: "Fiesta que celebra a Jesucristo, mediador entre Dios y la humanidad, que se ofreció a sí mismo y vive para interceder por nosotros.",
+    title: "Fiesta",
     type: "celebration",
   },
   trinity: {
@@ -175,10 +183,7 @@ const movableFeastsDefinitions: Record<string, MovableFeastDefinition> = {
   },
   christTheKing: {
     offset: 0, // Placeholder, calculated separately
-    name: "Jesucristo, Rey del Universo",
-    bio: "Solemnidad que cierra el Año Litúrgico. Celebramos que Cristo es Rey de todo lo creado, principio y fin de la historia.",
-    title: "Solemnidad",
-    type: "celebration",
+    ...CHRIST_THE_KING,
   },
   advent1: {
     offset: 0, // Placeholder
@@ -210,28 +215,110 @@ const movableFeastsDefinitions: Record<string, MovableFeastDefinition> = {
   },
 };
 
+const sundayOnOrAfter = (date: Date) => addDays(date, (7 - date.getDay()) % 7);
+
+export const getPrayerForChileDate = (year: number) => sundayOnOrAfter(new Date(year, 8, 24));
+
+export const getEpiphanyDate = (year: number) => sundayOnOrAfter(new Date(year, 0, 2));
+
+export const getBaptismOfTheLordDate = (year: number) => {
+  const epiphany = getEpiphanyDate(year);
+  return addDays(epiphany, epiphany.getDate() > 6 ? 1 : 7);
+};
+
+export const getHolyFamilyDate = (year: number) => {
+  const sunday = sundayOnOrAfter(new Date(year, 11, 26));
+  return sunday.getFullYear() === year ? sunday : new Date(year, 11, 30);
+};
+
+export const getObservedSaintJosephDate = (year: number, easter = getEasterDate(year)) => {
+  const date = new Date(year, 2, 19);
+  const palms = addDays(easter, -7);
+  if (date >= palms && date < easter) return addDays(palms, -1);
+  return date.getDay() === 0 ? addDays(date, 1) : date;
+};
+
+export const getObservedAnnunciationDate = (year: number, easter = getEasterDate(year)) => {
+  const date = new Date(year, 2, 25);
+  if (date >= addDays(easter, -7) && date <= addDays(easter, 7)) return addDays(easter, 8);
+  return date.getDay() === 0 && date < easter ? addDays(date, 1) : date;
+};
+
+export const getObservedNativityOfJohnDate = (year: number, easter = getEasterDate(year)) => {
+  const date = new Date(year, 5, 24);
+  if (isSameDay(date, addDays(easter, 68))) return addDays(date, -1);
+  return isSameDay(date, addDays(easter, 63)) ? addDays(date, 1) : date;
+};
+
+export const getObservedPeterAndPaulDate = (year: number, easter = getEasterDate(year)) => {
+  const date = new Date(year, 5, 29);
+  return isSameDay(date, addDays(easter, 68)) ? addDays(date, 1) : date;
+};
+
+const otherMovableFeasts = {
+  epiphany: {
+    name: 'Epifanía del Señor',
+    bio: 'Los Magos llegan a Belén y adoran a Jesús. La Iglesia celebra la manifestación del Hijo de Dios a todos los pueblos.',
+    title: 'Solemnidad',
+    type: 'celebration',
+  },
+  baptism: {
+    name: 'Bautismo del Señor',
+    bio: 'Jesús recibe de Juan el bautismo en el Jordán. El Espíritu Santo desciende sobre él y el Padre lo revela como su Hijo amado.',
+    title: 'Fiesta',
+    type: 'celebration',
+  },
+  holyFamily: {
+    name: 'Sagrada Familia de Jesús, María y José',
+    bio: 'La Iglesia contempla a Jesús, María y José en su vida familiar y pide que los hogares crezcan en el amor y la fidelidad a Dios.',
+    title: 'Fiesta',
+    type: 'celebration',
+  },
+  prayerForChile: {
+    name: 'Día de Oración por Chile',
+    bio: 'El último domingo de septiembre, la Iglesia en Chile reza por el país y encomienda a sus familias y comunidades a la intercesión de la Virgen del Carmen.',
+    title: 'Jornada pastoral',
+    type: 'celebration',
+  },
+} satisfies Record<string, Omit<SaintOfTheDay, 'day' | 'month'>>;
+
+export const getFixedSaint = (month: number, day: number, year?: number): SaintOfTheDay | null => {
+  const saint = saintsData.saints.find((entry) => entry.month === month && entry.day === day) ?? null;
+  if (year !== undefined && year <= 2025 && month === 10 && day === 9 && saint) {
+    return {
+      ...saint,
+      name: 'San Dionisio y compañeros, mártires',
+      bio: 'Dionisio, obispo de París, es venerado como mártir junto con el presbítero Rústico y el diácono Eleuterio.',
+      type: 'martyr',
+    };
+  }
+  return saint;
+};
+
+const getTransferredFixedDates = (year: number, easter: Date) => [
+  { month: 3, day: 19, observed: getObservedSaintJosephDate(year, easter) },
+  { month: 3, day: 25, observed: getObservedAnnunciationDate(year, easter) },
+  { month: 6, day: 24, observed: getObservedNativityOfJohnDate(year, easter) },
+  { month: 6, day: 29, observed: getObservedPeterAndPaulDate(year, easter) },
+].filter(({ month, day, observed }) => month !== observed.getMonth() + 1 || day !== observed.getDate());
+
+const isObligatoryMemorial = (saint: SaintOfTheDay | null) =>
+  /^Memoria(?: obligatoria)?(?: \/|$)/.test(saint?.title ?? '');
+
 /**
  * Calculates important dates for the Advent season.
  * First Sunday of Advent is the Sunday closest to St. Andrew (Nov 30),
  * or the Sunday that falls between Nov 27 and Dec 3 inclusive.
  */
-const getAdventDates = (year: number) => {
-    // Start searching from Nov 27
-    const startWindow = new Date(year, 10, 27); // Nov 27
-    let advent1 = new Date(startWindow);
-    
-    // Find the first Sunday on or after Nov 27
-    if (Number.isFinite(advent1.getTime()))
-        advent1.setDate(advent1.getDate() + (7 - advent1.getDay()) % 7);
-    // advent1 is now the First Sunday of Advent
-
-    return {
-        advent1,
-        advent2: addDays(advent1, 7),
-        advent3: addDays(advent1, 14),
-        advent4: addDays(advent1, 21),
-        christTheKing: addDays(advent1, -7)
-    };
+export const getAdventDates = (year: number) => {
+  const advent1 = sundayOnOrAfter(new Date(year, 10, 27));
+  return {
+    advent1,
+    advent2: addDays(advent1, 7),
+    advent3: addDays(advent1, 14),
+    advent4: addDays(advent1, 21),
+    christTheKing: addDays(advent1, -7),
+  };
 };
 
 export const getMovableFeast = (currentDate: Date, easterDate: Date): SaintOfTheDay | null => {
@@ -239,9 +326,61 @@ export const getMovableFeast = (currentDate: Date, easterDate: Date): SaintOfThe
   const current = startOfDay(currentDate);
   const easter = startOfDay(easterDate);
   const year = current.getFullYear();
+  const withDate = (feast: Omit<SaintOfTheDay, 'day' | 'month'>): SaintOfTheDay =>
+    ({ ...feast, month: current.getMonth() + 1, day: current.getDate() });
+
+  if (isSameDay(current, getEpiphanyDate(year))) return withDate(otherMovableFeasts.epiphany);
+  if (isSameDay(current, getBaptismOfTheLordDate(year))) return withDate(otherMovableFeasts.baptism);
+  if (isSameDay(current, getHolyFamilyDate(year))) return withDate(otherMovableFeasts.holyFamily);
+  if (isSameDay(current, getPrayerForChileDate(year))) return withDate(otherMovableFeasts.prayerForChile);
 
   // 1. Calculate Advent Dates
   const adventDates = getAdventDates(year);
+  // In Chile the Immaculate Conception takes precedence on 8 December.
+  if (current.getMonth() === 11 && current.getDate() === 8) return null;
+  const transferred = getTransferredFixedDates(year, easter).find(({ observed }) => isSameDay(observed, current));
+  if (transferred) {
+    const fixed = getFixedSaint(transferred.month, transferred.day);
+    if (fixed) return withDate(fixed);
+  }
+  // The Sundays of Lent and Easter outrank even fixed solemnities and feasts.
+  if (current.getDay() === 0) {
+    const lentSunday = [42, 35, 28, 21, 14].findIndex((offset) =>
+      isSameDay(current, addDays(easter, -offset)));
+    if (lentSunday >= 0) {
+      return withDate({
+        name: `${['I', 'II', 'III', 'IV', 'V'][lentSunday]} Domingo de Cuaresma`,
+        bio: 'La Iglesia se prepara para la Pascua con la oración, el ayuno y la caridad.',
+        title: 'Domingo de Cuaresma',
+        type: 'celebration',
+      });
+    }
+    const easterSunday = [14, 21, 28, 35].findIndex((offset) => isSameDay(current, addDays(easter, offset)));
+    if (easterSunday >= 0) {
+      const ordinal = ['III', 'IV', 'V', 'VI'][easterSunday];
+      const reflections = [
+        'La Iglesia proclama que Jesús resucitó y se dio a conocer a sus discípulos. Su presencia renueva la fe de la comunidad.',
+        'Jesús es el Buen Pastor. Conoce a los suyos, los llama y da la vida por ellos. Hoy la Iglesia reza por las vocaciones.',
+        'La alegría de la Pascua nos llama a vivir unidos a Cristo y a dar testimonio de su amor.',
+        'Cristo resucitado reúne a sus discípulos en el amor y prepara a la Iglesia para recibir el Espíritu Santo.',
+      ];
+      return withDate({
+        name: `${ordinal} Domingo de Pascua`,
+        bio: reflections[easterSunday],
+        title: 'Domingo de Pascua',
+        type: 'celebration',
+      });
+    }
+  }
+  const octaveWeekday = [1, 2, 3, 4, 5, 6].find((offset) => isSameDay(current, addDays(easter, offset)));
+  if (octaveWeekday) {
+    return withDate({
+      name: `${['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][octaveWeekday - 1]} de la Octava de Pascua`,
+      bio: 'La Iglesia prolonga la alegría del domingo de Resurrección y celebra la victoria de Cristo sobre la muerte.',
+      title: 'Octava de Pascua',
+      type: 'celebration',
+    });
+  }
 
   // 2. Check for Advent-related Feasts
   if (isSameDay(current, adventDates.christTheKing)) {
@@ -287,6 +426,14 @@ export const getMovableFeast = (currentDate: Date, easterDate: Date): SaintOfThe
     const feastDate = addDays(easter, feast.offset);
     
     if (isSameDay(current, feastDate)) {
+      const fixed = getFixedSaint(current.getMonth() + 1, current.getDate(), year);
+      // A fixed feast or solemnity outranks these weekday memorials.
+      if ((key === 'maryMotherOfChurch' || key === 'immaculateHeart') &&
+          /^(Fiesta|Solemnidad)\b/.test(fixed?.title ?? '')) return null;
+      // Notif. 2671/98/L applies when these two obligatory memorials coincide.
+      if (key === 'immaculateHeart' && isObligatoryMemorial(fixed)) {
+        return withDate({ ...feast, title: 'Memoria libre' });
+      }
       return {
         ...feast,
         day: feastDate.getDate(),
@@ -296,6 +443,19 @@ export const getMovableFeast = (currentDate: Date, easterDate: Date): SaintOfThe
   }
 
   return null;
+};
+
+export const getSaintDaySelection = (date: Date, movableFeastsEnabled: boolean) => {
+  const easter = getEasterDate(date.getFullYear());
+  const movable = getMovableFeast(date, easter);
+  const fixed = getFixedSaint(date.getMonth() + 1, date.getDate(), date.getFullYear());
+  if (!movableFeastsEnabled || !movable) {
+    return { effectiveSaint: fixed ?? movable, hiddenFixedSaint: null };
+  }
+  if (movable.name === movableFeastsDefinitions.immaculateHeart.name && fixed && isObligatoryMemorial(fixed)) {
+    return { effectiveSaint: movable, hiddenFixedSaint: { ...fixed, title: 'Memoria libre' } };
+  }
+  return { effectiveSaint: movable, hiddenFixedSaint: fixed?.name === movable.name ? null : fixed };
 };
 
 export const isAnnuumSeason = (date: Date): boolean => {
@@ -331,48 +491,22 @@ const parseLocalDateKey = (value: string | null): Date | null => {
 
 export const getAnnuumAvailability = (
   date: Date,
-  firstOpenedDate: string | null,
+  annualCompletionDate: string | null,
   forceSeason = false
 ): { bubbleVisible: boolean; settingsVisible: boolean } => {
   if (Number.isNaN(date.getTime())) {
     return { bubbleVisible: false, settingsVisible: false };
   }
-  if (forceSeason) {
-    return { bubbleVisible: true, settingsVisible: true };
-  }
-
   const year = date.getFullYear();
   const currentDateKey = getLocalDateKey(date);
-  const openedDate = parseLocalDateKey(firstOpenedDate);
-  const openedInCurrentYear =
-    openedDate?.getFullYear() === year && getLocalDateKey(openedDate) <= currentDateKey
-      ? openedDate
-      : null;
-  const seasonActive = isAnnuumSeason(date);
-  const christTheKingKey = getLocalDateKey(getAdventDates(year).christTheKing);
+  const completedDate = parseLocalDateKey(annualCompletionDate);
+  const completedInCurrentYear =
+    completedDate?.getFullYear() === year && getLocalDateKey(completedDate) <= currentDateKey;
+  const seasonActive = forceSeason || isAnnuumSeason(date);
   const yearEndCutoff = new Date(year, 11, 31, 23, 50, 0, 0);
 
-  let bubbleVisible = seasonActive && !openedInCurrentYear;
-  if (seasonActive && openedInCurrentYear && getLocalDateKey(openedInCurrentYear) === currentDateKey) {
-    const openedDayCutoff = new Date(
-      openedInCurrentYear.getFullYear(),
-      openedInCurrentYear.getMonth(),
-      openedInCurrentYear.getDate(),
-      23,
-      59,
-      0,
-      0
-    );
-    bubbleVisible = date < openedDayCutoff;
-  }
-
-  const settingsVisible = Boolean(
-    seasonActive &&
-      openedInCurrentYear &&
-      currentDateKey > getLocalDateKey(openedInCurrentYear) &&
-      currentDateKey > christTheKingKey &&
-      date < yearEndCutoff
-  );
-
-  return { bubbleVisible, settingsVisible };
+  return {
+    bubbleVisible: seasonActive && !completedInCurrentYear,
+    settingsVisible: seasonActive && completedInCurrentYear && date < yearEndCutoff,
+  };
 };

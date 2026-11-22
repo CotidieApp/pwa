@@ -2,9 +2,7 @@ package com.benjamin.studio.widgets;
 
 import android.graphics.Color;
 
-import java.text.Normalizer;
 import java.util.Calendar;
-import java.util.Locale;
 
 final class LiturgicalColorRules {
     private static final int RED = Color.parseColor("#8B0000");
@@ -15,27 +13,23 @@ final class LiturgicalColorRules {
     private LiturgicalColorRules() {
     }
 
-    static Integer getSpecialDateLiturgicalColor(Calendar current, Calendar easter) {
+    private static Integer getSpecialDateLiturgicalColor(Calendar current, Calendar easter, boolean movableObserved) {
         Calendar day = startOfDay(current);
         int year = day.get(Calendar.YEAR);
         Calendar holyFamily = getHolyFamilyDate(year);
         Calendar baptism = getBaptismOfTheLordDate(year);
         Calendar saintJoseph = getObservedSaintJosephDate(year, easter);
         Calendar annunciation = getObservedAnnunciationDate(year, easter);
-        Calendar immaculateConception = getObservedImmaculateConceptionDate(year);
+        boolean immaculateConception = day.get(Calendar.MONTH) == Calendar.DECEMBER
+                && day.get(Calendar.DAY_OF_MONTH) == 8;
 
-        if (isSameDay(day, saintJoseph) || isSameDay(day, annunciation) || isSameDay(day, immaculateConception)) {
+        if (isSameDay(day, saintJoseph) || isSameDay(day, annunciation)
+                || isSameDay(day, getObservedNativityOfJohnDate(year, easter)) || immaculateConception) {
             return WHITE;
         }
 
-        if (!isSpecialFixedDateObservedElsewhere(day, easter)) {
-            Integer fixedColor = getFixedSpecialDateColor(day);
-            if (fixedColor != null) {
-                return fixedColor;
-            }
-        }
-
-        if (isSameDay(day, holyFamily) || isSameDay(day, baptism)) return WHITE;
+        if (isSameDay(day, holyFamily) || isSameDay(day, baptism) || isSameDay(day, getEpiphanyDate(year))) return WHITE;
+        if (isSameDay(day, getObservedPeterAndPaulDate(year, easter))) return RED;
         if (isSameDay(day, addDays(easter, -46))) return PURPLE;
         if (isSameDay(day, addDays(easter, -7))) return RED;
         if (isWithinInclusive(day, addDays(easter, -6), addDays(easter, -4))) return PURPLE;
@@ -49,8 +43,9 @@ final class LiturgicalColorRules {
         if (isSameDay(day, addDays(easter, 56))) return WHITE;
         if (isSameDay(day, addDays(easter, 63))) return WHITE;
         if (isSameDay(day, addDays(easter, 68))) return WHITE;
-        if (isSameDay(day, addDays(easter, 69))) return WHITE;
-        if (isSameDay(day, addDays(easter, 50))) return WHITE;
+        if (movableObserved && (isSameDay(day, addDays(easter, 69))
+                || isSameDay(day, addDays(easter, 50)))) return WHITE;
+        if (isSameDay(day, addDays(easter, 53))) return WHITE;
 
         Calendar christTheKing = addDays(getAdventStart(year), -7);
         if (isSameDay(day, christTheKing)) return WHITE;
@@ -65,94 +60,20 @@ final class LiturgicalColorRules {
         return null;
     }
 
-    static int getGeneralLiturgicalColor(String title, String type, String name, Calendar current, Calendar easter) {
+    static int getGeneralLiturgicalColor(Calendar current, Calendar easter, int fixedRank,
+                                        Integer fixedColor, boolean movableObserved,
+                                        boolean competingMemorials, Integer saintColor) {
         Calendar day = startOfDay(current);
-        Integer specialColor = getSpecialDateLiturgicalColor(day, easter);
-        if (specialColor != null) {
-            return specialColor;
-        }
+        Integer specialColor = getSpecialDateLiturgicalColor(day, easter, movableObserved && !competingMemorials);
+        if (specialColor != null) return specialColor;
 
-        if (isChristmasSeason(day)) return WHITE;
-
-        Integer saintColor = getSaintCelebrationColor(title, type, name, day, easter);
-        if (saintColor != null) {
-            return saintColor;
-        }
-
+        boolean restrictedMemorial = isLentSeason(day, easter) || isPrivilegedAdventWeekday(day)
+                || (day.get(Calendar.MONTH) == Calendar.DECEMBER && day.get(Calendar.DAY_OF_MONTH) >= 26);
+        boolean suppressedFixed = fixedRank == 3 && (restrictedMemorial || competingMemorials);
+        if (fixedColor != null && !suppressedFixed && (!isSunday(day) || fixedRank >= 5)
+                && !isSpecialFixedDateObservedElsewhere(day, easter)) return fixedColor;
+        if (saintColor != null && !isSunday(day) && !restrictedMemorial) return saintColor;
         return getSeasonDefaultColor(day, easter);
-    }
-
-    private static Integer getSaintCelebrationColor(
-            String rawTitle,
-            String rawType,
-            String rawName,
-            Calendar current,
-            Calendar easter
-    ) {
-        String title = normalizeLiturgicalText(rawTitle);
-        String type = normalizeLiturgicalText(rawType);
-        String name = normalizeLiturgicalText(rawName);
-        int rank = parseCelebrationRank(title);
-
-        if (rank == 0) return null;
-
-        boolean suppressInPenitentialSeason =
-                (rank == 2 || rank == 3 || rank == 4)
-                        && (isLentSeason(current, easter) || isPrivilegedAdventWeekday(current))
-                        && !keepsOwnColorInPenitentialSeason(title, name);
-        if (suppressInPenitentialSeason) {
-            return getSeasonDefaultColor(current, easter);
-        }
-
-        if (isSunday(current) && rank != 1) return null;
-
-        if (name.contains("conmemoracion de los fieles difuntos") || name.contains("fieles difuntos")) {
-            return PURPLE;
-        }
-
-        boolean martyr = type.contains("martyr") || type.contains("martir") || name.contains("martir");
-        boolean whiteApostolicException =
-                (name.contains("juan") && name.contains("evangelista"))
-                        || name.contains("catedra de san pedro")
-                        || name.contains("conversion de san pablo");
-        boolean apostleOrEvangelist =
-                (type.contains("apostle")
-                        || type.contains("apostol")
-                        || type.contains("evangelist")
-                        || type.contains("evangelista"))
-                        && !whiteApostolicException;
-
-        if (martyr || apostleOrEvangelist) return RED;
-        if (isMarianCelebration(type, name)) return WHITE;
-        return WHITE;
-    }
-
-    private static int parseCelebrationRank(String title) {
-        if (title.contains("solemnidad")) return 1;
-        if (title.contains("fiesta")) return 2;
-        if (title.matches(".*\\bmemoria\\b(?!\\s+libre).*")) return 2;
-        if (title.contains("memoria libre")) return 3;
-        if (title.contains("conmemoracion")) return 4;
-        return 0;
-    }
-
-    private static Integer getFixedSpecialDateColor(Calendar date) {
-        int month = date.get(Calendar.MONTH) + 1;
-        int day = date.get(Calendar.DAY_OF_MONTH);
-
-        if (month == 1 && (day == 1 || day == 3 || day == 6)) return WHITE;
-        if (month == 2 && day == 2) return WHITE;
-        if (month == 3 && (day == 19 || day == 25)) return WHITE;
-        if (month == 6 && day == 24) return WHITE;
-        if (month == 6 && day == 29) return RED;
-        if (month == 8 && (day == 6 || day == 15)) return WHITE;
-        if (month == 9 && day == 14) return RED;
-        if (month == 11 && day == 1) return WHITE;
-        if (month == 11 && day == 2) return PURPLE;
-        if (month == 12 && (day == 8 || day == 25 || day == 27)) return WHITE;
-        if (month == 12 && (day == 26 || day == 28)) return RED;
-
-        return null;
     }
 
     private static boolean isSpecialFixedDateObservedElsewhere(Calendar date, Calendar easter) {
@@ -161,11 +82,12 @@ final class LiturgicalColorRules {
         int day = date.get(Calendar.DAY_OF_MONTH);
         if (month == 3 && day == 19 && !isSameDay(date, getObservedSaintJosephDate(year, easter))) return true;
         if (month == 3 && day == 25 && !isSameDay(date, getObservedAnnunciationDate(year, easter))) return true;
-        if (month == 12 && day == 8 && !isSameDay(date, getObservedImmaculateConceptionDate(year))) return true;
+        if (month == 6 && day == 24 && !isSameDay(date, getObservedNativityOfJohnDate(year, easter))) return true;
+        if (month == 6 && day == 29 && !isSameDay(date, getObservedPeterAndPaulDate(year, easter))) return true;
         return false;
     }
 
-    private static Calendar getObservedSaintJosephDate(int year, Calendar easter) {
+    static Calendar getObservedSaintJosephDate(int year, Calendar easter) {
         Calendar original = Calendar.getInstance();
         original.set(year, Calendar.MARCH, 19, 0, 0, 0);
         original.set(Calendar.MILLISECOND, 0);
@@ -181,7 +103,7 @@ final class LiturgicalColorRules {
         return startOfDay(original);
     }
 
-    private static Calendar getObservedAnnunciationDate(int year, Calendar easter) {
+    static Calendar getObservedAnnunciationDate(int year, Calendar easter) {
         Calendar original = Calendar.getInstance();
         original.set(year, Calendar.MARCH, 25, 0, 0, 0);
         original.set(Calendar.MILLISECOND, 0);
@@ -195,17 +117,7 @@ final class LiturgicalColorRules {
         return startOfDay(original);
     }
 
-    private static Calendar getObservedImmaculateConceptionDate(int year) {
-        Calendar original = Calendar.getInstance();
-        original.set(year, Calendar.DECEMBER, 8, 0, 0, 0);
-        original.set(Calendar.MILLISECOND, 0);
-        if (isSunday(original) && isAdventSeason(original)) {
-            return addDays(original, 1);
-        }
-        return startOfDay(original);
-    }
-
-    private static Calendar getHolyFamilyDate(int year) {
+    static Calendar getHolyFamilyDate(int year) {
         for (int day = 26; day <= 31; day++) {
             Calendar candidate = Calendar.getInstance();
             candidate.set(year, Calendar.DECEMBER, day, 0, 0, 0);
@@ -220,14 +132,34 @@ final class LiturgicalColorRules {
         return fallback;
     }
 
-    private static Calendar getBaptismOfTheLordDate(int year) {
+    static Calendar getObservedNativityOfJohnDate(int year, Calendar easter) {
+        Calendar date = Calendar.getInstance();
+        date.set(year, Calendar.JUNE, 24, 0, 0, 0);
+        date.set(Calendar.MILLISECOND, 0);
+        if (isSameDay(date, addDays(easter, 68))) return addDays(date, -1);
+        return isSameDay(date, addDays(easter, 63)) ? addDays(date, 1) : date;
+    }
+
+    static Calendar getObservedPeterAndPaulDate(int year, Calendar easter) {
+        Calendar date = Calendar.getInstance();
+        date.set(year, Calendar.JUNE, 29, 0, 0, 0);
+        date.set(Calendar.MILLISECOND, 0);
+        return isSameDay(date, addDays(easter, 68)) ? addDays(date, 1) : date;
+    }
+
+    static Calendar getEpiphanyDate(int year) {
         Calendar candidate = Calendar.getInstance();
-        candidate.set(year, Calendar.JANUARY, 7, 0, 0, 0);
+        candidate.set(year, Calendar.JANUARY, 2, 0, 0, 0);
         candidate.set(Calendar.MILLISECOND, 0);
         while (candidate.get(Calendar.DAY_OF_WEEK) != Calendar.SUNDAY) {
             candidate.add(Calendar.DAY_OF_MONTH, 1);
         }
         return candidate;
+    }
+
+    static Calendar getBaptismOfTheLordDate(int year) {
+        Calendar epiphany = getEpiphanyDate(year);
+        return addDays(epiphany, epiphany.get(Calendar.DAY_OF_MONTH) > 6 ? 1 : 7);
     }
 
     private static int getSeasonDefaultColor(Calendar current, Calendar easter) {
@@ -264,7 +196,7 @@ final class LiturgicalColorRules {
         return isWithinInclusive(day, start, end);
     }
 
-    private static Calendar getAdventStart(int year) {
+    static Calendar getAdventStart(int year) {
         Calendar start = Calendar.getInstance();
         start.set(year, Calendar.NOVEMBER, 27, 0, 0, 0);
         start.set(Calendar.MILLISECOND, 0);
@@ -288,32 +220,6 @@ final class LiturgicalColorRules {
 
     private static boolean isLentSeason(Calendar current, Calendar easter) {
         return isWithinInclusive(current, addDays(easter, -46), addDays(easter, -1));
-    }
-
-    private static boolean keepsOwnColorInPenitentialSeason(String title, String name) {
-        return title.contains("solemnidad")
-                || title.contains("fiesta")
-                || title.contains("fiesta del senor")
-                || name.contains("jueves santo")
-                || name.contains("viernes santo")
-                || name.contains("pasion del senor")
-                || name.contains("pentecostes")
-                || name.contains("domingo de ramos");
-    }
-
-    private static boolean isMarianCelebration(String type, String name) {
-        if (type.contains("marian")) return true;
-        return name.contains("nuestra senora")
-                || name.contains("santa maria")
-                || name.contains("virgen maria")
-                || name.contains("madre de dios")
-                || name.contains("inmaculada")
-                || name.contains("asuncion de la virgen")
-                || name.contains("presentacion de la virgen")
-                || name.contains("natividad de la virgen")
-                || name.contains("visitacion de la virgen")
-                || name.contains("virgen del ")
-                || name.contains("virgen de ");
     }
 
     private static boolean isSunday(Calendar current) {
@@ -344,21 +250,4 @@ final class LiturgicalColorRules {
         return day >= startOfDay(start).getTimeInMillis() && day <= startOfDay(end).getTimeInMillis();
     }
 
-    private static String normalizeLiturgicalText(String value) {
-        if (value == null) return "";
-
-        String normalized = value
-                .toLowerCase(Locale.getDefault())
-                .replace("Ã¡", "a")
-                .replace("Ã©", "e")
-                .replace("Ã­", "i")
-                .replace("Ã³", "o")
-                .replace("Ãº", "u")
-                .replace("Ã±", "n")
-                .replace("Ã¼", "u");
-
-        normalized = Normalizer.normalize(normalized, Normalizer.Form.NFD);
-        normalized = normalized.replaceAll("\\p{M}+", "");
-        return normalized.replaceAll("[^a-z0-9]+", " ").trim();
-    }
 }

@@ -66,7 +66,8 @@ test('calendar functions terminate for invalid dates and extreme finite years', 
   execFileSync(process.execPath, ['-e', `
     const fs = require('fs'), ts = require('typescript'), assert = require('assert/strict');
     require.extensions['.ts'] = (m, f) => m._compile(ts.transpileModule(fs.readFileSync(f, 'utf8'),
-      { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText, f);
+      { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020,
+        esModuleInterop: true } }).outputText, f);
     const feasts = require('./src/lib/movable-feasts.ts');
     const rules = require('./src/lib/liturgical-color-rules.ts');
     assert.equal(feasts.getMovableFeast(new Date(NaN), new Date()), null);

@@ -10,6 +10,7 @@ import Image from 'next/image';
 
 type AnnuumStoryProps = {
   onClose: () => void;
+  onQualifiedView?: () => void;
   originRect?: { top: number; left: number; width: number; height: number };
 };
 
@@ -30,7 +31,7 @@ const calculateSlideDuration = (text: string) => {
   );
 };
 
-export default function AnnuumStory({ onClose, originRect }: AnnuumStoryProps) {
+export default function AnnuumStory({ onClose, onQualifiedView, originRect }: AnnuumStoryProps) {
   const { userStats, allPrayers, showZeroStats } = useSettings();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -40,7 +41,9 @@ export default function AnnuumStory({ onClose, originRect }: AnnuumStoryProps) {
   const lastTimeRef = useRef<number | null>(null);
   const progressRef = useRef(0);
   const animationFrameRef = useRef<number | null>(null);
-
+  const slides = useMemoSlides(userStats, allPrayers, showZeroStats);
+  const seenSlidesRef = useRef(new Set<string>());
+  const qualifiedViewRef = useRef(false);
 
   const handleSlideContentRef = useCallback((node: HTMLDivElement | null) => {
     if (!node) return;
@@ -48,12 +51,20 @@ export default function AnnuumStory({ onClose, originRect }: AnnuumStoryProps) {
     setProgress(0);
     progressRef.current = 0;
     lastTimeRef.current = null;
-  }, []);
-  const slides = useMemoSlides(userStats, allPrayers, showZeroStats);
+
+    const slide = slides[currentSlide];
+    if (!slide || !onQualifiedView || qualifiedViewRef.current) return;
+    seenSlidesRef.current.add(slide.id);
+    const seenCount = slides.filter(({ id }) => seenSlidesRef.current.has(id)).length;
+    if (seenCount >= Math.ceil(slides.length * 0.9)) {
+      qualifiedViewRef.current = true;
+      onQualifiedView();
+    }
+  }, [currentSlide, onQualifiedView, slides]);
 
   const handleNext = useCallback(() => {
     if (currentSlide < slides.length - 1) {
-      setCurrentSlide(prev => prev + 1);
+      setCurrentSlide(prev => Math.min(prev + 1, slides.length - 1));
     } else {
       onClose();
     }
@@ -61,7 +72,7 @@ export default function AnnuumStory({ onClose, originRect }: AnnuumStoryProps) {
 
   const handlePrev = useCallback(() => {
     if (currentSlide > 0) {
-      setCurrentSlide(prev => prev - 1);
+      setCurrentSlide(prev => Math.max(prev - 1, 0));
     }
   }, [currentSlide]);
 

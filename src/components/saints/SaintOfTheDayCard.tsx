@@ -46,8 +46,7 @@ export default function SaintOfTheDayCard({ onOpenPrayerById }: SaintOfTheDayCar
 
   if (!activeSaint) return null;
 
-  const now = simulatedDate ? new Date(simulatedDate) : new Date();
-  const isAnnunciationDay = now.getMonth() === 2 && now.getDate() === 25;
+  const isAnnunciationDay = activeSaint.name === 'Anunciación del Señor';
   const annunciationOverlayImage = isAnnunciationDay
     ? PlaceHolderImages.find((img) => img.id === 'annunciation-overlay-image') || null
     : null;
@@ -92,7 +91,7 @@ export default function SaintOfTheDayCard({ onOpenPrayerById }: SaintOfTheDayCar
             alt={activeImage.description || 'Imagen del Santo del Día'}
             fill
             sizes="(max-width: 768px) 100vw, 33vw"
-            className="object-cover"
+            className={activeImage.id === 'immaculate-heart-of-mary-image' ? 'object-contain' : 'object-cover'}
             style={{ objectPosition, transform: `scale(${objectScale})` }}
             data-ai-hint={activeImage.imageHint}
             priority

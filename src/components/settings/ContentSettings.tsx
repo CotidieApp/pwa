@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import { useSettings, type PrayerLanguageMode } from '@/context/SettingsContext';
 import { initialPrayers } from '@/lib/data';
+import { LITURGY_HOURS_ID } from '@/lib/liturgy-hours';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -31,6 +32,7 @@ const alwaysVisiblePrayerRows = [
   { id: 'salve-regina', title: 'Salve Regina', subtitle: 'Sábado' },
   { id: 'preces', title: 'Preces' },
   { id: 'via-crucis', title: 'Vía Crucis' },
+  { id: LITURGY_HOURS_ID, title: 'Liturgia de las Horas' },
 ];
 
 const alwaysVisiblePrayerIds = new Set(alwaysVisiblePrayerRows.map((row) => row.id));

@@ -61,7 +61,9 @@ public final class SaintWidgetUpdater {
         Bitmap bmp = loadAssetBitmap(context, content.imageAssetPath, 1400, 900);
         if (bmp != null) {
             CropBias bias = resolveCropBiasForImageId(context, content.imageId);
-            Bitmap cropped = cropToAspectWithBias(bmp, 1.5f, bias.horizontal, bias.vertical);
+            Bitmap cropped = "immaculate-heart-of-mary-image".equals(content.imageId)
+                    ? fitPortrait(bmp, content.backgroundColor)
+                    : cropToAspectWithBias(bmp, 1.5f, bias.horizontal, bias.vertical);
             if (cropped != bmp) bmp.recycle();
             Bitmap zoomed = zoomBitmapWithBias(
                     cropped,
@@ -81,6 +83,16 @@ public final class SaintWidgetUpdater {
         }
 
         return views;
+    }
+
+    private static Bitmap fitPortrait(Bitmap source, int backgroundColor) {
+        int height = source.getHeight();
+        int width = Math.round(height * 1.5f);
+        Bitmap result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(result);
+        canvas.drawColor(backgroundColor);
+        canvas.drawBitmap(source, (width - source.getWidth()) / 2f, 0f, null);
+        return result;
     }
 
     private static CropBias resolveCropBiasForImageId(Context context, String imageId) {

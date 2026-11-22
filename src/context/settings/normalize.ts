@@ -1,6 +1,7 @@
 import type { Prayer } from '@/lib/types';
 import { normalizeTimerMinutes } from '@/lib/prayer-timer';
 import { normalizeSimulatedDate } from '@/lib/calendar-date';
+import { LITURGY_HOURS_ID, LITURGY_MASS_ID } from '@/lib/liturgy-hours';
 import {
   defaultThemeColors,
   defaultOverlayPositions,
@@ -56,14 +57,18 @@ export const isFullAppStatePayload = (data: any): boolean => {
 export const applyPredefinedPrayerState = (
   prayers: Prayer[],
   hiddenIds: string[],
-  overrides: Record<string, PredefinedPrayerOverrideData>
+  overrides: Record<string, PredefinedPrayerOverrideData>,
+  alwaysShowIds: string[] = [],
 ): Prayer[] =>
   prayers
-    .filter((prayer) => !prayer.id || !hiddenIds.includes(prayer.id))
+    .filter(({ id }) => {
+      if (id === LITURGY_HOURS_ID) return alwaysShowIds.includes(id);
+      return !id || id === LITURGY_MASS_ID || !hiddenIds.includes(id);
+    })
     .map((prayer) => {
       const override = prayer.id ? overrides[prayer.id] : undefined;
       const nestedPrayers = prayer.prayers?.length
-        ? applyPredefinedPrayerState(prayer.prayers, hiddenIds, overrides)
+        ? applyPredefinedPrayerState(prayer.prayers, hiddenIds, overrides, alwaysShowIds)
         : prayer.prayers;
 
       return {
@@ -429,8 +434,8 @@ export const normalizeBackupState = (raw: any) => {
     simulatedStats: source.simulatedStats == null ? null : normalizeUserStatsValue(source.simulatedStats),
     forceAnnuumSeason: normalizeBoolean(source.forceAnnuumSeason),
     showZeroStats: normalizeBoolean(source.showZeroStats),
-    hasViewedAnnuum: normalizeBoolean(source.hasViewedAnnuum),
-    annuumFirstOpenedDate: normalizeNullableString(source.annuumFirstOpenedDate),
+    // Older versions recorded an opening, which cannot establish completion.
+    annuumCompletedDate: normalizeNullableString(source.annuumCompletedDate),
   };
 };
 

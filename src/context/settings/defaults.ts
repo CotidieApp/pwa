@@ -115,8 +115,7 @@ export const FULL_BACKUP_KEYS = [
   'simulatedStats',
   'forceAnnuumSeason',
   'showZeroStats',
-  'hasViewedAnnuum',
-  'annuumFirstOpenedDate',
+  'annuumCompletedDate',
 ] as const;
 
 const FORCED_DAILY_QUOTES: Record<string, Quote> = {

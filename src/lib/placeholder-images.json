@@ -1,6 +1,12 @@
 {
   "placeholderImages": [
     {
+      "id": "christ-the-king-image",
+      "description": "Cristo Rey bendice y sostiene el Evangeliario",
+      "imageUrl": "/images/cristo-rey.jpg",
+      "imageHint": "Mosaico de Cristo Pantocrátor"
+    },
+    {
       "id": "home-christ",
       "description": "Monte de Cristo",
       "imageUrl": "/images/monte-cristo.jpg",
@@ -83,7 +89,7 @@
     {
       "id": "saintoftheday-0",
       "description": "Resurrección para el Domingo (Día del Señor)",
-      "imageUrl": "/images/resurrection.jpeg",
+      "imageUrl": "/images/rosario/glorioso-1.jpg",
       "imageHint": "resurrection Jesus"
     },
     {

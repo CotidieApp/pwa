@@ -19,6 +19,7 @@ import { usePrayerTimer } from '@/hooks/usePrayerTimer';
 import { useCommittedCallback } from '@/hooks/useCommittedCallback';
 import { useConfessionNotebook } from '@/hooks/useConfessionNotebook';
 import { initialPrayers, categories } from '@/lib/data';
+import { LITURGY_HOURS_ID } from '@/lib/liturgy-hours';
 import type {
   Prayer,
   Quote,
@@ -355,8 +356,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [simulatedStats, setSimulatedStats] = useState<UserStats | null>(null);
 
   const [showZeroStats, setShowZeroStats] = useState(false);
-  const [hasViewedAnnuum, setHasViewedAnnuum] = useState(false);
-  const [annuumFirstOpenedDate, setAnnuumFirstOpenedDate] = useState<string | null>(null);
+  const [annuumCompletedDate, setAnnuumCompletedDate] = useState<string | null>(null);
 
   const { pushDevLiveTrace, clearDevLiveTraceEvents } = useDevLiveTrace(
     devLiveTraceEnabled,
@@ -529,8 +529,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setSimulatedStats(snapshot.simulatedStats);
     setForceAnnuumSeason(snapshot.forceAnnuumSeason);
     setShowZeroStats(snapshot.showZeroStats);
-    setHasViewedAnnuum(snapshot.hasViewedAnnuum);
-    setAnnuumFirstOpenedDate(snapshot.annuumFirstOpenedDate);
+    setAnnuumCompletedDate(snapshot.annuumCompletedDate);
   }, [pushDevLiveTrace, setMovableFeastsEnabled, setTimerDuration, setTimerEnabled, setTimerTime, setSimulatedDate]);
 
   // Countdown ticks persist a small checkpoint; the full settings object stays stable.
@@ -606,8 +605,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         simulatedStats,
         forceAnnuumSeason,
         showZeroStats,
-        hasViewedAnnuum,
-        annuumFirstOpenedDate,
+        annuumCompletedDate,
       }),
     [
       theme,
@@ -678,8 +676,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     simulatedStats,
     forceAnnuumSeason,
     showZeroStats,
-    hasViewedAnnuum,
-    annuumFirstOpenedDate,
+    annuumCompletedDate,
   ]);
 
   const getBackupSnapshot = useCallback(() => {
@@ -820,8 +817,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
               userStats: normalizeUserStatsValue(defaultUserStats),
               globalUserStats: normalizeUserStatsValue(hasSavedGlobalUserStats ? (s as any).globalUserStats : snapshot.userStats),
               statsYear: currentYear,
-              hasViewedAnnuum: false,
-              annuumFirstOpenedDate: null,
+              annuumCompletedDate: null,
             };
           }
 
@@ -1388,6 +1384,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const removePredefinedPrayer = (id: string) => {
+    if (id === LITURGY_HOURS_ID) {
+      setAlwaysShowPrayers(prev => prev.filter(prayerId => prayerId !== id));
+      return;
+    }
     setHiddenPrayerIds(prev => [...prev, id]);
   };
 
@@ -2035,7 +2035,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   // Combined prayers list
   const allPrayers = useMemo(() => {
-    const base = applyPredefinedPrayerState(initialPrayers, hiddenPrayerIds, predefinedPrayerOverrides);
+    const base = applyPredefinedPrayerState(initialPrayers, hiddenPrayerIds, predefinedPrayerOverrides, alwaysShowPrayers);
     const withLetters = base.map(p => {
       if (p.id === 'cartas') {
         return { ...p, prayers: lettersSecurity.enabled && lettersSecurity.locked ? [] : userLetters };
@@ -2047,7 +2047,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       ...userDevotions,
       ...userPrayers,
     ];
-  }, [hiddenPrayerIds, predefinedPrayerOverrides, userDevotions, userPrayers, userLetters, lettersSecurity.enabled, lettersSecurity.locked]);
+  }, [hiddenPrayerIds, predefinedPrayerOverrides, alwaysShowPrayers, userDevotions, userPrayers, userLetters, lettersSecurity.enabled, lettersSecurity.locked]);
 
   const getPrayerById = useCallback((id: string, list: Prayer[]): Prayer | null => {
     for (const prayer of list) {
@@ -2535,10 +2535,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         setForceAnnuumSeason,
         showZeroStats,
         setShowZeroStats,
-        hasViewedAnnuum,
-        setHasViewedAnnuum,
-        annuumFirstOpenedDate,
-        setAnnuumFirstOpenedDate,
+        annuumCompletedDate,
+        setAnnuumCompletedDate,
       }}
     >
       {children}

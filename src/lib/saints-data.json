@@ -22,15 +22,15 @@
       "day": 3,
       "name": "El Santísimo Nombre de Jesús",
       "bio": "Celebración en honor al Nombre de Jesús, símbolo del amor y salvación que trae al mundo.",
-      "title": "Fiesta",
+      "title": "Memoria libre",
       "type": "celebration"
     },
     {
       "month": 1,
       "day": 4,
       "name": "Santa Isabel Ana Seton, religiosa",
-      "bio": "Primera santa nacida en Estados Unidos, fundadora de la primera escuela católica y de la congregación de las Hermanas de la Caridad.",
-      "title": "Memoria",
+      "bio": "Primera persona nacida en lo que hoy es Estados Unidos en ser canonizada. Fundó las Hermanas de la Caridad de San José y promovió la educación católica.",
+      "title": "Santoral",
       "type": "founder"
     },
     {
@@ -38,23 +38,23 @@
       "day": 5,
       "name": "San Juan Neumann, obispo",
       "bio": "Obispo de Filadelfia, conocido por su humildad y su dedicación a la educación católica.",
-      "title": "Memoria",
+      "title": "Santoral",
       "type": "bishop"
     },
     {
       "month": 1,
       "day": 6,
-      "name": "Epifanía del Señor",
-      "bio": "Celebración de la manifestación de Jesús como Salvador universal, representada en la visita de los Reyes Magos.",
-      "title": "Solemnidad",
-      "type": "celebration"
+      "name": "San Andrés Corsini, obispo",
+      "bio": "Carmelita y obispo de Fiésole en el siglo XIV. Ayudó a los pobres y trabajó por la reconciliación de sus comunidades.",
+      "title": "Santoral",
+      "type": "bishop"
     },
     {
       "month": 1,
       "day": 7,
       "name": "San Raimundo de Peñafort, presbítero",
-      "bio": "Dominico y jurista, compiló las Decretales de Gregorio IX y fue maestro de Santo Tomás de Aquino.",
-      "title": "Memoria",
+      "bio": "Dominico y jurista, compiló las Decretales por encargo de Gregorio IX. Fue maestro general de la Orden de Predicadores y promovió la formación de sus misioneros.",
+      "title": "Memoria libre",
       "type": "priest"
     },
     {
@@ -62,7 +62,7 @@
       "day": 8,
       "name": "San Lorenzo Giustiniani, obispo",
       "bio": "Primer patriarca de Venecia, modelo de austeridad y oración.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "bishop"
     },
     {
@@ -70,7 +70,7 @@
       "day": 9,
       "name": "San Adriano de Canterbury, abad",
       "bio": "Monje africano que contribuyó a la cultura cristiana en Inglaterra durante el siglo VII.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "abbot"
     },
     {
@@ -78,7 +78,7 @@
       "day": 10,
       "name": "San Gregorio de Nisa, obispo",
       "bio": "Hermano de San Basilio, gran teólogo místico y defensor de la divinidad del Espíritu Santo.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "bishop"
     },
     {
@@ -86,7 +86,7 @@
       "day": 11,
       "name": "San Higinio, papa",
       "bio": "Papa del siglo II, promovió el orden en la Iglesia y combatió las herejías gnósticas.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "pope"
     },
     {
@@ -94,7 +94,7 @@
       "day": 12,
       "name": "San Benito Biscop, abad",
       "bio": "Monje inglés que fundó el monasterio de Wearmouth y promovió el arte y la liturgia romana en Inglaterra.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "abbot"
     },
     {
@@ -102,7 +102,7 @@
       "day": 13,
       "name": "San Hilario de Poitiers, obispo y doctor de la Iglesia",
       "bio": "Defensor de la fe contra el arrianismo y autor de tratados fundamentales sobre la Trinidad.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "bishop"
     },
     {
@@ -110,7 +110,7 @@
       "day": 14,
       "name": "San Félix de Nola, presbítero",
       "bio": "Sacerdote que sufrió persecución por su fe y fue conocido por su caridad hacia los pobres.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "priest"
     },
     {
@@ -118,15 +118,15 @@
       "day": 15,
       "name": "San Mauro, abad",
       "bio": "Discípulo de San Benito, propagador del monacato benedictino en Francia.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "abbot"
     },
     {
       "month": 1,
       "day": 16,
-      "name": "San Marcelo I, papa y mártir",
-      "bio": "Gobernó la Iglesia en tiempos de persecución y reorganizó las comunidades tras la paz constantiniana.",
-      "title": "Memoria libre",
+      "name": "San Marcelo I, papa",
+      "bio": "Obispo de Roma a comienzos del siglo IV. Se ocupó de la reconciliación de quienes habían abandonado la fe durante la persecución y murió desterrado.",
+      "title": "Santoral",
       "type": "pope"
     },
     {
@@ -142,23 +142,23 @@
       "day": 18,
       "name": "Santa Margarita de Hungría, virgen",
       "bio": "Hija del rey Bela IV, vivió en pobreza voluntaria y oración en un convento dominico.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "virgin"
     },
     {
       "month": 1,
       "day": 19,
-      "name": "San Canuto, mártir",
-      "bio": "Rey de Dinamarca, asesinado por promover la conversión cristiana y la justicia social.",
-      "title": "Memoria libre",
-      "type": "martyr"
+      "name": "San Macario el Grande, abad",
+      "bio": "Monje del desierto egipcio y padre espiritual de la comunidad de Escete.",
+      "title": "Santoral",
+      "type": "abbot"
     },
     {
       "month": 1,
       "day": 20,
       "name": "San Sebastián, mártir",
       "bio": "Oficial romano que fue ejecutado por confesar su fe en Cristo. Símbolo de fortaleza y esperanza.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "martyr"
     },
     {
@@ -172,17 +172,17 @@
     {
       "month": 1,
       "day": 22,
-      "name": "San Vicente, diácono y mártir",
-      "bio": "Mártir de Zaragoza, ejemplo de fidelidad y firmeza en la persecución.",
-      "title": "Memoria",
-      "type": "martyr"
+      "name": "Beata Laura Vicuña",
+      "bio": "Nacida en Santiago de Chile, Laura estudió con las Hijas de María Auxiliadora en la Patagonia. Vivió su fe desde muy joven en medio de dificultades familiares.",
+      "title": "Memoria libre",
+      "type": "layperson"
     },
     {
       "month": 1,
       "day": 23,
       "name": "San Ildefonso, obispo",
       "bio": "Arzobispo de Toledo, gran defensor de la virginidad de María.",
-      "title": "Memoria",
+      "title": "Santoral",
       "type": "bishop"
     },
     {
@@ -230,7 +230,7 @@
       "day": 29,
       "name": "San Valerio, obispo",
       "bio": "Obispo de Zaragoza y compañero de San Vicente en la fe y persecución.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "bishop"
     },
     {
@@ -238,7 +238,7 @@
       "day": 30,
       "name": "San Lesmes, abad",
       "bio": "Abad benedictino francés que dedicó su vida al servicio de los peregrinos del Camino de Santiago.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "abbot"
     },
     {
@@ -254,7 +254,7 @@
       "day": 1,
       "name": "San Cecilio, obispo y mártir",
       "bio": "Discípulo del apóstol Santiago, considerado primer obispo de Granada y mártir de la fe cristiana.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "martyr"
     },
     {
@@ -278,7 +278,7 @@
       "day": 4,
       "name": "San Gilberto de Sempringham, abad",
       "bio": "Fundador de la Orden de Sempringham, único instituto religioso mixto medieval de hombres y mujeres.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "founder"
     },
     {
@@ -310,7 +310,7 @@
       "day": 8,
       "name": "Santa Josefina Bakhita, virgen",
       "bio": "Sudanesa esclavizada y luego liberada, se convirtió en religiosa canosiana. Símbolo de perdón y esperanza.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "virgin"
     },
     {
@@ -318,7 +318,7 @@
       "day": 9,
       "name": "San Miguel Febres Cordero, religioso",
       "bio": "Hermano de las Escuelas Cristianas ecuatoriano, educador y poeta. Famoso por su sabiduría y humildad.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "religious"
     },
     {
@@ -342,7 +342,7 @@
       "day": 12,
       "name": "Santa Eulalia de Barcelona, virgen y mártir",
       "bio": "Joven mártir del siglo IV, símbolo de pureza y fe inquebrantable frente a la persecución romana.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "martyr"
     },
     {
@@ -350,7 +350,7 @@
       "day": 13,
       "name": "San Benigno, presbítero y mártir",
       "bio": "Sacerdote francés que entregó su vida por predicar el Evangelio.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "martyr"
     },
     {
@@ -366,7 +366,7 @@
       "day": 15,
       "name": "San Claudio de la Colombière, presbítero",
       "bio": "Jesuita francés, confesor de Santa Margarita María Alacoque y promotor del culto al Sagrado Corazón de Jesús.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "priest"
     },
     {
@@ -374,7 +374,7 @@
       "day": 16,
       "name": "Santa Juliana de Nicomedia, virgen y mártir",
       "bio": "Joven cristiana que sufrió el martirio por su fe en Cristo. Su devoción se difundió en toda Europa.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "martyr"
     },
     {
@@ -382,31 +382,31 @@
       "day": 17,
       "name": "Santos Siete Fundadores de la Orden de los Siervos de María",
       "bio": "Grupo de laicos florentinos que en el siglo XIII fundaron la orden de los Servitas, dedicados a la Virgen María.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "founder"
     },
     {
       "month": 2,
       "day": 18,
-      "name": "San Simeón, obispo y mártir",
-      "bio": "Obispo de Jerusalén, pariente del Señor, que fue crucificado por su fe durante el imperio de Trajano.",
-      "title": "Memoria libre",
-      "type": "martyr"
+      "name": "San Teotonio, presbítero",
+      "bio": "Sacerdote portugués y prior de los canónigos regulares de Santa Cruz de Coímbra, comunidad que ayudó a fundar.",
+      "title": "Santoral",
+      "type": "priest"
     },
     {
       "month": 2,
       "day": 19,
       "name": "San Conrado Confalonieri, eremita",
       "bio": "Noble italiano que dejó todo para vivir como penitente y ermitaño. Ejemplo de conversión y humildad.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "hermit"
     },
     {
       "month": 2,
       "day": 20,
-      "name": "Beatos Jacinta y Francisco Marto, videntes de Fátima",
+      "name": "Santos Francisco y Jacinta Marto, videntes de Fátima",
       "bio": "Niños portugueses a quienes se apareció la Virgen María en Fátima. Ejemplo de inocencia y oración.",
-      "title": "Memoria",
+      "title": "Santoral",
       "type": "visionary"
     },
     {
@@ -414,7 +414,7 @@
       "day": 21,
       "name": "San Pedro Damiani, obispo y doctor de la Iglesia",
       "bio": "Reformador de la Iglesia y defensor de la vida monástica. Amigo y consejero de varios papas.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "doctor"
     },
     {
@@ -438,15 +438,15 @@
       "day": 24,
       "name": "San Modesto, obispo de Tréveris",
       "bio": "Obispo alemán del siglo V que luchó por la unidad de la Iglesia y la pureza de la fe.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "bishop"
     },
     {
       "month": 2,
       "day": 25,
-      "name": "San Néstor, mártir",
-      "bio": "Joven mártir del siglo IV que murió durante las persecuciones de Diocleciano.",
-      "title": "Memoria libre",
+      "name": "San Néstor de Magydos, obispo y mártir",
+      "bio": "Obispo de Magydos, en la actual Turquía. Fue arrestado durante la persecución del emperador Decio y crucificado en Perge en el siglo III.",
+      "title": "Santoral",
       "type": "martyr"
     },
     {
@@ -454,23 +454,23 @@
       "day": 26,
       "name": "San Alejandro, obispo de Alejandría",
       "bio": "Defensor de la fe nicena y opositor de Arrio, precursor del Concilio de Nicea.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "bishop"
     },
     {
       "month": 2,
       "day": 27,
-      "name": "San Gabriel de la Dolorosa, religioso",
-      "bio": "Pasionista italiano, modelo de pureza y devoción a la Virgen María.",
-      "title": "Memoria",
-      "type": "religious"
+      "name": "San Gregorio de Narek, abad y doctor de la Iglesia",
+      "bio": "Monje armenio, Gregorio convirtió su búsqueda de la misericordia de Dios en un libro de oraciones que sigue siendo una obra central de la espiritualidad armenia.",
+      "title": "Memoria libre",
+      "type": "doctor"
     },
     {
       "month": 2,
       "day": 28,
       "name": "San Román, abad",
       "bio": "Monje fundador del monasterio de Condat, modelo de humildad y vida contemplativa.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "abbot"
     },
     {
@@ -478,7 +478,7 @@
       "day": 29,
       "name": "San Osvaldo de Worcester, obispo",
       "bio": "Monje benedictino inglés y arzobispo de York. Promovió la reforma monástica y la educación clerical.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "bishop"
     },
     {
@@ -486,23 +486,23 @@
       "day": 1,
       "name": "San David de Gales, obispo",
       "bio": "Patrono de Gales, fundador de monasterios y modelo de vida austera. Promovió la vida evangélica y la oración constante.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "bishop"
     },
     {
       "month": 3,
       "day": 2,
-      "name": "San Simplicio, papa",
-      "bio": "Papa durante los últimos años del Imperio Romano de Occidente. Defensor de la fe en tiempos difíciles.",
-      "title": "Memoria libre",
-      "type": "pope"
+      "name": "Santa Ángela de la Cruz, virgen",
+      "bio": "Fundó en Sevilla las Hermanas de la Compañía de la Cruz, dedicadas al servicio de las personas pobres y enfermas.",
+      "title": "Santoral",
+      "type": "virgin"
     },
     {
       "month": 3,
       "day": 3,
       "name": "San Emeterio y San Celedonio, mártires",
       "bio": "Soldados romanos que entregaron su vida por Cristo en Calahorra. Venerados como patronos de La Rioja.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "martyr"
     },
     {
@@ -510,15 +510,15 @@
       "day": 4,
       "name": "San Casimiro",
       "bio": "Príncipe polaco que vivió en castidad y caridad, conocido por su devoción eucarística y a la Virgen María.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "prince"
     },
     {
       "month": 3,
       "day": 5,
       "name": "San Adrián de Cesarea, mártir",
-      "bio": "Soldado que confesó su fe cristiana durante las persecuciones del siglo IV y fue martirizado en Cesarea.",
-      "title": "Memoria libre",
+      "bio": "Confesó su fe en Cristo y murió mártir en Cesarea de Palestina durante la persecución de Diocleciano.",
+      "title": "Santoral",
       "type": "martyr"
     },
     {
@@ -526,7 +526,7 @@
       "day": 6,
       "name": "Santa Coleta, virgen",
       "bio": "Reformadora de la Orden de Santa Clara, conocida por su espíritu de penitencia y pobreza radical.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "founder"
     },
     {
@@ -542,7 +542,7 @@
       "day": 8,
       "name": "San Juan de Dios, religioso",
       "bio": "Fundador de la Orden Hospitalaria. Dedicó su vida a cuidar a los enfermos y marginados.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "founder"
     },
     {
@@ -550,15 +550,15 @@
       "day": 9,
       "name": "Santa Francisca Romana, religiosa",
       "bio": "Fundadora de las Oblatas de María y ejemplo de esposa y madre cristiana dedicada a la caridad.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "founder"
     },
     {
       "month": 3,
       "day": 10,
       "name": "Santos Cayo y Alejandro, mártires",
-      "bio": "Cristianos que sufrieron martirio por su fe en Roma, ejemplo de fidelidad al Evangelio.",
-      "title": "Memoria libre",
+      "bio": "Fueron martirizados por su fe en Apamea, junto al río Meandro, en la antigua Frigia.",
+      "title": "Santoral",
       "type": "martyr"
     },
     {
@@ -566,7 +566,7 @@
       "day": 11,
       "name": "San Eulogio de Córdoba, mártir",
       "bio": "Presbítero y mártir cordobés, destacado por su defensa de los cristianos perseguidos en Al-Ándalus.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "martyr"
     },
     {
@@ -574,7 +574,7 @@
       "day": 12,
       "name": "San Luis Orione, presbítero",
       "bio": "Fundador de la Pequeña Obra de la Divina Providencia. Apóstol de la caridad y de los pobres.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "founder"
     },
     {
@@ -582,7 +582,7 @@
       "day": 13,
       "name": "San Rodrigo y San Salomón, mártires",
       "bio": "Mártires de Córdoba, asesinados por profesar su fe durante la ocupación musulmana.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "martyr"
     },
     {
@@ -590,7 +590,7 @@
       "day": 14,
       "name": "Santa Matilde, reina",
       "bio": "Reina de Alemania, esposa de Enrique el Pajarero. Dedicó su vida a la oración y las obras de caridad.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "queen"
     },
     {
@@ -598,23 +598,23 @@
       "day": 15,
       "name": "San Clemente María Hofbauer, presbítero",
       "bio": "Redentorista austríaco, reformador de la vida cristiana en Europa Central. Patrono de Viena.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "priest"
     },
     {
       "month": 3,
       "day": 16,
-      "name": "Santa Heriberta, virgen",
-      "bio": "Religiosa alemana del siglo XI, conocida por su humildad y amor a los pobres.",
-      "title": "Memoria libre",
-      "type": "virgin"
+      "name": "San Heriberto de Colonia, obispo",
+      "bio": "Fue canciller del emperador Otón III y arzobispo de Colonia. Fundó la abadía de Deutz.",
+      "title": "Santoral",
+      "type": "bishop"
     },
     {
       "month": 3,
       "day": 17,
       "name": "San Patricio, obispo",
       "bio": "Apóstol de Irlanda, evangelizador incansable y fundador de numerosas comunidades cristianas.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "bishop"
     },
     {
@@ -622,7 +622,7 @@
       "day": 18,
       "name": "San Cirilo de Jerusalén, obispo y doctor de la Iglesia",
       "bio": "Famoso por sus catequesis mistagógicas y por su defensa de la ortodoxia contra las herejías.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "doctor"
     },
     {
@@ -638,8 +638,8 @@
       "month": 3,
       "day": 20,
       "name": "San Martín de Braga, obispo",
-      "bio": "Evangelizador de Galicia y defensor de la disciplina eclesiástica. Promotor de la vida monástica.",
-      "title": "Memoria libre",
+      "bio": "Martín promovió la vida monástica en la península ibérica y, como obispo de Braga, se dedicó a la formación del clero y del pueblo cristiano.",
+      "title": "Santoral",
       "type": "bishop"
     },
     {
@@ -647,7 +647,7 @@
       "day": 21,
       "name": "San Nicolás de Flüe, ermitaño",
       "bio": "Patrono de Suiza, padre de familia y ermitaño que promovió la paz entre los pueblos.",
-      "title": "Memoria",
+      "title": "Santoral",
       "type": "hermit"
     },
     {
@@ -655,7 +655,7 @@
       "day": 22,
       "name": "Santa Lea de Roma, viuda",
       "bio": "Mujer noble que consagró su vida a la oración y al servicio en una comunidad cristiana.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "widow"
     },
     {
@@ -663,7 +663,7 @@
       "day": 23,
       "name": "San Toribio de Mogrovejo, obispo",
       "bio": "Arzobispo de Lima y gran misionero de América del Sur. Protector de los indígenas y reformador de la Iglesia.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "bishop"
     },
     {
@@ -671,7 +671,7 @@
       "day": 24,
       "name": "San Óscar Romero, obispo y mártir",
       "bio": "Arzobispo de San Salvador, asesinado mientras celebraba Misa. Defensor de los pobres y de los derechos humanos.",
-      "title": "Memoria",
+      "title": "Santoral",
       "type": "martyr"
     },
     {
@@ -688,7 +688,7 @@
       "day": 26,
       "name": "San Braulio de Zaragoza, obispo",
       "bio": "Obispo del siglo VII, colaborador de San Isidoro y defensor de la unidad de la Iglesia hispana.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "bishop"
     },
     {
@@ -696,7 +696,7 @@
       "day": 27,
       "name": "San Ruperto de Salzburgo, obispo",
       "bio": "Fundador de la abadía de San Pedro en Salzburgo, conocido como el apóstol de Baviera.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "bishop"
     },
     {
@@ -704,7 +704,7 @@
       "day": 28,
       "name": "San Gontrán, rey",
       "bio": "Rey franco que, tras una vida disoluta, se convirtió en un ejemplo de justicia y caridad.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "king"
     },
     {
@@ -712,7 +712,7 @@
       "day": 29,
       "name": "San Eustasio, abad de Luxeuil",
       "bio": "Sucesor de San Columbano en el monasterio de Luxeuil. Promovió la vida monástica y la disciplina espiritual.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "abbot"
     },
     {
@@ -720,7 +720,7 @@
       "day": 30,
       "name": "San Juan Clímaco, abad",
       "bio": "Monje del Sinaí, autor de 'La Escala del Paraíso', obra maestra de la espiritualidad oriental.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "abbot"
     },
     {
@@ -728,7 +728,7 @@
       "day": 31,
       "name": "San Benjamín, diácono y mártir",
       "bio": "Diácono persa que sufrió el martirio por proclamar el Evangelio. Ejemplo de valentía y fidelidad.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "martyr"
     },
     {
@@ -736,7 +736,7 @@
       "day": 1,
       "name": "San Hugo de Grenoble, obispo",
       "bio": "Obispo reformador del s. XI, apoyó a San Bruno en la fundación de los cartujos y promovió la vida monástica.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "bishop"
     },
     {
@@ -744,7 +744,7 @@
       "day": 2,
       "name": "San Francisco de Paula, ermitaño",
       "bio": "Fundador de los Mínimos; vivió austeramente y fue consejero espiritual de reyes y humildes por igual.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "founder"
     },
     {
@@ -752,7 +752,7 @@
       "day": 3,
       "name": "San Ricardo de Chichester, obispo",
       "bio": "Obispo inglés del s. XIII, ejemplo de pobreza y rectitud; reformó el clero y defendió a los pobres.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "bishop"
     },
     {
@@ -760,7 +760,7 @@
       "day": 4,
       "name": "San Isidoro de Sevilla, obispo y doctor de la Iglesia",
       "bio": "Gran sabio hispano; compiló el saber antiguo en sus 'Etimologías' y promovió la unidad de la Iglesia.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "doctor"
     },
     {
@@ -768,16 +768,16 @@
       "day": 5,
       "name": "San Vicente Ferrer, presbítero",
       "bio": "Dominico valenciano, gran predicador itinerante y reconciliador en tiempos convulsos en Europa.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "priest"
     },
     {
       "month": 4,
       "day": 6,
-      "name": "San Celestino I, papa",
-      "bio": "Papa del s. V; sostuvo el Concilio de Éfeso y defendió la maternidad divina de María.",
-      "title": "Memoria libre",
-      "type": "pope"
+      "name": "San Metodio, obispo",
+      "bio": "Evangelizó a los pueblos eslavos junto con su hermano Cirilo. El santoral recuerda aquí el día de su muerte y la memoria litúrgica de ambos se celebra el 14 de febrero.",
+      "title": "Santoral",
+      "type": "bishop"
     },
     {
       "month": 4,
@@ -792,7 +792,7 @@
       "day": 8,
       "name": "Santa Julia Billiart, virgen",
       "bio": "Fundadora de las Hermanas de Notre Dame; educadora de niñas y promotora del amor a la Eucaristía.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "founder"
     },
     {
@@ -800,7 +800,7 @@
       "day": 9,
       "name": "San Demetrio y compañeros, mártires",
       "bio": "Cristianos que sufrieron martirio por confesar a Cristo; su memoria alienta la perseverancia en la fe.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "martyr"
     },
     {
@@ -808,7 +808,7 @@
       "day": 10,
       "name": "Santa Magdalena de Canossa, virgen",
       "bio": "Fundadora de las Hijas de la Caridad (Canossianas); dedicó su vida a los pobres y a la educación.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "founder"
     },
     {
@@ -824,7 +824,7 @@
       "day": 12,
       "name": "San Julio I, papa",
       "bio": "Papa del s. IV que sostuvo a San Atanasio y la fe nicena frente al arrianismo.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "pope"
     },
     {
@@ -840,15 +840,15 @@
       "day": 14,
       "name": "San Pedro González 'Telmo', presbítero",
       "bio": "Dominico español, patrono de marineros; muy venerado en zonas costeras y portuarias.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "priest"
     },
     {
       "month": 4,
       "day": 15,
-      "name": "Beato César de Bus, presbítero",
+      "name": "San César de Bus, presbítero",
       "bio": "Fundador de los Padres de la Doctrina Cristiana; impulsó la catequesis popular.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "founder"
     },
     {
@@ -856,39 +856,39 @@
       "day": 16,
       "name": "Santa Bernardita Soubirous, virgen",
       "bio": "Vidente de Lourdes; humilde hija de molinero que testimonió las apariciones de la Inmaculada.",
-      "title": "Memoria",
+      "title": "Santoral",
       "type": "virgin"
     },
     {
       "month": 4,
       "day": 17,
-      "name": "San Aniceto, papa y mártir",
-      "bio": "Papa del s. II; promovió la disciplina eclesial y defendió la fe ante corrientes heréticas.",
-      "title": "Memoria libre",
-      "type": "pope"
+      "name": "San Roberto de Molesmes, abad",
+      "bio": "Monje benedictino y fundador de Molesmes. Participó en la fundación de Císter, origen de la Orden Cisterciense.",
+      "title": "Santoral",
+      "type": "abbot"
     },
     {
       "month": 4,
       "day": 18,
-      "name": "Beato José de Anchieta / San Perfecto, mártir",
-      "bio": "En América Latina se recuerda a José de Anchieta, jesuita misionero en Brasil; en el calendario tradicional se venera a San Perfecto, mártir de Córdoba.",
-      "title": "Memoria libre (AL) / Memoria libre (Universal)",
-      "type": "missionary"
+      "name": "San Perfecto de Córdoba, presbítero y mártir",
+      "bio": "Presbítero cristiano ejecutado en Córdoba en el siglo IX.",
+      "title": "Santoral",
+      "type": "martyr"
     },
     {
       "month": 4,
       "day": 19,
-      "name": "San Expedito, mártir / Santos Jorge y compañeros",
-      "bio": "San Expedito, soldado mártir invocado para causas urgentes, goza de gran devoción en Chile y Latinoamérica. Ese día también se recuerdan mártires de diversas Iglesias locales.",
-      "title": "Memoria libre (Chile/AL) / Memoria libre (Universal)",
-      "type": "martyr"
+      "name": "San León IX, papa",
+      "bio": "Antes de ser elegido papa fue obispo de Toul. Promovió la reforma de la Iglesia mediante sínodos y visitas pastorales.",
+      "title": "Santoral",
+      "type": "pope"
     },
     {
       "month": 4,
       "day": 20,
       "name": "Santa Inés de Montepulciano, virgen",
       "bio": "Dominica italiana de vida contemplativa; famosa por su caridad y dones místicos.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "virgin"
     },
     {
@@ -896,15 +896,15 @@
       "day": 21,
       "name": "San Anselmo, obispo y doctor de la Iglesia",
       "bio": "Arzobispo de Canterbury; gran teólogo de la fe que 'busca entender' (fides quaerens intellectum).",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "doctor"
     },
     {
       "month": 4,
       "day": 22,
-      "name": "Santos Sotero y Cayo, papas",
-      "bio": "Pontífices de los primeros siglos; promovieron la caridad y la unidad eclesial.",
-      "title": "Memoria libre",
+      "name": "San Sotero, papa",
+      "bio": "Sotero fue obispo de Roma en el siglo II. En una carta, san Dionisio de Corinto agradeció la ayuda que la Iglesia de Roma enviaba a otras comunidades.",
+      "title": "Santoral",
       "type": "pope"
     },
     {
@@ -918,9 +918,9 @@
     {
       "month": 4,
       "day": 24,
-      "name": "San Fidel de Sigmaringen, presbítero y mártir / San Pedro de San José Betancur (AL)",
-      "bio": "Fidel, capuchino mártir de la Contrarreforma. En América Latina se recuerda a Pedro de San José Betancur, misionero de la caridad en Guatemala.",
-      "title": "Memoria (Universal) / Memoria (AL)",
+      "name": "San Fidel de Sigmaringen, presbítero y mártir",
+      "bio": "Antes de ingresar en los capuchinos, Fidel ejerció como abogado. Fue asesinado mientras predicaba en la región de los Grisones, en Suiza.",
+      "title": "Memoria libre",
       "type": "martyr"
     },
     {
@@ -936,7 +936,7 @@
       "day": 26,
       "name": "Nuestra Señora del Buen Consejo",
       "bio": "Memoria mariana de origen italiano; María como guía segura en el discernimiento cristiano.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "marian"
     },
     {
@@ -944,15 +944,15 @@
       "day": 27,
       "name": "Santa Zita, virgen",
       "bio": "Doméstica italiana, modelo de trabajo honesto y caridad con los pobres.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "virgin"
     },
     {
       "month": 4,
       "day": 28,
-      "name": "San Pedro Chanel, presbítero y mártir / San Luis María Grignion de Montfort, presbítero",
-      "bio": "Pedro Chanel, protomártir de Oceanía. Luis María, apóstol de la consagración a Jesús por María y gran misionero popular.",
-      "title": "Memoria / Memoria",
+      "name": "San Luis María Grignion de Montfort, presbítero",
+      "bio": "Misionero francés, recorrió pueblos y ciudades predicando el Evangelio. Enseñó a renovar las promesas del bautismo y a consagrarse a Jesús por María.",
+      "title": "Memoria libre",
       "type": "missionary"
     },
     {
@@ -968,15 +968,15 @@
       "day": 30,
       "name": "San Pío V, papa",
       "bio": "Papa dominico; reformó la liturgia tras Trento y promovió el Rosario. Ejemplo de firmeza y santidad.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "pope"
     },
     {
       "month": 5,
       "day": 1,
-      "name": "San José Obrero / Día Internacional del Trabajador",
+      "name": "San José Obrero",
       "bio": "Celebración instituida por el papa Pío XII para honrar a San José como modelo cristiano del trabajo humano. Coincide con el Día Internacional del Trabajador.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "celebration"
     },
     {
@@ -990,25 +990,25 @@
     {
       "month": 5,
       "day": 3,
-      "name": "Santos Felipe y Santiago, apóstoles",
-      "bio": "Felipe fue uno de los primeros discípulos de Jesús y Santiago, hijo de Alfeo, fue testigo de la resurrección del Señor.",
+      "name": "Exaltación de la Santa Cruz",
+      "bio": "La Iglesia en Chile celebra la Cruz de mayo, en la que reconoce el signo de la entrega de Cristo y de la salvación.",
       "title": "Fiesta",
-      "type": "apostle"
+      "type": "celebration"
     },
     {
       "month": 5,
       "day": 4,
-      "name": "San Floriano, mártir",
-      "bio": "Oficial romano martirizado por su fe; patrono de bomberos y de quienes arriesgan su vida por los demás.",
-      "title": "Memoria libre",
-      "type": "martyr"
+      "name": "Santos Felipe y Santiago, apóstoles",
+      "bio": "La Iglesia celebra a Felipe y a Santiago, hijo de Alfeo. Jesús los llamó a formar parte de los Doce.",
+      "title": "Fiesta",
+      "type": "apostle"
     },
     {
       "month": 5,
       "day": 5,
       "name": "San Ángel de Sicilia, presbítero y mártir",
       "bio": "Carmelita asesinado en Licata por proclamar la fe cristiana; considerado protomártir de su orden.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "martyr"
     },
     {
@@ -1016,7 +1016,7 @@
       "day": 6,
       "name": "San Domingo Savio",
       "bio": "Discípulo de San Juan Bosco, destacó por su alegría, pureza y deseo de santidad en la vida cotidiana.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "youth"
     },
     {
@@ -1024,55 +1024,55 @@
       "day": 7,
       "name": "San Juan de Beverley, obispo",
       "bio": "Obispo inglés del siglo VIII, ejemplo de caridad pastoral y de vida contemplativa.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "bishop"
     },
     {
       "month": 5,
       "day": 8,
-      "name": "Nuestra Señora de Luján / Nuestra Señora del Rosario de Pompeya",
-      "bio": "La Virgen de Luján es patrona de Argentina; la Virgen de Pompeya fue promovida por el beato Bartolo Longo como signo del poder del Rosario.",
-      "title": "Fiesta / Memoria libre",
+      "name": "Nuestra Señora del Rosario de Pompeya",
+      "bio": "Cada 8 de mayo se reza la Súplica a la Virgen del Rosario de Pompeya. Bartolo Longo impulsó el santuario y las obras de caridad que crecieron a su alrededor.",
+      "title": "Santoral",
       "type": "marian"
     },
     {
       "month": 5,
       "day": 9,
-      "name": "San Gregorio de Nacianzo, obispo y doctor de la Iglesia",
-      "bio": "Obispo de Constantinopla, notable teólogo y orador; defendió la divinidad del Espíritu Santo.",
-      "title": "Memoria libre",
-      "type": "doctor"
+      "name": "San Pacomio, abad",
+      "bio": "Monje egipcio que organizó comunidades de vida común en el desierto y les dio una regla.",
+      "title": "Santoral",
+      "type": "abbot"
     },
     {
       "month": 5,
       "day": 10,
       "name": "San Juan de Ávila, presbítero y doctor de la Iglesia",
       "bio": "Predicador y reformador del clero, escribió obras de profunda espiritualidad y guió a numerosos santos.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "doctor"
     },
     {
       "month": 5,
       "day": 11,
-      "name": "Santos Cirilo y Metodio / Beato Manuel Lozano Garrido",
-      "bio": "Cirilo y Metodio, hermanos evangelizadores de los pueblos eslavos; Manuel Lozano, periodista español que ofreció su sufrimiento con alegría.",
-      "title": "Fiesta / Memoria libre",
-      "type": "missionary"
+      "name": "San Ignacio de Láconi, religioso",
+      "bio": "Hermano capuchino de Cerdeña, conocido en Cagliari por el servicio a su comunidad y a las personas pobres.",
+      "title": "Santoral",
+      "type": "religious"
     },
     {
       "month": 5,
       "day": 12,
-      "name": "Beato Álvaro del Portillo, obispo",
-      "bio": "Obispo y prelado del Opus Dei, fue el primer y más fiel sucesor de San Josemaría. Ejemplo de fidelidad, servicio a la Iglesia y amor a la vocación cristiana.",
+      "name": "Santos Nereo y Aquileo, mártires",
+      "bio": "Nereo y Aquileo son venerados juntos como mártires de Roma. Su memoria se conservó junto a su sepultura en la vía Ardeatina.",
       "title": "Memoria libre",
-      "type": "bishop"
+      "type": "martyr"
     },
     {
       "month": 5,
       "day": 13,
-      "name": "Nuestra Señora de Fátima / San Andrés Huberto Fournet",
-      "bio": "Conmemoración de las apariciones de la Virgen María en Fátima en 1917. Andrés Fournet, sacerdote francés fundador de las Hijas de la Cruz.",
-      "title": "Memoria / Memoria libre",
+      "name": "Nuestra Señora de Fátima",
+      "bio": "La Iglesia recuerda las apariciones de la Virgen María a Lucía, Francisco y Jacinta en Fátima, Portugal, en 1917.",
+      "title": "Memoria libre",
       "type": "marian"
     },
     {
@@ -1086,25 +1086,25 @@
     {
       "month": 5,
       "day": 15,
-      "name": "San Isidro Labrador / San Simón Stock",
-      "bio": "Isidro, campesino madrileño, patrón de los agricultores y modelo de trabajo cristiano. Simón Stock, prior carmelita asociado al escapulario.",
-      "title": "Fiesta / Memoria libre",
-      "type": "layperson"
+      "name": "San Isidro Labrador",
+      "bio": "Laico de Madrid que se santificó en el trabajo del campo y en la vida familiar con su esposa, santa María de la Cabeza.",
+      "title": "Santoral",
+      "type": "lay"
     },
     {
       "month": 5,
       "day": 16,
-      "name": "San Juan Nepomuceno",
-      "bio": "Sacerdote checo martirizado por guardar el sigilo de la confesión; patrón de los confesores.",
-      "title": "Memoria",
-      "type": "martyr"
+      "name": "San Simón Stock, religioso",
+      "bio": "Religioso carmelita venerado por su devoción a la Virgen María.",
+      "title": "Santoral",
+      "type": "religious"
     },
     {
       "month": 5,
       "day": 17,
       "name": "San Pascual Bailón",
       "bio": "Franciscano español del siglo XVI, destacado por su amor a la Eucaristía y su humildad.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "religious"
     },
     {
@@ -1120,7 +1120,7 @@
       "day": 19,
       "name": "San Crispín de Viterbo",
       "bio": "Religioso capuchino italiano, conocido por su alegría y espíritu franciscano.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "religious"
     },
     {
@@ -1128,15 +1128,15 @@
       "day": 20,
       "name": "San Bernardino de Siena",
       "bio": "Franciscano y gran predicador del Nombre de Jesús, impulsó la devoción al Santo Nombre.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "priest"
     },
     {
       "month": 5,
       "day": 21,
       "name": "San Cristóbal Magallanes y compañeros",
-      "bio": "Veinticinco sacerdotes y laicos mexicanos asesinados durante la persecución religiosa del siglo XX.",
-      "title": "Memoria",
+      "bio": "Cristóbal Magallanes y sus veinticuatro compañeros, entre ellos tres laicos, murieron por su fe durante la persecución religiosa en México.",
+      "title": "Memoria libre",
       "type": "martyr"
     },
     {
@@ -1144,7 +1144,7 @@
       "day": 22,
       "name": "Santa Rita de Casia",
       "bio": "Religiosa agustina italiana, modelo de perdón y paciencia, conocida como la santa de lo imposible.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "religious"
     },
     {
@@ -1152,23 +1152,23 @@
       "day": 23,
       "name": "San Juan Bautista de Rossi",
       "bio": "Sacerdote romano entregado a los pobres y enfermos, ejemplo de caridad sacerdotal.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "priest"
     },
     {
       "month": 5,
       "day": 24,
-      "name": "María Auxiliadora / San Vicente de Lérins",
-      "bio": "María Auxiliadora, patrona de los Salesianos y de los cristianos perseguidos. Vicente de Lérins, teólogo monástico defensor de la tradición católica.",
-      "title": "Fiesta / Memoria libre",
+      "name": "María Auxiliadora",
+      "bio": "La advocación de María Auxiliadora expresa la confianza de los cristianos en la ayuda de la Virgen. San Juan Bosco difundió esta devoción, que tiene una celebración propia en el calendario de Chile.",
+      "title": "Memoria libre",
       "type": "marian"
     },
     {
       "month": 5,
       "day": 25,
-      "name": "San Beda el Venerable / San Gregorio VII / Santa María Magdalena de Pazzi",
-      "bio": "Beda, monje inglés y doctor de la Iglesia. Gregorio VII, papa reformador. María Magdalena de Pazzi, carmelita mística florentina.",
-      "title": "Memoria / Memoria libre / Memoria libre",
+      "name": "San Beda el Venerable, presbítero y doctor de la Iglesia",
+      "bio": "Monje inglés, Beda dedicó su vida a estudiar y enseñar las Escrituras. Escribió una historia de la Iglesia en Inglaterra que sigue siendo una fuente para conocer sus primeros siglos.",
+      "title": "Memoria libre",
       "type": "doctor"
     },
     {
@@ -1184,31 +1184,31 @@
       "day": 27,
       "name": "San Agustín de Canterbury",
       "bio": "Monje benedictino enviado por el papa Gregorio Magno para evangelizar Inglaterra; primer arzobispo de Canterbury.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "missionary"
     },
     {
       "month": 5,
       "day": 28,
-      "name": "Beata Margarita Pole / San Germán de París",
-      "bio": "Margarita Pole, noble inglesa ejecutada por su fidelidad a la fe. Germán, obispo de París de vida ejemplar.",
-      "title": "Memoria libre",
-      "type": "martyr"
+      "name": "San Germán de París, obispo",
+      "bio": "Germán fue abad antes de ser elegido obispo de París en el siglo VI. La abadía parisina de Saint-Germain-des-Prés lleva su nombre.",
+      "title": "Santoral",
+      "type": "bishop"
     },
     {
       "month": 5,
       "day": 29,
-      "name": "San Pablo VI / San Maximino de Tréveris",
-      "bio": "Pablo VI, papa del Concilio Vaticano II, promotor del diálogo y de la paz. Maximino, obispo que defendió la fe nicena.",
+      "name": "San Pablo VI, papa",
+      "bio": "Pablo VI llevó a término el Concilio Vaticano II. En su pontificado promovió el diálogo y la paz e impulsó la aplicación de las reformas conciliares.",
       "title": "Memoria libre",
       "type": "pope"
     },
     {
       "month": 5,
       "day": 30,
-      "name": "San Fernando / Santa Juana de Arco",
-      "bio": "Fernando III, rey de Castilla y León, símbolo de justicia y fe. Juana de Arco, heroína francesa y mártir de fidelidad a Dios y a su patria.",
-      "title": "Memoria libre",
+      "name": "Santa Juana de Arco",
+      "bio": "Juana de Arco, joven francesa de profunda fe, fue condenada a la hoguera en Ruan. Un segundo proceso anuló la condena y la Iglesia la canonizó en 1920.",
+      "title": "Santoral",
       "type": "layperson"
     },
     {
@@ -1249,7 +1249,7 @@
       "day": 4,
       "name": "San Francisco Caracciolo, presbítero",
       "bio": "Fundador de los Clérigos Regulares Menores; ejemplo de oración, penitencia y celo apostólico.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "founder"
     },
     {
@@ -1265,40 +1265,40 @@
       "day": 6,
       "name": "San Norberto, obispo",
       "bio": "Fundador de los premonstratenses, arzobispo reformador y predicador incansable de la Eucaristía.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "founder"
     },
     {
       "month": 6,
       "day": 7,
-      "name": "Beato José Pérez y compañeros, mártires",
-      "bio": "Franciscanos martirizados en Japón durante las persecuciones del siglo XVI por su fe en Cristo.",
-      "title": "Memoria libre",
-      "type": "martyr"
+      "name": "Beata Ana de San Bartolomé, virgen",
+      "bio": "Religiosa carmelita descalza y colaboradora de santa Teresa de Jesús. Contribuyó a extender la reforma carmelita en Francia y en los Países Bajos.",
+      "title": "Santoral",
+      "type": "virgin"
     },
     {
       "month": 6,
       "day": 8,
       "name": "San Medardo, obispo",
       "bio": "Obispo de Noyon, conocido por su bondad y protección hacia los pobres y campesinos.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "bishop"
     },
     {
       "month": 6,
       "day": 9,
       "name": "San Efrén, diácono y doctor de la Iglesia",
-      "bio": "Poeta y teólogo sirio, llamado ‘arpa del Espíritu Santo’; gran difusor de la fe mediante himnos y escritos.",
-      "title": "Memoria",
+      "bio": "Efrén transmitió la fe mediante la predicación y los himnos. Su obra es una de las principales expresiones de la tradición cristiana de lengua siríaca.",
+      "title": "Memoria libre",
       "type": "doctor"
     },
     {
       "month": 6,
       "day": 10,
-      "name": "Beato Enrique de Bolonia",
-      "bio": "Fraile dominico del siglo XIII, modelo de humildad y entrega a los pobres.",
-      "title": "Memoria libre",
-      "type": "religious"
+      "name": "Beato Enrique de Bolzano",
+      "bio": "Trabajador laico nacido cerca de Bolzano. Vivió en la región de Treviso, donde compartió con los pobres lo que ganaba y, al final de su vida, incluso las limosnas que recibía.",
+      "title": "Santoral",
+      "type": "layperson"
     },
     {
       "month": 6,
@@ -1313,7 +1313,7 @@
       "day": 12,
       "name": "San Onofre, ermitaño",
       "bio": "Vivió en el desierto egipcio en oración y penitencia, consagrado totalmente a Dios.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "hermit"
     },
     {
@@ -1329,7 +1329,7 @@
       "day": 14,
       "name": "San Eliseo, profeta",
       "bio": "Sucesor del profeta Elías, realizó numerosos milagros como signo de la presencia de Dios.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "prophet"
     },
     {
@@ -1337,7 +1337,7 @@
       "day": 15,
       "name": "Santa Germana Cousin",
       "bio": "Joven pastora francesa, ejemplo de paciencia y fe sencilla en medio de sufrimientos.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "virgin"
     },
     {
@@ -1345,7 +1345,7 @@
       "day": 16,
       "name": "San Juan Francisco Regis, presbítero",
       "bio": "Jesuita francés, predicador del Evangelio en zonas rurales y apóstol de los pobres.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "priest"
     },
     {
@@ -1353,7 +1353,7 @@
       "day": 17,
       "name": "San Raniero de Pisa",
       "bio": "Marinero convertido en peregrino y ermitaño, patrono de la ciudad de Pisa.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "hermit"
     },
     {
@@ -1361,7 +1361,7 @@
       "day": 18,
       "name": "San Gregorio Barbarigo, obispo",
       "bio": "Cardenal veneciano del siglo XVII, reformador pastoral y promotor de la educación cristiana.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "bishop"
     },
     {
@@ -1369,7 +1369,7 @@
       "day": 19,
       "name": "San Romualdo, abad",
       "bio": "Fundador de los camaldulenses; unió la vida eremítica con la obediencia monástica.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "founder"
     },
     {
@@ -1377,7 +1377,7 @@
       "day": 20,
       "name": "Beato Tomás Whitbread y compañeros, mártires",
       "bio": "Jesuitas ingleses ejecutados falsamente acusados de conspirar contra el rey Carlos II.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "martyr"
     },
     {
@@ -1393,7 +1393,7 @@
       "day": 22,
       "name": "Santos Juan Fisher, obispo, y Tomás Moro, mártires",
       "bio": "Ejemplo de fidelidad a la conciencia y a la fe durante la persecución de Enrique VIII.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "martyr"
     },
     {
@@ -1401,7 +1401,7 @@
       "day": 23,
       "name": "San José Cafasso, presbítero",
       "bio": "Sacerdote piamontés, formador de clérigos y acompañante de condenados a muerte; maestro de San Juan Bosco.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "priest"
     },
     {
@@ -1417,7 +1417,7 @@
       "day": 25,
       "name": "San Guillermo de Vercelli, abad",
       "bio": "Fundador del monasterio de Montevergine; destacó por su austeridad y amor a la Virgen.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "founder"
     },
     {
@@ -1425,7 +1425,7 @@
       "day": 26,
       "name": "San Josemaría Escrivá de Balaguer, presbítero",
       "bio": "Fundador del Opus Dei, enseñó la santificación en la vida ordinaria y el trabajo profesional.",
-      "title": "Memoria",
+      "title": "Santoral",
       "type": "founder"
     },
     {
@@ -1433,16 +1433,16 @@
       "day": 27,
       "name": "San Cirilo de Alejandría, obispo y doctor de la Iglesia",
       "bio": "Defensor de la maternidad divina de María y de la unidad de Cristo en el Concilio de Éfeso.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "doctor"
     },
     {
       "month": 6,
       "day": 28,
-      "name": "San Ireneo de Lyon, obispo y mártir",
-      "bio": "Obispo y teólogo del siglo II, puente entre Oriente y Occidente, defensor de la tradición apostólica.",
+      "name": "San Ireneo de Lyon, obispo, mártir y doctor de la Iglesia",
+      "bio": "Obispo de Lyon en el siglo II. Defendió la fe apostólica y trabajó por la unidad de la Iglesia. Es doctor de la Iglesia, con el título de Doctor de la Unidad.",
       "title": "Memoria",
-      "type": "doctor"
+      "type": "martyr"
     },
     {
       "month": 6,
@@ -1458,7 +1458,7 @@
       "day": 30,
       "name": "Primeros mártires de la Iglesia de Roma",
       "bio": "Cristianos perseguidos y ejecutados bajo el emperador Nerón; su testimonio fortaleció a la Iglesia naciente.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "martyr"
     },
     {
@@ -1466,7 +1466,7 @@
       "day": 1,
       "name": "San Aarón",
       "bio": "Hermano de Moisés, elegido por Dios como primer sumo sacerdote del pueblo de Israel.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "patriarch"
     },
     {
@@ -1474,7 +1474,7 @@
       "day": 2,
       "name": "San Bernardino Realino",
       "bio": "Sacerdote jesuita italiano, profesor y confesor ejemplar, conocido por su humildad y amor pastoral.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "priest"
     },
     {
@@ -1498,7 +1498,7 @@
       "day": 5,
       "name": "San Antonio María Zaccaría",
       "bio": "Fundador de los Barnabitas y promotor de la renovación espiritual del clero y los laicos.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "founder"
     },
     {
@@ -1506,7 +1506,7 @@
       "day": 6,
       "name": "Santa María Goretti, virgen y mártir",
       "bio": "Joven italiana que prefirió morir antes que pecar; ejemplo de pureza y perdón.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "martyr"
     },
     {
@@ -1514,7 +1514,7 @@
       "day": 7,
       "name": "San Fermín, obispo y mártir",
       "bio": "Evangelizador de Navarra y mártir por Cristo; patrono de Pamplona.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "martyr"
     },
     {
@@ -1522,7 +1522,7 @@
       "day": 8,
       "name": "Santos Aquila y Priscila",
       "bio": "Matrimonio colaborador de San Pablo, ejemplo de fe y hospitalidad cristiana.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "layperson"
     },
     {
@@ -1530,15 +1530,15 @@
       "day": 9,
       "name": "Santos Agustín Zhao Rong y compañeros, mártires",
       "bio": "Ciento veinte mártires chinos de distintas épocas que dieron testimonio de la fe con su vida.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "martyr"
     },
     {
       "month": 7,
       "day": 10,
-      "name": "Santos Rufina y Segunda, vírgenes y mártires",
-      "bio": "Hermanas romanas que sufrieron el martirio por su fidelidad a Cristo.",
-      "title": "Memoria libre",
+      "name": "Santas Rufina y Segunda, mártires",
+      "bio": "Rufina y Segunda son veneradas juntas como mártires de Roma. La tradición las recuerda como hermanas.",
+      "title": "Santoral",
       "type": "martyr"
     },
     {
@@ -1554,7 +1554,7 @@
       "day": 12,
       "name": "San Juan Gualberto",
       "bio": "Fundador de la Orden Vallumbrosana, símbolo del perdón cristiano y del amor a la vida monástica.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "founder"
     },
     {
@@ -1562,7 +1562,7 @@
       "day": 13,
       "name": "Santa Teresa de los Andes",
       "bio": "Carmelita descalza chilena, primera santa de Chile y modelo de amor a Cristo para los jóvenes.",
-      "title": "Memoria",
+      "title": "Fiesta",
       "type": "virgin"
     },
     {
@@ -1570,7 +1570,7 @@
       "day": 14,
       "name": "San Camilo de Lelis, presbítero",
       "bio": "Fundador de los Camilos, dedicó su vida al servicio de los enfermos con amor heroico.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "founder"
     },
     {
@@ -1594,7 +1594,7 @@
       "day": 17,
       "name": "San Alejo",
       "bio": "Romano que renunció a la riqueza para vivir como mendigo, sirviendo a Dios en humildad.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "layperson"
     },
     {
@@ -1602,31 +1602,31 @@
       "day": 18,
       "name": "San Federico, obispo y mártir",
       "bio": "Obispo de Utrecht, asesinado por su fidelidad a la verdad evangélica.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "martyr"
     },
     {
       "month": 7,
       "day": 19,
-      "name": "San Arsenio, monje",
-      "bio": "Eremita egipcio, maestro de oración y de vida contemplativa.",
-      "title": "Memoria libre",
-      "type": "monk"
+      "name": "Santa Macrina, virgen",
+      "bio": "Hermana de san Basilio Magno y de san Gregorio de Nisa. Vivió en comunidad y dedicó su vida a la oración y al estudio de las Escrituras.",
+      "title": "Santoral",
+      "type": "virgin"
     },
     {
       "month": 7,
       "day": 20,
-      "name": "San Elías, profeta",
-      "bio": "Profeta de fuego que defendió la pureza de la fe en el Dios verdadero en tiempos de idolatría.",
+      "name": "San Apolinar, obispo y mártir",
+      "bio": "La Iglesia venera a Apolinar como obispo y mártir. Su memoria está ligada a los orígenes de la comunidad cristiana de Rávena.",
       "title": "Memoria libre",
-      "type": "prophet"
+      "type": "martyr"
     },
     {
       "month": 7,
       "day": 21,
       "name": "San Lorenzo de Brindis, presbítero y doctor de la Iglesia",
       "bio": "Capuchino italiano, hábil predicador y teólogo que supo unir oración y acción misionera.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "doctor"
     },
     {
@@ -1642,23 +1642,23 @@
       "day": 23,
       "name": "Santa Brígida de Suecia",
       "bio": "Fundadora de la Orden del Santísimo Salvador y patrona de Europa, mística y escritora espiritual.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "founder"
     },
     {
       "month": 7,
       "day": 24,
-      "name": "Santa Cristina, virgen y mártir",
-      "bio": "Joven mártir que prefirió morir antes que renunciar a Cristo.",
+      "name": "San Chárbel Makhlouf",
+      "bio": "Monje maronita del Líbano, Chárbel pasó sus últimos años como ermitaño. Su vida estuvo marcada por el silencio, la oración y la Eucaristía.",
       "title": "Memoria libre",
-      "type": "martyr"
+      "type": "monk"
     },
     {
       "month": 7,
       "day": 25,
       "name": "Santiago, apóstol",
       "bio": "Hermano de San Juan y primer apóstol mártir, patrono de España y de los peregrinos.",
-      "title": "Solemnidad",
+      "title": "Fiesta",
       "type": "apostle"
     },
     {
@@ -1674,7 +1674,7 @@
       "day": 27,
       "name": "San Pantaleón, mártir",
       "bio": "Médico de Nicomedia que curaba en nombre de Cristo; mártir por su fe.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "martyr"
     },
     {
@@ -1682,14 +1682,14 @@
       "day": 28,
       "name": "Santos Nazario y Celso, mártires",
       "bio": "Discípulos de los apóstoles, ejecutados por proclamar a Cristo.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "martyr"
     },
     {
       "month": 7,
       "day": 29,
-      "name": "Santa Marta",
-      "bio": "Hermana de María y Lázaro; testigo de la amistad de Cristo y modelo de servicio.",
+      "name": "Santos Marta, María y Lázaro",
+      "bio": "Los tres hermanos de Betania acogieron a Jesús en su casa. Los Evangelios recuerdan la escucha de María, el servicio de Marta y la resurrección de Lázaro.",
       "title": "Memoria",
       "type": "virgin"
     },
@@ -1720,17 +1720,17 @@
     {
       "month": 8,
       "day": 2,
-      "name": "San Eusebio de Vercelli / San Pedro Julián Eymard",
-      "bio": "Eusebio, obispo que promovió la vida monástica en Occidente. Pedro Eymard, fundador de los Sacramentinos y apóstol de la Eucaristía.",
-      "title": "Memoria / Memoria libre",
-      "type": "bishop"
+      "name": "San Pedro Julián Eymard",
+      "bio": "Pedro Julián Eymard fundó la Congregación del Santísimo Sacramento para promover la celebración y la adoración eucarísticas.",
+      "title": "Memoria libre",
+      "type": "founder"
     },
     {
       "month": 8,
       "day": 3,
       "name": "San Aspreno de Nápoles",
       "bio": "Primer obispo de Nápoles, discípulo de San Pedro, evangelizador del sur de Italia.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "bishop"
     },
     {
@@ -1760,9 +1760,9 @@
     {
       "month": 8,
       "day": 7,
-      "name": "San Cayetano / San Sixto II y compañeros, mártires",
-      "bio": "Cayetano, fundador de los Teatinos y apóstol de la confianza en la Providencia. Sixto II, papa martirizado junto a sus diáconos.",
-      "title": "Memoria / Memoria libre",
+      "name": "San Cayetano",
+      "bio": "Cayetano fue uno de los fundadores de los Teatinos. Su confianza en la Providencia inspira la devoción de quienes le piden por el pan y el trabajo.",
+      "title": "Memoria libre",
       "type": "founder"
     },
     {
@@ -1778,7 +1778,7 @@
       "day": 9,
       "name": "Santa Teresa Benedicta de la Cruz",
       "bio": "Edith Stein, filósofa convertida al catolicismo, carmelita descalza y mártir en Auschwitz.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "martyr"
     },
     {
@@ -1802,7 +1802,7 @@
       "day": 12,
       "name": "Santa Juana Francisca de Chantal",
       "bio": "Fundadora de la Orden de la Visitación junto a San Francisco de Sales; modelo de fe en medio del dolor.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "founder"
     },
     {
@@ -1843,7 +1843,7 @@
       "day": 17,
       "name": "San Jacinto de Polonia",
       "bio": "Dominico evangelizador del norte de Europa, modelo de celo apostólico y vida santa.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "missionary"
     },
     {
@@ -1859,7 +1859,7 @@
       "day": 19,
       "name": "San Juan Eudes",
       "bio": "Sacerdote francés, fundador de los Eudistas y promotor del culto a los Corazones de Jesús y María.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "founder"
     },
     {
@@ -1889,10 +1889,10 @@
     {
       "month": 8,
       "day": 23,
-      "name": "Santa Rosa de Lima",
-      "bio": "Virgen limeña, primera santa de América, modelo de penitencia y amor a Cristo.",
-      "title": "Solemnidad",
-      "type": "virgin"
+      "name": "San Zaqueo, obispo de Jerusalén",
+      "bio": "La tradición lo recuerda entre los primeros obispos de Jerusalén.",
+      "title": "Santoral",
+      "type": "bishop"
     },
     {
       "month": 8,
@@ -1905,18 +1905,18 @@
     {
       "month": 8,
       "day": 25,
-      "name": "San Luis, rey de Francia / San José de Calasanz",
-      "bio": "Luis IX, modelo de gobernante cristiano. José de Calasanz, fundador de los Escolapios, promotor de la educación para los pobres.",
-      "title": "Memoria libre / Memoria",
+      "name": "San José de Calasanz",
+      "bio": "José de Calasanz abrió en Roma escuelas gratuitas para niños pobres y fundó la Orden de las Escuelas Pías, conocida como los Escolapios.",
+      "title": "Memoria libre",
       "type": "founder"
     },
     {
       "month": 8,
       "day": 26,
-      "name": "Santa Teresa de Jesús Jornet",
-      "bio": "Fundadora de las Hermanitas de los Ancianos Desamparados; ejemplo de caridad y servicio.",
-      "title": "Memoria",
-      "type": "founder"
+      "name": "Beato Ceferino Namuncurá",
+      "bio": "Ceferino fue un joven mapuche de la Patagonia argentina y alumno de los salesianos. Deseaba servir a su pueblo y se preparaba para el sacerdocio cuando enfermó de tuberculosis.",
+      "title": "Memoria libre",
+      "type": "layperson"
     },
     {
       "month": 8,
@@ -1945,17 +1945,17 @@
     {
       "month": 8,
       "day": 30,
-      "name": "San Félix y Adauto, mártires",
-      "bio": "Ejecutados en Roma por profesar la fe cristiana durante la persecución de Diocleciano.",
-      "title": "Memoria libre",
-      "type": "martyr"
+      "name": "Santa Rosa de Lima",
+      "bio": "Virgen limeña y primera santa canonizada de América. Vivió la oración y la penitencia y cuidó a personas enfermas y pobres.",
+      "title": "Fiesta",
+      "type": "virgin"
     },
     {
       "month": 8,
       "day": 31,
       "name": "San Ramón Nonato",
       "bio": "Mercedario español que liberó cautivos de los musulmanes y destacó por su pureza y caridad.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "religious"
     },
     {
@@ -1963,7 +1963,7 @@
       "day": 1,
       "name": "San Gil, abad",
       "bio": "Ermitaño francés del siglo VII, modelo de humildad y oración, uno de los santos más venerados en la Edad Media.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "abbot"
     },
     {
@@ -1971,7 +1971,7 @@
       "day": 2,
       "name": "Beato Bartolomé Gutiérrez y compañeros, mártires",
       "bio": "Misioneros martirizados en Japón durante las persecuciones del siglo XVII por su fidelidad a Cristo.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "martyr"
     },
     {
@@ -1987,7 +1987,7 @@
       "day": 4,
       "name": "Santa Rosalía de Palermo",
       "bio": "Ermitaña siciliana del siglo XII, invocada como protectora contra las epidemias.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "virgin"
     },
     {
@@ -1995,24 +1995,24 @@
       "day": 5,
       "name": "Santa Teresa de Calcuta",
       "bio": "Fundadora de las Misioneras de la Caridad, dedicó su vida al servicio de los más pobres entre los pobres.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "founder"
     },
     {
       "month": 9,
       "day": 6,
-      "name": "Beato Claudio Granzotto",
-      "bio": "Fraile franciscano y escultor italiano, destacó por su sencillez y arte inspirado en la fe.",
-      "title": "Memoria libre",
-      "type": "religious"
+      "name": "San Eleuterio, abad",
+      "bio": "Abad de Espoleto, en Italia. San Gregorio Magno recordó su sencillez y su vida de oración.",
+      "title": "Santoral",
+      "type": "abbot"
     },
     {
       "month": 9,
       "day": 7,
-      "name": "San Marcos Crisóloguo, obispo",
-      "bio": "Arzobispo de Rávena, célebre por su elocuencia y profundidad espiritual.",
-      "title": "Memoria libre",
-      "type": "bishop"
+      "name": "Santa Regina, mártir",
+      "bio": "El Martirologio Romano recuerda a esta mártir en Alise, en la actual Francia.",
+      "title": "Santoral",
+      "type": "martyr"
     },
     {
       "month": 9,
@@ -2027,7 +2027,7 @@
       "day": 9,
       "name": "San Pedro Claver, presbítero",
       "bio": "Jesuita español, apóstol de los esclavos en Cartagena de Indias, símbolo de caridad cristiana.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "priest"
     },
     {
@@ -2035,7 +2035,7 @@
       "day": 10,
       "name": "San Nicolás de Tolentino",
       "bio": "Religioso agustino, predicador y místico italiano conocido por su devoción a las almas del purgatorio.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "religious"
     },
     {
@@ -2043,7 +2043,7 @@
       "day": 11,
       "name": "San Pafnucio, obispo",
       "bio": "Obispo egipcio del siglo IV, defensor de la fe en el Concilio de Nicea y confesor de la verdad cristiana.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "bishop"
     },
     {
@@ -2091,7 +2091,7 @@
       "day": 17,
       "name": "San Roberto Belarmino, obispo y doctor de la Iglesia",
       "bio": "Jesuita cardenal, gran teólogo y defensor de la fe católica durante la Reforma.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "doctor"
     },
     {
@@ -2099,7 +2099,7 @@
       "day": 18,
       "name": "San José de Cupertino",
       "bio": "Franciscano italiano, conocido por sus éxtasis y humildad; patrono de los estudiantes.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "religious"
     },
     {
@@ -2131,7 +2131,7 @@
       "day": 22,
       "name": "San Mauricio y compañeros, mártires",
       "bio": "Oficial romano y su legión tebana, martirizados por negarse a renunciar a su fe cristiana.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "martyr"
     },
     {
@@ -2147,7 +2147,7 @@
       "day": 24,
       "name": "Nuestra Señora de la Merced",
       "bio": "Patrona de la Orden Mercedaria y de Barcelona; símbolo de libertad y redención de los cautivos.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "marian"
     },
     {
@@ -2155,7 +2155,7 @@
       "day": 25,
       "name": "San Cleofás, discípulo del Señor",
       "bio": "Uno de los discípulos de Emaús, testigo de la resurrección de Cristo.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "disciple"
     },
     {
@@ -2177,9 +2177,9 @@
     {
       "month": 9,
       "day": 28,
-      "name": "San Wenceslao / Santos Lorenzo Ruiz y compañeros, mártires",
-      "bio": "Wenceslao, rey de Bohemia y mártir. Lorenzo Ruiz, primer santo filipino, ejecutado por su fe en Japón.",
-      "title": "Memoria libre / Memoria",
+      "name": "Santos Lorenzo Ruiz y compañeros, mártires",
+      "bio": "Lorenzo Ruiz, padre de familia y primer santo filipino, murió mártir en Japón junto con otros cristianos perseguidos por su fe.",
+      "title": "Memoria libre",
       "type": "martyr"
     },
     {
@@ -2219,7 +2219,7 @@
       "day": 3,
       "name": "San Francisco de Borja",
       "bio": "Duque de Gandía, jesuita y tercer superior general de la Compañía de Jesús; ejemplo de humildad y reforma interior.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "religious"
     },
     {
@@ -2259,23 +2259,23 @@
       "day": 8,
       "name": "San Hugo de Génova",
       "bio": "Canónigo y administrador sabio, defensor de la caridad y de la disciplina eclesiástica.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "bishop"
     },
     {
       "month": 10,
       "day": 9,
-      "name": "San Dionisio y compañeros, mártires / San Juan Leonardi",
-      "bio": "Dionisio, obispo de París, martirizado por la fe. Juan Leonardi, fundador de la Orden de la Madre de Dios y promotor de la formación del clero.",
-      "title": "Memoria libre / Memoria",
-      "type": "martyr"
+      "name": "San Juan Enrique Newman",
+      "bio": "Newman fue sacerdote, cardenal y doctor de la Iglesia. Dedicó buena parte de su vida a la educación y escribió sobre la conciencia y el desarrollo de la doctrina cristiana.",
+      "title": "Memoria libre",
+      "type": "doctor"
     },
     {
       "month": 10,
       "day": 10,
       "name": "San Daniel y compañeros, mártires franciscanos",
       "bio": "Siete franciscanos martirizados en Ceuta mientras predicaban el Evangelio a los musulmanes.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "martyr"
     },
     {
@@ -2290,8 +2290,8 @@
       "month": 10,
       "day": 12,
       "name": "Nuestra Señora del Pilar / San Carlo Acutis",
-      "bio": "La Virgen María se apareció al apóstol Santiago en Zaragoza, dejando como signo una columna de jaspe, símbolo de fe y unidad. San Carlo Acutis, joven italiano enamorado de la Eucaristía y de la tecnología, ofreció su vida por la Iglesia y los jóvenes.",
-      "title": "Fiesta / Memoria libre",
+      "bio": "La tradición del Pilar recuerda la visita de María al apóstol Santiago en Zaragoza. Carlo Acutis, canonizado en 2025, vivió su fe en la Eucaristía y usó la informática para darla a conocer. Su devoción ha convocado a jóvenes y peregrinos en Chile.",
+      "title": "Santoral",
       "type": "marian / youth"
     },
     {
@@ -2299,7 +2299,7 @@
       "day": 13,
       "name": "San Eduardo el Confesor",
       "bio": "Rey de Inglaterra, gobernó con justicia y piedad; conocido por su pureza de corazón y caridad hacia los pobres.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "ruler"
     },
     {
@@ -2307,7 +2307,7 @@
       "day": 14,
       "name": "San Calixto I, papa y mártir",
       "bio": "Papa del siglo III que promovió la reconciliación y el perdón en la Iglesia primitiva.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "martyr"
     },
     {
@@ -2321,9 +2321,9 @@
     {
       "month": 10,
       "day": 16,
-      "name": "San Hedvigis / Santa Margarita María de Alacoque",
-      "bio": "Hedvigis, duquesa de Silesia, modelo de caridad. Margarita María, difusora del culto al Sagrado Corazón de Jesús.",
-      "title": "Memoria libre / Memoria",
+      "name": "Santa Margarita María de Alacoque",
+      "bio": "Religiosa de la Visitación, Margarita María contribuyó a difundir la devoción al Sagrado Corazón de Jesús.",
+      "title": "Memoria libre",
       "type": "devotion"
     },
     {
@@ -2347,23 +2347,23 @@
       "day": 19,
       "name": "Santos Juan de Brébeuf, Isaac Jogues y compañeros, mártires",
       "bio": "Jesuitas misioneros martirizados en Canadá por su evangelización entre los pueblos indígenas.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "martyr"
     },
     {
       "month": 10,
       "day": 20,
-      "name": "San Pedro de Alcántara",
-      "bio": "Franciscano español reformador de la Orden y amigo espiritual de Santa Teresa de Jesús.",
-      "title": "Memoria libre",
-      "type": "religious"
+      "name": "Santa María Bertila Boscardin, virgen",
+      "bio": "Religiosa de las Hermanas Maestras de Santa Dorotea que cuidó a personas enfermas en Treviso.",
+      "title": "Santoral",
+      "type": "virgin"
     },
     {
       "month": 10,
       "day": 21,
       "name": "Santa Úrsula y compañeras, mártires",
       "bio": "Jóvenes cristianas martirizadas en Colonia por su fidelidad a la virginidad y la fe.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "martyr"
     },
     {
@@ -2371,7 +2371,7 @@
       "day": 22,
       "name": "San Juan Pablo II, papa",
       "bio": "Papa polaco, promotor de la nueva evangelización, defensor de la vida y testigo de la esperanza cristiana. Patrono de la familia, la juventud, y la defensa de la vida.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "pope"
     },
     {
@@ -2387,7 +2387,7 @@
       "day": 24,
       "name": "San Antonio María Claret",
       "bio": "Fundador de los Misioneros Claretianos, arzobispo de Santiago de Cuba, apóstol incansable del Evangelio.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "founder"
     },
     {
@@ -2395,24 +2395,24 @@
       "day": 25,
       "name": "San Crispín y San Crispiniano, mártires",
       "bio": "Hermanos zapateros martirizados en Soissons por predicar el Evangelio a sus clientes.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "martyr"
     },
     {
       "month": 10,
       "day": 26,
-      "name": "San Evaristo, papa y mártir",
-      "bio": "Papa del siglo II, organizó las primeras estructuras parroquiales de Roma.",
-      "title": "Memoria libre",
-      "type": "pope"
+      "name": "San Folco Scotti, obispo",
+      "bio": "Fue obispo de Piacenza y de Pavía. Trabajó por la paz entre ambas ciudades.",
+      "title": "Santoral",
+      "type": "bishop"
     },
     {
       "month": 10,
       "day": 27,
-      "name": "San Frumencio",
-      "bio": "Obispo de Etiopía, evangelizador de Abisinia, conocido como 'Abba Salama'.",
-      "title": "Memoria libre",
-      "type": "bishop"
+      "name": "San Evaristo, papa",
+      "bio": "Uno de los primeros obispos de Roma. La tradición lo recuerda como sucesor de san Clemente I.",
+      "title": "Santoral",
+      "type": "pope"
     },
     {
       "month": 10,
@@ -2427,15 +2427,15 @@
       "day": 29,
       "name": "San Narciso de Jerusalén",
       "bio": "Obispo del siglo II, venerado por su sabiduría y sus milagros, ejemplo de santidad pastoral.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "bishop"
     },
     {
       "month": 10,
       "day": 30,
-      "name": "San Marcelo, papa y mártir",
-      "bio": "Dirigió la Iglesia durante tiempos de persecución, murió en el destierro por su fidelidad a Cristo.",
-      "title": "Memoria libre",
+      "name": "San Marcelo de Tánger, mártir",
+      "bio": "Centurión romano martirizado en Tánger tras confesar su fe cristiana.",
+      "title": "Santoral",
       "type": "martyr"
     },
     {
@@ -2443,7 +2443,7 @@
       "day": 31,
       "name": "San Wolfgango, obispo",
       "bio": "Obispo de Ratisbona, reformador de la Iglesia y defensor de la educación cristiana.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "bishop"
     },
     {
@@ -2467,8 +2467,8 @@
       "month": 11,
       "day": 3,
       "name": "San Martín de Porres",
-      "bio": "Religioso dominico peruano, humilde servidor de los enfermos y marginados; modelo de caridad cristiana.",
-      "title": "Memoria",
+      "bio": "Hermano dominico en Lima, Martín cuidó a los enfermos y atendió a los pobres. La Iglesia lo recuerda por su humildad y su caridad.",
+      "title": "Memoria libre",
       "type": "religious"
     },
     {
@@ -2484,7 +2484,7 @@
       "day": 5,
       "name": "Santos Zacarías e Isabel",
       "bio": "Padres de San Juan Bautista; vivieron con justicia y fe esperando las promesas de Dios.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "biblical"
     },
     {
@@ -2492,24 +2492,24 @@
       "day": 6,
       "name": "San Leonardo de Noblac",
       "bio": "Ermitaño francés del siglo VI, patrono de los prisioneros y de las mujeres encintas.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "hermit"
     },
     {
       "month": 11,
       "day": 7,
-      "name": "San Ernesto, abad",
-      "bio": "Abad benedictino martirizado en Arabia por su fidelidad a Cristo.",
-      "title": "Memoria libre",
-      "type": "abbot"
+      "name": "San Prosdócimo, obispo",
+      "bio": "La tradición de Padua lo venera como primer obispo de la ciudad.",
+      "title": "Santoral",
+      "type": "bishop"
     },
     {
       "month": 11,
       "day": 8,
-      "name": "Santos Adeodato I, papa, y Cuatro Santos Coronados, mártires",
-      "bio": "Adeodato, papa justo y caritativo; los Cuatro Coronados fueron escultores martirizados por negarse a fabricar ídolos. E inicio del mes de María en Chile.",
-      "title": "Memoria libre",
-      "type": "martyr"
+      "name": "San Adeodato I, papa",
+      "bio": "Adeodato fue obispo de Roma a comienzos del siglo VII. En Chile, este día también comienza el Mes de María.",
+      "title": "Santoral",
+      "type": "pope"
     },
     {
       "month": 11,
@@ -2548,7 +2548,7 @@
       "day": 13,
       "name": "San Diego de Alcalá",
       "bio": "Religioso franciscano, ejemplo de humildad y sencillez evangélica; patrono de los franciscanos legos.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "religious"
     },
     {
@@ -2556,32 +2556,32 @@
       "day": 14,
       "name": "San Lorenzo O'Toole",
       "bio": "Arzobispo irlandés pacificador, defensor de la Iglesia frente a los conflictos políticos.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "bishop"
     },
     {
       "month": 11,
       "day": 15,
-      "name": "San Alberto Magno, obispo y doctor de la Iglesia",
-      "bio": "Dominico, maestro de Santo Tomás de Aquino, patrono de los científicos y amante de la verdad.",
-      "title": "Memoria",
+      "name": "San Alberto Magno",
+      "bio": "Alberto Magno fue obispo dominico, doctor de la Iglesia y maestro de santo Tomás de Aquino. Estudió tanto la teología como el mundo natural.",
+      "title": "Memoria libre",
       "type": "doctor"
     },
     {
       "month": 11,
       "day": 16,
-      "name": "Santa Margarita de Escocia / Santa Gertrudis la Magna",
-      "bio": "Margarita, reina y madre ejemplar; Gertrudis, mística benedictina, autora de profundos escritos espirituales.",
+      "name": "Santa Gertrudis la Magna",
+      "bio": "Gertrudis fue monja en Helfta y dejó escritos que expresan su experiencia de oración y su confianza en el amor de Cristo.",
       "title": "Memoria libre",
-      "type": "queen / mystic"
+      "type": "mystic"
     },
     {
       "month": 11,
       "day": 17,
       "name": "Santa Isabel de Hungría",
-      "bio": "Reina y terciaria franciscana, ejemplo de caridad con los pobres y los enfermos.",
+      "bio": "Isabel, princesa húngara y esposa del landgrave Luis de Turingia, abrazó la espiritualidad franciscana al enviudar. Fundó un hospital en Marburgo y cuidó a los enfermos.",
       "title": "Memoria",
-      "type": "queen"
+      "type": "religious"
     },
     {
       "month": 11,
@@ -2594,18 +2594,18 @@
     {
       "month": 11,
       "day": 19,
-      "name": "San Roque González, Alfonso Rodríguez y Juan del Castillo, mártires",
-      "bio": "Jesuitas misioneros martirizados en el Paraguay; defensores de la fe y de los pueblos originarios.",
-      "title": "Memoria",
-      "type": "martyr"
+      "name": "San Abdías, profeta",
+      "bio": "El Martirologio Romano recuerda a Abdías, profeta de Israel. El breve libro que lleva su nombre anuncia el juicio de Dios contra Edom y la restauración de Sion.",
+      "title": "Santoral",
+      "type": "prophet"
     },
     {
       "month": 11,
       "day": 20,
-      "name": "San Rafael González, mártir chileno / Cristo Rey del Universo",
-      "bio": "Rafael González, mártir laico de Chile; fiesta de Cristo Rey, que culmina el año litúrgico reconociendo la soberanía de Cristo sobre toda la creación.",
-      "title": "Solemnidad / Memoria libre",
-      "type": "king / martyr"
+      "name": "San Edmundo, rey y mártir",
+      "bio": "Edmundo fue rey de Anglia Oriental, en la actual Inglaterra. Murió en el siglo IX durante una invasión danesa. La tradición cristiana recuerda su fidelidad a la fe ante la muerte.",
+      "title": "Santoral",
+      "type": "martyr"
     },
     {
       "month": 11,
@@ -2626,10 +2626,10 @@
     {
       "month": 11,
       "day": 23,
-      "name": "San Clemente I, papa, y San Columbano, abad",
-      "bio": "Clemente, papa y mártir del siglo I; Columbano, monje irlandés, misionero y fundador de monasterios en Europa.",
+      "name": "San Clemente I, papa y mártir",
+      "bio": "Clemente fue uno de los primeros obispos de Roma. Se le atribuye una carta a la comunidad cristiana de Corinto que llama a recuperar la concordia.",
       "title": "Memoria libre",
-      "type": "pope / monk"
+      "type": "martyr"
     },
     {
       "month": 11,
@@ -2652,7 +2652,7 @@
       "day": 26,
       "name": "San Leonardo de Porto Maurizio",
       "bio": "Franciscano italiano, propagador del rezo del Vía Crucis y misionero incansable.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "religious"
     },
     {
@@ -2660,7 +2660,7 @@
       "day": 27,
       "name": "Nuestra Señora de la Medalla Milagrosa",
       "bio": "La Virgen se apareció a Santa Catalina Labouré en París, entregándole la Medalla Milagrosa, signo de gracia y protección.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "marian"
     },
     {
@@ -2668,7 +2668,7 @@
       "day": 28,
       "name": "San Jacobo de la Marca",
       "bio": "Franciscano predicador y reformador, destacado por su caridad y celo por la fe.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "religious"
     },
     {
@@ -2676,7 +2676,7 @@
       "day": 29,
       "name": "San Francisco Antonio Fasani",
       "bio": "Sacerdote franciscano conventual italiano, predicador incansable y confesor caritativo, modelo de humildad y sabiduría cristiana.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "religious"
     },
     {
@@ -2692,7 +2692,7 @@
       "day": 1,
       "name": "San Eloy",
       "bio": "Obispo de Noyon, orfebre y consejero real, destacó por su caridad hacia los pobres y su honestidad en el trabajo.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "bishop"
     },
     {
@@ -2700,7 +2700,7 @@
       "day": 2,
       "name": "Santa Bibiana, virgen y mártir",
       "bio": "Joven romana que sufrió el martirio bajo Juliano el Apóstata, testimonio de pureza y fortaleza cristiana.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "martyr"
     },
     {
@@ -2714,17 +2714,17 @@
     {
       "month": 12,
       "day": 4,
-      "name": "Santa Bárbara",
-      "bio": "Virgen y mártir, patrona de los mineros y quienes trabajan con fuego; símbolo de fe firme ante la persecución.",
-      "title": "Memoria libre",
-      "type": "martyr"
+      "name": "San Juan Damasceno / Santa Bárbara",
+      "bio": "Juan Damasceno, presbítero y doctor de la Iglesia, defendió la veneración de las imágenes sagradas. Bárbara es venerada como virgen y mártir, y la comunidad chilena de Santa Bárbara la celebra como patrona.",
+      "title": "Memoria libre / Santoral",
+      "type": "doctor / martyr"
     },
     {
       "month": 12,
       "day": 5,
       "name": "San Sabas, abad",
       "bio": "Monje palestino fundador de la célebre Laura de San Sabas en el desierto de Judea; ejemplo de vida ascética.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "abbot"
     },
     {
@@ -2747,7 +2747,7 @@
       "month": 12,
       "day": 8,
       "name": "Inmaculada Concepción de la Virgen María",
-      "bio": "Solemnidad que celebra que María fue preservada del pecado original desde su concepción; patrona de Chile.",
+      "bio": "La Iglesia celebra que María fue preservada del pecado original desde el primer instante de su concepción, por la gracia de Dios y en atención a los méritos de Jesucristo.",
       "title": "Solemnidad",
       "type": "marian",
       "isHighImportance": true
@@ -2803,49 +2803,49 @@
     {
       "month": 12,
       "day": 15,
-      "name": "Santa Cristiana, virgen",
-      "bio": "Misionera en Escandinavia, conocida por su testimonio de fe entre pueblos paganos.",
-      "title": "Memoria libre",
-      "type": "missionary"
+      "name": "Santa María Crucifija Di Rosa, virgen",
+      "bio": "Religiosa italiana que fundó en Brescia las Siervas de la Caridad, dedicadas al cuidado de las personas enfermas.",
+      "title": "Santoral",
+      "type": "virgin"
     },
     {
       "month": 12,
       "day": 16,
       "name": "Santa Adelaida de Borgoña",
       "bio": "Emperatriz del Sacro Imperio, modelo de piedad y promotora de la paz y la caridad.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "queen"
     },
     {
       "month": 12,
       "day": 17,
-      "name": "San Lázaro, amigo de Jesús",
-      "bio": "Hermano de Marta y María, resucitado por Cristo; testimonio de la esperanza en la vida eterna.",
-      "title": "Memoria libre",
-      "type": "biblical"
+      "name": "San José Manyanet, presbítero",
+      "bio": "Sacerdote catalán que fundó congregaciones dedicadas a la educación y a promover la vida cristiana de las familias.",
+      "title": "Santoral",
+      "type": "priest"
     },
     {
       "month": 12,
       "day": 18,
       "name": "Nuestra Señora de la Expectación",
       "bio": "Antigua fiesta mariana que celebra la espera gozosa de la Virgen María ante el nacimiento del Salvador.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "marian"
     },
     {
       "month": 12,
       "day": 19,
-      "name": "San Nemesio y compañeros, mártires",
-      "bio": "Cristianos egipcios martirizados en tiempos de Decio por su fidelidad al Evangelio.",
-      "title": "Memoria libre",
-      "type": "martyr"
+      "name": "San Anastasio I, papa",
+      "bio": "Obispo de Roma entre los siglos IV y V, recordado por su pobreza y por su firmeza en la fe.",
+      "title": "Santoral",
+      "type": "pope"
     },
     {
       "month": 12,
       "day": 20,
       "name": "San Domingo de Silos",
       "bio": "Abad español, reformador monástico y defensor de los cautivos; patrono de los poetas.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "abbot"
     },
     {
@@ -2853,7 +2853,7 @@
       "day": 21,
       "name": "San Pedro Canisio, presbítero y doctor de la Iglesia",
       "bio": "Jesuita alemán, gran catequista y defensor de la fe en tiempos de la Reforma.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "doctor"
     },
     {
@@ -2861,7 +2861,7 @@
       "day": 22,
       "name": "Santa Francisca Javiera Cabrini",
       "bio": "Fundadora de las Misioneras del Sagrado Corazón; primera santa ciudadana de Estados Unidos.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "founder"
     },
     {
@@ -2869,7 +2869,7 @@
       "day": 23,
       "name": "San Juan de Kety",
       "bio": "Sacerdote polaco, modelo de humildad y ciencia al servicio de la caridad cristiana.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "priest"
     },
     {
@@ -2877,7 +2877,7 @@
       "day": 24,
       "name": "San Gregorio de Spoleto y Nochebuena",
       "bio": "Sacerdote mártir en tiempos de Diocleciano, fiel testigo del Evangelio, y día previo a la Natividad del Señor.",
-      "title": "Memoria libre",
+      "title": "Santoral",
       "type": "martyr"
     },
     {
@@ -2917,16 +2917,16 @@
       "day": 29,
       "name": "San Tomás Becket, obispo y mártir",
       "bio": "Arzobispo de Canterbury, asesinado por defender los derechos de la Iglesia frente al poder político.",
-      "title": "Memoria",
+      "title": "Memoria libre",
       "type": "martyr"
     },
     {
       "month": 12,
       "day": 30,
-      "name": "Sagrada Familia de Jesús, María y José",
-      "bio": "Fiesta dedicada a la familia de Nazaret, modelo de fe, amor y unidad cristiana.",
-      "title": "Fiesta",
-      "type": "celebration"
+      "name": "San Félix I, papa",
+      "bio": "Obispo de Roma en el siglo III. Durante su pontificado recibió la carta del concilio de Antioquía sobre la doctrina de Pablo de Samosata.",
+      "title": "Santoral",
+      "type": "pope"
     },
     {
       "month": 12,

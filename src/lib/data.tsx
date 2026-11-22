@@ -3,6 +3,7 @@ import React from 'react';
 import { ClipboardList, Settings, BookOpen } from 'lucide-react';
 import type { Category, Prayer } from '@/lib/types';
 import { DevotionIcon } from '@/components/icons/DevotionIcon';
+import { LITURGY_HOURS_ID } from './liturgy-hours';
 
 // Devociones
 import { sanJosemariaPrayer } from './prayers/devociones/sanjosemaria';
@@ -65,6 +66,7 @@ import { oracionAlSagradoCorazonDeJesus } from './prayers/oraciones/oracion-al-s
 import { exposicionBendicion } from './prayers/oraciones/exposicion-bendicion';
 import { confesionPrayers } from './prayers/oraciones/confesion';
 import { benditaSeaTuPureza } from './prayers/oraciones/bendita-sea-tu-pureza';
+import { credoNicenoConstantinopolitano } from './prayers/oraciones/credo-niceno-constantinopolitano';
 import {
   actoContricion,
   angelGuarda,
@@ -128,6 +130,7 @@ const oracionesSubcategories: Prayer[] = [
     categoryId: 'oraciones',
     prayers: [
       ...estructurales.prayers!,
+      credoNicenoConstantinopolitano,
       actoContricion,
       angelGuarda,
       bendicionMesa,
@@ -242,6 +245,7 @@ export const initialPrayers: Prayer[] = [
   salveRegina,
   preces,
   viaCrucis,
+  { id: LITURGY_HOURS_ID, title: 'Liturgia de las Horas', categoryId: 'plan-de-vida' },
 
   // Oraciones Varias (Agrupadas)
   ...oracionesSubcategories,

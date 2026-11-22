@@ -14,6 +14,7 @@ import PrayerList from '@/components/PrayerList';
 import PrayerDetail from '@/components/PrayerDetail';
 import MesDeMariaReflection from '@/components/MesDeMariaReflection';
 import { MES_DE_MARIA_REFLECTION_ID } from '@/lib/mes-de-maria';
+import { LITURGY_HOURS_ID, LITURGY_MASS_ID } from '@/lib/liturgy-hours';
 import ConfessionNotebook from '@/components/ConfessionNotebook';
 import Settings, { getSettingsSectionLabel, type SettingsSection } from '@/components/Settings';
 import AddPrayerForm from '@/components/AddPrayerForm';
@@ -33,6 +34,7 @@ const ViaCrucisImmersive = dynamic(() => import('../ViaCrucisImmersive'), { ssr:
 const ExpositionImmersive = dynamic(() => import('../ExpositionImmersive'), { ssr: false, loading: LazyView });
 const NuevoTestamentoReader = dynamic(() => import('@/components/NuevoTestamentoReader'), { ssr: false, loading: LazyView });
 const PersonalEpubLibrary = dynamic(() => import('@/components/PersonalEpubLibrary'), { ssr: false, loading: LazyView });
+const LiturgyHours = dynamic(() => import('@/components/LiturgyHours'), { ssr: false, loading: LazyView });
 import SearchCamino from '@/components/SearchCamino';
 import { AudioPlayer } from '@/components/AudioPlayer';
 import { migrateAudioLibrary, listAudioRecords, saveAudioRecord, removeAudioRecord, renameAudioRecord } from '@/lib/audio-store';
@@ -43,6 +45,7 @@ import { getImageObjectPosition, getImageObjectScale } from '@/lib/image-display
 import { Switch } from '@/components/ui/switch';
 import { AnimatePresence } from 'framer-motion';
 import { getAnnuumAvailability, getLocalDateKey } from '@/lib/movable-feasts';
+import { parseCalendarDate } from '@/lib/calendar-date';
 const AnnuumStory = dynamic(() => import('../AnnuumStory'), { ssr: false, loading: LazyView });
 import Image from 'next/image';
 import { Play } from 'lucide-react';
@@ -207,10 +210,8 @@ export default function MainApp() {
     forceAnnuumSeason,
     overlayPositions,
     setOverlayPosition,
-    hasViewedAnnuum,
-    setHasViewedAnnuum,
-    annuumFirstOpenedDate,
-    setAnnuumFirstOpenedDate,
+    annuumCompletedDate,
+    setAnnuumCompletedDate,
     pushDevLiveTrace,
     navMode,
     cartasReminderEnabled,
@@ -344,35 +345,24 @@ export default function MainApp() {
   }, []);
 
   const effectiveAnnuumNow = useMemo(
-    () => (simulatedDate ? new Date(simulatedDate) : annuumClock),
+    () => (simulatedDate && parseCalendarDate(simulatedDate)) || annuumClock,
     [annuumClock, simulatedDate]
   );
   const annuumAvailability = useMemo(
-    () => getAnnuumAvailability(effectiveAnnuumNow, annuumFirstOpenedDate, forceAnnuumSeason),
-    [annuumFirstOpenedDate, effectiveAnnuumNow, forceAnnuumSeason]
+    () => getAnnuumAvailability(effectiveAnnuumNow, annuumCompletedDate, forceAnnuumSeason),
+    [annuumCompletedDate, effectiveAnnuumNow, forceAnnuumSeason]
   );
-
-  useEffect(() => {
-    if (hasViewedAnnuum && !annuumFirstOpenedDate && annuumAvailability.bubbleVisible) {
-      setAnnuumFirstOpenedDate(getLocalDateKey(effectiveAnnuumNow));
-    }
-  }, [
-    annuumAvailability.bubbleVisible,
-    annuumFirstOpenedDate,
-    effectiveAnnuumNow,
-    hasViewedAnnuum,
-    setAnnuumFirstOpenedDate,
-  ]);
+  const annuumDateKey = getLocalDateKey(effectiveAnnuumNow);
 
   const handleOpenAnnuumFromBubble = () => {
     if (isDraggingAnnuum) return;
-    const currentDateKey = getLocalDateKey(effectiveAnnuumNow);
-    if (!annuumFirstOpenedDate?.startsWith(`${effectiveAnnuumNow.getFullYear()}-`)) {
-      setAnnuumFirstOpenedDate(currentDateKey);
-    }
-    setHasViewedAnnuum(true);
     setShowAnnuum(true);
   };
+
+  const handleQualifiedAnnuumView = useCallback(() => {
+    if (!annuumAvailability.bubbleVisible) return;
+    setAnnuumCompletedDate(annuumDateKey);
+  }, [annuumAvailability.bubbleVisible, annuumDateKey, setAnnuumCompletedDate]);
 
   useEffect(() => {
     navStateRef.current = navState;
@@ -1211,6 +1201,7 @@ export default function MainApp() {
     Boolean(currentPrayer?.id) &&
     Boolean(currentPrayer?.content) &&
     !currentPrayer?.prayers?.length;
+  const isHoursReadingView = navState.activeView === 'prayer' && currentPrayer?.id === LITURGY_HOURS_ID;
   const canEditCurrentPrayer =
     isPrayerReadingView &&
     (
@@ -1281,10 +1272,10 @@ export default function MainApp() {
     : undefined;
 
   useEffect(() => {
-    if (!isPrayerReadingView && isDistractionFree) {
+    if (!isPrayerReadingView && !isHoursReadingView && isDistractionFree) {
       toggleDistractionFree();
     }
-  }, [isDistractionFree, isPrayerReadingView, toggleDistractionFree]);
+  }, [isDistractionFree, isHoursReadingView, isPrayerReadingView, toggleDistractionFree]);
 
   const deletePrayer = (prayer: Prayer) => {
     if (!prayer.id) return;
@@ -1472,6 +1463,12 @@ export default function MainApp() {
         }
         if (currentPrayer.id === MES_DE_MARIA_REFLECTION_ID) {
           return <MesDeMariaReflection />;
+        }
+        if (currentPrayer.id === LITURGY_HOURS_ID) {
+          return <LiturgyHours prayer={currentPrayer} />;
+        }
+        if (currentPrayer.id === LITURGY_MASS_ID) {
+          return <LiturgyHours prayer={currentPrayer} mass />;
         }
         if (currentPrayer.id === 'lectura-espiritual-audios') {
           return (
@@ -1738,7 +1735,7 @@ export default function MainApp() {
             }
             showInfoButton={currentPrayer?.id === 'cartas'}
             onInfo={() => setShowLettersInfo(true)}
-            showPrayerMenu={isPrayerReadingView}
+            showPrayerMenu={isPrayerReadingView || isHoursReadingView}
             onStartTimer={startTimer}
             showDeleteButton={canDeleteCurrentPrayer}
             onDelete={canDeleteCurrentPrayer && currentPrayer ? () => setPrayerPendingDelete(currentPrayer) : undefined}
@@ -1844,6 +1841,7 @@ export default function MainApp() {
       <AnimatePresence>
         {showAnnuum && (
           <AnnuumStory
+            onQualifiedView={handleQualifiedAnnuumView}
             onClose={() => {
               setShowAnnuum(false);
             }}

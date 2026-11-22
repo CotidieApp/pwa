@@ -3,14 +3,13 @@ import type { Dispatch, SetStateAction } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
 import BackgroundActions from '@/plugins/BackgroundActions';
-import saintsDataRaw from '@/lib/saints-data.json';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { resolveDevotionDayMatch } from '@/lib/devotion-day-images';
 import { getLiturgicalColor } from '@/lib/getLiturgicalColor';
-import { getMovableFeast, getEasterDate } from '@/lib/movable-feasts';
+import { parseCalendarDate } from '@/lib/calendar-date';
+import { getSaintDaySelection } from '@/lib/movable-feasts';
+import saintDayImages from '@/lib/saint-day-images.json';
 import type { ImagePlaceholder, SaintOfTheDay } from '@/lib/types';
-
-const saintsData = saintsDataRaw as { saints: SaintOfTheDay[] };
 
 type UseSaintOfTheDayParams = {
   isLoaded: boolean;
@@ -114,40 +113,13 @@ export const useSaintOfTheDay = ({
 
   // Saints logic
   useEffect(() => {
-    const now = simulatedDate ? new Date(simulatedDate) : new Date();
+    const now = (simulatedDate && parseCalendarDate(simulatedDate)) || new Date();
     const currentMonth = now.getMonth() + 1;
     const currentDay = now.getDate();
     const pad2 = (n: number) => String(n).padStart(2, '0');
     const dateKey = `${now.getFullYear()}-${pad2(currentMonth)}-${pad2(currentDay)}`;
 
-    // 1. Check Movable Feasts first (Ash Wednesday, Easter, etc.)
-    const easter = getEasterDate(now.getFullYear());
-    const movable = getMovableFeast(now, easter);
-
-    // 2. Check Fixed Saints
-    const fixed = saintsData.saints.find(s => s.month === currentMonth && s.day === currentDay) || null;
-
-    // Priority logic based on user setting
-    // If enabled: Movable takes precedence (e.g. Ash Wednesday > San Simeón)
-    // If disabled: Fixed takes precedence (e.g. San Simeón > Ash Wednesday)
-    const effectiveSaintBase = movableFeastsEnabled
-      ? (movable || fixed)
-      : (fixed || movable);
-
-    // Task 16: Combine names if a movable feast overlaps a high importance fixed saint
-    let effectiveSaint = effectiveSaintBase;
-    if (movableFeastsEnabled && movable && fixed && fixed.isHighImportance && movable.name !== fixed.name) {
-      effectiveSaint = {
-        ...movable,
-        name: `${movable.name} / ${fixed.name}`,
-        bio: `**${movable.name}**: ${movable.bio}\n\n**${fixed.name}**: ${fixed.bio}`,
-      };
-    }
-
-    const hiddenFixedSaint =
-      movableFeastsEnabled && movable && fixed && !fixed.isHighImportance
-        ? fixed
-        : null;
+    const { effectiveSaint, hiddenFixedSaint } = getSaintDaySelection(now, movableFeastsEnabled);
 
     const dow = now.getDay(); // 0..6
     const dayImageId = `saintoftheday-${dow}`;
@@ -155,45 +127,11 @@ export const useSaintOfTheDay = ({
     const marianNamePattern =
       /(Nuestra Señora|Virgen María|Inmaculada Concepción|Asunción de la Virgen|Presentación de la Virgen|Natividad de la Virgen|Visitación de la Virgen)/i;
     const marianImage = PlaceHolderImages.find((img) => img.id === 'saintoftheday-6') || dayImage;
-    const holyCrossImage = PlaceHolderImages.find((img) => img.id === 'home-immaculate-heart') || dayImage;
-
     const resolveSaintVisuals = (saint: SaintOfTheDay | null) => {
       const devotionMatch = resolveDevotionDayMatch(saint);
-      let image = dayImage;
-
-      if (currentMonth === 10 && currentDay === 12) {
-        image = {
-          id: 'october-12-pilar-carlo',
-          description: 'Nuestra Señora del Pilar y San Carlo Acutis',
-          imageUrl: '/images/october-12-pilar-carlo.png',
-          imageHint: 'Nuestra Señora del Pilar y San Carlo Acutis',
-        };
-      } else if (currentMonth === 12 && (currentDay === 24 || currentDay === 25)) {
-        const christmasImage = PlaceHolderImages.find((img) => img.id === 'christmas-image') || null;
-        image = christmasImage || dayImage;
-      } else if (saint?.name?.includes('Pentecostés')) {
-        image = PlaceHolderImages.find((img) => img.id === 'pentecost-image') || dayImage;
-      } else if (saint?.name?.includes('Santísima Trinidad')) {
-        image = PlaceHolderImages.find((img) => img.id === 'holy-trinity-image') || dayImage;
-      } else if (saint?.name?.includes('Corpus Christi')) {
-        image = PlaceHolderImages.find((img) => img.id === 'corpus-christi-image') || dayImage;
-      } else if (saint?.name?.includes('Sagrado Corazón')) {
-        image = PlaceHolderImages.find((img) => img.id === 'home-sacred-heart') || dayImage;
-      } else if (saint?.name?.includes('Inmaculado Corazón')) {
-        image = PlaceHolderImages.find((img) => img.id === 'home-immaculate-heart') || dayImage;
-      } else if (saint?.name && /(?:exaltaci[oó]n|invenci[oó]n|triunfo).*cruz|santa cruz/i.test(saint.name)) {
-        image = holyCrossImage;
-      } else {
-        const isMarian = Boolean(
-          (saint as any)?.type === 'marian' || (saint?.name && marianNamePattern.test(saint.name))
-        );
-
-        if (devotionMatch?.image) {
-          image = devotionMatch.image;
-        } else if (isMarian) {
-          image = marianImage;
-        }
-      }
+      const specificImage = saint && saintDayImages.find(({ names }) => names.includes(saint.name));
+      const isMarian = saint?.type === 'marian' || marianNamePattern.test(saint?.name ?? '');
+      const image = specificImage || devotionMatch?.image || (isMarian ? marianImage : dayImage);
 
       return {
         image,
@@ -207,6 +145,8 @@ export const useSaintOfTheDay = ({
       : null;
     const sameHiddenSaint =
       overriddenFixedSaint?.name === hiddenFixedSaint?.name &&
+      overriddenFixedSaint?.bio === hiddenFixedSaint?.bio &&
+      overriddenFixedSaint?.title === hiddenFixedSaint?.title &&
       overriddenFixedSaint?.type === (hiddenFixedSaint as any)?.type;
     const sameHiddenImage =
       overriddenFixedSaintImage?.id === hiddenFixedImage?.id &&
@@ -214,6 +154,8 @@ export const useSaintOfTheDay = ({
 
     const sameSaint =
       saintOfTheDay?.name === effectiveSaint?.name &&
+      saintOfTheDay?.bio === effectiveSaint?.bio &&
+      saintOfTheDay?.title === effectiveSaint?.title &&
       saintOfTheDay?.type === (effectiveSaint as any)?.type;
     const sameImage =
       saintOfTheDayImage?.id === image?.id &&

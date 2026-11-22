@@ -43,6 +43,51 @@ const loadHook = (file, mocks) => loadSource('src/context/settings/' + file + '.
 const moduleParent = module;
 const noop = () => {};
 
+test('Annuum qualifies only after showing 90 percent of distinct slides', async () => {
+  const previousFrame = global.requestAnimationFrame;
+  const previousCancel = global.cancelAnimationFrame;
+  global.requestAnimationFrame = () => 1;
+  global.cancelAnimationFrame = noop;
+  const MotionDiv = React.forwardRef(({ children }, ref) => React.createElement('div', { ref }, children));
+  const { default: Story } = loadSource('src/components/AnnuumStory.tsx', {
+    'framer-motion': { motion: { div: MotionDiv, p: 'p', span: 'span' }, AnimatePresence: ({ children }) => children },
+    'lucide-react': { X: () => null },
+    'next/image': () => null,
+    '@/components/ui/button': { Button: 'button' },
+    '@/context/SettingsContext': { useSettings: () => settings },
+  });
+  const { defaultUserStats } = require('../src/context/settings/defaults.ts');
+  const settings = { userStats: defaultUserStats, allPrayers: [], showZeroStats: true };
+  let opened = 0;
+  let completed = 0;
+  let view;
+  const next = () => view.root.findAllByProps({ className: 'w-1/3 h-full' })
+    .at(-1).props.onClick({ stopPropagation: noop });
+  const open = () => create(React.createElement(Story, {
+    onClose: () => { opened++; },
+    onQualifiedView: () => { completed++; },
+  }), { createNodeMock: () => ({ innerText: 'Cotidie Annuum' }) });
+  try {
+    await act(async () => { view = open(); });
+    await act(async () => view.root.findByType('button').props.onClick());
+    assert.equal(opened, 1);
+    assert.equal(completed, 0);
+    await act(async () => view.unmount());
+    await act(async () => { view = open(); });
+    // With all 16 slides enabled, the fifteenth slide reaches the threshold.
+    for (let index = 1; index <= 13; index++) await act(async () => next());
+    assert.equal(completed, 0);
+    await act(async () => next());
+    assert.equal(completed, 1);
+    await act(async () => next());
+    assert.equal(completed, 1);
+  } finally {
+    if (view) await act(async () => view.unmount());
+    global.requestAnimationFrame = previousFrame;
+    global.cancelAnimationFrame = previousCancel;
+  }
+});
+
 test('reader restores after its own ref attaches, saves on route changes and resets only short prayers', async () => {
   const oldWindow = global.window;
   const oldDocument = global.document;
@@ -593,7 +638,7 @@ test('provider hydration still retries explicitly after a read failure', async (
   }, true);
 });
 
-test('saint widget refreshes when liturgical type changes with the same name and biography', async () => {
+test('the widget follows the devotional color when the date permits it', async () => {
   const calls = [];
   const useSaint = loadHook('useSaintOfTheDay', {
     '@capacitor/core': { Capacitor: { isNativePlatform: () => true, getPlatform: () => 'android' } },
@@ -616,7 +661,8 @@ test('saint widget refreshes when liturgical type changes with the same name and
       ...props, saintOfTheDay: { ...props.saintOfTheDay, type: 'virgin' },
     })); });
     assert.equal(calls.length, 2);
-    assert.notEqual(calls[0].backgroundColor, calls[1].backgroundColor);
+    assert.equal(calls[0].backgroundColor, '#8B0000');
+    assert.equal(calls[1].backgroundColor, '#F8F9FA');
   } finally {
     if (renderer) await act(async () => renderer.unmount());
     global.document = oldDocument;

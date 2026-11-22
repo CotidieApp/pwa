@@ -2,6 +2,24 @@
 
 Historial de intervenciones del asistente en el repo.
 
+## 2026-11-22 — Credo niceno-constantinopolitano bilingüe
+
+### Planificacion
+
+Incorporar el credo en español y latín a la sección Oraciones siguiendo el modelo de las oraciones bilingües existentes.
+
+### Ejecucion
+
+Se añadió como oración común, con el texto en ambos idiomas y la imagen compartida por los credos existentes.
+
+### Validacion
+
+Se intentó `npm run build`, que invoca el coordinador requerido. El coordinador se detuvo porque el cliente no tenía acceso disponible a un recurso CIM; compilación pendiente.
+
+### Archivos Modificados
+
+src/lib/prayers/oraciones/credo-niceno-constantinopolitano.ts; src/lib/data.tsx; AGENTS-history.md.
+
 ## 2026-11-12 — Entrega de Cotidie 6.6.0
 
 ### Planificacion
@@ -8489,3 +8507,228 @@ Ejecutado npm run android:apk -- --bump --copy-drive --publish mediante el coord
 Build web con tipos, exportación y PWA118 correcto; assembleRelease correcto. apksigner confirma firma v2 y certificado habitual SHA-256 e51ea637db49f462f81cb462f34a7d08b7cae72718362f302eb0ef23b3e51feb. aapt2 verifica com.benjamin.studio, versión6.5.2/123, minSdk24. APK88.249.163bytes; SHA-256815687a4f4250e570920a68f3de07edd2f58c237716217760735250f07247799 idéntico entre archivo local, Drive y digest del asset GitHub. Release sin draft ni prerelease; main remoto cotejado con commit funcional. La validación funcional vigente es122Node,13JUnit y recorrido móvil del hito anterior; no se repitió sin cambios funcionales nuevos. Sin instalación ni prueba física del teléfono. Registro documental posterior enviado separadamente, sin modificar el APK verificado.
 ### Archivos Modificados
 package.json; package-lock.json; src/lib/version.ts; android/app/build.gradle; assets sincronizados de Android y todos los cambios pendientes anteriores registrados en el commit funcional. Registro de entrega: AGENTS-history.md y docs/SEGURIDAD-CARTAS.md. APK dist/cotidie-installer-v6.5.2.apk y copia G:/Mi unidad/Cotidie/APK Installer/cotidie-installer-v6.5.2.apk. Log y evidencia externos: letters-security-20261110/release-6.5.2.log y release-6.5.2-evidence.json bajo .codex/projects/cotidie.
+
+## 2026-11-14 — Prototipo local de Liturgia de las Horas
+### Planificacion
+Comenzar la integración desde Completas del 13 de noviembre de 2026 de liturgiadelashoras.github.io. Mantener la arquitectura estática web/Android, seguir el calendario de la fuente y ofrecer lectura propia con caché sin sustituir fechas ni celebraciones. Estado: implementado localmente, pendiente de compilación y comprobación visual/red real.
+### Ejecucion
+Entrada de carga diferida en Plan de Vida, fecha local con navegación diaria/Hoy, siete horas, selección explícita de las variantes regionales e información de procedencia. Consulta del índice diario antes de seguir el enlace exacto de la hora; fuente raw del repositorio público y alternativa GitHub Pages, tiempo límite y cancelación al navegar. Extracción de texto en DOM separado y renderizado React, sin insertar HTML ni estilos/eventos externos; conservación de orden, estrofas y encabezados, ajuste de letra y colores del tema. Caché IndexedDB validada, acotada a40páginas/2millones de caracteres, apertura sin red, actualización explícita y aviso si no se pudo guardar. El selector no marca una oración del Plan de Vida como realizada. Sin nuevas dependencias, APK, cambio de versión, commit ni publicación. Documentación técnica en docs/LITURGIA-DE-LAS-HORAS.md. No se actualizó la caché operativa externa: el sandbox solo permite escribir el repositorio y no autoriza el runtime solicitado fuera de él; no se crearon auxiliares propios en la carpeta del usuario.
+### Validacion
+11/11 pruebas focalizadas correctas, incluidas selección regional, cancelación y respuestas tardías del componente, reintento, extracción, rutas, fechas, caché, cuotas y escrituras concurrentes. Suite general134/139: cuatro pruebas preexistentes de notificaciones bloqueadas por EPERM al crear sus temporales externos y una prueba preexistente de calendario con ETIMEDOUT de5s; archivos afectados por esos fallos intactos. git diff --check correcto. Fuente contrastada mediante GitHub: archivo inicial, índices13/14de noviembre e índice regional12de octubre2026. Acceso directo desde terminal bloqueado por DNS. npm run build no inició tipos/Next/PWA: Invoke-ControlledBuild.ps1 recibió «El cliente no tenía acceso disponible a un recurso CIM»; no se eludió ni repitió el coordinador. La herramienta de navegador agotó el tiempo al iniciar; pendientes parser HTML nativo, apariencia móvil claro/oscuro, conexión/CORS real desde web/WebView y persistencia física después de reiniciar. No se modificaron los pendientes previos de Cotidie.
+### Archivos Modificados
+src/components/LiturgyHours.tsx; src/lib/liturgy-hours.ts; src/lib/liturgy-hours-cache.ts; src/lib/data.tsx; src/components/main/MainApp.tsx; src/components/main/prayer-navigation.ts; tests/liturgy-hours.cjs; scripts/test.mjs; docs/LITURGIA-DE-LAS-HORAS.md; AGENTS-history.md.
+
+## 2026-11-14 — Liturgia de las Horas integrada sin conexión
+### Planificacion
+Sustituir las consultas del prototipo por un corpus y calendario locales. Conservar la entrada y la configuración de visibilidad del Plan de Vida, con el mismo lector que las demás oraciones.
+### Ejecucion
+Incluido Breviarium Core 3.1.8 con avisos de atribución y regeneración reproducible. El módulo se carga desde los recursos locales y forma parte de la exportación web y de su precaché. Retirados el cliente de GitHub, la caché de consultas y los enlaces de actualización. El calendario calcula la fecha civil, la precedencia de Vísperas, las Completas y los formularios pascuales. El lector amplía PrayerDetail para representar estrofas, cursivas y rúbricas en React y comparte tema, zoom y navegación. Se conserva el ajuste de visibilidad y la casilla manual. La edición de España se indica en el lector. Pendientes los derechos de redistribución de los textos, el propio de Chile y una revisión litúrgica exhaustiva.
+### Validacion
+Cinco regresiones focalizadas, 133/133 pruebas generales, tipos y exportación final con 122 recursos precacheados. El módulo de la exportación coincide byte a byte con la fuente local. Barrido de 20.448 combinaciones de fecha y hora en siete años, hasta 2300. Edge móvil abrió la primera lectura con el navegador sin conexión después de instalar la PWA. No hubo solicitudes externas durante el recorrido medido. Comprobados ocultar, recargar, restaurar, casilla manual, tema claro y oscuro, zoom y navegación. Sin APK nuevo ni publicación. Android físico pendiente.
+### Archivos Modificados
+public/liturgy; scripts/vendor-liturgy-hours.mjs; scripts/check-pwa-export.mjs; scripts/test.mjs; src/components/LiturgyHours.tsx; src/components/PrayerDetail.tsx; src/components/main/MainApp.tsx; src/components/main/prayer-navigation.ts; src/lib/data.tsx; src/lib/liturgy-hours.ts; src/lib/liturgy-hours-reader.ts; src/lib/liturgy-hours-ordinary.ts; tests/liturgy-hours.cjs; docs/LITURGIA-DE-LAS-HORAS.md; AGENTS-history.md.
+
+## 2026-11-14 — Comprobación de 2073 y fuentes del Propio de Chile
+### Planificacion
+Verificar el alcance del calendario local a 47 años e identificar una fuente fiel para Chile.
+### Ejecucion
+Se corrigió la concurrencia del IV domingo de Adviento con las I Vísperas de Navidad el 24 de diciembre, cotejada con el calendario de la CEE de 2023. El Propio chileno sigue pendiente. Localizados el Ordo de la CECh, el anexo impreso de San Pablo y textos históricos parciales de la BCN. Cotejar el Propio vigente y la edición base antes de incorporar una edición chilena.
+### Validacion
+365 fechas y 2.920 combinaciones de Invitatorio y horas de 2073 respondieron sin llamadas de red. Se verificaron Pascua el 26 de marzo y el cambio de Adviento a Navidad en la tarde del 24 de diciembre. Cinco pruebas focalizadas y tipos, build y PWA122 correctos. Sin APK nuevo ni prueba física.
+### Archivos Modificados
+src/lib/liturgy-hours-reader.ts; tests/liturgy-hours.cjs; docs/LITURGIA-DE-LAS-HORAS.md; AGENTS-history.md.
+
+## 2026-11-14 — Calendario nacional para las Horas y la Misa de Chile
+### Planificacion
+Preparar la selección local de las dos funciones a partir de las reglas chilenas y localizar las ediciones aprobadas. Mantener identificado el lector existente de España mientras se consigue el contenido chileno.
+### Ejecucion
+Incluido en el mismo recurso precacheado el calendario nacional de Romcal, corregido con el Ordo de la CECh. El cálculo entrega día, precedencia, salterio y memorias a elección para las Horas, además de celebración, ciclos y clave del Leccionario para la Misa. Contempla la diferencia del 8 de diciembre que cae en domingo y la Misa vespertina del Jueves Santo. Cotejadas y registradas las citas de ocho celebraciones. Identificadas las ediciones y preparada una consulta a CONALI por los textos y permisos. El código de preparación todavía no tiene un lector de los textos chilenos.
+### Validacion
+135 pruebas generales y siete focalizadas correctas, 365 días de 2073 resueltos localmente sin llamadas de red y casos del Ordo cotejados. Tipos, Next, exportación y PWA122 correctos. Recurso idéntico en fuente y exportación con SHA-256 1123482adfa2a87320a196eb9a29edd9cff637782d2311bc2e6d4689c5c41a5e. Sin APK nuevo ni prueba física. Consulta aún sin enviar.
+### Archivos Modificados
+scripts/vendor-liturgy-hours.mjs; public/liturgy/breviarium-3.1.8.js; public/liturgy/LICENSE.txt; src/lib/liturgy-chile.ts; src/lib/liturgy-hours-reader.ts; tests/liturgy-hours.cjs; docs/LITURGIA-DE-LAS-HORAS.md; AGENTS-history.md.
+
+## 2026-11-14 — Prueba offline de fuentes para la liturgia de Chile
+### Planificacion
+Localizar textos utilizables mediante fuentes públicas y probar su conexión con el calendario local. Comprobar cobertura y variantes con el Ordo nacional y el Arzobispado de Santiago.
+### Ejecucion
+Descargados seis EPUB de las Horas, seis del Leccionario y el Leccionario completo en HTML con 951 formularios. Se cotejaron cinco archivos complementarios. El selector identifica las lecturas propias universales de María, Madre de la Iglesia, y precisa la cita del salmo de Santa Cruz de mayo. En el corpus de prueba faltan parte del Evangelio y el salmo propio de Madre de la Iglesia. El Santoral de los EPUB carece de Teresa de los Andes y Alberto Hurtado. Se localizaron las referencias editoriales del Propio chileno. Los textos y el prototipo quedan fuera del repositorio; faltan el cotejo de variantes, el Propio vigente y acreditar la autorización para distribuir los textos.
+### Validacion
+Disponibilidad estructural de formularios o complementos en las 1.461 fechas de 2026, 2027, 2028 y 2073. Se extrajeron los cuerpos de tres Misas de referencia y se resolvió Completas del 14-11-2073 desde un EPUB con red deshabilitada para el selector. El barrido no certifica las variantes ni el exacto tenor de cada formulario. 135 pruebas generales correctas. Sin nueva compilación de la app, APK ni publicación.
+### Archivos Modificados
+src/lib/liturgy-chile.ts; tests/liturgy-hours.cjs; docs/LITURGIA-DE-LAS-HORAS.md; AGENTS-history.md. Prototipo y fuentes en .codex/projects/cotidie/tmp/fuentes-liturgia-chile.
+
+## 2026-11-14 — Lecturas de la Misa y Horas de Chile en Plan de Vida
+### Planificacion
+Integrar los lectores para el calendario nacional en la exportación offline. Empaquetar textos derivados sin cargar EPUB en la aplicación.
+### Ejecucion
+Lecturas de la Misa abre el Leccionario del Cono Sur con complementos chilenos. El selector contempla ciclos A/B/C y I/II, variantes de Navidad y Ramos y la Vigilia Pascual. Las Horas usan el motor y textos de Breviarium con calendario chileno y suplemento para Carmen, Guadalupe, Rosa, Teresa, Laura, Alberto y las ferias de Navidad del 6 y 7 de enero. Se documentaron los pasajes carmelitanos e históricos y la feria con colecta de san Alberto. Cada entrada se puede ocultar desde Ajustes. Los recursos finales son un módulo JS, un JSON y un JSON comprimido, con cero EPUB incorporados. Pendientes el texto íntegro del Propio chileno, cotejo de la edición base y de variantes de la Misa y derechos de distribución.
+### Validacion
+136 pruebas generales y ocho focalizadas tras el ajuste final. Barrido de 1.461 fechas de la Misa y 2.920 selecciones de las Horas de 2073. Tipos, compilación y exportación con 124 recursos precacheados. En Edge a 390 px en modo offline se abrieron ambas entradas, se verificó la fecha 14-11-2073, y se ocultaron y restauraron las entradas desde Ajustes. Sin nueva versión, APK, publicación ni prueba física en Android.
+### Archivos Modificados
+src/components/LiturgyHours.tsx; src/components/main/MainApp.tsx; src/components/main/prayer-navigation.ts; src/lib/data.tsx; src/lib/liturgy-hours.ts; src/lib/liturgy-hours-reader.ts; src/lib/liturgy-hours-chile.ts; src/lib/liturgy-mass-reader.ts; public/liturgy; scripts/vendor-liturgy-hours.mjs; scripts/vendor-hours-chile.py; scripts/vendor-lectionary-chile.py; scripts/check-pwa-export.mjs; tests/liturgy-hours.cjs; docs/LITURGIA-DE-LAS-HORAS.md; AGENTS-history.md.
+
+## 2026-11-15 — Lecturas dentro de Santa Misa y ampliación del suplemento chileno
+### Planificacion
+Colocar las lecturas en Santa Misa y conservar su ajuste de visibilidad. Buscar fuentes de las segundas lecturas de las memorias chilenas y completar pasajes documentados del Carmen.
+### Ejecucion
+Las lecturas abren desde Santa Misa con el mismo identificador y ajuste. Se añadieron las segundas lecturas y responsorios de san Alberto Hurtado y la beata Laura Vicuña a partir de los propios jesuita y salesiano. Se cotejó la lectura de santa Teresa con otra fuente. Del fascículo histórico del Carmen se incorporaron el responsorio de I Vísperas, el himno de II Vísperas y la antífona y el versículo de Sexta. El texto íntegro del Propio nacional vigente sigue pendiente de localizar.
+### Validacion
+136 pruebas correctas, incluidas ocho focalizadas. Tipos, compilación y 124 recursos precacheados verificados. En Edge sin conexión se comprobó la ruta y el retorno de las lecturas, el 14-11-2073, la ocultación y restauración de la entrada, el Oficio de san Alberto y Laura y Sexta del Carmen. Sin APK nuevo, publicación ni prueba física en Android.
+### Archivos Modificados
+src/lib/data.tsx; src/lib/prayers/plan-de-vida/santa-misa/index.ts; src/components/settings/ContentSettings.tsx; src/lib/liturgy-hours-chile.ts; scripts/vendor-hours-chile.py; public/liturgy/hours-cl.json; tests/liturgy-hours.cjs; docs/LITURGIA-DE-LAS-HORAS.md; AGENTS-history.md.
+
+## 2026-11-15 — Lecturas disponibles dentro de Santa Misa y prueba móvil
+### Planificacion
+Retirar el ajuste de visibilidad de las lecturas y restaurar el acceso con preferencias anteriores. Probar en servidor dev y cotejar el sitio que enlaza la CECh con el Ordo chileno.
+### Ejecucion
+Las lecturas aparecen siempre que se abre Santa Misa. La selección de oraciones pasa por alto una eventual ocultación guardada de esa entrada. La Librería Verbo Divino de Chile cataloga la edición impresa aprobada para Chile. El sitio enlazado por la CECh publica el Carmen como memoria y el oficio ferial el 18 de agosto de 2026, distinto de lo indicado por el Ordo chileno.
+### Validacion
+Ocho pruebas focalizadas correctas. En el navegador de Codex a 390 × 844 se abrieron ambas rutas y se confirmó que Ajustes ofrece el interruptor de las Horas. El servidor dev queda activo en el puerto 3030 y la pestaña queda en la Liturgia de las Horas.
+### Archivos Modificados
+src/components/settings/ContentSettings.tsx; src/context/settings/normalize.ts; tests/liturgy-hours.cjs; docs/LITURGIA-DE-LAS-HORAS.md; AGENTS-history.md.
+
+## 2026-11-15 — Lector de las Horas y Completas en latín
+### Planificacion
+Retirar el pie del lector, organizar las horas y el texto con los controles de Cotidie y comprobar fuentes en latín y para Chile.
+### Ejecucion
+Selectores integrados con Tercia, Sexta y Nona bajo Hora intermedia. Secciones y referencias legibles, pantalla completa y temporizador desde el menú de oración. El texto latino local de las Completas ordinarias tiene siete formularios, con selección por el calendario de Chile y modos Español, Latín y Ambos. Se corrigió la selección de la oración conclusiva en domingo, solemnidad entre semana y Triduo. Las fuentes consultadas no proporcionaron una copia íntegra digital del Propio de Chile ni de la edición latinoamericana aprobada.
+### Validacion
+137 pruebas correctas, incluidas nueve de liturgia. Tipos, compilación y 124 recursos precacheados. En el navegador integrado se verificaron los controles móviles, el modo de pantalla completa y su salida. En Edge a 390 × 844, con la exportación precacheada y sin conexión, se abrieron las Completas del 14-11-2073 en Latín y Ambos y se cambió a Sexta. Servidor dev activo en el puerto 3030. Sin APK nuevo ni prueba física de Android.
+### Archivos Modificados
+src/components/LiturgyHours.tsx; src/components/PrayerDetail.tsx; src/components/main/MainApp.tsx; src/lib/liturgy-hours-reader.ts; src/lib/compline-latin.json; scripts/vendor-compline-latin.py; tests/liturgy-hours.cjs; docs/LITURGIA-DE-LAS-HORAS.md; AGENTS-history.md.
+
+## 2026-11-15 — Ubicación y visibilidad de las Horas, memoria de Ceferino
+### Planificacion
+Quitar el reloj del selector, centrar la fecha y situar las Horas al final del Plan de Vida con activación desde Ajustes. Continuar el cotejo de fuentes para el calendario nacional.
+### Ejecucion
+La visibilidad usa la preferencia existente de oraciones disponibles todos los días. Confirmada la memoria libre de Ceferino Namuncurá en el Ordo y añadido su Oficio a partir de la carta española y el Propio salesiano italiano. La Parroquia Santa María de Las Condes remite al lector ya cotejado y LDHoras tampoco contiene los propios chilenos en las fechas muestreadas.
+### Validacion
+137 pruebas correctas, incluidas nueve de liturgia. En el navegador de Codex se comprobó el centrado de la fecha y que la visibilidad se guarda al recargar. En Edge móvil se verificó el orden, la fecha editable, el selector sin reloj y la memoria del 26 de agosto. El coordinador aplazó la compilación de producción por RAM disponible. El servidor dev sigue activo.
+### Archivos Modificados
+src/components/LiturgyHours.tsx; src/components/settings/ContentSettings.tsx; src/context/SettingsContext.tsx; src/context/settings/normalize.ts; src/lib/data.tsx; src/lib/liturgy-hours-chile.ts; scripts/vendor-hours-chile.py; public/liturgy/hours-cl.json; tests/liturgy-hours.cjs; docs/LITURGIA-DE-LAS-HORAS.md; AGENTS-history.md.
+
+## 2026-11-20 — Santoral, Cristo Rey y calendario móvil de Chile
+### Planificacion
+Verificar el 20 de noviembre de 2026 y las reglas móviles de Inicio y del widget Android. Sortear un año entre 2024, 2025, 2026 y 2027 con `Get-Random` para cotejar el calendario tras las correcciones.
+### Ejecucion
+El catálogo fijo asigna el 20 de noviembre a san Edmundo, rey y mártir. El 20 de noviembre de 2026 sigue siendo feria del Tiempo Ordinario en el Ordo chileno. Cristo Rey se calcula como el domingo anterior al I de Adviento y ocupa por sí solo la tarjeta, incluso si se da preferencia al santoral fijo. El título, el texto y el blanco litúrgico corresponden a Nuestro Señor Jesucristo, Rey del Universo. La imagen propia está en `public/images/cristo-rey.jpg`. Se uniformó la lectura de fechas civiles y se corrigieron las fechas de Epifanía, Bautismo, Sagrada Familia, Ascensión, traslados de solemnidades y coincidencias de memorias. Se revisaron las fichas fijas, los rangos y las fechas del Propio de Chile en los catálogos web y Android.
+
+La herramienta integrada generó la imagen a partir de este encargo. «Ilustración devocional católica de Nuestro Señor Jesucristo, Rey del Universo, para la tarjeta litúrgica de Cotidie. Composición horizontal 3:2 de gusto sobrio, inspirado en el mosaico bizantino del Cristo Pantocrátor: Cristo al centro, de medio cuerpo, rostro sereno, bendice con la mano derecha y sostiene un Evangeliario cerrado en la izquierda, nimbo crucífero dorado, manto azul profundo, túnica clara, fondo de teselas marfil y oro. Rostro, manos y libro legibles en recorte centrado para widget pequeño. Sin texto, letras, bordes ni marcas.»
+### Validacion
+El sorteo dio 2027. Se cruzaron los 365 días con el calendario chileno anual y las fichas fijas con el Martirologio Romano y fuentes eclesiásticas complementarias. Pasaron seis pruebas focalizadas. La prueba anual recorre los 365 días y comprueba 38 fechas móviles, con ausencia de duplicados y presencia de una ficha fija por fecha civil. Se verificaron también la prioridad, contenido, imagen y color de Cristo Rey, las fechas civiles en Chile, los traslados y la tabla pascual del widget mediante lectura de fuente. El cotejo litúrgico se completó para estas fechas móviles. Algunas fichas devocionales y detalles de biografías quedaron sin corroboración individual en las fuentes consultadas. El coordinador de compilación de Windows se detuvo en el acceso a CIM. En la suite general previa al último ajuste pasaron 138 pruebas y cuatro de notificaciones quedaron bloqueadas por el permiso para crear temporales. Compilación y ejecución nativa pendientes.
+
+[Santoral del Vaticano](https://www.vaticanstate.va/es/component/content/category/santo-del-dia.html?Itemid=356), [liturgia chilena del 20 de noviembre](https://santosapostoles.cl/liturgia?fecha=2026-11-20), [domingos y solemnidades de la CECh](https://www.iglesia.cl/domingo/), [legislación complementaria chilena](https://www.iglesia.cl/docs/Legislacion_Complementaria_CECh_vigente_2019.pdf), [Propio de Chile](https://www.iglesia.cl/795-calendario-propio-de-chile.htm), [calendario de Chile 2027](https://gcatholic.org/calendar/2027/CL-es) y [Martirologio Romano](https://liturgico.chiesacattolica.it/martirologio-romano/).
+### Archivos Modificados
+src/lib/saints-data.json, src/lib/movable-feasts.ts, src/lib/liturgical-color-rules.ts, src/lib/official-liturgical-calendar.ts, src/lib/calendar-date.ts, src/lib/placeholder-images.json, src/context/settings/useSaintOfTheDay.ts, src/components/saints/SaintOfTheDayCard.tsx, android/app/src/main/assets/saints-data.json, android/app/src/main/java/com/benjamin/studio/widgets/LiturgicalColorRules.java, android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetContentFactory.java, public/images/cristo-rey.jpg, tests/santoral.cjs, scripts/test.mjs y AGENTS-history.md.
+
+## 2026-11-20 — Prioridad del santoral fijo y ojo en Cristo Rey
+### Planificacion
+Respetar la preferencia por el santoral fijo también el día de Cristo Rey y recuperar el acceso a la ficha del santo mediante el ojo de Inicio.
+### Ejecucion
+La tarjeta y el widget de Android aplican la preferencia guardada. Cuando las fiestas móviles tienen prioridad, Cristo Rey ocupa la tarjeta y el ojo permite consultar el santo fijo mientras se mantiene presionado. Cuando se prefiere el santoral fijo, la tarjeta muestra directamente su ficha.
+### Validacion
+Pasaron las seis pruebas focalizadas del santoral. La regresión comprueba ambos modos de selección para tres años y el renderizado de la tarjeta con el ojo y con Santa Cecilia como ficha principal. La comprobación en un teléfono sigue pendiente.
+### Archivos Modificados
+src/lib/movable-feasts.ts, android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetContentFactory.java, tests/santoral.cjs y AGENTS-history.md.
+
+## 2026-11-20 — Auditoría anual del santoral para 2025
+### Planificacion
+Sortear un año distinto de 2027 y cotejar en Inicio la ficha, las fiestas, el texto, las imágenes y los colores de todos sus días.
+### Ejecucion
+El sorteo dio 2025. Se ejecutó el selector real de Inicio con ambas preferencias y se cotejó su salida con el calendario anual de Chile, el Propio, la instrucción del Misal y el Martirologio. La auditoría dejó un CSV diario y un inventario visual en la caché externa.
+### Validacion
+Se procesaron 365 días y se leyeron las 27 imágenes distintas. Las 37 celebraciones calculadas coinciden en fecha con la referencia. Se confirmaron problemas de precedencia, color, imágenes y biografías. No hubo ejecución nativa y algunas fichas aún requieren corroboración individual. Evidencia y alcance en la entrada de caché WC-20261120-cotidie-auditoria-santoral-2025.
+### Archivos Modificados
+AGENTS-history.md. Sin cambios en la aplicación.
+
+## 2026-11-21 — Corrección del santoral y simulación de 2036
+### Planificacion
+Aplicar los hallazgos del cotejo de 2025 a Inicio y al widget. Repetir la simulación para los 366 días de 2036 conforme al calendario romano y al Propio de Chile.
+### Ejecucion
+Se añadieron los domingos III a VI de Pascua y el Día de Oración por Chile. Se actualizaron las reglas de precedencia, los traslados y los rangos de las fichas. Inicio y Android comparten el catálogo de colores y el de imágenes. El ojo muestra el color propio de la ficha fija. Se corrigieron las biografías con errores documentados y se incorporó una estampa histórica del Corazón de María de la Biblioteca del Congreso.
+### Validacion
+La simulación de 2036 verificó 42 celebraciones, 33 imágenes y 732 estados del widget con ambas preferencias. Pasaron 146 pruebas, el build web y las 126 entradas PWA, y la compilación Java de Android con su SDK. El cotejo de 2025 quedó con tres diferencias de color justificadas por el Misal y las reglas de precedencia. Pendiente comprobación física en Android. CSV y fuentes en la caché externa WC-20261121-cotidie-santoral-2036.
+### Archivos Modificados
+src/lib/movable-feasts.ts, src/lib/liturgical-color-rules.ts, src/lib/liturgical-fixed-days-chile.json, src/lib/getLiturgicalColor.ts, src/lib/saints-data.json, src/lib/placeholder-images.json, src/lib/saint-day-images.json, src/context/settings/useSaintOfTheDay.ts, src/components/saints/SaintOfTheDayCard.tsx, public/images/corazon-inmaculado-de-maria.jpg, android/app/build.gradle, android/app/src/main/assets/saints-data.json, android/app/src/main/java/com/benjamin/studio/widgets/LiturgicalColorRules.java, android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetContentFactory.java, android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetUpdater.java, tests/santoral.cjs, tests/reading-persistence.cjs, tests/settings-lifecycle.cjs y AGENTS-history.md.
+
+## 2026-11-21 — Cotejo de los mártires jesuitas y el santoral de noviembre
+### Planificacion
+Cotejar el entorno del 20 de noviembre con el Martirologio Romano y verificar que la selección fija y móvil siga coincidiendo en Inicio y Android.
+### Ejecucion
+Se comprobó la inscripción de san Edmundo el 20 de noviembre y la canonización del paraguayo san Roque González de Santa Cruz. Se ubicó a Roque y Alfonso Rodríguez el 15 y a Juan del Castillo el 17, junto a las fichas ya presentes. El 19 muestra a san Abdías. El widget usa la asociación explícita de imágenes para la Exaltación de la Cruz y dejó de asignarla por coincidencia con el apellido Santa Cruz.
+### Validacion
+Pasaron las ocho pruebas del santoral y el nuevo cotejo de 2036 con los 366 días, 42 celebraciones y 732 combinaciones de fecha y preferencia en el widget. El cotejo verifica la lógica de la aplicación y deja abierta la corroboración individual de las demás fichas devocionales.
+### Archivos Modificados
+src/lib/saints-data.json, android/app/src/main/assets/saints-data.json, android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetContentFactory.java, tests/santoral.cjs y AGENTS-history.md.
+
+## 2026-11-21 — Selección de la figura principal del santoral fijo
+
+### Planificacion
+
+Seleccionar la celebración principal de cada fecha con el Propio de Chile y el Calendario Romano General como referencias. Conservar las celebraciones conjuntas y los casos con devoción chilena documentada.
+
+### Ejecucion
+
+Se redujeron 31 fichas que agrupaban conmemoraciones independientes. Quedaron, entre otras, Laura Vicuña, Ceferino Namuncurá, Alberto Magno e Isabel de Hungría en sus fechas. Se conservaron las celebraciones conjuntas y las fichas del Pilar con Carlo Acutis y de Juan Damasceno con Bárbara. El 9 de octubre muestra a Newman desde 2026 y a Dionisio y compañeros en los años anteriores, tanto en Inicio como en el widget.
+
+### Validacion
+
+Pasaron 147 pruebas, la compilación web controlada y el precache de 126 entradas. La simulación abarcó 366 días de 2036, 42 celebraciones calculadas, 32 imágenes y 732 estados del widget. La ejecución Java comprobó también el 9 de octubre de 2025 con ambas preferencias. Pendiente prueba física de Android.
+
+### Archivos Modificados
+
+src/lib/saints-data.json, src/lib/movable-feasts.ts, android/app/src/main/assets/saints-data.json, android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetContentFactory.java, tests/santoral.cjs y AGENTS-history.md.
+
+## 2026-11-21 — Color litúrgico de la ficha visible
+
+### Planificacion
+
+Aplicar el color de la celebración mostrada cuando el Misal permite celebrarla íntegramente y respetar la precedencia litúrgica en los demás días.
+
+### Ejecucion
+
+Inicio y el widget aplican el blanco a las celebraciones marianas y de santos no mártires y el rojo a los mártires cuando se puede elegir la celebración. Conservan el color prescrito en domingos, solemnidades y días que solo admiten la colecta de una memoria. Cuando coinciden el Inmaculado Corazón de María y otra memoria obligatoria, la ficha visible decide el color. El ojo sigue mostrando el color propio de la ficha fija durante la consulta.
+
+### Validacion
+
+Pasaron 148 pruebas, la compilación web con TypeScript y las 126 entradas PWA. Se cotejaron los 366 días de 2036 con la referencia romana y el Propio de Chile, con 166 fechas de elección. En 2026, 2027 y 2036 coincidieron los 2.192 estados de Inicio y del widget ejecutado en Java. Pendiente prueba física en Android. Evidencia en WC-20261121-cotidie-colores-santoral.
+
+### Archivos Modificados
+
+src/lib/liturgical-color-rules.ts, android/app/src/main/java/com/benjamin/studio/widgets/LiturgicalColorRules.java, android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetContentFactory.java, tests/santoral.cjs, tests/settings-lifecycle.cjs y AGENTS-history.md.
+## 2026-11-22 — Visibilidad y avance de Cotidie Annuum
+
+### Planificacion
+
+Mantener el globo de Annuum en Inicio desde el comienzo de la temporada y trasladarlo a Ajustes cuando se haya recorrido al menos el 90 % de las diapositivas.
+
+### Ejecucion
+
+La fecha persistida de Annuum ahora representa el año completado. Abrir el globo ya no cambia su ubicación; el avance hasta el umbral fija la fecha de finalización y habilita la entrada en Ajustes.
+
+### Validacion
+
+`git diff --check` pasó en los tres archivos de código. `npm run build` se detuvo en el coordinador porque el cliente no tenía acceso disponible a un recurso CIM; compilación pendiente.
+
+### Archivos Modificados
+
+src/lib/movable-feasts.ts, src/components/AnnuumStory.tsx, src/components/main/MainApp.tsx y AGENTS-history.md.
+
+## 2026-11-22 — Revisión de encargos de Telegram
+
+### Planificacion
+
+Cotejar los encargos sobre el santoral, Annuum y el Credo con su implementación y preparar la entrega de Android.
+
+### Ejecucion
+
+Annuum guarda la fecha en la que se alcanza el 90 % de las diapositivas realmente mostradas. La primera apertura de una versión anterior no cuenta como finalización. Ajustes recibe el acceso el mismo día en que desaparece el globo. La fecha simulada se interpreta como fecha civil. El Credo niceno-constantinopolitano queda en Oraciones comunes con español y latín. Las pruebas del santoral cubren el selector, sus prioridades y colores.
+
+### Validacion
+
+Pruebas de Annuum sobre apertura y cierre temprano, umbral, primer día y temporada siguiente. Los resultados de la compilación y la distribución se registran en la entrada de entrega.
+
+### Archivos Modificados
+
+src/components/AnnuumStory.tsx, src/components/main/MainApp.tsx, src/context/SettingsContext.tsx, src/context/settings/defaults.ts, src/context/settings/normalize.ts, src/context/settings/types.ts, src/lib/movable-feasts.ts, tests/santoral.cjs y tests/settings-lifecycle.cjs.

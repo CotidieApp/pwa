@@ -17,9 +17,11 @@ import java.util.Locale;
 import java.util.Map;
 
 final class SaintWidgetContentFactory {
+    private static final String CHRIST_THE_KING = "Nuestro Señor Jesucristo, Rey del Universo";
     private static Map<Integer, SaintEntry> cachedSaints;
     private static Map<String, String> cachedPlaceholderAssetPaths;
-    private static Map<String, String> cachedOfficialLiturgicalColors;
+    private static JSONObject fixedCalendar;
+    private static Map<String, SelectedImage> celebrationImages;
     private static final String ANNUNCIATION_OVERLAY_ASSET_PATH = "public/images/rosario/gozoso-1.jpg";
     private static final DevotionImageEntry[] DEVOTION_IMAGE_ENTRIES = new DevotionImageEntry[] {
             new DevotionImageEntry("sanjosemaria", "public/images/san-josemaria.jpeg",
@@ -52,20 +54,28 @@ final class SaintWidgetContentFactory {
                     new String[] {"nuestra senora del carmen", "nuestra senora del carmen madre y reina de chile"}),
             new DevotionImageEntry("sagrado-corazon", "public/images/sacred-heart.jpeg",
                     new String[] {"sagrado corazon", "sagrado corazon de jesus"}),
-            new DevotionImageEntry("immaculate-heart", "public/images/immaculate-heart.jpeg",
-                    new String[] {"inmaculado corazon", "inmaculado corazon de maria"})
+            new DevotionImageEntry("immaculate-heart-of-mary-image", "public/images/corazon-inmaculado-de-maria.jpg",
+                    new String[] {"inmaculado corazon de maria"})
     };
 
     static SaintWidgetContent forNow(Context context) {
-        Calendar now = Calendar.getInstance();
+        return forDate(context, Calendar.getInstance());
+    }
+
+    static SaintWidgetContent forDate(Context context, Calendar now) {
         int year = now.get(Calendar.YEAR);
         int month = now.get(Calendar.MONTH) + 1;
         int day = now.get(Calendar.DAY_OF_MONTH);
 
         Calendar easter = getEasterDate(year);
         boolean movableEnabled = SaintWidgetPreferences.isMovableFeastsEnabled(context);
-        SaintEntry movable = getMovableFeast(now, easter);
+        SaintEntry movable = getMovableFeast(context, now, easter);
         SaintEntry fixed = getSaintForDate(context, month, day);
+        if (year <= 2025 && month == 10 && day == 9 && fixed != null) {
+            fixed = new SaintEntry(month, day, "San Dionisio y compañeros, mártires",
+                    "Dionisio, obispo de París, es venerado como mártir junto con el presbítero Rústico y el diácono Eleuterio.",
+                    fixed.title, "martyr");
+        }
         
         SaintEntry saint;
         if (movableEnabled) {
@@ -78,7 +88,7 @@ final class SaintWidgetContentFactory {
         String bio = saint != null && saint.bio != null ? saint.bio : "";
         SelectedImage selectedImage = pickSaintImage(context, saint, now);
 
-        int backgroundColor = getLiturgicalColor(context, saint, now, easter);
+        int backgroundColor = getLiturgicalColor(context, now, easter, movable, saint);
         boolean lightBg = isLightColor(backgroundColor);
         int titleTextColor = lightBg ? Color.parseColor("#1E293B") : Color.WHITE;
         int bodyTextColor = lightBg ? Color.parseColor("#334155") : Color.argb(230, 255, 255, 255);
@@ -143,55 +153,26 @@ final class SaintWidgetContentFactory {
     }
 
     private static SelectedImage pickSaintImage(Context context, SaintEntry saint, Calendar now) {
-        int month = now.get(Calendar.MONTH) + 1;
-        int day = now.get(Calendar.DAY_OF_MONTH);
         String dayImageId = "saintoftheday-" + toJsDayIndex(now.get(Calendar.DAY_OF_WEEK));
-        boolean isAnnunciationDay = month == 3 && day == 25;
+        boolean isAnnunciationDay = saint != null && "Anunciación del Señor".equals(saint.name);
 
-        if (month == 12 && (day == 24 || day == 25)) {
-            String christmasPath = resolvePlaceholderAssetPath("christmas-image");
-            if (christmasPath != null) {
-                return new SelectedImage("christmas-image", christmasPath);
-            }
-        }
+        SelectedImage specificImage = saint == null ? null : getCelebrationImages(context).get(saint.name);
+        if (specificImage != null) return specificImage;
 
         String saintName = saint != null ? saint.name : "";
         String saintType = saint != null ? saint.type : "";
         String imageId = dayImageId;
 
         String normalizedSaintName = normalizeLiturgicalText(saintName);
-        boolean isHolyCrossFeast = normalizedSaintName.matches(
-                ".*(exaltacion|invencion|triunfo).*cruz.*"
-        ) || normalizedSaintName.contains("santa cruz");
-        if (isHolyCrossFeast) {
-            String crossPath = resolvePlaceholderAssetPath("home-immaculate-heart");
-            if (crossPath != null) {
-                return new SelectedImage("home-immaculate-heart", crossPath);
-            }
-        }
-
         SelectedImage devotionImage = resolveDevotionImage(saint);
         if (devotionImage != null) {
             return devotionImage;
         }
 
-        boolean isMarian = saintType != null && saintType.equalsIgnoreCase("marian");
-        if (!isMarian && saintName != null && !saintName.isEmpty()) {
-            String loweredName = saintName.toLowerCase(Locale.getDefault());
-            isMarian = loweredName.contains("nuestra senora")
-                    || loweredName.contains("nuestra se?ora")
-                    || loweredName.contains("virgen maria")
-                    || loweredName.contains("virgen mar?a")
-                    || loweredName.contains("inmaculada concepcion")
-                    || loweredName.contains("inmaculada concepci?n")
-                    || loweredName.contains("asuncion de la virgen")
-                    || loweredName.contains("asunci?n de la virgen")
-                    || loweredName.contains("presentacion de la virgen")
-                    || loweredName.contains("presentaci?n de la virgen")
-                    || loweredName.contains("natividad de la virgen")
-                    || loweredName.contains("visitacion de la virgen")
-                    || loweredName.contains("visitaci?n de la virgen");
-        }
+        boolean isMarian = saintType.contains("marian") || normalizedSaintName.matches(
+                ".*(nuestra senora|virgen maria|inmaculada concepcion|asuncion de la virgen|"
+                        + "presentacion de la virgen|natividad de la virgen|visitacion de la virgen).*"
+        );
 
         if (isMarian) {
             imageId = "saintoftheday-6";
@@ -249,7 +230,7 @@ final class SaintWidgetContentFactory {
         if (cachedPlaceholderAssetPaths != null) return cachedPlaceholderAssetPaths;
 
         Map<String, String> map = new HashMap<>();
-        map.put("saintoftheday-0", "public/images/resurrection.jpeg");
+        map.put("saintoftheday-0", "public/images/rosario/glorioso-1.jpg");
         map.put("saintoftheday-1", "public/images/holy-trinity.jpeg");
         map.put("saintoftheday-2", "public/images/creation.jpeg");
         map.put("saintoftheday-3", "public/images/holy-family.jpeg");
@@ -263,60 +244,39 @@ final class SaintWidgetContentFactory {
         map.put("sanjose-image", "public/images/san-jose.jpg");
         map.put("nativity-image", "public/images/nativity.jpeg");
         map.put("christmas-image", "public/images/christmas-image.jpg");
-        map.put("home-immaculate-heart", "public/images/immaculate-heart.jpeg");
         cachedPlaceholderAssetPaths = map;
         return cachedPlaceholderAssetPaths;
     }
 
-    private static synchronized Map<String, String> ensureOfficialLiturgicalColorsLoaded(Context context) {
-        if (cachedOfficialLiturgicalColors != null) return cachedOfficialLiturgicalColors;
+    private static synchronized JSONObject getFixedLiturgicalDay(Context context, Calendar current) {
+        if (fixedCalendar == null) {
+            try {
+                fixedCalendar = new JSONObject(readAssetText(context, "liturgical-fixed-days-chile.json"))
+                        .getJSONObject("days");
+            } catch (Exception ignored) {
+                fixedCalendar = new JSONObject();
+            }
+        }
+        String key = String.format(Locale.US, "%02d-%02d", current.get(Calendar.MONTH) + 1,
+                current.get(Calendar.DAY_OF_MONTH));
+        return fixedCalendar.optJSONObject(key);
+    }
 
-        Map<String, String> map = new HashMap<>();
+    private static synchronized Map<String, SelectedImage> getCelebrationImages(Context context) {
+        if (celebrationImages != null) return celebrationImages;
+        Map<String, SelectedImage> images = new HashMap<>();
         try {
-            String[] assetNames = context.getAssets().list("");
-            if (assetNames != null) {
-                for (String assetName : assetNames) {
-                    if (assetName == null
-                            || !assetName.startsWith("liturgical-colors-chile-")
-                            || !assetName.endsWith(".json")) {
-                        continue;
-                    }
-
-                    String json = readAssetText(context, assetName);
-                    JSONObject root = new JSONObject(json);
-                    JSONObject days = root.optJSONObject("days");
-                    if (days == null) continue;
-
-                    JSONArray keys = days.names();
-                    if (keys == null) continue;
-
-                    for (int i = 0; i < keys.length(); i++) {
-                        String dateKey = keys.optString(i, "");
-                        if (dateKey == null || dateKey.trim().isEmpty()) continue;
-                        JSONObject day = days.optJSONObject(dateKey);
-                        if (day == null) continue;
-                        String appColor = day.optString("appColor", "");
-                        if (appColor == null || appColor.trim().isEmpty()) continue;
-                        map.put(dateKey, appColor);
-                    }
-                }
+            JSONArray entries = new JSONArray(readAssetText(context, "saint-day-images.json"));
+            for (int i = 0; i < entries.length(); i++) {
+                JSONObject entry = entries.getJSONObject(i);
+                SelectedImage image = new SelectedImage(entry.getString("id"), "public" + entry.getString("imageUrl"));
+                JSONArray names = entry.getJSONArray("names");
+                for (int j = 0; j < names.length(); j++) images.put(names.getString(j), image);
             }
         } catch (Exception ignored) {
         }
-
-        cachedOfficialLiturgicalColors = map;
-        return cachedOfficialLiturgicalColors;
-    }
-
-    private static String getOfficialLiturgicalColorName(Context context, Calendar current) {
-        String dateKey = String.format(
-                Locale.US,
-                "%04d-%02d-%02d",
-                current.get(Calendar.YEAR),
-                current.get(Calendar.MONTH) + 1,
-                current.get(Calendar.DAY_OF_MONTH)
-        );
-        return ensureOfficialLiturgicalColorsLoaded(context).get(dateKey);
+        celebrationImages = images;
+        return celebrationImages;
     }
 
     private static Integer mapOfficialLiturgicalColor(String colorName) {
@@ -333,17 +293,33 @@ final class SaintWidgetContentFactory {
         return null;
     }
 
-    private static int getLiturgicalColor(Context context, SaintEntry saint, Calendar current, Calendar easter) {
-        Integer protectedColor = LiturgicalColorRules.getSpecialDateLiturgicalColor(current, easter);
-        if (protectedColor != null) return protectedColor;
+    private static int getLiturgicalColor(Context context, Calendar current, Calendar easter,
+                                         SaintEntry movable, SaintEntry saint) {
+        JSONObject fixed = getFixedLiturgicalDay(context, current);
+        int fixedRank = fixed == null ? 0 : fixed.optInt("rank");
+        Integer fixedColor = fixed == null ? null : mapOfficialLiturgicalColor(fixed.optString("color"));
+        boolean competingMemorials = movable != null && "Memoria libre".equals(movable.title)
+                && "Inmaculado Corazón de María".equals(movable.name);
+        return LiturgicalColorRules.getGeneralLiturgicalColor(current, easter, fixedRank, fixedColor,
+                movable != null, competingMemorials, getSaintCelebrationColor(saint));
+    }
 
-        return LiturgicalColorRules.getGeneralLiturgicalColor(
-                saint != null ? saint.title : "",
-                saint != null ? saint.type : "",
-                saint != null ? saint.name : "",
-                current,
-                easter
-        );
+    private static Integer getSaintCelebrationColor(SaintEntry saint) {
+        if (saint == null || saint.name.isEmpty()) return null;
+        if ("Santoral".equals(saint.title) && saint.name.matches("^Beat[oa]s? .+")) return null;
+        String name = normalizeLiturgicalText(saint.name.split(" / ", 2)[0]);
+        String type = normalizeLiturgicalText(saint.type.split("/", 2)[0]);
+        if (name.contains("fieles difuntos")) return mapOfficialLiturgicalColor("Morado");
+        if (name.contains("exaltacion de la santa cruz")) return mapOfficialLiturgicalColor("Rojo");
+        boolean whiteApostolicException = name.contains("juan apostol y evangelista")
+                || name.contains("catedra de san pedro")
+                || name.contains("conversion de san pablo")
+                || name.contains("natividad de san juan bautista");
+        String description = type + " " + name;
+        boolean red = description.contains("martir") || description.contains("martyr")
+                || (!whiteApostolicException && (description.contains("apostol")
+                || description.contains("apostle") || description.contains("evangelist")));
+        return mapOfficialLiturgicalColor(red ? "Rojo" : "Blanco");
     }
 
     private static boolean isLightColor(int color) {
@@ -493,14 +469,7 @@ final class SaintWidgetContentFactory {
         Map<String, Calendar> dates = new HashMap<>();
         
         // Start searching from Nov 27
-        Calendar advent1 = Calendar.getInstance();
-        advent1.set(year, Calendar.NOVEMBER, 27, 0, 0, 0);
-        advent1.set(Calendar.MILLISECOND, 0);
-
-        // Find the first Sunday on or after Nov 27
-        while (advent1.get(Calendar.DAY_OF_WEEK) != Calendar.SUNDAY) {
-            advent1.add(Calendar.DAY_OF_MONTH, 1);
-        }
+        Calendar advent1 = LiturgicalColorRules.getAdventStart(year);
 
         dates.put("advent1", advent1);
         dates.put("advent2", addDays(advent1, 7));
@@ -511,15 +480,53 @@ final class SaintWidgetContentFactory {
         return dates;
     }
 
-    private static SaintEntry getMovableFeast(Calendar current, Calendar easter) {
+    private static SaintEntry getMovableFeast(Context context, Calendar current, Calendar easter) {
         int year = current.get(Calendar.YEAR);
+        if (isSameDay(current, LiturgicalColorRules.getEpiphanyDate(year))) {
+            return new SaintEntry(0, 0, "Epifanía del Señor", "Los Magos llegan a Belén y adoran a Jesús. La Iglesia celebra la manifestación del Hijo de Dios a todos los pueblos.", "Solemnidad", "celebration");
+        }
+        if (isSameDay(current, LiturgicalColorRules.getBaptismOfTheLordDate(year))) {
+            return new SaintEntry(0, 0, "Bautismo del Señor", "Jesús recibe de Juan el bautismo en el Jordán. El Espíritu Santo desciende sobre él y el Padre lo revela como su Hijo amado.", "Fiesta", "celebration");
+        }
+        if (isSameDay(current, LiturgicalColorRules.getHolyFamilyDate(year))) {
+            return new SaintEntry(0, 0, "Sagrada Familia de Jesús, María y José", "La Iglesia contempla a Jesús, María y José en su vida familiar y pide que los hogares crezcan en el amor y la fidelidad a Dios.", "Fiesta", "celebration");
+        }
+        if (current.get(Calendar.MONTH) == Calendar.DECEMBER && current.get(Calendar.DAY_OF_MONTH) == 8) {
+            return null;
+        }
+        if (isSameDay(current, LiturgicalColorRules.getObservedSaintJosephDate(year, easter))
+                && current.get(Calendar.DAY_OF_MONTH) != 19) {
+            return getSaintForDate(context, 3, 19);
+        }
+        if (isSameDay(current, LiturgicalColorRules.getObservedAnnunciationDate(year, easter))
+                && (current.get(Calendar.MONTH) != Calendar.MARCH || current.get(Calendar.DAY_OF_MONTH) != 25)) {
+            return getSaintForDate(context, 3, 25);
+        }
+        if (isSameDay(current, LiturgicalColorRules.getObservedNativityOfJohnDate(year, easter))
+                && current.get(Calendar.DAY_OF_MONTH) != 24) {
+            return getSaintForDate(context, 6, 24);
+        }
+        if (isSameDay(current, LiturgicalColorRules.getObservedPeterAndPaulDate(year, easter))
+                && current.get(Calendar.DAY_OF_MONTH) != 29) {
+            return getSaintForDate(context, 6, 29);
+        }
         
+        Calendar prayerForChile = Calendar.getInstance();
+        prayerForChile.clear();
+        prayerForChile.set(year, Calendar.SEPTEMBER, 24);
+        prayerForChile.add(Calendar.DAY_OF_MONTH, (Calendar.SUNDAY - prayerForChile.get(Calendar.DAY_OF_WEEK) + 7) % 7);
+        if (isSameDay(current, prayerForChile)) {
+            return new SaintEntry(0, 0, "Día de Oración por Chile",
+                    "El último domingo de septiembre, la Iglesia en Chile reza por el país y encomienda a sus familias y comunidades a la intercesión de la Virgen del Carmen.",
+                    "Jornada pastoral", "celebration");
+        }
+
         // 1. Advent Feasts
         Map<String, Calendar> adventDates = getAdventDates(year);
         
         if (isSameDay(current, adventDates.get("christTheKing"))) {
-            return new SaintEntry(0, 0, "Jesucristo, Rey del Universo", 
-                "Solemnidad que cierra el Año Litúrgico. Celebramos que Cristo es Rey de todo lo creado, principio y fin de la historia.", 
+            return new SaintEntry(0, 0, CHRIST_THE_KING,
+                "En el último domingo del año litúrgico celebramos el reinado de Cristo. Jesús manifiesta su realeza al entregar la vida en la cruz y vencer a la muerte. Su reino de verdad, justicia, amor y paz nos llama a reconocerlo en los más pequeños y a servirlos.",
                 "Solemnidad", "celebration");
         }
         if (isSameDay(current, adventDates.get("advent1"))) {
@@ -543,6 +550,36 @@ final class SaintWidgetContentFactory {
                 "Domingo de Adviento", "celebration;advent");
         }
 
+        String[] lentOrdinals = {"I", "II", "III", "IV", "V"};
+        for (int i = 0; i < lentOrdinals.length; i++) {
+            if (isSameDay(current, addDays(easter, -42 + i * 7))) {
+                return new SaintEntry(0, 0, lentOrdinals[i] + " Domingo de Cuaresma",
+                        "La Iglesia se prepara para la Pascua con la oración, el ayuno y la caridad.",
+                        "Domingo de Cuaresma", "celebration");
+            }
+        }
+        String[] easterOrdinals = {"III", "IV", "V", "VI"};
+        String[] easterReflections = {
+            "La Iglesia proclama que Jesús resucitó y se dio a conocer a sus discípulos. Su presencia renueva la fe de la comunidad.",
+            "Jesús es el Buen Pastor. Conoce a los suyos, los llama y da la vida por ellos. Hoy la Iglesia reza por las vocaciones.",
+            "La alegría de la Pascua nos llama a vivir unidos a Cristo y a dar testimonio de su amor.",
+            "Cristo resucitado reúne a sus discípulos en el amor y prepara a la Iglesia para recibir el Espíritu Santo."
+        };
+        for (int i = 0; i < easterOrdinals.length; i++) {
+            if (isSameDay(current, addDays(easter, 14 + i * 7))) {
+                return new SaintEntry(0, 0, easterOrdinals[i] + " Domingo de Pascua",
+                        easterReflections[i], "Domingo de Pascua", "celebration");
+            }
+        }
+        String[] octaveWeekdays = {"Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"};
+        for (int i = 0; i < octaveWeekdays.length; i++) {
+            if (isSameDay(current, addDays(easter, i + 1))) {
+                return new SaintEntry(0, 0, octaveWeekdays[i] + " de la Octava de Pascua",
+                        "La Iglesia prolonga la alegría del domingo de Resurrección y celebra la victoria de Cristo sobre la muerte.",
+                        "Octava de Pascua", "celebration");
+            }
+        }
+
         // 2. Easter Feasts
         // Map offset to Definition
         // -46: Ash Wed
@@ -554,33 +591,45 @@ final class SaintWidgetContentFactory {
         // -2: Good Fri
         // -1: Holy Sat
         // 0: Easter
-        // 39: Ascension
+        // 42: Ascension in Chile
         // 49: Pentecost
         
         // Let's iterate definitions
         Map<Integer, SaintEntry> easterFeasts = new HashMap<>();
         easterFeasts.put(-46, new SaintEntry(0, 0, "Miércoles de Ceniza", "Inicio de la Cuaresma, un tiempo de penitencia y conversión de cuarenta días en preparación para la Pascua. Se caracteriza por la imposición de la ceniza en la frente.", "Conmemoración", "celebration;lent;ceniza"));
         easterFeasts.put(-7, new SaintEntry(0, 0, "Domingo de Ramos", "Inicio de la Semana Santa. Se conmemora la entrada triunfal de Jesús en Jerusalén, aclamado por la multitud con ramos de olivo y palma.", "Celebración del Día", "celebration;lent;ramos"));
-        easterFeasts.put(-6, new SaintEntry(0, 0, "Lunes Santo", "Día para preparar el alma para la crucifixión, muerte y resurrección del Señor. Ocasión de reflexión y meditación. Lunes, conmemoración de los Santos Arcángeles.", "Celebración del Día", "celebration;lent"));
-        easterFeasts.put(-5, new SaintEntry(0, 0, "Martes Santo", "Día para preparar el alma para la crucifixión, muerte y resurrección del Señor. Ocasión de reflexión y meditación. Martes, conmemoración de la filiación divina.", "Celebración del Día", "celebration;lent"));
-        easterFeasts.put(-4, new SaintEntry(0, 0, "Miércoles Santo", "Día para preparar el alma para la crucifixión, muerte y resurrección del Señor. Ocasión de reflexión y meditación. Miércoles, conmemoración a San José.", "Celebración del Día", "celebration;lent"));
+        easterFeasts.put(-6, new SaintEntry(0, 0, "Lunes Santo", "En Betania, María unge los pies de Jesús. Su gesto de amor anticipa la sepultura del Señor.", "Celebración del Día", "celebration;lent"));
+        easterFeasts.put(-5, new SaintEntry(0, 0, "Martes Santo", "En la Última Cena, Jesús anuncia que uno de los discípulos lo entregará y que Pedro lo negará. La Iglesia se prepara para celebrar su Pasión.", "Celebración del Día", "celebration;lent"));
+        easterFeasts.put(-4, new SaintEntry(0, 0, "Miércoles Santo", "El Evangelio recuerda el acuerdo de Judas para entregar a Jesús. La Iglesia se dispone a celebrar el Triduo Pascual.", "Celebración del Día", "celebration;lent"));
         easterFeasts.put(-3, new SaintEntry(0, 0, "Jueves Santo", "Se conmemora la Última Cena de Jesús con sus apóstoles, la institución de la Eucaristía y del sacerdocio, y el lavatorio de los pies.", "Celebración del Día", "celebration;lent"));
         easterFeasts.put(-2, new SaintEntry(0, 0, "Viernes Santo", "La crucifixión del Señor. Día de luto y penitencia en el que se recuerda la Pasión y Muerte de Jesucristo en la Cruz para la salvación del mundo.", "Conmemoración", "celebration;lent;pasión"));
         easterFeasts.put(-1, new SaintEntry(0, 0, "Sábado Santo", "Día de silencio y espera. La Iglesia medita junto al sepulcro del Señor, aguardando su Resurrección. Por la noche, se celebra la Vigilia Pascual.", "Conmemoración", "celebration;lent"));
         easterFeasts.put(0, new SaintEntry(0, 0, "Domingo de Resurrección", "¡Cristo ha resucitado! Es la fiesta central del cristianismo, la celebración de la victoria de Jesús sobre la muerte, que nos abre las puertas a la vida eterna.", "Solemnidad", "celebration"));
-        easterFeasts.put(39, new SaintEntry(0, 0, "Ascensión del Señor", "Cuarenta días después de su Resurrección, Jesús asciende al cielo en presencia de sus discípulos, prometiendo el envío del Espíritu Santo.", "Solemnidad", "celebration"));
-        easterFeasts.put(49, new SaintEntry(0, 0, "Pentecostés", "Cincuenta días después de la Resurrección, el Espíritu Santo desciende sobre los Apóstoles, marcando el nacimiento de la Iglesia y el inicio de su misión evangelizadora.", "Solemnidad", "celebration;pentecostés"));
+        easterFeasts.put(7, new SaintEntry(0, 0, "Domingo de la Divina Misericordia", "Jornada para confiar en la misericordia de Dios y en la obra redentora de Cristo, que nos llama a la conversión y al perdón.", "II Domingo de Pascua", "celebration"));
+        easterFeasts.put(42, new SaintEntry(0, 0, "Ascensión del Señor", "Jesús resucitado vuelve al Padre y promete a sus discípulos el Espíritu Santo. Los Hechos de los Apóstoles recuerdan los cuarenta días en que se les apareció. En Chile celebramos la Ascensión el séptimo domingo de Pascua.", "Solemnidad", "celebration"));
+        easterFeasts.put(49, new SaintEntry(0, 0, "Pentecostés", "En el quincuagésimo día de Pascua, el Espíritu Santo desciende sobre los discípulos reunidos y los impulsa a anunciar el Evangelio.", "Solemnidad", "celebration;pentecostés"));
         easterFeasts.put(50, new SaintEntry(0, 0, "María, Madre de la Iglesia", "Celebración en honor a María como Madre de la Iglesia, que acompaña a los fieles en su misión evangelizadora. Memoria instituida por el Papa Francisco.", "Memoria", "celebration;marian"));
+        easterFeasts.put(53, new SaintEntry(0, 0, "Jesucristo, Sumo y Eterno Sacerdote", "Fiesta que celebra a Jesucristo, mediador entre Dios y la humanidad, que se ofreció a sí mismo y vive para interceder por nosotros.", "Fiesta", "celebration"));
         easterFeasts.put(56, new SaintEntry(0, 0, "Santísima Trinidad", "Solemnidad en honor al misterio central de la fe y de la vida cristiana: el misterio de Dios en sí mismo.", "Solemnidad", "celebration"));
         easterFeasts.put(63, new SaintEntry(0, 0, "Corpus Christi", "Solemnidad del Cuerpo y la Sangre de Cristo. Celebramos la presencia real de Jesús en la Eucaristía.", "Solemnidad", "celebration;eucharist"));
         easterFeasts.put(68, new SaintEntry(0, 0, "Sagrado Corazón de Jesús", "Solemnidad que nos invita a meditar sobre el amor infinito de Dios manifestado en el Corazón de su Hijo.", "Solemnidad", "celebration;sacred-heart"));
-        easterFeasts.put(69, new SaintEntry(0, 0, "Inmaculado Corazón de María", "Memoria del Corazón de María, modelo de amor a Dios y a los hombres.", "Memoria", "celebration;marian"));
+        easterFeasts.put(69, new SaintEntry(0, 0, "Inmaculado Corazón de María", "Memoria del Corazón de María, que guardaba todas las cosas meditándolas en su interior, ejemplo de entrega y pureza.", "Memoria", "celebration;marian"));
 
         long currentMillis = startOfDay(current).getTimeInMillis();
         long easterMillis = startOfDay(easter).getTimeInMillis();
         long diffDays = Math.round((currentMillis - easterMillis) / (24.0 * 60.0 * 60.0 * 1000.0));
 
+        if (diffDays == 50 || diffDays == 69) {
+            JSONObject fixed = getFixedLiturgicalDay(context, current);
+            if (fixed != null && fixed.optInt("rank") >= 4) return null;
+        }
         SaintEntry entry = easterFeasts.get((int) diffDays);
+        if (diffDays == 69 && entry != null) {
+            SaintEntry fixed = getSaintForDate(context, current.get(Calendar.MONTH) + 1, current.get(Calendar.DAY_OF_MONTH));
+            if (fixed != null && fixed.title.matches("^Memoria( obligatoria)?( /.*)?$")) {
+                return new SaintEntry(entry.month, entry.day, entry.name, entry.bio, "Memoria libre", entry.type);
+            }
+        }
         if (entry != null) {
             return entry;
         }

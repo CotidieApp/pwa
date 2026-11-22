@@ -311,8 +311,6 @@ export type Settings = {
   globalUserStats: UserStats;
   incrementGlobalStat: (key: keyof UserStats, subKey?: string, options?: StatIncrementOptions) => void;
 
-  hasViewedAnnuum: boolean;
-  setHasViewedAnnuum: (viewed: boolean) => void;
-  annuumFirstOpenedDate: string | null;
-  setAnnuumFirstOpenedDate: (date: string | null) => void;
+  annuumCompletedDate: string | null;
+  setAnnuumCompletedDate: (date: string | null) => void;
 };

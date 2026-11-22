@@ -1,4 +1,5 @@
 import type { Prayer } from '@/lib/types';
+import { LITURGY_MASS_ID } from '@/lib/liturgy-hours';
 import { antesMisaPrayers } from './antes';
 import { despuesMisaPrayers } from './despues';
 import { misal } from './misal';
@@ -15,6 +16,11 @@ export const santaMisa: Prayer = {
       prayers: antesMisaPrayers,
     },
     misal,
+    {
+      id: LITURGY_MASS_ID,
+      title: 'Lecturas de la Misa',
+      categoryId: 'plan-de-vida',
+    },
     {
       id: 'santa-misa-despues',
       title: 'Después',
