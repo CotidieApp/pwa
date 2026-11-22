@@ -27,7 +27,7 @@ Module._resolveFilename = function(name, ...args) {
   return originalResolve.call(this, name, ...args);
 };
 
-function loadSource(file, mocks) {
+function loadSource(file, mocks, jsx = ts.JsxEmit.React) {
   const filename = path.join(root, file);
   const module = new Module(filename, moduleParent);
   module.filename = filename;
@@ -35,7 +35,7 @@ function loadSource(file, mocks) {
   const normalRequire = module.require.bind(module);
   module.require = name => name === 'react' ? React : Object.hasOwn(mocks, name) ? mocks[name] : normalRequire(name);
   module._compile(ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true, jsx: ts.JsxEmit.React },
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true, jsx },
   }).outputText, filename);
   return module.exports;
 }
@@ -636,6 +636,69 @@ test('provider hydration still retries explicitly after a read failure', async (
     await act(async () => getSettings().setTimerDuration(19));
     assert.equal(counters.loads, 2);
   }, true);
+});
+
+test('the Sunday card shows the Coronation when the eye reveals Santa Cecilia', async () => {
+  const useSaint = loadHook('useSaintOfTheDay', {
+    '@capacitor/core': { Capacitor: { isNativePlatform: () => false } },
+    '@capacitor/app': { App: {} },
+    '@/plugins/BackgroundActions': {},
+  });
+  const settings = { simulatedDate: '2026-11-22' };
+  const { default: Card } = loadSource('src/components/saints/SaintOfTheDayCard.tsx', {
+    'next/image': ({ src, alt }) => React.createElement('img', { src, alt }),
+    'lucide-react': { Eye: () => null },
+    '@/components/ui/card': { Card: 'article', CardHeader: 'header', CardContent: 'div', CardTitle: 'h2' },
+    '@/context/SettingsContext': { useSettings: () => settings },
+    '@/lib/textFormatter': { renderText: (text) => text },
+    'react/jsx-runtime': Module.createRequire(rendererPath)('react/jsx-runtime'),
+  }, ts.JsxEmit.ReactJSX);
+  function LoadSaint({ simulatedDate, movableFeastsEnabled }) {
+    useSaint({
+      isLoaded: false, simulatedDate, movableFeastsEnabled, setLastSaintUpdate: noop,
+      setSaintOfTheDay: (saint) => { settings.saintOfTheDay = saint; },
+      setSaintOfTheDayImage: (image) => { settings.saintOfTheDayImage = image; },
+      setSaintOfTheDayPrayerId: noop,
+      setOverriddenFixedSaint: (saint) => { settings.overriddenFixedSaint = saint; },
+      setOverriddenFixedSaintImage: (image) => { settings.overriddenFixedSaintImage = image; },
+    });
+    return null;
+  }
+  const oldDocument = global.document;
+  global.document = { addEventListener: noop, removeEventListener: noop };
+  let data;
+  let card;
+  try {
+    await act(async () => { data = create(React.createElement(LoadSaint, { ...settings, movableFeastsEnabled: true })); });
+    assert.match(settings.overriddenFixedSaint.name, /Santa Cecilia/);
+    await act(async () => { card = create(React.createElement(Card)); });
+    const image = () => card.root.findByType('img').props;
+    const eye = card.root.findByType('button');
+    assert.equal(image().src, '/images/cristo-rey.jpg');
+    await act(async () => eye.props.onPointerDown({ stopPropagation: noop }));
+    assert.equal(image().src, '/images/resurrection.jpeg');
+    assert.equal(image().alt, 'Coronación de la Virgen María');
+    await act(async () => eye.props.onPointerUp({ stopPropagation: noop }));
+    assert.equal(image().src, '/images/cristo-rey.jpg');
+
+    await act(async () => data.update(React.createElement(LoadSaint, {
+      simulatedDate: '2026-11-15', movableFeastsEnabled: true,
+    })));
+    assert.equal(settings.saintOfTheDayImage.imageUrl, '/images/resurrection.jpeg');
+    await act(async () => data.update(React.createElement(LoadSaint, {
+      simulatedDate: '2027-11-21', movableFeastsEnabled: true,
+    })));
+    assert.match(settings.overriddenFixedSaint.name, /Presentación/);
+    assert.equal(settings.overriddenFixedSaintImage.imageUrl, '/images/resurrection.jpeg');
+    await act(async () => data.update(React.createElement(LoadSaint, {
+      simulatedDate: '2026-04-05', movableFeastsEnabled: true,
+    })));
+    assert.equal(settings.saintOfTheDayImage.imageUrl, '/images/rosario/glorioso-1.jpg');
+  } finally {
+    if (card) await act(async () => card.unmount());
+    if (data) await act(async () => data.unmount());
+    global.document = oldDocument;
+  }
 });
 
 test('the widget follows the devotional color when the date permits it', async () => {

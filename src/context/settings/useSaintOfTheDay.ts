@@ -131,7 +131,7 @@ export const useSaintOfTheDay = ({
       const devotionMatch = resolveDevotionDayMatch(saint);
       const specificImage = saint && saintDayImages.find(({ names }) => names.includes(saint.name));
       const isMarian = saint?.type === 'marian' || marianNamePattern.test(saint?.name ?? '');
-      const image = specificImage || devotionMatch?.image || (isMarian ? marianImage : dayImage);
+      const image = specificImage || devotionMatch?.image || (isMarian && dow !== 0 ? marianImage : dayImage);
 
       return {
         image,

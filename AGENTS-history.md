@@ -8750,3 +8750,21 @@ Pasaron las 150 pruebas, TypeScript, la compilación web, las 126 entradas de pr
 ### Archivos Modificados
 
 src/components/AnnuumStory.tsx, docs/LITURGIA-DE-LAS-HORAS.md, scripts/check-pwa-export.mjs, src/lib/liturgy-mass-reader.ts, tests/liturgy-hours.cjs, public/liturgy/lectionary-cl.json.gzip, package.json, package-lock.json, src/lib/version.ts, android/app/build.gradle y AGENTS-history.md.
+
+## 2026-11-22 — Restauración de la imagen del domingo
+
+### Planificacion
+
+Recuperar la Coronación de la Virgen para los domingos sin imagen propia, incluido el santo fijo que se revela con el ojo. Conservar el arte específico de las solemnidades.
+
+### Ejecucion
+
+Separada la imagen de respaldo del domingo de la imagen pascual. Inicio y el widget vuelven a usar la pintura de la Coronación que estaba en el catálogo anterior. Cristo Rey y el Domingo de Resurrección conservan sus asociaciones explícitas.
+
+### Validacion
+
+La prueba del componente comprueba que al presionar el ojo en Cristo Rey se muestra santa Cecilia con la Coronación y que al soltar se recupera el mosaico. Comprueba además un domingo habitual, la ficha mariana oculta y la imagen propia de Pascua.
+
+### Archivos Modificados
+
+src/lib/placeholder-images.json, src/context/settings/useSaintOfTheDay.ts, android/app/src/main/java/com/benjamin/studio/widgets/SaintWidgetContentFactory.java, tests/settings-lifecycle.cjs y AGENTS-history.md.

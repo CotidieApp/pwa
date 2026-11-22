@@ -174,7 +174,7 @@ final class SaintWidgetContentFactory {
                         + "presentacion de la virgen|natividad de la virgen|visitacion de la virgen).*"
         );
 
-        if (isMarian) {
+        if (isMarian && now.get(Calendar.DAY_OF_WEEK) != Calendar.SUNDAY) {
             imageId = "saintoftheday-6";
         }
 
@@ -230,7 +230,7 @@ final class SaintWidgetContentFactory {
         if (cachedPlaceholderAssetPaths != null) return cachedPlaceholderAssetPaths;
 
         Map<String, String> map = new HashMap<>();
-        map.put("saintoftheday-0", "public/images/rosario/glorioso-1.jpg");
+        map.put("saintoftheday-0", "public/images/resurrection.jpeg");
         map.put("saintoftheday-1", "public/images/holy-trinity.jpeg");
         map.put("saintoftheday-2", "public/images/creation.jpeg");
         map.put("saintoftheday-3", "public/images/holy-family.jpeg");
