@@ -662,12 +662,14 @@ const PrayerContent = ({
 export default function PrayerDetail({
   prayer,
   searchState,
+  readingControls,
   readingContent,
   readingBilingual = false,
   keepScreenAwake = false,
 }: {
   prayer: Prayer;
   searchState?: { term: string; activeIndex: number; resultsCount: number };
+  readingControls?: React.ReactNode;
   readingContent?: React.ReactNode;
   readingBilingual?: boolean;
   keepScreenAwake?: boolean;
@@ -749,17 +751,24 @@ export default function PrayerDetail({
           </div>
         )}
 
-        <div className={cn("flex-1 min-h-0 flex flex-col", !isDistractionFree && "px-4 pb-4")}>
+        <div className={cn(
+          'flex-1 min-h-0 flex flex-col',
+          !isDistractionFree && 'px-4 pb-4',
+          !isDistractionFree && readingControls && 'pt-3'
+        )}>
           <Card
             className={cn(
               'overflow-hidden border shadow-md flex flex-col min-h-0 h-full mx-auto w-full',
+              readingControls && 'max-w-4xl',
               showsPerpetualBackground ? 'bg-card/65 backdrop-blur-[1px]' : 'bg-card',
               isDistractionFree ? 'border-0 bg-transparent shadow-none' : 'flex-1'
             )}
           >
+            {!isDistractionFree && readingControls}
             <CardContent className={cn(
               'prayer-detail-card-content flex flex-1 flex-col min-h-0',
               isBilingualMode ? 'px-2 py-4' : 'p-6',
+              !isBilingualMode && readingControls && 'p-4 sm:p-6',
               isDistractionFree && 'p-0 text-[1.05rem] leading-[1.85]'
             )}>
               <div
@@ -767,7 +776,7 @@ export default function PrayerDetail({
                 data-app-scroll-container="true"
                 className={cn(
                   'prayer-detail-scroll flex-1 min-h-0 overflow-y-auto touch-pan-y overscroll-contain scroll-smooth',
-                  !isBilingualMode && 'pr-6'
+                  !isBilingualMode && (readingControls ? 'pr-2' : 'pr-6')
                 )}
               >
                 {prayer.content || readingContent !== undefined ? (

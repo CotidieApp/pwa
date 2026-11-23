@@ -8786,3 +8786,75 @@ Firma v2, compilación web y Android, 151 pruebas y 730 estados de Inicio y widg
 ### Archivos Modificados
 
 AGENTS-history.md.
+
+## 2026-11-22 — Presentación del Credo niceno-constantinopolitano
+
+### Planificacion
+
+Usar el encuadre superior del Credo apostólico y alinear las unidades del texto bilingüe mediante el lector común de oraciones.
+
+### Ejecucion
+
+Se aplicó la preferencia de encuadre superior al identificador del Credo niceno-constantinopolitano. Se agruparon los dos textos en ocho párrafos equivalentes. El lector común muestra cada par en una sola fila y omite los bordes de separación.
+
+### Validacion
+
+El texto de cada idioma coincide con el anterior tras normalizar los espacios. Pasó la compilación controlada de web. En Edge de 360 px se abrió la oración desde Oraciones comunes, se pasó por los tres modos de idioma y se comprobó la imagen con encuadre `50% 15%` y los ocho pares con bordes de `0px`.
+
+### Archivos Modificados
+
+src/lib/image-display.ts, src/lib/prayers/oraciones/credo-niceno-constantinopolitano.ts y AGENTS-history.md.
+
+## 2026-11-22 — Estilo de los lectores litúrgicos
+
+### Planificacion
+
+Revisar el encabezado, las tarjetas, los selectores y la tipografía compartidos de Cotidie. Aplicar esas convenciones a Lecturas de la Misa y Liturgia de las Horas.
+
+### Ejecucion
+
+Los controles litúrgicos se integraron en la tarjeta del lector común y permanecen arriba mientras se desplaza el texto. Los títulos, referencias y avisos siguen la tipografía y los colores del tema. En horizontal, la celebración y la atribución abarcan las dos columnas. Lecturas de la Misa ahora usa el mismo modo de pantalla completa que las oraciones. El icono de los selectores compartidos conserva su tamaño ante etiquetas largas.
+
+### Validacion
+
+La comprobación de componentes con los textos incluidos pasó para cambios de fecha, hora, memoria libre, lectura bilingüe y pantalla completa. Tailwind generó las reglas responsivas, de escala tipográfica y tema oscuro. ESLint pasó sin avisos en los cinco componentes modificados. Pasaron 147 de 151 pruebas de la suite. Las cuatro restantes eran de notificaciones y se detuvieron al crear sus directorios temporales fuera del área escribible. El coordinador impidió iniciar la compilación al fallar la consulta CIM. Edge se cerró al arrancar, por lo que queda pendiente la verificación visual en navegador y Android.
+
+### Archivos Modificados
+
+src/components/Header.tsx, src/components/LiturgyHours.tsx, src/components/PrayerDetail.tsx, src/components/main/MainApp.tsx, src/components/ui/select.tsx y AGENTS-history.md.
+
+## 2026-11-23 — Fecha completa y separación de las lecturas de la Misa
+
+### Planificacion
+
+Corregir el recorte de la fecha mostrado en la captura del mensaje 15 y separar las lecturas con la presentación compartida de Liturgia de las Horas.
+
+### Ejecucion
+
+El selector muestra la fecha completa en formato DD/MM/AAAA y conserva el calendario nativo sobre la zona pulsable. Primera lectura, salmo, segunda lectura, aclamación y Evangelio se presentan como secciones con el mismo separador de tema que usa el lector de las Horas.
+
+### Validacion
+
+Pasaron las 10 pruebas de liturgia. La comprobación de componentes con el leccionario incluido verificó `22/11/2026`, las lecturas de Cristo Rey, los separadores en ambos lectores y la navegación con las flechas, el campo de fecha y Hoy. Tailwind generó las reglas del selector y los separadores. La comprobación visual quedó pendiente porque Edge se cerró durante el arranque de Playwright. Queda pendiente la verificación física en Android.
+
+### Archivos Modificados
+
+src/components/LiturgyHours.tsx y AGENTS-history.md.
+
+## 2026-11-23 — Revisión del estilo de la fecha y las lecturas litúrgicas
+
+### Planificacion
+
+Contrastar la fecha completa y la separación de las lecturas del mensaje 22 con los controles y el tema del lector compartido.
+
+### Ejecucion
+
+El control de fecha conserva DD/MM/AAAA y usa la misma altura y el mismo estilo de chevrón que los demás selectores. Misa, Horas y Completas bilingüe comparten el color y el espaciado entre secciones.
+
+### Validacion
+
+Pasaron las diez pruebas de liturgia. Una comprobación de los componentes con los textos incluidos y el CSS generado verificó el marcado de la fecha, la altura del control y las reglas de separación en seis casos, incluidos los temas claro y oscuro, el texto grande y la vista bilingüe. El arranque de Edge agotó el tiempo de espera y Firefox terminó con código 1, así que quedó pendiente comprobar la apariencia en un navegador y en Android físico.
+
+### Archivos Modificados
+
+src/components/LiturgyHours.tsx y AGENTS-history.md.

@@ -342,13 +342,15 @@ export default function Header({
                     <Expand />
                     Modo pantalla completa
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="min-h-11 px-3 py-2.5 text-[0.95rem] [&_svg]:size-5"
-                    onSelect={onStartTimer}
-                  >
-                    <Clock3 />
-                    Activar temporizador
-                  </DropdownMenuItem>
+                  {onStartTimer ? (
+                    <DropdownMenuItem
+                      className="min-h-11 px-3 py-2.5 text-[0.95rem] [&_svg]:size-5"
+                      onSelect={onStartTimer}
+                    >
+                      <Clock3 />
+                      Activar temporizador
+                    </DropdownMenuItem>
+                  ) : null}
                   {showEditButton && onEdit ? (
                     <DropdownMenuItem
                       className="min-h-11 px-3 py-2.5 text-[0.95rem] [&_svg]:size-5"

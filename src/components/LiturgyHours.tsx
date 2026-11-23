@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, type ReactNode } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import PrayerDetail from '@/components/PrayerDetail';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,9 +15,11 @@ import { loadLectionary, readMass } from '@/lib/liturgy-mass-reader';
 import { loadRegionalHours } from '@/lib/liturgy-hours-chile';
 import type { ChileanLiturgicalDay } from '@/lib/liturgy-chile';
 import type { Prayer } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 const middleHours = LITURGY_HOURS.slice(3, 6);
 const psalmHeading = /^(?:Salmo|Psalmus|Cántico)\s+\d/;
+const readingSectionSeparator = 'mt-5 border-t border-border pt-5';
 
 function ReadingText({ text }: { text: string }) {
   const content = text
@@ -34,7 +36,7 @@ function ReadingText({ text }: { text: string }) {
   return content.trim().split(/\n\s*\n/).map((part, index) => {
     const heading = part.trim();
     if (psalmHeading.test(heading) && !heading.includes('\n')) {
-      return <h4 key={index} className="mt-4 font-headline text-sm font-semibold text-foreground">{heading}</h4>;
+      return <h4 key={index} className="mt-4 break-after-avoid font-headline font-semibold text-foreground">{heading}</h4>;
     }
     const nodes: ReactNode[] = [];
     part.trim().split(/(\$[^$]+\$|_[^_]+_|<\/?(?:i|em|strong|b)>)/gi).forEach((token, tokenIndex) => {
@@ -52,12 +54,15 @@ function ReadingText({ text }: { text: string }) {
   });
 }
 
-function ReadingSection({ section, lang }: { section: LiturgySection; lang: 'es' | 'la' }) {
+function ReadingSection({ section, lang, className }: { section: LiturgySection; lang: 'es' | 'la'; className?: string }) {
   const [heading, reference] = section.title?.split(' · ', 2) ?? [];
-  return <section lang={lang} className="min-w-0 [overflow-wrap:anywhere]">
-    {heading && <h3 className="mb-2 font-headline text-sm font-semibold text-foreground">{heading}
-      {reference && <>{' '}<span className="ml-1 font-sans font-normal text-muted-foreground">{reference}</span></>}
-    </h3>}
+  return <section lang={lang} className={cn('min-w-0 [overflow-wrap:anywhere]', className)}>
+    {heading && (
+      <div className="mb-2 break-after-avoid">
+        <h3 className="font-headline text-[1.1em] font-semibold leading-snug text-foreground">{heading}</h3>
+        {reference && <p className="mt-0.5 text-[0.875em] text-muted-foreground">{reference}</p>}
+      </div>
+    )}
     <ReadingText text={section.text} />
   </section>;
 }
@@ -98,6 +103,8 @@ export default function LiturgyHours({ prayer, mass = false }: { prayer: Prayer;
   const language = latinSections ? preferredLanguage : 'espanol';
   const currentHour = LITURGY_HOURS.find(item => item.id === hour)?.label;
   const formsLabel = !mass && hour === 'invitatorio' ? 'Salmo del Invitatorio' : 'Formulario';
+  const hasForms = current && current.readings.length > 1;
+  const displayDate = date.split('-').reverse().join('/');
   const changeDate = (value: string) => {
     if (!parseLiturgyDate(value)) return;
     setOption(0);
@@ -112,107 +119,126 @@ export default function LiturgyHours({ prayer, mass = false }: { prayer: Prayer;
   };
   const readerPrayer = { ...prayer, id: `${prayer.id}:${key}:${option}`, imageUrl: undefined };
 
-  return (
-    <div className="flex h-full min-h-0 flex-col">
-      {!isDistractionFree && <div className="mx-auto grid w-full max-w-3xl shrink-0 gap-2 px-4 pb-3 pt-2 sm:grid-cols-2">
-        <div className="flex min-w-0 items-center gap-2">
-          <div className="flex min-w-0 flex-1 items-center rounded-lg border bg-card shadow-sm">
-            <Button type="button" variant="ghost" size="icon" className="shrink-0" aria-label="Día anterior" onClick={() => shiftDate(-1)}>
-              <ChevronLeft className="size-5" />
-            </Button>
-            <div className="flex min-w-0 flex-1 justify-center">
-              <Input aria-label="Fecha de la liturgia" type="date" value={date} onChange={event => changeDate(event.target.value)}
-                className="relative w-36 max-w-full border-0 bg-transparent pl-5 pr-7 text-center tabular-nums [color-scheme:light] dark:[color-scheme:dark] [&::-webkit-date-and-time-value]:text-center [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-1" />
-            </div>
-            <Button type="button" variant="ghost" size="icon" className="shrink-0" aria-label="Día siguiente" onClick={() => shiftDate(1)}>
-              <ChevronRight className="size-5" />
-            </Button>
+  const controls = (
+    <div
+      role="group"
+      aria-label="Seleccionar lectura litúrgica"
+      className={cn('grid shrink-0 items-start gap-2 border-b bg-muted/30 px-3 py-2 sm:px-4', (!mass || hasForms) && 'sm:grid-cols-2')}
+    >
+      <div className="flex w-full min-w-0 max-w-sm items-center gap-2">
+        <div className="flex h-10 min-w-0 flex-1 items-center justify-between rounded-md border border-input bg-background">
+          <Button type="button" variant="ghost" size="icon" className="h-full shrink-0 text-muted-foreground" aria-label="Día anterior" onClick={() => shiftDate(-1)}>
+            <ChevronLeft />
+          </Button>
+          <div className="relative flex h-full flex-1 items-center justify-center gap-2 rounded-md px-1 focus-within:ring-2 focus-within:ring-inset focus-within:ring-ring">
+            <time dateTime={date} aria-hidden="true" className="whitespace-nowrap text-sm tabular-nums">{displayDate}</time>
+            <ChevronDown aria-hidden="true" className="size-4 shrink-0 opacity-50" />
+            <Input
+              aria-label="Fecha de la liturgia"
+              type="date"
+              value={date}
+              onChange={event => changeDate(event.target.value)}
+              className="absolute inset-0 h-full cursor-pointer opacity-0 [color-scheme:light] dark:[color-scheme:dark] [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:p-0"
+            />
           </div>
-          <Button type="button" variant="ghost" size="sm" className="shrink-0" onClick={() => changeDate(getLocalDateKey(new Date()))}>Hoy</Button>
+          <Button type="button" variant="ghost" size="icon" className="h-full shrink-0 text-muted-foreground" aria-label="Día siguiente" onClick={() => shiftDate(1)}>
+            <ChevronRight />
+          </Button>
         </div>
-        {!mass && <div className="flex min-w-0 gap-2">
-          <Select value={hour} onValueChange={value => {
-            setOption(0);
-            setHour(value as LiturgyHour);
-          }}>
-            <SelectTrigger aria-label="Hora litúrgica" className="min-w-0 flex-1 rounded-lg bg-card shadow-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {LITURGY_HOURS.slice(0, 3).map(({ id, label }) => <SelectItem key={id} value={id}>{label}</SelectItem>)}
-              <SelectGroup>
-                <SelectLabel>Hora intermedia</SelectLabel>
-                {middleHours.map(({ id, label }) => <SelectItem key={id} value={id}>{label}</SelectItem>)}
-              </SelectGroup>
-              {LITURGY_HOURS.slice(6).map(({ id, label }) => <SelectItem key={id} value={id}>{label}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          {latinSections && prayer.id && <Select value={language} onValueChange={value => setPrayerLanguagePreference(prayer.id!, value)}>
-            <SelectTrigger aria-label="Idioma de las Completas" className="w-auto shrink-0 gap-2 rounded-lg bg-card shadow-sm"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {Object.entries(languageModeLabel).map(([mode, label]) => <SelectItem key={mode} value={mode}>{label}</SelectItem>)}
-            </SelectContent>
-          </Select>}
-        </div>}
-        {!!current?.optional?.length && <Select value={memorial || 'dia'} onValueChange={value => {
+        <Button type="button" variant="ghost" className="shrink-0 px-2" onClick={() => changeDate(getLocalDateKey(new Date()))}>Hoy</Button>
+      </div>
+      {!mass && <div className="flex min-w-0 gap-2">
+        <Select value={hour} onValueChange={value => {
           setOption(0);
-          setMemorial(value === 'dia' ? '' : value);
+          setHour(value as LiturgyHour);
         }}>
-          <SelectTrigger aria-label="Memoria libre" className="rounded-lg bg-card sm:col-span-2"><SelectValue /></SelectTrigger>
+          <SelectTrigger aria-label="Hora litúrgica" className="min-w-0 flex-1 gap-2">
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
-            <SelectItem value="dia">Celebración del día</SelectItem>
-            {current.optional.map(({ id, name }) => <SelectItem key={id} value={id}>{name}</SelectItem>)}
+            {LITURGY_HOURS.slice(0, 3).map(({ id, label }) => <SelectItem key={id} value={id}>{label}</SelectItem>)}
+            <SelectGroup>
+              <SelectLabel>Hora intermedia</SelectLabel>
+              {middleHours.map(({ id, label }) => <SelectItem key={id} value={id}>{label}</SelectItem>)}
+            </SelectGroup>
+            {LITURGY_HOURS.slice(6).map(({ id, label }) => <SelectItem key={id} value={id}>{label}</SelectItem>)}
           </SelectContent>
-        </Select>}
-        {current && current.readings.length > 1 && <Select value={String(option)} onValueChange={value => setOption(Number(value))}>
-          <SelectTrigger aria-label={formsLabel} className="rounded-lg bg-card sm:col-span-2"><SelectValue /></SelectTrigger>
+        </Select>
+        {latinSections && prayer.id && <Select value={language} onValueChange={value => setPrayerLanguagePreference(prayer.id!, value)}>
+          <SelectTrigger aria-label="Idioma de las Completas" className="w-auto shrink-0 gap-2"><SelectValue /></SelectTrigger>
           <SelectContent>
-            {current.readings.map(({ label }, index) => <SelectItem key={index} value={String(index)}>{label}</SelectItem>)}
+            {Object.entries(languageModeLabel).map(([mode, label]) => <SelectItem key={mode} value={mode}>{label}</SelectItem>)}
           </SelectContent>
         </Select>}
       </div>}
-      <div className="min-h-0 flex-1">
-        <PrayerDetail prayer={readerPrayer} keepScreenAwake={Boolean(reading)} readingBilingual={language === 'ambos'} readingContent={
-          reading ? (
-            <>
-              <div className="mb-5 border-b pb-4">
-                {!mass && <p className="mb-1 text-sm font-semibold text-primary">{currentHour}</p>}
-                <h2 className="font-headline text-xl font-semibold leading-tight text-foreground">{reading.celebration}</h2>
-                {reading.label !== reading.celebration && reading.label !== currentHour && (
-                  <p className="mt-1 text-sm text-muted-foreground">{reading.label}</p>
-                )}
-                {reading.notice && <p className="mt-3 text-sm text-muted-foreground">{reading.notice}</p>}
-              </div>
-              {language === 'ambos' && latinSections ? (
-                <div className="prayer-bilingual-text space-y-4">
-                  <div className="grid grid-cols-2 gap-2 text-xs font-semibold uppercase text-muted-foreground">
-                    <span>Latín</span><span>Español</span>
-                  </div>
-                  {reading.sections.map((section, index) => (
-                    <div key={index} className="grid grid-cols-2 gap-2 border-b border-border/40 pb-4 last:border-0 last:pb-0 sm:gap-4">
-                      <ReadingSection section={latinSections[index]} lang="la" />
-                      <ReadingSection section={section} lang="es" />
-                    </div>
-                  ))}
-                </div>
-              ) : (language === 'latin' && latinSections ? latinSections : reading.sections).map((section, index) => (
-                <div className="mb-6 last:mb-0" key={index}>
-                  <ReadingSection section={section} lang={language === 'latin' ? 'la' : 'es'} />
-                </div>
-              ))}
-              {mass && <p className="mt-6 border-t pt-3 text-xs text-muted-foreground">
-                Leccionario del Cono Sur. Traducción bíblica: El Libro del Pueblo de Dios.
-              </p>}
-            </>
-          ) : (
-            <p role={current ? 'alert' : 'status'} className="text-sm text-muted-foreground">
-              {current?.failed ? 'No se pudo abrir la edición incluida en Cotidie.'
-                : current ? 'La edición incluida no contiene este formulario para la fecha elegida.'
-                  : mass ? 'Preparando las lecturas…' : 'Preparando la oración…'}
-            </p>
-          )
-        } />
-      </div>
+      {!!current?.optional?.length && <Select value={memorial || 'dia'} onValueChange={value => {
+        setOption(0);
+        setMemorial(value === 'dia' ? '' : value);
+      }}>
+        <SelectTrigger aria-label="Memoria libre" className="min-w-0 gap-2"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="dia">Celebración del día</SelectItem>
+          {current.optional.map(({ id, name }) => <SelectItem key={id} value={id}>{name}</SelectItem>)}
+        </SelectContent>
+      </Select>}
+      {hasForms && <Select value={String(option)} onValueChange={value => setOption(Number(value))}>
+        <SelectTrigger aria-label={formsLabel} className="min-w-0 gap-2"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {current.readings.map(({ label }, index) => <SelectItem key={index} value={String(index)}>{label}</SelectItem>)}
+        </SelectContent>
+      </Select>}
     </div>
+  );
+
+  return (
+    <PrayerDetail
+      prayer={readerPrayer}
+      keepScreenAwake={Boolean(reading)}
+      readingBilingual={language === 'ambos'}
+      readingControls={controls}
+      readingContent={
+        reading ? (
+          <>
+            <header className={cn('mb-5 space-y-1 border-b pb-4 [column-span:all]', isDistractionFree && 'pr-10')}>
+              {!mass && isDistractionFree && <p className="text-sm font-semibold text-muted-foreground">{currentHour}</p>}
+              <h2 className="font-headline text-[1.5em] font-semibold leading-tight text-foreground">{reading.celebration}</h2>
+              {reading.label !== reading.celebration && reading.label !== currentHour && (
+                <p className="text-[0.875em] text-muted-foreground">{reading.label}</p>
+              )}
+              {reading.notice && <p className="text-[0.875em] italic text-muted-foreground">{reading.notice}</p>}
+            </header>
+            {language === 'ambos' && latinSections ? (
+              <div className="prayer-bilingual-text">
+                <div className="mb-4 grid grid-cols-2 gap-2 text-xs font-semibold uppercase text-muted-foreground">
+                  <span>Latín</span><span>Español</span>
+                </div>
+                {reading.sections.map((section, index) => (
+                  <div key={index} className={cn('grid grid-cols-2 gap-2 sm:gap-4', index > 0 && readingSectionSeparator)}>
+                    <ReadingSection section={latinSections[index]} lang="la" />
+                    <ReadingSection section={section} lang="es" />
+                  </div>
+                ))}
+              </div>
+            ) : (language === 'latin' && latinSections ? latinSections : reading.sections).map((section, index) => (
+              <ReadingSection
+                key={index}
+                section={section}
+                lang={language === 'latin' ? 'la' : 'es'}
+                className={index > 0 ? readingSectionSeparator : undefined}
+              />
+            ))}
+            {mass && <p className="mt-6 border-t pt-3 text-[0.8em] text-muted-foreground [column-span:all]">
+              Leccionario del Cono Sur. Traducción bíblica: El Libro del Pueblo de Dios.
+            </p>}
+          </>
+        ) : (
+          <p role={current ? 'alert' : 'status'} className="text-sm text-muted-foreground">
+            {current?.failed ? 'No se pudo abrir la edición incluida en Cotidie.'
+              : current ? 'La edición incluida no contiene este formulario para la fecha elegida.'
+                : mass ? 'Preparando las lecturas…' : 'Preparando la oración…'}
+          </p>
+        )
+      }
+    />
   );
 }

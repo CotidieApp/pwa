@@ -68,6 +68,7 @@ export const prayerImagePreference: Record<string, ImageDisplay> = {
   "ave-maria": "top",
   "gloria": "top",
   "credo": "top",
+  "credo-niceno-constantinopolitano": "top",
   "oraciones-varias-predeterminadas-1": "center",
   "oraciones-varias-predeterminadas-2": "center",
   "oraciones-varias-predeterminadas-3": "center",

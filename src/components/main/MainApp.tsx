@@ -1201,7 +1201,10 @@ export default function MainApp() {
     Boolean(currentPrayer?.id) &&
     Boolean(currentPrayer?.content) &&
     !currentPrayer?.prayers?.length;
-  const isHoursReadingView = navState.activeView === 'prayer' && currentPrayer?.id === LITURGY_HOURS_ID;
+  const isMassReadingView = navState.activeView === 'prayer' && currentPrayer?.id === LITURGY_MASS_ID;
+  const isLiturgicalReadingView = isMassReadingView || (
+    navState.activeView === 'prayer' && currentPrayer?.id === LITURGY_HOURS_ID
+  );
   const canEditCurrentPrayer =
     isPrayerReadingView &&
     (
@@ -1272,10 +1275,10 @@ export default function MainApp() {
     : undefined;
 
   useEffect(() => {
-    if (!isPrayerReadingView && !isHoursReadingView && isDistractionFree) {
+    if (!isPrayerReadingView && !isLiturgicalReadingView && isDistractionFree) {
       toggleDistractionFree();
     }
-  }, [isDistractionFree, isHoursReadingView, isPrayerReadingView, toggleDistractionFree]);
+  }, [isDistractionFree, isLiturgicalReadingView, isPrayerReadingView, toggleDistractionFree]);
 
   const deletePrayer = (prayer: Prayer) => {
     if (!prayer.id) return;
@@ -1735,8 +1738,8 @@ export default function MainApp() {
             }
             showInfoButton={currentPrayer?.id === 'cartas'}
             onInfo={() => setShowLettersInfo(true)}
-            showPrayerMenu={isPrayerReadingView || isHoursReadingView}
-            onStartTimer={startTimer}
+            showPrayerMenu={isPrayerReadingView || isLiturgicalReadingView}
+            onStartTimer={isMassReadingView ? undefined : startTimer}
             showDeleteButton={canDeleteCurrentPrayer}
             onDelete={canDeleteCurrentPrayer && currentPrayer ? () => setPrayerPendingDelete(currentPrayer) : undefined}
             languageModeLabel={currentPrayerLanguageMode ? languageModeLabel[currentPrayerLanguageMode] : undefined}
