@@ -60,6 +60,7 @@ export type ChileanLiturgicalDay = {
   hours: Celebration;
   mass: Celebration;
   optional: Celebration[];
+  johnBaptistVigil?: boolean;
 };
 
 export function getChileanMassSelection({ mass }: ChileanLiturgicalDay) {

@@ -40,6 +40,14 @@ Object.assign(chile.i18n.names, {
 });
 
 source = source
+  .replace('o > 9999)) throw new Error("The provided year is incorrect")',
+    'o > 99999)) throw new Error("The provided year is incorrect")')
+  .replace(/\b([a-zA-Z.]+)\.toISOString\(\)\.(?:substr|substring)\(0, 10\)/g, 'formatCalendarKey($1)')
+  .replace('(/* @__PURE__ */ new Date(`${r}-12-25T00:00:00.000Z`)).getUTCDay()', 'S(r, 12, 25).getUTCDay()')
+  // Joint memorials can be offered together. A feast or solemnity takes precedence.
+  .replace('({ precedence: d, allowSimilarRankItems: u, isOptional: t }, { precedence: c, allowSimilarRankItems: m, isOptional: y })',
+    '({ precedence: d, allowSimilarRankItems: u, isOptional: t, rank: leftRank }, { precedence: c, allowSimilarRankItems: m, isOptional: y, rank: rightRank })')
+  .replace('if (u === m) {', 'if (u === m || leftRank !== rightRank) {')
   .replace('En = new Sn({ localizedCalendar: $n })', 'En = new Sn({ localizedCalendar: $n, ascensionOnSunday: true, corpusChristiOnSunday: true })')
   .replace('this.options.showSupportNotice !== !1 && !jo(this)', 'false')
   .replace(/async function zn\(s\) \{[\s\S]*?\n\}\nasync function R\(s\) \{[\s\S]*?\n\}/, `const calendarYears = new Map();
@@ -69,6 +77,12 @@ async function R(date = new Date()) {
   .replace(/\/\/# sourceMappingURL=breviarium\.es\.js\.map\s*$/, '');
 
 source += `
+// ISO timestamps use a signed six-digit year beyond 9999. Calendar keys use
+// the same unsigned civil year as the date input.
+function formatCalendarKey(date) {
+  return date.toISOString().split('T', 1)[0].replace(/^\\+0*/, '');
+}
+
 // Cotidie: expose the liturgical date and the first Vespers stored in the corpus.
 export async function getLiturgicalDay(date) {
   const day = await R(date);
@@ -95,6 +109,7 @@ source += `
 const chileDefinition = ${JSON.stringify(chile)};
 const chileOptions = { epiphanyOnSunday: true, ascensionOnSunday: true, corpusChristiOnSunday: true };
 const immaculateConception = 'immaculate_conception_of_the_blessed_virgin_mary';
+const johnBaptistNativity = 'nativity_of_john_the_baptist';
 const immaculateDefinition = chileDefinition.inputs[immaculateConception];
 const chileCalendarOptions = {
   ...chileOptions,
@@ -112,6 +127,25 @@ const chileCalendarOptions = {
 };
 const chileYears = new Map();
 
+function createChileanCalendar(year) {
+  const calendar = new Sn(chileCalendarOptions);
+  const sacredHeart = calendar.dates(year).mostSacredHeartOfJesus(year);
+  if (sacredHeart.getUTCMonth() !== 5 || sacredHeart.getUTCDate() !== 24) return calendar;
+
+  const { localizedCalendar } = chileCalendarOptions;
+  const { inputs } = localizedCalendar;
+  // Ordo 2022, p. 94: when the Sacred Heart falls on June 24, St John is
+  // celebrated on June 23, with his vigil on the preceding evening.
+  return new Sn({ ...chileCalendarOptions, localizedCalendar: {
+    ...localizedCalendar, inputs: {
+      ...inputs,
+      [johnBaptistNativity]: inputs[johnBaptistNativity].map(definition => ({
+        ...definition, dateDef: { month: 6, date: 23 },
+      })),
+    },
+  } });
+}
+
 function summarizeChileanDay(day) {
   return { id: day.id, name: day.name, rank: day.rank, precedence: day.precedence,
     proper: day.fromCalendarId, sundayCycle: day.cycles.sundayCycle,
@@ -120,13 +154,13 @@ function summarizeChileanDay(day) {
 }
 
 export async function getChileanLiturgicalDay(date) {
-  const { hours, mass, optional } = await resolveChileanDay(date);
+  const { hours, mass, optional, johnBaptistVigil } = await resolveChileanDay(date);
   const hoursDay = summarizeChileanDay(hours);
   const massDay = mass.id === immaculateConception && mass !== hours
     ? { ...hoursDay, ...summarizeChileanDay(mass), seasons: hoursDay.seasons,
         periods: hoursDay.periods, psalterWeek: hoursDay.psalterWeek }
     : summarizeChileanDay(mass);
-  return { hours: hoursDay, mass: massDay, optional: optional.map(summarizeChileanDay) };
+  return { hours: hoursDay, mass: massDay, optional: optional.map(summarizeChileanDay), johnBaptistVigil };
 }
 
 async function resolveChileanDay(date) {
@@ -136,7 +170,7 @@ async function resolveChileanDay(date) {
     String(part).padStart(index === 0 ? 4 : 2, '0')).join('-');
   if (!chileYears.has(year)) {
     if (chileYears.size >= 3) chileYears.delete(chileYears.keys().next().value);
-    const calendar = new Sn(chileCalendarOptions);
+    const calendar = createChileanCalendar(year);
     const days = calendar.generateCalendar(year).then(async days => {
       const immaculate = await calendar.getOneLiturgicalDay(immaculateConception, { year });
       return { days, immaculate };
@@ -152,7 +186,9 @@ async function resolveChileanDay(date) {
   if (!hours) throw new Error('No se encontró el día litúrgico chileno.');
   const mass = key.endsWith('-12-08') && date.getDay() === 0 ? immaculate
     : entries.find(entry => entry.id === 'thursday_of_the_lords_supper') ?? hours;
-  return { hours, mass, optional: entries.filter(entry => entry.isOptional) };
+  const johnBaptistVigil = (key.endsWith('-06-22') || key.endsWith('-06-23')) && mass.rank !== 'SOLEMNITY'
+    && days[\`\${year}-06-\${date.getDate() + 1}\`]?.[0]?.id === johnBaptistNativity;
+  return { hours, mass, optional: entries.filter(entry => entry.isOptional), johnBaptistVigil };
 }
 
 export function createChileanHoursEngine(id) {

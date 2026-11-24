@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { languageModeLabel } from '@/components/main/language-mode';
 import { useSettings } from '@/context/SettingsContext';
 import { getLocalDateKey } from '@/lib/calendar-date';
-import { LITURGY_HOURS, parseLiturgyDate, type LiturgyHour } from '@/lib/liturgy-hours';
+import { LITURGY_HOURS, MAX_LITURGY_YEAR, parseLiturgyDate, type LiturgyHour } from '@/lib/liturgy-hours';
 import { loadLiturgyCorpus, readLiturgy, type LiturgyReading, type LiturgySection } from '@/lib/liturgy-hours-reader';
 import { loadLectionary, readMass } from '@/lib/liturgy-mass-reader';
 import { loadRegionalHours } from '@/lib/liturgy-hours-chile';
@@ -61,6 +61,7 @@ function ReadingSection({ section, lang, className }: { section: LiturgySection;
       <div className="mb-2 break-after-avoid">
         <h3 className="font-headline text-[1.1em] font-semibold leading-snug text-foreground">{heading}</h3>
         {reference && <p className="mt-0.5 text-[0.875em] text-muted-foreground">{reference}</p>}
+        {section.notice && <p className="mt-1 text-[0.875em] text-muted-foreground">{section.notice}</p>}
       </div>
     )}
     <ReadingText text={section.text} />
@@ -136,6 +137,7 @@ export default function LiturgyHours({ prayer, mass = false }: { prayer: Prayer;
             <Input
               aria-label="Fecha de la liturgia"
               type="date"
+              max={`${MAX_LITURGY_YEAR}-12-31`}
               value={date}
               onChange={event => changeDate(event.target.value)}
               className="absolute inset-0 h-full cursor-pointer opacity-0 [color-scheme:light] dark:[color-scheme:dark] [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:p-0"
@@ -206,6 +208,23 @@ export default function LiturgyHours({ prayer, mass = false }: { prayer: Prayer;
                 <p className="text-[0.875em] text-muted-foreground">{reading.label}</p>
               )}
               {reading.notice && <p className="text-[0.875em] italic text-muted-foreground">{reading.notice}</p>}
+              {mass && reading.santiago && (
+                <a href={`https://www.eucaristiadiaria.cl/dia_cal.php?fecha=${reading.santiago}`} target="_blank" rel="noreferrer" className="text-[0.875em] text-muted-foreground underline">
+                  Eucaristía Diaria · Arzobispado de Santiago
+                </a>
+              )}
+              {mass && (reading.ordo ? (
+                <details key={date} open={reading.ordo.pending || undefined} className="text-[0.875em] text-muted-foreground">
+                  <summary className="cursor-pointer">Citas del Ordo chileno</summary>
+                  {reading.ordo.references.map((reference, index) => <p key={index} className="mt-1">{reference}</p>)}
+                  {reading.ordo.pending && <p className="mt-1">Alguna variante o delimitación del texto incluido sigue pendiente de cotejo.</p>}
+                  <a href={reading.ordo.url} target="_blank" rel="noreferrer" className="mt-1 inline-block underline">
+                    Ver página del Ordo
+                  </a>
+                </details>
+              ) : (
+                <p className="text-[0.875em] text-muted-foreground">Proyección del calendario chileno.</p>
+              ))}
             </header>
             {language === 'ambos' && latinSections ? (
               <div className="prayer-bilingual-text">

@@ -14,6 +14,7 @@ Este archivo contiene únicamente las reglas vigentes para trabajar en este repo
 - Identificar el resultado concreto esperado y clasificar la tarea: breve, investigación, redacción, revisión, archivos, programación o varias etapas.
 - Consultar primero solo los archivos, símbolos, errores o pruebas directamente relacionados.
 - Revisar las instrucciones más cercanas a los archivos afectados antes de editarlos.
+- Para cambios en el calendario, las fuentes, los formularios o la pantalla de Lecturas de la Misa, consultar [su AGENTS.md](src/lib/prayers/plan-de-vida/santa-misa/lecturas-de-la-misa/AGENTS.md). También rige para los archivos de la función situados en otras carpetas.
 - No releer contexto vigente ni cargar historiales completos sin una razón concreta.
 
 ## Regla de alcance mínimo

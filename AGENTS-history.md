@@ -2,6 +2,24 @@
 
 Historial de intervenciones del asistente en el repo.
 
+## 2026-11-23 — Diferencia de tamaño entre APK históricos
+
+### Planificacion
+
+Cotejar las copias en Google Drive y distinguir qué cambios de empaquetado explican el tamaño de la versión vigente.
+
+### Ejecucion
+
+La versión 3.1.4 ocupa 126.833.971 bytes, con 255 archivos de fuentes estáticas que ya no se distribuyen. La 6.6.3 ocupa 95.858.776 bytes y conserva las seis familias variables históricas. Entre 6.4.14 y 6.4.15 el instalador bajó 55,38 MB, de los cuales 44,49 MB corresponden a dos MP3 recodificados y 10,90 MB a imágenes optimizadas en web y Android. El commit `a263aa149` contiene los cambios de medios.
+
+### Validacion
+
+Integridad ZIP completa y firma v2 de 6.6.3 verificadas. Certificado común con 6.6.2 y 6.4.15. Copias local y Drive con el mismo SHA-256. Los dos discursos conservan la duración y están codificados en mono a 96 kbps. El APK incluye la Liturgia de las Horas, el Leccionario y el EPUB del Nuevo Testamento. Inspección estática, sin prueba en teléfono.
+
+### Archivos Modificados
+
+AGENTS-history.md y caché de trabajo externa. El código y los APK examinados se conservaron.
+
 ## 2026-11-22 — Credo niceno-constantinopolitano bilingüe
 
 ### Planificacion
@@ -8858,3 +8876,129 @@ Pasaron las diez pruebas de liturgia. Una comprobación de los componentes con l
 ### Archivos Modificados
 
 src/components/LiturgyHours.tsx y AGENTS-history.md.
+
+## 2026-11-23 — Subtítulos editoriales en Lecturas de la Misa
+
+### Planificacion
+
+Revisar los comienzos de la primera lectura y el Evangelio del 21 y 23 de noviembre y recorrer el calendario de 2026 con todas sus variantes.
+
+### Ejecucion
+
+El generador omite el subtítulo editorial y el lector lo descarta también en leccionarios anteriores. Se conservan la fórmula de proclamación, la cita y el cuerpo completo de cada pasaje. El formulario de Letrán ofrece 1 Cor 3, 9c-11. 16-17 como primera lectura alternativa y muestra el Salmo 45 en su sección.
+
+### Validacion
+
+El cotejo de los 957 formularios y 4.188 pasajes confirmó la retirada de 2.162 subtítulos y la conservación de todos los cuerpos. La comparación cubrió 1.461 fechas en 2026, 2027, 2028 y 2073. En 2026 se verificaron 365 fechas, con cambios en 359. Pasaron las 152 pruebas, TypeScript, la compilación web y la comprobación de 126 recursos de la PWA. El leccionario exportado coincide con el recurso validado. Queda pendiente la comprobación física en Android.
+
+### Archivos Modificados
+
+scripts/vendor-lectionary-chile.py, public/liturgy/lectionary-cl.json.gzip, src/lib/liturgy-mass-reader.ts, tests/liturgy-hours.cjs y AGENTS-history.md.
+
+## 2026-11-23 — Prioridad del Ordo chileno en Lecturas de la Misa
+
+### Planificacion
+
+Contrastar el leccionario local con las citas de la CECh e integrar los formularios identificados por fecha. Documentar el alcance de la función en su propio AGENTS.md.
+
+### Ejecucion
+
+El índice anual reúne 427 fechas con citas y enlace a su página del Ordo. El recurso local usa primero los formularios de ese índice, añade las opciones identificadas y señala las secciones que requieren cotejo. El 23 de noviembre recupera los fragmentos omitidos en Ap 14 y Sal 23. El 21 y el 24 de noviembre permiten seleccionar el formulario del santoral indicado. Las fechas sin entrada anual se presentan como proyección del calendario chileno.
+
+### Validacion
+
+Se verificaron las 427 fechas del índice, 25 sustituciones tomadas de pasajes con cita coincidente, 153 pruebas, la compilación y la precaché de 126 recursos. En el componente se probaron las citas del 23, el cambio de formulario del 24, el aviso del salmo del 25 y una proyección de 2073. El PDF de Navidad 2026 repite las páginas del 25 al 31 de diciembre de 2025, por lo que esa semana de 2026 conserva la proyección. En 263 fechas queda al menos una delimitación, una alternativa o una referencia que requiere cotejo. Queda pendiente la prueba física.
+
+### Archivos Modificados
+
+AGENTS.md, AGENTS-history.md, src/lib/prayers/plan-de-vida/santa-misa/lecturas-de-la-misa/AGENTS.md, docs/LITURGIA-DE-LAS-HORAS.md, scripts/lectionary-ordo-chile.json, scripts/vendor-lectionary-chile.py, public/liturgy/lectionary-cl.json.gzip, src/lib/liturgy-mass-reader.ts, src/lib/liturgy-hours-reader.ts, src/components/LiturgyHours.tsx y tests/liturgy-hours.cjs.
+
+## 2026-11-23 — Cobertura y correcciones recurrentes del leccionario chileno
+
+### Planificacion
+
+Probar el lector sin los datos anuales durante cien años y usar el Ordo 2027 para detectar errores que se repitan en los ciclos.
+
+### Ejecucion
+
+Se corrigieron en el recurso base los jueves de las semanas XX y XXII del año impar y los Evangelios del martes y miércoles de la semana XXXIV del año par. El generador conserva la marca del ciclo de los Evangelios de la Transfiguración. El lector la aplica tanto en el cálculo como al abrir una fecha del Ordo.
+
+### Validacion
+
+Sin red y sin entradas de Ordo anual, los 36.524 días de 2026 a 2125 tienen primera lectura, salmo y Evangelio. Se recorrieron las seis combinaciones de ciclos. Pasaron las 154 pruebas, los tipos y la comprobación web de 126 recursos de la PWA. El leccionario exportado coincide byte a byte con el recurso probado.
+
+### Archivos Modificados
+
+scripts/vendor-lectionary-chile.py, scripts/lectionary-ordo-chile.json, public/liturgy/lectionary-cl.json.gzip, src/lib/liturgy-mass-reader.ts, tests/liturgy-hours.cjs, docs/LITURGIA-DE-LAS-HORAS.md y AGENTS-history.md.
+
+## 2026-11-23 — Signo de respuesta en el salmo de la Misa
+
+### Planificacion
+
+Identificar las marcas del salmo en el leccionario local y usar el estilo de rúbricas de la vista de lecturas.
+
+### Ejecucion
+
+El lector muestra «℟» en rojo al inicio del estribillo y al final de las estrofas marcadas, también en los salmos de la Vigilia Pascual. Cuando la fuente trae la marca pegada al verso, se añade un espacio antes del signo.
+
+### Validacion
+
+Pasaron las 12 pruebas de liturgia. Los formularios del 21 y 23 de noviembre de 2026 comprueban las marcas al inicio y al cierre y la separación del verso. El HTML del componente aplica al signo las clases de rúbrica para los temas claro y oscuro. Queda pendiente la comprobación visual en Android.
+
+### Archivos Modificados
+
+src/lib/liturgy-mass-reader.ts, tests/liturgy-hours.cjs y AGENTS-history.md.
+
+## 2026-11-24 — Cotejo de los ciclos y fechas de cinco cifras
+
+### Planificacion
+
+Contrastar el cálculo sin Ordos anuales con las publicaciones chilenas disponibles. Verificar las secciones que exige cada fecha y el alcance del calendario futuro.
+
+### Ejecucion
+
+Se corrigieron pasajes recurrentes de ferias, Adviento y el santoral. En la semana XVIII, el Evangelio alternativo del lunes y del martes depende de la lectura del domingo. Se ajustaron la precedencia del Inmaculado Corazón y el traslado del Nacimiento de san Juan Bautista según el Ordo 2022. El 2 y el 9 de noviembre ofrecen sus formularios dominicales cuando corresponde. El selector da acceso a las vigilias incluidas y a la Misa crismal. El límite del motor y del selector se amplió al 31 de diciembre del año 99999.
+
+### Validacion
+
+Pasaron las 155 pruebas, los tipos, la compilación web y la precaché de 126 recursos. Los dos recursos litúrgicos exportados coinciden con sus fuentes locales. Sin conexión ni índice anual se verificaron 178.620 fechas, incluidas las de 2026–2425, 9999–10001 y 99999. Los 85 años representativos adicionales completaron las 315 configuraciones de calendario civil, Pascua y ciclos que se dan hasta 99999. El recorrido incluyó 31.876 fechas que pedían segunda lectura, 489 vigilias pascuales y 489 vigilias breves de Pentecostés. Quedan pendientes el cotejo íntegro de las variantes y la prueba física en Android.
+
+### Archivos Modificados
+
+scripts/vendor-lectionary-chile.py, scripts/lectionary-ordo-chile.json, scripts/vendor-liturgy-hours.mjs, public/liturgy/breviarium-3.1.8.js, public/liturgy/lectionary-cl.json.gzip, src/lib/liturgy-hours.ts, src/lib/liturgy-chile.ts, src/lib/liturgy-mass-reader.ts, src/components/LiturgyHours.tsx, tests/liturgy-hours.cjs, docs/LITURGIA-DE-LAS-HORAS.md, src/lib/prayers/plan-de-vida/santa-misa/lecturas-de-la-misa/AGENTS.md y AGENTS-history.md.
+
+## 2026-11-24 — Revisión de las lecturas y opciones pendientes
+
+### Planificacion
+
+Cotejar las 262 fechas marcadas en el índice del Ordo con las ediciones litúrgicas de Santiago y los pasajes del leccionario local. Aplicar al calendario calculado las correcciones y opciones recurrentes que permitan las fuentes.
+
+### Ejecucion
+
+Se cerraron 173 fechas y se añadieron 38 opciones de formulario al índice anual. El lector también ofrece opciones del santoral en 58 fechas del año cuando la feria las admite. Se corrigieron los límites y textos de lecturas recurrentes, incluida la cita de Cantar 3 para santa María Magdalena, y se incorporaron el formulario de san Martín de Tours, el de san Alberto Hurtado, las alternativas del Carmen y la forma extensa de la Vigilia de Pentecostés. Quedaron 89 fechas con al menos un punto abierto por diferencias de edición, límites de lectura o variantes.
+
+### Validacion
+
+Pasaron 156 pruebas, los tipos, la compilación web y la precaché de 126 recursos. El leccionario exportado coincide con el recurso local. Se recorrieron sin Ordos anuales 178.620 fechas y 489 vigilias extensas de Pentecostés. Quedan pendientes el cotejo de las fechas indicadas y la prueba física en Android.
+
+### Archivos Modificados
+
+scripts/vendor-lectionary-chile.py, scripts/lectionary-ordo-chile.json, public/liturgy/lectionary-cl.json.gzip, src/lib/liturgy-mass-reader.ts, tests/liturgy-hours.cjs, docs/LITURGIA-DE-LAS-HORAS.md y AGENTS-history.md.
+
+## 2026-11-24 — Cierre del cotejo con la edición de Santiago
+
+### Planificacion
+
+Resolver los avisos de las 89 fechas restantes dando prioridad a Eucaristía Diaria del Arzobispado de Santiago. Trasladar las correcciones al formulario recurrente que corresponda.
+
+### Ejecucion
+
+Se cotejaron 117 secciones y se aplicaron 91 ajustes de pasaje u orden de variantes. En siete fechas se puso primero la memoria publicada por Santiago y se mantuvo la feria disponible. Se conservó la referencia de cada edición. Para cinco fechas de 2027 se usaron ediciones anteriores del mismo formulario y ciclo. El índice conserva 427 fechas y queda sin avisos de cotejo.
+
+### Validacion
+
+Pasaron 157 pruebas, los tipos, la exportación web y la comprobación de 126 entradas de precaché. El leccionario exportado coincide con el local. Se verificaron 178.620 fechas sin red ni índice anual, con 315 configuraciones de calendario hasta 99999 y 489 vigilias pascuales. La comprobación física en Android sigue pendiente.
+
+### Archivos Modificados
+
+scripts/lectionary-santiago-chile.json, scripts/lectionary-ordo-chile.json, scripts/vendor-lectionary-chile.py, public/liturgy/lectionary-cl.json.gzip, src/lib/liturgy-hours-reader.ts, src/lib/liturgy-mass-reader.ts, src/components/LiturgyHours.tsx, tests/liturgy-hours.cjs, docs/LITURGIA-DE-LAS-HORAS.md, src/lib/prayers/plan-de-vida/santa-misa/lecturas-de-la-misa/AGENTS.md y AGENTS-history.md.

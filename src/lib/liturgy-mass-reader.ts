@@ -1,14 +1,17 @@
+import { getLocalDateKey } from './calendar-date';
 import { getChileanMassSelection, type ChileanLiturgicalDay } from './liturgy-chile';
 import type { LiturgyReading, LiturgySection } from './liturgy-hours-reader';
 
 const LECTIONARY_PATH = '/liturgy/lectionary-cl.json.gzip';
 const { inflate } = require('pako') as { inflate: (input: Uint8Array) => Uint8Array };
 
-type Passage = { c?: string; h?: string; i?: string; x: string };
+type Passage = { c?: string; h?: string; y?: string; x: string };
 type Form = {
   id: string;
   lb?: string;
   y?: string;
+  ordo?: LiturgyReading['ordo'];
+  santiago?: string;
   p: { s: string; o: Passage[] }[];
 };
 export type Lectionary = Record<string, Form[]>;
@@ -23,6 +26,8 @@ const celebrations: Partial<Record<string, string>> = {
   exaltation_of_the_holy_cross: 'chile:santa-cruz',
   philip_and_james_apostles: 'md:05-03',
   our_lord_jesus_christ_the_eternal_high_priest: 'chile:sumo-sacerdote',
+  nativity_of_john_the_baptist: 'md:06-24',
+  immaculate_heart_of_mary: 'corazon-inmaculado',
   teresa_of_jesus_of_los_andes_virgin: 'chile:teresa-andes',
   our_lady_of_mount_carmel: 'chile:carmen',
   rose_of_lima_virgin: 'md:08-30',
@@ -76,53 +81,136 @@ function formKey(date: Date, id: string, rank: string) {
 
 const mainRoles: Partial<Record<string, string>> = {
   L1: 'Primera lectura', L2: 'Segunda lectura', SAL: 'Salmo responsorial',
-  EV: 'Evangelio', SEC: 'Secuencia', ACL: 'Aclamación al Evangelio',
+  EV: 'Evangelio', SEC: 'Secuencia', ACL: 'Aclamación al Evangelio', EP: 'Epístola',
 };
 const liturgicalNumbers = ['Primera', 'Segunda', 'Tercera', 'Cuarta', 'Quinta', 'Sexta', 'Séptima', 'Octava'];
 
 function readingTitle(role: string, vigil: boolean) {
   if (vigil && role === 'L8') return 'Epístola';
   if (vigil && role === 'SAL8') return 'Aleluya y salmo';
-  if (vigil && /^SAL[2-7]$/.test(role)) return 'Salmo responsorial';
+  if (/^SAL[2-7]$/.test(role)) return 'Salmo responsorial';
   if (/^L[3-8]$/.test(role)) return liturgicalNumbers[Number(role.slice(1)) - 1] + ' lectura';
   return mainRoles[role];
 }
 
-function sectionsFor(form: Form, vigil: boolean): LiturgySection[] {
+function formatPsalmResponse(text: string) {
+  // Some sources attach the marker directly to the last word or punctuation.
+  return text.replace(/^([\t ]*)R\.(?=\s|$)|(\S)?R\.(?=[\t ]*$)/gm,
+    (_, indent, attached) => `${indent ?? (attached ? `${attached} ` : '')}$℟$`);
+}
+
+function sectionsFor(form: Form, vigil: boolean, cycle: string, gospelOption?: number): LiturgySection[] {
   return form.p.flatMap(({ s, o }) => {
     const title = readingTitle(s, vigil);
     if (!title) return [];
-    return o.filter(passage => passage.x.trim()).map(({ h, c, i, x }, index) => ({
+    const options = s === 'EV' && gospelOption !== undefined && o[gospelOption] ? [o[gospelOption]] : o;
+    return options.filter(passage => (!passage.y || passage.y === cycle) && passage.x.trim()).map(({ h, c, x }, index) => ({
       title: index ? `${title} · O bien` : title,
-      text: [[h, c].filter(Boolean).join(' '), i, x].filter(Boolean).join('\n\n'),
+      text: [[h, c].filter(Boolean).join(' '), /^SAL[2-8]?$/.test(s) ? formatPsalmResponse(x) : x].filter(Boolean).join('\n\n'),
+      notice: form.ordo?.unverified.includes(s) ? 'Texto incluido pendiente de cotejo con la cita del Ordo.' : undefined,
     }));
   });
 }
 
-export function readMass(lectionary: Lectionary, date: Date, day: ChileanLiturgicalDay): LiturgyReading[] {
-  const { lectionaryId, sundayCycle, weekdayCycle } = getChileanMassSelection(day);
-  const key = formKey(date, lectionaryId, day.mass.rank);
-  if (!key) return [];
-  const cycle = sundayCycle.slice(-1);
-  const parity = weekdayCycle === 'YEAR_1' ? 'I' : 'II';
+function cycleForms(lectionary: Lectionary, key: string, selection: ReturnType<typeof getChileanMassSelection>) {
+  const cycle = selection.sundayCycle.slice(-1);
+  const parity = selection.weekdayCycle === 'YEAR_1' ? 'I' : 'II';
   let forms = (lectionary[key] ?? []).filter(form => !form.y || form.y === cycle);
   if (forms.some(form => form.id === `${key}.${parity}`)) {
     forms = forms.filter(form => form.id === `${key}.${parity}`);
   }
   if (key === 'nav:01-07') {
-    const wanted = lectionaryId.endsWith('_after_epiphany') ? /lunes después/i : /^feria/i;
+    const wanted = selection.lectionaryId.endsWith('_after_epiphany') ? /lunes después/i : /^feria/i;
     forms = forms.filter(form => wanted.test(form.lb ?? ''));
   }
   if (key === 'md:12-25' || key === 'ramos') {
     const wanted = key === 'md:12-25' ? 'Misa del día' : 'Misa';
     forms.sort((a, b) => Number(b.lb === wanted) - Number(a.lb === wanted));
   }
-  return forms.map(form => ({
+  return forms;
+}
+
+function weekEighteenGospel(date: Date, key: string | undefined, cycle: string) {
+  if (key !== 'dda:fer:18:1' && key !== 'dda:fer:18:2') return undefined;
+  const sunday = new Date(date.getFullYear(), date.getMonth(), date.getDate() - date.getDay(), 12);
+  const transfiguration = sunday.getMonth() === 7 && sunday.getDate() === 6;
+  return cycle === 'A' && !transfiguration ? 1 : 0;
+}
+
+function projectedForms(lectionary: Lectionary, date: Date, key: string, selection: ReturnType<typeof getChileanMassSelection>) {
+  const isSunday = date.getDay() === 0;
+  if (key === 'md:11-09' && isSunday) {
+    const sunday = cycleForms(lectionary, 'dda:dom:32', selection).map(form => ({ ...form, lb: 'Lecturas del domingo' }));
+    return [...sunday, ...cycleForms(lectionary, 'chile:letran-domingo', selection)];
+  }
+  const forms = cycleForms(lectionary, key, selection);
+  if (key === 'chile:madre-iglesia') {
+    const santiago = cycleForms(lectionary, 'madre-iglesia', selection).filter(form => form.santiago);
+    return santiago.length ? [...santiago, ...forms.map(form => ({ ...form, lb: 'Otras lecturas de la memoria' }))] : forms;
+  }
+  if (key === 'corazon-inmaculado') {
+    const ferialKey = formKey(date, selection.lectionaryId, 'WEEKDAY');
+    if (!ferialKey || ferialKey === key) return forms;
+    const ferial = cycleForms(lectionary, ferialKey, selection).map(form => ({ ...form, lb: 'Lecturas de la feria' }));
+    return [...forms, ...ferial];
+  }
+  if (/^(?:dda|adv|pas):fer:/.test(key)) {
+    const recurring = `chile:memoriales:${getLocalDateKey(date).slice(-5)}`;
+    const memorials = cycleForms(lectionary, recurring, selection);
+    const santiago = memorials.filter(form => form.santiago);
+    const ferial = santiago.length ? forms.map(form => ({ ...form, lb: 'Lecturas de la feria' })) : forms;
+    return [...santiago, ...ferial, ...memorials.filter(form => !form.santiago)];
+  }
+  if (key !== 'md:11-02') return forms;
+  const memorial = [
+    ...cycleForms(lectionary, 'chile:difuntos', selection),
+    ...forms.map(form => ({ ...form, lb: 'Otras lecturas de difuntos' })),
+  ];
+  if (!isSunday) return memorial;
+  const sunday = cycleForms(lectionary, 'dda:dom:31', selection).map(form => ({ ...form, lb: 'Lecturas del domingo' }));
+  return [...sunday, ...memorial];
+}
+
+function additionalMasses(date: Date, { mass, johnBaptistVigil }: ChileanLiturgicalDay): [string, string][] {
+  const { id, weekdayId } = mass;
+  if (id === 'thursday_of_the_lords_supper') return [['crismal', 'Misa crismal']];
+  if ((weekdayId ?? id) === 'easter_time_7_saturday') return [
+    ['pentecostes-vigilia', 'Vigilia de Pentecostés · Forma breve'],
+    ['pentecostes-vigilia-extensa', 'Vigilia de Pentecostés · Forma extensa'],
+  ];
+  if (johnBaptistVigil) return [['md:06-23v', 'Vigilia del Nacimiento de san Juan Bautista']];
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  if (month === 12 && day === 24) return [['md:12-24v', 'Vigilia de Navidad']];
+  if (month === 6 && day === 28) return [['md:06-28v', 'Vigilia de san Pedro y san Pablo']];
+  if (month === 8 && day === 14) return [['md:08-14v', 'Vigilia de la Asunción']];
+  return [];
+}
+
+export function readMass(lectionary: Lectionary, date: Date, day: ChileanLiturgicalDay): LiturgyReading[] {
+  const selection = getChileanMassSelection(day);
+  const id = day.mass.id === 'immaculate_heart_of_mary' ? day.mass.id : selection.lectionaryId;
+  const key = formKey(date, id, day.mass.rank);
+  const official = lectionary[`ordo:${getLocalDateKey(date)}`];
+  const forms = official ?? (key ? projectedForms(lectionary, date, key, selection) : []);
+  const cycle = selection.sundayCycle.slice(-1);
+  const gospelOption = official ? undefined : weekEighteenGospel(date, key, cycle);
+  const readings: LiturgyReading[] = forms.map(form => ({
     label: form.lb ?? (key === 'vigilia-pascual' ? 'Vigilia Pascual' : 'Misa del día'),
     celebration: day.mass.name,
-    sections: sectionsFor(form, key === 'vigilia-pascual'),
+    sections: sectionsFor(form, key === 'vigilia-pascual', cycle, form.id.startsWith(`${key}.`) ? gospelOption : undefined),
     notice: key === 'vigilia-pascual' ? 'Lecturas de la Vigilia Pascual, que se celebra después del anochecer.' : undefined,
-  })).filter(form => form.sections.length > 0);
+    ordo: form.ordo,
+    santiago: form.santiago,
+  }));
+  for (const [extraKey, label] of additionalMasses(date, day)) {
+    for (const form of cycleForms(lectionary, extraKey, selection)) {
+      if (!forms.some(current => current.id === form.id)) {
+        readings.push({ label, celebration: label, sections: sectionsFor(form, false, cycle) });
+      }
+    }
+  }
+  return readings.filter(reading => reading.sections.length > 0);
 }
 
 let pendingLectionary: Promise<Lectionary> | undefined;

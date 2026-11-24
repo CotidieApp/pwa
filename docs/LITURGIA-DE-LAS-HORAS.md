@@ -108,8 +108,77 @@ entrada. Conviene confirmar esa indicación al recibir el Propio vigente.
 `src/lib/liturgy-chile.ts` identifica la celebración y los ciclos. El lector
 abre la combinación correspondiente de `public/liturgy/lectionary-cl.json.gzip`.
 El sufijo `.gzip` conserva la ruta y los bytes comprimidos en el APK. Android procesa los archivos `.gz` al empacar.
-Queda pendiente cotejar cada variante con los tres tomos del Leccionario
-aprobado. La aplicación incluye cero EPUB para las dos funciones.
+La aplicación incluye cero EPUB para las dos funciones.
+
+### Citas del Ordo por fecha
+
+`scripts/lectionary-ordo-chile.json` registra por fecha civil el PDF de la
+CECh, su página, las citas y los formularios disponibles en el leccionario
+local. El generador integra esas entradas en el mismo recurso sin conexión.
+Al abrir una fecha incluida, el lector prioriza la selección cotejada con
+[Eucaristía Diaria](https://www.eucaristiadiaria.cl/que_es.php) del Arzobispado
+de Santiago cuando las fuentes difieren. También ofrece las alternativas
+del Ordo y enlaza a las ediciones consultadas. El texto base es El Libro del
+Pueblo de Dios. La app señala las variantes y delimitaciones que requieran
+cotejo.
+
+El índice cubre del 30 de noviembre de 2025 al 24 de diciembre de 2026,
+del 1 al 10 de enero de 2027 y del 28 de noviembre al 24 de diciembre de 2027.
+El PDF de Navidad con nombre `2026-Navidad` vuelve a imprimir los días 25
+a 31 de diciembre de 2025 antes de pasar a enero de 2027. Las fechas de
+Navidad de diciembre de 2026 se muestran como proyección del calendario, al
+igual que las demás fechas sin entrada anual.
+
+Para incorporar un Ordo, añadir sus fechas verificadas al índice con el
+nombre del PDF, la página digital y las citas. `forms` contiene los
+identificadores de los formularios locales en orden de presentación.
+`replace` permite tomar un pasaje de otra forma local por identificador,
+sección e índice de opción. `pending` y `unverified` señalan la revisión
+pendiente de un formulario y de sus partes. Regenerar el recurso y ejecutar
+las pruebas litúrgicas después de cada incorporación.
+
+`scripts/lectionary-santiago-chile.json` registra la edición consultada y los
+pasajes ajustados para cada formulario revisado con el Arzobispado. Esas
+correcciones se cargan en el formulario del ciclo antes de generar las
+entradas fechadas. Para cinco fechas de 2027 se contrastó el mismo formulario
+en una edición anterior. El índice de 427 fechas quedó sin avisos de cotejo.
+
+Las correcciones que se repiten se incorporan a los formularios del ciclo.
+El jueves de la semana XX del Tiempo Ordinario, año impar, usa Jueces 11,
+Salmo 39 y Mateo 22. El generador toma el formulario de
+[Eucaristía Diaria](https://www.eucaristiadiaria.cl/dia_cal.php?fecha=2025-08-21),
+guardado como `ordinario-20-jueves-impar.html` en la carpeta de fuentes, y
+lo coteja con las citas del [Ordo 2027](https://www.iglesia.cl/docs/2027-Ordinario-II.pdf).
+El jueves de la semana XXII del mismo ciclo conserva Col 1, 9-14 con
+la cita corregida.
+El Evangelio del martes y del miércoles de la semana XXXIV coincide en
+ambos años feriales según los Ordos de 2022, 2026 y 2027. La Transfiguración
+usa el Evangelio marcado para cada ciclo dominical en el leccionario de base.
+El cotejo posterior de 2025, 2026 y 2027 corrigió otros Evangelios feriales
+y los pasajes de Todos los Santos y del sábado de la primera semana de
+Adviento. En la semana XVIII, el lunes y el martes usan la serie alternativa
+si el domingo se leyó la multiplicación de los panes en el ciclo A. Cuando
+la Transfiguración ocupa ese domingo, se conserva la serie habitual.
+
+El lector ofrece en el selector la Misa crismal y las vigilias de Navidad,
+Pentecostés (formas breve y extensa), el Nacimiento de san Juan Bautista, san Pedro y
+san Pablo y la Asunción junto con el formulario del día. Estas opciones se
+calculan aunque falte el índice anual. La Misa crismal se muestra el Jueves
+Santo como referencia habitual. Si el Sagrado Corazón cae el 24 de junio, el
+Nacimiento de san Juan Bautista se adelanta al 23 y su vigilia al 22 según
+el [Ordo chileno de 2022](https://www.iglesia.cl/docs/Ordo_Pastoral_2022_Final.pdf#page=94).
+El 2 de noviembre ofrece las lecturas de difuntos y, si cae en domingo,
+también las del domingo XXXI, siguiendo el [Ordo chileno de 2025](https://www.iglesia.cl/docs/2025-Ordinario-II.pdf).
+El 9 de noviembre ofrece las lecturas del domingo XXXII cuando corresponde
+y conserva el formulario de Letrán con su segunda lectura.
+Las opciones recurrentes del santoral que documenta el Ordo también se
+ofrecen en las ferias de Adviento, Pascua y Tiempo Ordinario cuando corresponde.
+Si la edición de Santiago destaca las lecturas de la memoria, ese formulario
+se muestra primero y se conserva la feria en el selector.
+
+El selector y el motor admiten fechas hasta el 31 de diciembre del año 99999.
+El cálculo aplica los ciclos A, B y C del domingo y los ciclos I y II de
+las ferias con el calendario y el leccionario incluidos en la aplicación.
 
 La edición de referencia para Chile es la latinoamericana de México y Colombia
 [adoptada por Chile](https://www.cultodivino.va/content/dam/cultodivino/rivista-notitiae/1980/notitiae-22-%281986%29/Notitiae-236-237-1986.pdf).
@@ -160,10 +229,11 @@ y el [Ordo de la CECh](https://www.iglesia.cl/docs/2026-Ordinario-II.pdf).
 Por ejemplo, el formulario de María, Madre de la Iglesia en el archivo digital
 termina en Jn 19, 27. La [notificación del Vaticano](https://press.vatican.va/content/salastampa/es/bollettino/pubblico/2018/03/27/cult.html)
 prescribe lecturas propias para esta memoria y el [formulario publicado por la USCCB](https://www.usccb.org/es/prayer-and-worship/liturgical-year-and-calendar/mother-of-the-church)
-indica Jn 19, 25-34. El selector del repositorio identifica ese caso y las citas
-del formulario universal. Para el Carmen, el salmo que publica
-[Eucaristía Diaria](https://www.eucaristiadiaria.cl/dia_cal.php?fecha=2026-07-16)
-difiere de las opciones del Ordo nacional. Para Santa Cruz de mayo se confirmó
+indica Jn 19, 25-34. La app ofrece primero el formulario de Santiago y conserva
+el formulario universal como opción en las proyecciones. En el Carmen se
+priorizan el salmo 84 y Hch 1, 12-14 según la edición de Santiago y se
+conservan las alternativas nacionales. [Eucaristía Diaria del 16 de julio](https://www.eucaristiadiaria.cl/dia_cal.php?fecha=2026-07-16).
+Para Santa Cruz de mayo se confirmó
 el [Sal 77, 1-2. 34-38](https://www.eucaristiadiaria.cl/dia_cal.php?fecha=2025-05-03).
 
 Los [seis EPUB de las Horas](https://www.curas.com.ar/Moviles/Epub.htm) también
@@ -243,6 +313,16 @@ generación. El suplemento del Carmen utiliza las páginas PDF 52–58 del
 [fascículo VI de la BCN](https://obtienearchivo.bcn.cl/obtienearchivo?id=documentos%2F10221.1%2F68351%2F2%2F273286.pdf)
 extraídas con `pdftotext -layout`. Los recursos finales son JSON y JSON
 comprimido. Los originales y el PDF son material de compilación.
+
+El Leccionario usa además `sumo-sacerdote-hebreos.html` de la
+[edición de Santiago del 9 de junio de 2022](https://www.eucaristiadiaria.cl/dia_cal.php?fecha=2022-06-09).
+Los archivos `biblia-galatas5.html`, `biblia-1cor8.html`, `biblia-judit13.html`,
+`biblia-judit15.html` y `biblia-judit16.html` guardan los capítulos de
+[Gálatas](https://www.vatican.va/archive/ESL0506/_PYX.HTM),
+[1 Corintios](https://www.vatican.va/archive/ESL0506/_PY7.HTM) y
+[Judit 13](https://www.vatican.va/archive/ESL0506/_PQR.HTM),
+[15](https://www.vatican.va/archive/ESL0506/_PQT.HTM) y
+[16](https://www.vatican.va/archive/ESL0506/_PQU.HTM) del Libro del Pueblo de Dios.
 
 ```powershell
 python -X utf8 scripts/vendor-lectionary-chile.py <carpeta-de-fuentes> public/liturgy/lectionary-cl.json.gzip

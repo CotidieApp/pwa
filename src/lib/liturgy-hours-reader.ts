@@ -69,13 +69,15 @@ type Corpus = {
   getFerialInvitatory(date: Date): Promise<TextFields | undefined>;
 };
 
-export type LiturgySection = { title?: string; text: string };
+export type LiturgySection = { title?: string; text: string; notice?: string };
 export type LiturgyReading = {
   label: string;
   celebration: string;
   sections: LiturgySection[];
   latinSections?: LiturgySection[];
   notice?: string;
+  ordo?: { url: string; references: string[]; pending: boolean; unverified: string[] };
+  santiago?: string;
 };
 
 export function loadLiturgyCorpus(): Promise<Corpus> {

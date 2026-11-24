@@ -42,9 +42,12 @@ const read = async (date, hour) => (await readLiturgy(await corpus, parseLiturgy
 const readingText = reading => reading.sections.map(section => [section.title, section.text].filter(Boolean).join('\n')).join('\n');
 
 test('liturgical dates preserve valid local dates, leap days and far-future years', () => {
-  for (const invalid of ['', '2026-02-29', '2026-13-01', '14/11/2026']) assert.equal(parseLiturgyDate(invalid), null);
+  for (const invalid of ['', '2026-02-29', '2026-13-01', '14/11/2026', '100000-01-01']) {
+    assert.equal(parseLiturgyDate(invalid), null);
+  }
   assert.equal(parseLiturgyDate('2028-02-29').getHours(), 12);
   assert.equal(parseLiturgyDate('2300-01-01').getFullYear(), 2300);
+  assert.equal(parseLiturgyDate('99999-12-31').getFullYear(), 99999);
 });
 
 test('Chilean calendar observes the national feasts, rank and split between Mass and Hours', async () => {
@@ -271,6 +274,282 @@ test('Chilean Ordo 24–30 August 2026: packaged offices, optional memorials and
   }
 });
 
+test('Mass readings begin with the proclaimed text and keep the Lateran readings in order', async () => {
+  const { getChileanLiturgicalDay } = await corpus;
+  const lectionary = JSON.parse(require('node:zlib').gunzipSync(fs.readFileSync(path.join(path.dirname(corpusPath), 'lectionary-cl.json.gzip'))));
+  const forms = new Set(Object.values(lectionary).flat());
+  for (const { id, p } of forms) {
+    for (const { s, o } of p) {
+      for (const passage of o) {
+        assert.ok(!Object.hasOwn(passage, 'i'), `${id} ${s} has an editorial subtitle`);
+        if (s.startsWith('SAL')) assert.doesNotMatch(passage.x, /\nPalabra de Dios\.?$/i, id);
+      }
+    }
+  }
+
+  const massOn = async key => {
+    const date = parseLiturgyDate(key);
+    return readMass(lectionary, date, await getChileanLiturgicalDay(date))[0].sections;
+  };
+  // A previously cached lectionary may still contain the source subtitles.
+  const weekday = lectionary['dda:fer:34:1'].find(form => form.id.endsWith('.II'));
+  weekday.p.find(section => section.s === 'L1').o[0].i = 'Tenían escrito en la frente el nombre del Cordero y de su Padre';
+  weekday.p.find(section => section.s === 'EV').o[0].i = 'Vio una viuda de condición muy humilde';
+  delete lectionary['ordo:2026-11-23'];
+
+  for (const [key, first, gospel] of [
+    ['2026-11-21', /^Se me dijo a mí, Juan:/, /^Se acercaron a Jesús algunos saduceos/],
+    ['2026-11-23', /^Yo, Juan, vi al Cordero/, / los ojos, Jesús vio a unos ricos/],
+  ]) {
+    const mass = await massOn(key);
+    assert.match(mass.find(section => section.title === 'Primera lectura').text.split('\n\n')[1], first, key);
+    assert.match(mass.find(section => section.title === 'Evangelio').text.split('\n\n')[1], gospel, key);
+  }
+
+  const lateran = (await massOn('2026-11-09')).filter(section => /lectura|Salmo/.test(section.title));
+  assert.deepEqual(lateran.map(section => section.title), ['Primera lectura', 'Primera lectura · O bien', 'Salmo responsorial']);
+  assert.match(lateran[1].text, /Corinto 3, 9c-11\. 16-17\n\nHermanos:/);
+  assert.match(lateran[2].text, /^Sal 45, 2-3/);
+});
+
+test('the published Chilean Ordo takes priority over calculated Mass formularies offline', async () => {
+  const { getChileanLiturgicalDay } = await corpus;
+  const lectionary = JSON.parse(require('node:zlib').gunzipSync(fs.readFileSync(path.join(path.dirname(corpusPath), 'lectionary-cl.json.gzip'))));
+  const index = JSON.parse(fs.readFileSync(path.join(__dirname, '../scripts/lectionary-ordo-chile.json'), 'utf8'));
+  const massOn = async key => {
+    const date = parseLiturgyDate(key);
+    return readMass(lectionary, date, await getChileanLiturgicalDay(date));
+  };
+
+  for (const [date, entry] of Object.entries(index)) {
+    const readings = await massOn(date);
+    assert.ok(readings.length, date);
+    assert.deepEqual(readings[0].ordo, {
+      url: 'https://www.iglesia.cl/docs/' + entry.source + '.pdf#page=' + entry.page,
+      references: entry.references,
+      pending: entry.pending ?? false,
+      unverified: entry.unverified ?? [],
+    }, date);
+  }
+
+  const [weekday] = await massOn('2026-11-23');
+  assert.equal(weekday.ordo.pending, false);
+  assert.match(readingText(weekday), /Apocalipsis 14, 1-5[\s\S]+y son vírgenes/);
+  const psalm = weekday.sections.find(section => section.title === 'Salmo responsorial').text;
+  assert.match(psalm, /^Sal 23, 1-6\n\n\$℟\$ Así son los que buscan tu rostro, Señor\./);
+  assert.match(psalm, /ni jura falsamente\. \$℟\$/);
+  assert.equal(psalm.match(/\$℟\$/g).length, 4);
+  assert.doesNotMatch(psalm, /R\./);
+  assert.match(readingText(weekday), /Lucas 21, 1-4\n\nLevantando los ojos/);
+
+  const [ferial, memorial] = await massOn('2026-11-21');
+  assert.match(readingText(ferial), /Lucas 20, 27-40/);
+  assert.equal(memorial.label, 'Lecturas del santoral');
+  assert.match(readingText(memorial), /me llamarán feliz\. \$℟\$/m);
+  assert.match(readingText(memorial), /Zacarías 2, 14-17[\s\S]+Mateo 12, 46-50/);
+
+  assert.match(readingText((await massOn('2026-01-31'))[0]), /Marcos 4, 35-41/);
+  const [ferialNovember24, memorialNovember24] = await massOn('2026-11-24');
+  assert.match(readingText(ferialNovember24), /Lucas 21, 5-9/);
+  assert.match(readingText(memorialNovember24), /Mateo 10, 17-22/);
+  const [november25] = await massOn('2026-11-25');
+  assert.equal(november25.santiago, '2026-11-25');
+  assert.equal(november25.sections.find(section => section.title === 'Salmo responsorial').notice, undefined);
+  assert.match(readingText(november25), /Lucas 21, 10-19/);
+  const [future] = await massOn('2073-11-14');
+  assert.equal(future.ordo, undefined);
+  assert.match(readingText(future), /Lucas 17, 7-10/);
+});
+
+test('recurring Chilean readings use the correct weekday formularies and Sunday cycle without annual data', async () => {
+  const { getChileanLiturgicalDay } = await corpus;
+  const lectionary = JSON.parse(require('node:zlib').gunzipSync(fs.readFileSync(path.join(path.dirname(corpusPath), 'lectionary-cl.json.gzip'))));
+  const projected = Object.fromEntries(Object.entries(lectionary).filter(([key]) => !key.startsWith('ordo:')));
+  const massOn = async key => {
+    const date = parseLiturgyDate(key);
+    return readMass(projected, date, await getChileanLiturgicalDay(date))[0];
+  };
+
+  const thursday = await massOn('2027-08-19');
+  assert.match(readingText(thursday), /Jueces 11, 29-39a[\s\S]+Jefté/);
+  assert.match(readingText(thursday), /Sal 39, 5\. 7-10[\s\S]+Mateo 22, 1-14/);
+  assert.match(readingText(await massOn('2027-09-02')), /Colosas 1, 9-14\n\n/);
+  assert.match(readingText(await massOn('2028-11-28')), /Lucas 21, 5-9/);
+  assert.match(readingText(await massOn('2028-11-29')), /Lucas 21, 10-19/);
+
+  for (const [date, citation] of [
+    ['2026-01-31', /Marcos 4, 35-41/],
+    ['2026-02-17', /Marcos 8, 13-21/],
+    ['2026-05-29', /Marcos 11, 11-25/],
+    ['2026-06-08', /Mateo 4, 25-5, 12/],
+    ['2026-08-19', /Mateo 19, 30[–-]20, 16/],
+    ['2026-09-10', /Lucas 6, 27-36/],
+    ['2026-09-11', /Lucas 6, 37-42/],
+    ['2030-11-01', /Mateo 4, 25\s*[-–]\s*5, 12/],
+  ]) {
+    const gospel = (await massOn(date)).sections.find(section => section.title === 'Evangelio');
+    assert.match(gospel.text, citation, date);
+  }
+  assert.match(readingText(await massOn('2027-12-04')), /Isaías 30, 19-21\. 23-26/);
+
+  for (const [date, citation] of [
+    ['2026-08-06', /Mateo 17, 1-9/],
+    ['2027-08-06', /Marcos 9, 2-10/],
+    ['2028-08-06', /Lucas 9, 28b-36/],
+  ]) {
+    const gospels = (await massOn(date)).sections.filter(section => section.title.startsWith('Evangelio'));
+    assert.equal(gospels.length, 1, date);
+    assert.match(gospels[0].text, citation, date);
+  }
+
+  for (const [date, citation] of [
+    ['2023-08-07', /Mateo 14, 13-21/],
+    ['2023-08-08', /Mateo 14, 22-36/],
+    ['2026-08-03', /Mateo 14, 22-36/],
+    ['2026-08-04', /Mateo 15, 1-2\. 10-14/],
+    ['2027-08-02', /Mateo 14, 13-21/],
+    ['2027-08-03', /Mateo 14, 22-36/],
+  ]) {
+    const gospels = (await massOn(date)).sections.filter(section => section.title.startsWith('Evangelio'));
+    assert.equal(gospels.length, 1, date);
+    assert.match(gospels[0].text, citation, date);
+  }
+
+  assert.match(readingText(await massOn('2031-01-06')), /Mateo 4, 12-17\. 23-25/);
+  assert.match(readingText(await massOn('2031-01-07')), /Marcos 6, 34-44/);
+});
+
+test('proper evening vigils and the Chrism Mass can be selected on their projected dates', async () => {
+  const { getChileanLiturgicalDay } = await corpus;
+  const lectionary = JSON.parse(require('node:zlib').gunzipSync(fs.readFileSync(path.join(path.dirname(corpusPath), 'lectionary-cl.json.gzip'))));
+  const projected = Object.fromEntries(Object.entries(lectionary).filter(([key]) => !key.startsWith('ordo:')));
+  for (const [key, label, expected] of [
+    ['2028-04-13', 'Misa crismal', /Lucas 4, 16-21/],
+    ['2028-06-03', 'Vigilia de Pentecostés · Forma breve', /Juan 7, 37-39/],
+    ['2031-05-31', 'Vigilia de Pentecostés · Forma breve', /Juan 7, 37-39/],
+    ['2027-06-23', 'Vigilia del Nacimiento de san Juan Bautista', /Lucas 1, 5-17/],
+    ['2033-06-22', 'Vigilia del Nacimiento de san Juan Bautista', /Lucas 1, 5-17/],
+    ['2028-06-28', 'Vigilia de san Pedro y san Pablo', /Juan 21, 1\. 15-19/],
+    ['2028-08-14', 'Vigilia de la Asunción', /Lucas 11, 27-28/],
+    ['2028-12-24', 'Vigilia de Navidad', /Mateo 1, 1-25/],
+  ]) {
+    const date = parseLiturgyDate(key);
+    const forms = readMass(projected, date, await getChileanLiturgicalDay(date));
+    assert.notEqual(forms[0].label, label, key);
+    const extra = forms.find(form => form.label === label);
+    assert.ok(extra, key);
+    assert.match(readingText(extra), expected, key);
+  }
+  for (const [key, id, gospel] of [
+    ['2028-06-23', 'most_sacred_heart_of_jesus', /Lucas 15, 3-7/],
+    ['2028-06-24', 'nativity_of_john_the_baptist', /Lucas 1, 57-66\. 80/],
+    ['2030-06-29', 'peter_and_paul_apostles', /Mateo 16, 13-19/],
+    ['2033-06-23', 'nativity_of_john_the_baptist', /Lucas 1, 57-66\. 80/],
+    ['2033-06-24', 'most_sacred_heart_of_jesus', /Juan 19, 31-37/],
+  ]) {
+    const date = parseLiturgyDate(key);
+    const day = await getChileanLiturgicalDay(date);
+    const [mass] = readMass(projected, date, day);
+    assert.equal(day.mass.id, id, key);
+    assert.equal(day.johnBaptistVigil, false, key);
+    assert.match(mass.sections.find(section => section.title === 'Evangelio').text, gospel, key);
+  }
+  const massOn = async (key, data) => {
+    const date = parseLiturgyDate(key);
+    return readMass(data, date, await getChileanLiturgicalDay(date));
+  };
+  const [sunday, memorial] = await massOn('2031-11-02', projected);
+  assert.equal(sunday.label, 'Lecturas del domingo');
+  assert.match(readingText(sunday), /Lucas 19, 1-10/);
+  assert.equal(memorial.label, 'Lecturas de difuntos');
+  assert.match(readingText(memorial), /Corinto 15, 51-57/);
+  assert.match(readingText(memorial), /Juan 11, 17-27/);
+  const [annual] = await massOn('2026-11-02', lectionary);
+  assert.deepEqual(annual.sections, memorial.sections);
+  assert.equal(annual.ordo.pending, false);
+  const [ordinarySunday, dedication] = await massOn('2031-11-09', projected);
+  assert.match(readingText(ordinarySunday), /Lucas 20, 27-38/);
+  assert.equal(dedication.label, 'Dedicación de la Basílica de Letrán');
+  assert.match(dedication.sections.find(section => section.title === 'Segunda lectura').text, /Corinto 3, 9c-11\. 16-17/);
+});
+
+test('the Chilean source review retains the approved passages and liturgical alternatives offline', async () => {
+  const { getChileanLiturgicalDay } = await corpus;
+  const lectionary = JSON.parse(require('node:zlib').gunzipSync(fs.readFileSync(path.join(path.dirname(corpusPath), 'lectionary-cl.json.gzip'))));
+  const massOn = async key => {
+    const date = parseLiturgyDate(key);
+    return readMass(lectionary, date, await getChileanLiturgicalDay(date));
+  };
+
+  const [magdalene] = await massOn('2026-07-22');
+  assert.equal(magdalene.ordo.pending, false);
+  assert.match(readingText(magdalene), /Cantares 3, 1-4a/);
+  assert.match(readingText(magdalene), /Primera lectura · O bien[\s\S]+Corinto 5, 14-17/);
+  for (const date of ['2026-11-11', '2031-11-11']) {
+    const [, memorial] = await massOn(date);
+    assert.equal(memorial.label, 'Lecturas del santoral', date);
+    assert.match(readingText(memorial), /Isaías 61, 1-3a[\s\S]+Sal 88, 2-5[\s\S]+Mateo 25, 31-40/, date);
+  }
+
+  const [corinthians] = await massOn('2026-09-10');
+  assert.match(readingText(corinthians), /Corinto 8, 1\. 4b-13[\s\S]+uso de esta libertad/);
+  const [priest] = await massOn('2026-05-28');
+  assert.match(readingText(priest), /Primera lectura · O bien[\s\S]+Hebreos 10, 12-23/);
+  const [carmen] = await massOn('2028-07-16');
+  const secondReadings = carmen.sections.filter(section => section.title.startsWith('Segunda lectura'));
+  assert.equal(secondReadings.length, 3);
+  assert.match(secondReadings[0].text, /Hechos de los Apóstoles 1, 12\s*[-–]\s*14/);
+  assert.match(secondReadings[1].text, /Timoteo 2, 1-8/);
+  assert.match(secondReadings[2].text, /Galacia 4, 4-7/);
+  assert.match(carmen.sections.find(section => section.title === 'Salmo responsorial').text, /Sal 84/);
+  assert.match(readingText(carmen), /Judit 13, 18-20a; 15, 8-10[\s\S]+Jdt 16, 13-17/);
+  const [, pius] = await massOn('2026-08-21');
+  assert.match(readingText(pius), /Sal 88, 2-5\. 21-22\. 25\. 27[\s\S]+Juan 21, 1\. 15-17/);
+  const [pentecost] = await massOn('2026-05-24');
+  assert.match(readingText(pentecost), /Segunda lectura · O bien[\s\S]+Galacia 5, 16-25/);
+
+  for (const date of ['2026-05-23', '2031-05-31']) {
+    const forms = await massOn(date);
+    const vigil = forms.find(form => form.label === 'Vigilia de Pentecostés · Forma extensa');
+    assert.ok(vigil, date);
+    assert.equal(vigil.sections.filter(section => section.title === 'Salmo responsorial').length, 4, date);
+    assert.match(readingText(vigil), /Salmo responsorial · O bien\nSal 18, 8\. 9\. 10\. 11/, date);
+    assert.match(readingText(vigil), /Epístola\n[^\n]+8, 22-27[\s\S]+Juan 7, 37-39/, date);
+  }
+});
+
+test('Santiago editions resolve every reviewed Mass entry and apply to recurring forms', async () => {
+  const { getChileanLiturgicalDay } = await corpus;
+  const lectionary = JSON.parse(require('node:zlib').gunzipSync(fs.readFileSync(path.join(path.dirname(corpusPath), 'lectionary-cl.json.gzip'))));
+  const editions = require('../scripts/lectionary-santiago-chile.json');
+  const index = require('../scripts/lectionary-ordo-chile.json');
+  const massOn = async key => {
+    const date = parseLiturgyDate(key);
+    return readMass(lectionary, date, await getChileanLiturgicalDay(date));
+  };
+
+  for (const [date, entry] of Object.entries(index)) {
+    assert.deepEqual(entry.unverified ?? [], [], date);
+  }
+  for (const [date, { edition }] of Object.entries(editions)) {
+    const [mass] = await massOn(date);
+    assert.equal(mass.santiago, edition, date);
+    assert.equal(mass.ordo.pending, false, date);
+    assert.ok(mass.sections.every(section => section.notice === undefined), date);
+  }
+  const [stephen] = await massOn('2025-12-26');
+  const first = stephen.sections.find(section => section.title === 'Primera lectura').text;
+  assert.match(first, /Hechos de los Apóstoles 6, 8-10[\s\S]+7, 54-60/);
+  assert.doesNotMatch(first, /8, 2|sepultura/i);
+
+  for (const date of ['2026-10-02', '2031-10-02']) {
+    const [angels, ferial] = await massOn(date);
+    assert.match(readingText(angels), /Éxodo 23[\s\S]+Mateo 18/, date);
+    assert.equal(ferial.label, 'Lecturas de la feria', date);
+  }
+  assert.equal((await massOn('2027-12-16'))[0].santiago, '2022-12-15');
+});
+
 test('packaged Chilean Hour and Mass readers cover current and future dates offline', async t => {
   const requested = new Set();
   const blocked = t.mock.method(globalThis, 'fetch', async url => {
@@ -284,14 +563,18 @@ test('packaged Chilean Hour and Mass readers cover current and future dates offl
     return readMass(lectionary, date, await engine.getChileanLiturgicalDay(date));
   };
   const hoursOn = async (key, hour, memorial) => (await readLiturgy(engine, parseLiturgyDate(key), hour, regional, memorial))[0];
-  for (const year of [2026, 2027, 2028, 2073]) {
+  for (const year of [2026, 2027, 2028, 2073, 9999, 10000, 99999]) {
     for (const date = new Date(year, 0, 1, 12); date.getFullYear() === year; date.setDate(date.getDate() + 1)) {
       const day = await engine.getChileanLiturgicalDay(date);
-      const mass = readMass(lectionary, date, day)[0];
+      const forms = readMass(lectionary, date, day);
+      const [mass] = forms;
       assert.ok(mass, `${date.toLocaleDateString()} ${day.mass.id}`);
       assert.ok(mass.sections.some(section => section.title === 'Primera lectura'), day.mass.id);
       assert.ok(mass.sections.some(section => section.title === 'Salmo responsorial'), day.mass.id);
       assert.ok(mass.sections.some(section => section.title === 'Evangelio'), day.mass.id);
+      for (const { sections } of forms) {
+        for (const { text } of sections) assert.doesNotMatch(text, /‹\/?[a-z]+›/i, day.mass.id);
+      }
       if (year === 2073) {
         for (const { id } of LITURGY_HOURS) {
           const [office] = await readLiturgy(engine, date, id, regional);
@@ -300,6 +583,8 @@ test('packaged Chilean Hour and Mass readers cover current and future dates offl
       }
     }
   }
+  assert.match(readingText((await massOn('10000-04-16'))[0]), /Juan 20, 1-9/);
+  assert.match(readingText((await massOn('99999-03-28'))[0]), /Juan 20, 1-9/);
   const [future] = await massOn('2073-11-14');
   assert.match(readingText(future), /Sabiduría 2, 23-3, 9/);
   assert.match(readingText(future), /Lucas 17, 7-10/);
@@ -307,7 +592,13 @@ test('packaged Chilean Hour and Mass readers cover current and future dates offl
   const [carmen] = await massOn('2026-07-16');
   assert.match(readingText(carmen), /Sal 129, 1-8/);
   assert.ok(carmen.sections.some(section => section.title === 'Segunda lectura'));
-  assert.match(readingText((await massOn('2026-05-25'))[0]), /Juan 19, 25-34/);
+  const [motherOfTheChurch, ferial] = await massOn('2026-05-25');
+  assert.match(readingText(motherOfTheChurch), /Juan 19, 25-27/);
+  assert.match(readingText(ferial), /Marcos 10, 17-27/);
+  assert.equal(ferial.label, 'Lecturas de la feria');
+  const [projectedMotherOfTheChurch, longerForm] = await massOn('2027-05-17');
+  assert.match(readingText(projectedMotherOfTheChurch), /Juan 19, 25-27/);
+  assert.match(readingText(longerForm), /Juan 19, 25-34/);
   assert.equal((await massOn('2026-12-25'))[0].label, 'Misa del día');
   assert.equal((await massOn('2026-04-04'))[0].label, 'Vigilia Pascual');
   assert.match(readingText(await hoursOn('2073-11-14', 'completas')), /Salmo 142/);
